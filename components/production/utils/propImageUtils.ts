@@ -87,6 +87,8 @@ export function getAvailablePropImages(prop: PropType): AvailableImage[] {
 /**
  * Get available images grouped by type (Production Hub vs Creation Image).
  * Used by PropImageSelector dropdown component.
+ * Creation Image only includes images from images[] / baseReference that are NOT already in angleReferences
+ * (so "All" vs "Creation Image" show different sets when the backend sends the same refs in both).
  */
 export function getAvailablePropImagesByGroup(prop: PropType): {
   'Production Hub': AvailableImage[];
@@ -94,14 +96,15 @@ export function getAvailablePropImagesByGroup(prop: PropType): {
 } {
   const productionHub: AvailableImage[] = [];
   const creationImage: AvailableImage[] = [];
-  
+
+  const productionHubS3Keys = new Set<string>();
+
   // Add angleReferences (Production Hub images)
   if (prop.angleReferences && prop.angleReferences.length > 0) {
     prop.angleReferences.forEach(ref => {
       if (ref.s3Key) {
-        // 🔥 FIX: Use angle field as label fallback (backend AssetReference uses `angle`, not `label`)
+        productionHubS3Keys.add(ref.s3Key);
         const effectiveLabel = ref.label || ref.angle;
-        // 🔥 FIX: Include presignedUrl from enriched imageUrl
         const hasPresignedUrl = ref.imageUrl && !ref.imageUrl.startsWith('projects/') && ref.imageUrl.includes('://');
         productionHub.push({
           id: ref.id,
@@ -112,11 +115,11 @@ export function getAvailablePropImagesByGroup(prop: PropType): {
       }
     });
   }
-  
-  // Add images[] (Creation images)
+
+  // Add images[] (Creation images) — only if not already in Production Hub
   if (prop.images && prop.images.length > 0) {
     prop.images.forEach(img => {
-      if (img.s3Key) {
+      if (img.s3Key && !productionHubS3Keys.has(img.s3Key)) {
         const hasPresignedUrl = img.url && !img.url.startsWith('projects/') && img.url.includes('://');
         creationImage.push({
           id: img.s3Key,
@@ -127,9 +130,9 @@ export function getAvailablePropImagesByGroup(prop: PropType): {
       }
     });
   }
-  
-  // Add baseReference (Creation image)
-  if (prop.baseReference?.s3Key) {
+
+  // Add baseReference (Creation image) — only if not already in Production Hub
+  if (prop.baseReference?.s3Key && !productionHubS3Keys.has(prop.baseReference.s3Key)) {
     const hasPresignedUrl = prop.baseReference.imageUrl && !prop.baseReference.imageUrl.startsWith('projects/') && prop.baseReference.imageUrl.includes('://');
     creationImage.push({
       id: prop.baseReference.s3Key,
@@ -138,7 +141,7 @@ export function getAvailablePropImagesByGroup(prop: PropType): {
       presignedUrl: hasPresignedUrl ? prop.baseReference.imageUrl : undefined
     });
   }
-  
+
   return {
     'Production Hub': productionHub,
     'Creation Image': creationImage

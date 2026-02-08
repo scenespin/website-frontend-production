@@ -771,65 +771,8 @@ export function LocationDetailModal({
     [backgrounds]
   );
   
-  // 🔥 IMPROVED: Organize angles and non-ECU backgrounds by metadata combinations (timeOfDay + weather)
-  // Feature 0223: Only non-ECU backgrounds go into main grouping; ECU have their own section
-  const imagesByMetadata: Record<string, { angles: any[]; backgrounds: any[] }> = useMemo(() => {
-    const grouped: Record<string, { angles: any[]; backgrounds: any[] }> = {};
-    
-    // Group angles from allImages
-    angleVariations.forEach((variation: any) => {
-      const metadataParts = [
-        variation.timeOfDay ? variation.timeOfDay : null,
-        variation.weather ? variation.weather : null
-      ].filter(Boolean);
-      
-      const key = metadataParts.length > 0 
-        ? metadataParts.join(' • ') 
-        : 'No Metadata';
-      
-      if (!grouped[key]) {
-        grouped[key] = { angles: [], backgrounds: [] };
-      }
-      grouped[key].angles.push(variation);
-    });
-    
-    // Group only non-ECU backgrounds
-    nonEcuBackgrounds.forEach((background: any) => {
-      const metadataParts = [
-        background.timeOfDay ? background.timeOfDay : null,
-        background.weather ? background.weather : null
-      ].filter(Boolean);
-      
-      const key = metadataParts.length > 0 
-        ? metadataParts.join(' • ') 
-        : 'No Metadata';
-      
-      if (!grouped[key]) {
-        grouped[key] = { angles: [], backgrounds: [] };
-      }
-      grouped[key].backgrounds.push(background);
-    });
-    
-    return grouped;
-  }, [angleVariations, nonEcuBackgrounds]);
-  
-  // Sort groups: "No Metadata" last, then alphabetically
-  const sortedMetadataKeys = useMemo(() => {
-    return Object.keys(imagesByMetadata).sort((a, b) => {
-      if (a === 'No Metadata') return 1;
-      if (b === 'No Metadata') return -1;
-      return a.localeCompare(b);
-    });
-  }, [imagesByMetadata]);
-  
-  // Keep anglesByMetadata for backward compatibility with References tab
-  const anglesByMetadata: Record<string, any[]> = useMemo(() => {
-    const grouped: Record<string, any[]> = {};
-    sortedMetadataKeys.forEach(key => {
-      grouped[key] = imagesByMetadata[key].angles;
-    });
-    return grouped;
-  }, [imagesByMetadata, sortedMetadataKeys]);
+  // 🔥 SIMPLIFIED: No timeOfDay/weather grouping - three top-level sections only (Angles | Backgrounds | Extreme close-ups)
+  // Preview uses allImages + index; no metadata keys needed.
 
   // Feature 0179: Create thumbnail S3 key map from Media Library
   const thumbnailS3KeyMap = useMemo(() => {
@@ -1347,73 +1290,16 @@ export function LocationDetailModal({
                           <p className="text-xs text-[#6B7280]">AI-generated angles and backgrounds - can be edited/deleted here</p>
                         </div>
                       </div>
-                      {/* 🔥 IMPROVED: Organized by Metadata Combinations - Visual Card-based Grouping */}
+                      {/* Three sections: Angles | Backgrounds (no time/weather) */}
                       <div className="space-y-6">
-                        {sortedMetadataKeys.map((displayName) => {
-                          const group = imagesByMetadata[displayName];
-                          const variations = group.angles;
-                          const backgrounds = group.backgrounds;
-                          const totalImages = variations.length + backgrounds.length;
-                          
-                          return (
-                            <div key={displayName} className="space-y-3">
-                              {/* Section Header with Metadata Badge */}
-                              <div className="flex items-center justify-between pb-2 border-b border-[#3F3F46]">
-                                <div className="flex items-center gap-2">
-                                  <h4 className="text-sm font-semibold text-[#8B5CF6] capitalize">
-                                    {displayName}
-                                  </h4>
-                                  <span className="px-2 py-0.5 bg-[#8B5CF6]/20 text-[#8B5CF6] rounded text-xs">
-                                    {totalImages} {totalImages === 1 ? 'image' : 'images'}
-                                    {variations.length > 0 && backgrounds.length > 0 && ` (${variations.length} angles, ${backgrounds.length} backgrounds)`}
-                                  </span>
-                                </div>
-                              </div>
-                              
-                              {/* Angles + Backgrounds: sub-grouped by angle; backgrounds under derived angle (sourceAngleId) */}
-                              {(variations.length > 0 || backgrounds.length > 0) && (() => {
-                                const byAngle: Record<string, any[]> = {};
-                                variations.forEach((v: any) => {
-                                  const k = (v.angle || 'other').toLowerCase();
-                                  if (!byAngle[k]) byAngle[k] = [];
-                                  byAngle[k].push(v);
-                                });
-                                const sortedAngleNames = Object.keys(byAngle).sort((a, b) => a.localeCompare(b));
-                                // Align backgrounds under the angle they were derived from (sourceAngleId)
-                                const byAngleWithBackgrounds = sortedAngleNames.map((angleName) => {
-                                  const angleVariations = byAngle[angleName];
-                                  const angleIds = angleVariations.map((v: any) => v.id).filter(Boolean);
-                                  const derivedBackgrounds = angleIds.length === 0 ? [] : backgrounds.filter((bg: any) => {
-                                    const sourceIds = (bg.sourceAngleId || '').split(',').map((s: string) => s.trim()).filter(Boolean);
-                                    return sourceIds.some((sid: string) => angleIds.includes(sid));
-                                  });
-                                  return { angleName, angleVariations, derivedBackgrounds };
-                                });
-                                const usedBackgroundS3Keys = new Set(byAngleWithBackgrounds.flatMap((x: { derivedBackgrounds: any[] }) => x.derivedBackgrounds.map((b: any) => b.s3Key)));
-                                const otherBackgrounds = backgrounds.filter((bg: any) => !usedBackgroundS3Keys.has(bg.s3Key));
-                                type Row = { type: 'angle'; angleName: string; angleVariations: any[] } | { type: 'backgrounds'; label: string; backgrounds: any[] };
-                                const rows: Row[] = [];
-                                byAngleWithBackgrounds.forEach(({ angleName, angleVariations, derivedBackgrounds }) => {
-                                  rows.push({ type: 'angle', angleName, angleVariations });
-                                  if (derivedBackgrounds.length > 0) {
-                                    const displayAngle = angleName.charAt(0).toUpperCase() + angleName.slice(1);
-                                    rows.push({ type: 'backgrounds', label: `Backgrounds (from ${displayAngle})`, backgrounds: derivedBackgrounds });
-                                  }
-                                });
-                                if (otherBackgrounds.length > 0) {
-                                  rows.push({ type: 'backgrounds', label: variations.length > 0 ? 'Other backgrounds' : 'Backgrounds', backgrounds: otherBackgrounds });
-                                }
-                                return (
-                                  <div className="space-y-4">
-                                    {rows.map((row, rowIndex) => {
-                                      if (row.type === 'angle') {
-                                        const { angleName, angleVariations } = row;
-                                        const displayAngle = angleName.charAt(0).toUpperCase() + angleName.slice(1);
-                                        return (
-                                        <div key={`angle-${angleName}`} className="space-y-2">
-                                          <p className="text-xs text-[#808080] uppercase tracking-wide">{displayAngle} ({angleVariations.length})</p>
-                                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-4">
-                                            {angleVariations.map((variation: any) => {
+                        {angleVariations.length > 0 && (
+                        <div className="space-y-3" key="angles">
+                          <div className="flex items-center justify-between pb-2 border-b border-[#3F3F46]">
+                            <h4 className="text-sm font-semibold text-[#8B5CF6]">Angles</h4>
+                            <span className="px-2 py-0.5 bg-[#8B5CF6]/20 text-[#8B5CF6] rounded text-xs">{angleVariations.length} image{angleVariations.length !== 1 ? 's' : ''}</span>
+                          </div>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-4">
+                            {angleVariations.map((variation: any) => {
                           const img = allImages.find(i => i.s3Key === variation.s3Key && !i.isBase);
                           if (!img) return null;
                           const imgId = img.id || `ref_${variation.s3Key}`;
@@ -1439,7 +1325,7 @@ export function LocationDetailModal({
                                   );
                                   if (allIndex >= 0) {
                                     setPreviewImageIndex(allIndex);
-                                    setPreviewGroupName(displayName);
+                                    setPreviewGroupName(null);
                                   }
                                 }
                               }}
@@ -1496,29 +1382,12 @@ export function LocationDetailModal({
                                 onClick={(e) => {
                                   if (!selectionMode) {
                                     e.stopPropagation();
-                                    // Find which metadata group this image belongs to
-                                    const metadataKey = [
-                                      (img as any).timeOfDay ? (img as any).timeOfDay : null,
-                                      (img as any).weather ? (img as any).weather : null
-                                    ].filter(Boolean).join(' • ') || 'No Metadata';
-                                    
-                                    const groupImages = anglesByMetadata[metadataKey] || [];
-                                    const groupIndex = groupImages.findIndex((gVariation: any) => 
-                                      (gVariation.id === img.id) || (gVariation.s3Key === img.s3Key)
+                                    const allIndex = allImages.findIndex(aImg => 
+                                      aImg.id === img.id || aImg.s3Key === img.s3Key
                                     );
-                                    
-                                    if (groupIndex >= 0) {
-                                      setPreviewGroupName(metadataKey);
-                                      setPreviewImageIndex(groupIndex);
-                                    } else {
-                                      // Fallback: find in allImages
-                                      const allIndex = allImages.findIndex(aImg => 
-                                        aImg.id === img.id || aImg.s3Key === img.s3Key
-                                      );
-                                      if (allIndex >= 0) {
-                                        setPreviewGroupName(null);
-                                        setPreviewImageIndex(allIndex);
-                                      }
+                                    if (allIndex >= 0) {
+                                      setPreviewGroupName(null);
+                                      setPreviewImageIndex(allIndex);
                                     }
                                   }
                                 }}
@@ -1583,30 +1452,12 @@ export function LocationDetailModal({
                                         className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]"
                                         onClick={(e) => {
                                           e.stopPropagation();
-                                          // Find which metadata group this image belongs to
-                                          // img is from angleVariations, find it in anglesByMetadata
-                                          const metadataKey = [
-                                            (img as any).timeOfDay ? (img as any).timeOfDay : null,
-                                            (img as any).weather ? (img as any).weather : null
-                                          ].filter(Boolean).join(' • ') || 'No Metadata';
-                                          
-                                          const groupImages = anglesByMetadata[metadataKey] || [];
-                                          const groupIndex = groupImages.findIndex((gVariation: any) => 
-                                            (gVariation.id === img.id) || (gVariation.s3Key === img.s3Key)
+                                          const allIndex = allImages.findIndex(aImg => 
+                                            aImg.id === img.id || aImg.s3Key === img.s3Key
                                           );
-                                          
-                                          if (groupIndex >= 0) {
-                                            setPreviewGroupName(metadataKey);
-                                            setPreviewImageIndex(groupIndex);
-                                          } else {
-                                            // Fallback: find in allImages
-                                            const allIndex = allImages.findIndex(aImg => 
-                                              aImg.id === img.id || aImg.s3Key === img.s3Key
-                                            );
-                                            if (allIndex >= 0) {
-                                              setPreviewGroupName(null);
-                                              setPreviewImageIndex(allIndex);
-                                            }
+                                          if (allIndex >= 0) {
+                                            setPreviewGroupName(null);
+                                            setPreviewImageIndex(allIndex);
                                           }
                                         }}
                                       >
@@ -1764,15 +1615,15 @@ export function LocationDetailModal({
                         })}
                                           </div>
                                         </div>
-                                        );
-                                      }
-                                      if (row.type === 'backgrounds') {
-                                        const sectionBackgrounds = row.backgrounds;
-                                        return (
-                                        <div key={`bg-${rowIndex}`} className="space-y-2">
-                                          <p className="text-xs text-[#808080] uppercase tracking-wide">{row.label}</p>
-                                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-4">
-                                            {sectionBackgrounds.map((background: LocationBackground) => {
+                        )}
+                        {nonEcuBackgrounds.length > 0 && (
+                        <div className="space-y-3" key="backgrounds">
+                          <div className="flex items-center justify-between pb-2 border-b border-[#3F3F46]">
+                            <h4 className="text-sm font-semibold text-[#8B5CF6]">Backgrounds</h4>
+                            <span className="px-2 py-0.5 bg-[#8B5CF6]/20 text-[#8B5CF6] rounded text-xs">{nonEcuBackgrounds.length} image{nonEcuBackgrounds.length !== 1 ? 's' : ''}</span>
+                          </div>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 2xl:grid-cols-7 gap-4">
+                            {nonEcuBackgrounds.map((background: LocationBackground) => {
                                       const img = allImages.find(i => i.s3Key === background.s3Key && !i.isBase);
                                       if (!img) return null;
                                       const imgId = img.id || `bg_${background.s3Key}`;
@@ -2223,6 +2074,9 @@ export function LocationDetailModal({
                             </div>
                           );
                         })}
+                          </div>
+                        </div>
+                        )}
                       </div>
                     </div>
                   )}
@@ -2397,26 +2251,13 @@ export function LocationDetailModal({
     {/* Image Viewer */}
     {previewImageIndex !== null && (
       <ImageViewer
-        images={(() => {
-          // Get images for the current group (metadata)
-          if (previewGroupName && anglesByMetadata[previewGroupName]) {
-            return anglesByMetadata[previewGroupName].map((variation): ImageItem => ({
-              id: variation.id || variation.s3Key || `img_${Date.now()}`,
-              url: variation.imageUrl || '',
-              label: `${location.name} - ${variation.angle} view`,
-              s3Key: variation.s3Key,
-              metadata: { angle: variation.angle, timeOfDay: variation.timeOfDay, weather: variation.weather }
-            }));
-          }
-          // Fallback to all images
-          return allImages.map((img): ImageItem => ({
-            id: img.id,
-            url: img.imageUrl,
-            label: img.label,
-            s3Key: img.s3Key,
-            metadata: {}
-          }));
-        })()}
+        images={allImages.map((img): ImageItem => ({
+          id: img.id,
+          url: img.imageUrl,
+          label: img.label,
+          s3Key: img.s3Key,
+          metadata: {}
+        }))}
         allImages={allImages.map((img): ImageItem => ({
           id: img.id,
           url: img.imageUrl,
@@ -2443,7 +2284,6 @@ export function LocationDetailModal({
             toast.error('Failed to download image');
           }
         }}
-        groupName={previewGroupName || undefined}
       />
     )}
       {/* Phase 2: Bulk Delete Confirmation Dialog */}

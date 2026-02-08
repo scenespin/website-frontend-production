@@ -476,13 +476,16 @@ export function SceneReviewStep({
                           <div className="flex gap-2 flex-wrap">
                             {/* Character references */}
                             {Object.entries(shotCharacterRefs).map(([charId, ref]) => {
-                              // Two-step lookup: s3Key -> thumbnailS3Key -> URL
+                              // Two-step lookup: s3Key -> thumbnailS3Key -> URL; fallback to ref.imageUrl when maps missing
                               let thumbnailUrl: string | undefined;
                               if (ref.s3Key) {
                                 const thumbnailS3Key = characterThumbnailS3KeyMap?.get(ref.s3Key);
                                 if (thumbnailS3Key) {
                                   thumbnailUrl = characterThumbnailUrlsMap?.get(thumbnailS3Key);
                                 }
+                              }
+                              if (!thumbnailUrl && ref.imageUrl && (ref.imageUrl.startsWith('http') || ref.imageUrl.startsWith('data:'))) {
+                                thumbnailUrl = ref.imageUrl;
                               }
                               return thumbnailUrl ? (
                                 <div key={charId} className="relative">
@@ -502,12 +505,17 @@ export function SceneReviewStep({
                               ) : null;
                             })}
                             {/* Location reference */}
-                            {shotLocation?.s3Key && (() => {
-                              // Two-step lookup: s3Key -> thumbnailS3Key -> URL
+                            {shotLocation && (() => {
+                              // Two-step lookup: s3Key -> thumbnailS3Key -> URL; fallback to shotLocation.imageUrl when maps missing
                               let thumbnailUrl: string | undefined;
-                              const thumbnailS3Key = locationThumbnailS3KeyMap?.get(shotLocation.s3Key);
-                              if (thumbnailS3Key) {
-                                thumbnailUrl = locationThumbnailUrlsMap?.get(thumbnailS3Key);
+                              if (shotLocation.s3Key) {
+                                const thumbnailS3Key = locationThumbnailS3KeyMap?.get(shotLocation.s3Key);
+                                if (thumbnailS3Key) {
+                                  thumbnailUrl = locationThumbnailUrlsMap?.get(thumbnailS3Key);
+                                }
+                              }
+                              if (!thumbnailUrl && shotLocation.imageUrl && (shotLocation.imageUrl.startsWith('http') || shotLocation.imageUrl.startsWith('data:'))) {
+                                thumbnailUrl = shotLocation.imageUrl;
                               }
                               return thumbnailUrl ? (
                                 <div key="location" className="relative">
@@ -533,7 +541,7 @@ export function SceneReviewStep({
                               if (!selectedImageId) return null;
                               
                               // For props, selectedImageId might be the s3Key or an ID
-                              // Try two-step lookup first (s3Key -> thumbnailS3Key -> URL)
+                              // Try two-step lookup first (s3Key -> thumbnailS3Key -> URL); fallback to prop.imageUrl when maps missing
                               let thumbnailUrl: string | undefined;
                               if (propThumbnailS3KeyMap?.has(selectedImageId)) {
                                 const thumbnailS3Key = propThumbnailS3KeyMap.get(selectedImageId);
@@ -541,8 +549,10 @@ export function SceneReviewStep({
                                   thumbnailUrl = propThumbnailUrlsMap?.get(thumbnailS3Key);
                                 }
                               } else {
-                                // Fallback: selectedImageId might be the thumbnailS3Key directly
                                 thumbnailUrl = propThumbnailUrlsMap?.get(selectedImageId);
+                              }
+                              if (!thumbnailUrl && prop.imageUrl && (prop.imageUrl.startsWith('http') || prop.imageUrl.startsWith('data:'))) {
+                                thumbnailUrl = prop.imageUrl;
                               }
                               
                               return thumbnailUrl ? (

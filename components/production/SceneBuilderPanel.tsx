@@ -806,6 +806,23 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       .join('|');
   }, [selectedReferenceFullImageUrlsMap]);
 
+  // 🔥 FIX: Stable signature for location refs + map (for backfill effect)
+  const selectedLocationReferencesSignature = useMemo(() => {
+    return Object.entries(selectedLocationReferences)
+      .sort(([a], [b]) => Number(a) - Number(b))
+      .map(([slot, ref]) => (ref?.s3Key ? `${slot}:${ref.s3Key}:${ref.imageUrl || ''}` : ''))
+      .filter(Boolean)
+      .join('|');
+  }, [selectedLocationReferences]);
+  const locationRefsMapSignature = useMemo(() => {
+    const map = locationReferenceFullImageUrlsMap;
+    if (!map || map.size === 0) return '';
+    return Array.from(map.entries())
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([k, v]) => `${k}:${v}`)
+      .join('|');
+  }, [locationReferenceFullImageUrlsMap]);
+
   // 🔥 FIX: Update selectedCharacterReferences with presigned URLs when available
   // 🔥 FIX: Use ref to track last processed state to prevent infinite loops
   const lastProcessedRefsRef = useRef<string>('');
@@ -914,6 +931,39 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     // Use memoized signature instead of Map object to prevent infinite loops
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedRefsMapSignature, selectedCharacterReferencesSignature]);
+
+  // 🔥 FIX: Update selectedLocationReferences with presigned URLs when available (so Review step can show refs)
+  const lastProcessedLocationRefsRef = useRef<string>('');
+  useEffect(() => {
+    const combined = `${selectedLocationReferencesSignature}|${locationRefsMapSignature}`;
+    if (combined === lastProcessedLocationRefsRef.current) return;
+    const map = locationReferenceFullImageUrlsMap;
+    if (!map || map.size === 0) {
+      lastProcessedLocationRefsRef.current = combined;
+      return;
+    }
+    let needsUpdate = false;
+    const updated: Record<number, { angleId?: string; s3Key?: string; imageUrl?: string }> = {};
+    Object.entries(selectedLocationReferences).forEach(([shotSlotStr, ref]) => {
+      if (!ref?.s3Key) return;
+      const needsUrl = !ref.imageUrl || (!ref.imageUrl.startsWith('http') && !ref.imageUrl.startsWith('data:'));
+      if (!needsUrl) {
+        updated[Number(shotSlotStr)] = ref;
+        return;
+      }
+      const url = map.get(ref.s3Key);
+      if (url && url.length > 0) {
+        updated[Number(shotSlotStr)] = { ...ref, imageUrl: url };
+        needsUpdate = true;
+      } else {
+        updated[Number(shotSlotStr)] = ref;
+      }
+    });
+    if (needsUpdate) {
+      contextActions.setSelectedLocationReferences(updated);
+    }
+    lastProcessedLocationRefsRef.current = combined;
+  }, [selectedLocationReferencesSignature, locationRefsMapSignature, selectedLocationReferences, locationReferenceFullImageUrlsMap, contextActions]);
 
   // Helper function to scroll to top of the scroll container
   const scrollToTop = useCallback(() => {
