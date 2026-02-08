@@ -388,7 +388,7 @@ export default function AssetDetailModal({
     return map;
   }, [latestAsset.images, latestAsset.angleReferences, latestAsset.name]);
   
-  // Feature 0256: Payload-first. Build list from latestAsset.images + angleReferences; ML only for URLs.
+  // Feature 0256: Payload-first. Build list from asset.images only (backend already merges angleReferences into images for Production Hub).
   const payloadImages = useMemo(() => {
     const images: Array<{
       id: string;
@@ -404,57 +404,32 @@ export default function AssetDetailModal({
       metadata?: any;
       index: number;
     }> = [];
-    let index = 0;
-    const creationImages = latestAsset.images || [];
-    creationImages.forEach((img: any, idx: number) => {
+    const assetImages = latestAsset.images || [];
+    assetImages.forEach((img: any, idx: number) => {
       const s3Key = img.s3Key || img.metadata?.s3Key;
       if (!s3Key || s3Key.startsWith('thumbnails/')) return;
       const source = img.metadata?.source;
       const createdIn = img.metadata?.createdIn;
       const isProductionHubImage = createdIn === 'production-hub' || source === 'angle-generation' || source === 'production-hub';
       const isCreationImage = !isProductionHubImage && (!source || source === 'user-upload');
+      const isAngleRef = source === 'angle-generation';
       images.push({
-        id: img.id || `img-${idx}`,
+        id: img.id || (isAngleRef ? `angle-${img.metadata?.angle || 'unknown'}` : `img-${idx}`),
         imageUrl: img.url || img.imageUrl || '',
         s3Key,
-        label: `${latestAsset.name} - Image ${idx + 1}`,
-        isBase: idx === 0,
-        isAngleReference: source === 'angle-generation',
-        isProductionHubUpload: isProductionHubImage && source !== 'angle-generation',
+        label: isAngleRef ? `${latestAsset.name} - ${img.metadata?.angle || img.angle || 'Angle'} view` : `${latestAsset.name} - Image ${idx + 1}`,
+        isBase: idx === 0 && !isAngleRef,
+        isAngleReference: isAngleRef,
+        isProductionHubUpload: isProductionHubImage && !isAngleRef,
         isCreationImage,
+        angle: img.metadata?.angle || img.angle,
+        isRegenerated: img.metadata?.isRegenerated || false,
         metadata: img.metadata || {},
-        index: index++
-      });
-    });
-    (latestAsset.angleReferences || []).forEach((ref: any) => {
-      if (!ref.s3Key || ref.s3Key.startsWith('thumbnails/')) return;
-      const isRegenerated = ref.metadata?.isRegenerated || false;
-      images.push({
-        id: ref.id || `angle-${ref.angle || 'unknown'}`,
-        imageUrl: ref.imageUrl || '',
-        s3Key: ref.s3Key,
-        label: `${latestAsset.name} - ${ref.angle || 'Angle'} view`,
-        isBase: false,
-        isAngleReference: true,
-        isProductionHubUpload: false,
-        isCreationImage: false,
-        angle: ref.angle,
-        isRegenerated,
-        metadata: {
-          s3Key: ref.s3Key,
-          angle: ref.angle,
-          source: 'angle-generation',
-          createdIn: 'production-hub',
-          creditsUsed: ref.creditsUsed || 0,
-          providerId: ref.metadata?.providerId || ref.metadata?.generationMetadata?.providerId,
-          quality: ref.metadata?.quality || ref.metadata?.generationMetadata?.quality,
-          isRegenerated
-        },
-        index: index++
+        index: idx
       });
     });
     return images;
-  }, [latestAsset.images, latestAsset.angleReferences, latestAsset.name]);
+  }, [latestAsset.images, latestAsset.name]);
 
   const payloadS3Keys = useMemo(() =>
     payloadImages.map(img => img.s3Key).filter(Boolean),

@@ -562,6 +562,7 @@ export function LocationDetailModal({
   }, [latestLocation.baseReference, (latestLocation as any).creationImages, latestLocation.angleVariations, latestLocation.backgrounds, latestLocation.name, latestLocation.locationId]);
   
   // Feature 0256: Payload-first. Build list from location (DynamoDB) only; ML only for display URLs.
+  // Dedupe by s3Key so duplicate payload entries (e.g. from job retries) show once.
   const payloadImages = useMemo(() => {
     const images: Array<{
       id: string;
@@ -579,9 +580,15 @@ export function LocationDetailModal({
       metadata?: any;
       index: number;
     }> = [];
+    const seenS3Keys = new Set<string>();
     let index = 0;
-    if (latestLocation.baseReference?.s3Key && !latestLocation.baseReference.s3Key.startsWith('thumbnails/')) {
-      images.push({
+    const pushIfNew = (s3Key: string, entry: typeof images[0]) => {
+      if (!s3Key || s3Key.startsWith('thumbnails/') || seenS3Keys.has(s3Key)) return;
+      seenS3Keys.add(s3Key);
+      images.push({ ...entry, index: index++ });
+    };
+    if (latestLocation.baseReference?.s3Key) {
+      pushIfNew(latestLocation.baseReference.s3Key, {
         id: latestLocation.baseReference.id,
         imageUrl: latestLocation.baseReference.imageUrl || '',
         s3Key: latestLocation.baseReference.s3Key,
@@ -589,56 +596,50 @@ export function LocationDetailModal({
         isBase: true,
         isAngle: false,
         isBackground: false,
-        index: index++
+        index: 0
       });
     }
     ((latestLocation as any).creationImages || []).forEach((img: LocationReference) => {
-      if (img.s3Key && !img.s3Key.startsWith('thumbnails/')) {
-        images.push({
-          id: img.id,
-          imageUrl: img.imageUrl || '',
-          s3Key: img.s3Key,
-          label: `${latestLocation.name} - Reference`,
-          isBase: false,
-          isAngle: false,
-          isBackground: false,
-          index: index++
-        });
-      }
+      pushIfNew(img.s3Key, {
+        id: img.id,
+        imageUrl: img.imageUrl || '',
+        s3Key: img.s3Key,
+        label: `${latestLocation.name} - Reference`,
+        isBase: false,
+        isAngle: false,
+        isBackground: false,
+        index: 0
+      });
     });
     (latestLocation.angleVariations || []).forEach((v: LocationReference) => {
-      if (v.s3Key && !v.s3Key.startsWith('thumbnails/')) {
-        images.push({
-          id: v.id || `ref_${v.s3Key}`,
-          imageUrl: v.imageUrl || '',
-          s3Key: v.s3Key,
-          label: `${latestLocation.name} - ${v.angle || 'angle'} view`,
-          isBase: false,
-          isAngle: true,
-          isBackground: false,
-          angle: v.angle,
-          timeOfDay: v.timeOfDay,
-          weather: v.weather,
-          metadata: v.metadata,
-          index: index++
-        });
-      }
+      pushIfNew(v.s3Key, {
+        id: v.id || `ref_${v.s3Key}`,
+        imageUrl: v.imageUrl || '',
+        s3Key: v.s3Key,
+        label: `${latestLocation.name} - ${v.angle || 'angle'} view`,
+        isBase: false,
+        isAngle: true,
+        isBackground: false,
+        angle: v.angle,
+        timeOfDay: v.timeOfDay,
+        weather: v.weather,
+        metadata: v.metadata,
+        index: 0
+      });
     });
     (latestLocation.backgrounds || []).forEach((bg: LocationBackground) => {
-      if (bg.s3Key && !bg.s3Key.startsWith('thumbnails/')) {
-        images.push({
-          id: bg.id || `bg_${bg.s3Key}`,
-          imageUrl: bg.imageUrl || '',
-          s3Key: bg.s3Key,
-          label: `${latestLocation.name} - ${(bg as any).backgroundType || 'background'}`,
-          isBase: false,
-          isAngle: false,
-          isBackground: true,
-          backgroundType: (bg as any).backgroundType,
-          metadata: (bg as any).metadata,
-          index: index++
-        });
-      }
+      pushIfNew(bg.s3Key, {
+        id: bg.id || `bg_${bg.s3Key}`,
+        imageUrl: bg.imageUrl || '',
+        s3Key: bg.s3Key,
+        label: `${latestLocation.name} - ${(bg as any).backgroundType || 'background'}`,
+        isBase: false,
+        isAngle: false,
+        isBackground: true,
+        backgroundType: (bg as any).backgroundType,
+        metadata: (bg as any).metadata,
+        index: 0
+      });
     });
     return images;
   }, [latestLocation.baseReference, (latestLocation as any).creationImages, latestLocation.angleVariations, latestLocation.backgrounds, latestLocation.name]);

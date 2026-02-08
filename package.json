@@ -9,6 +9,7 @@
     "start": "next start",
     "lint": "next lint",
     "postinstall": "npm_config_platform=linux npm_config_arch=x64 npm rebuild sharp",
+    "test:payload-first-0256": "next build",
     "test:newsletter": "node tests/newsletter-test.js",
     "test:newsletter:api": "node scripts/newsletter-api-test.js",
     "test:newsletter:validation": "VALIDATION_ONLY=1 node scripts/newsletter-api-test.js",
