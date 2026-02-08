@@ -182,28 +182,27 @@ function ShotCell({
             {currentIndex + 1}/{variations.length}
           </span>
         )}
+        {/* Icon-only toolbar: tooltips (title) and aria-label for accessibility; on touch, users rely on icon recognition */}
         <div className="flex items-center gap-1 flex-1 justify-center min-w-0">
           <button
             type="button"
             onClick={handleDownloadFirstFrame}
             disabled={!firstFrameUrl}
-            className="flex items-center gap-1 px-1.5 py-0.5 rounded border border-[#3F3F46] bg-[#262626] text-[9px] font-medium text-[#A1A1AA] hover:text-white hover:bg-[#2A2A2A] hover:border-[#52525B] disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex-shrink-0"
+            className="flex items-center justify-center w-8 h-8 rounded border border-[#3F3F46] bg-[#262626] text-[#A1A1AA] hover:text-white hover:bg-[#2A2A2A] hover:border-[#52525B] disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex-shrink-0"
             title="Download first frame"
             aria-label="Download first frame"
           >
-            <Download className="w-3 h-3" />
-            Download frame
+            <Download className="w-3.5 h-3.5" />
           </button>
           <button
             type="button"
             onClick={handleGenerateVideo}
             disabled={!firstFrameUrl || !onGenerateVideo}
-            className="flex items-center gap-1 px-1.5 py-0.5 rounded border border-[#3F3F46] bg-[#262626] text-[9px] font-medium text-[#A1A1AA] hover:text-white hover:bg-[#2A2A2A] hover:border-[#52525B] disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex-shrink-0"
+            className="flex items-center justify-center w-8 h-8 rounded border border-[#3F3F46] bg-[#262626] text-[#A1A1AA] hover:text-white hover:bg-[#2A2A2A] hover:border-[#52525B] disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex-shrink-0"
             title="Generate video from this frame (opens Video Gen tab)"
-            aria-label="Generate video"
+            aria-label="Generate video from this frame"
           >
-            <Video className="w-3 h-3" />
-            Video
+            <Video className="w-3.5 h-3.5" />
           </button>
           {onDeleteFirstFrame && (
             <button
@@ -213,12 +212,11 @@ function ShotCell({
                 if (!confirm('Delete this first frame? This cannot be undone.')) return;
                 onDeleteFirstFrame(currentVariation.firstFrame.s3Key);
               }}
-              className="flex items-center gap-1 px-1.5 py-0.5 rounded border border-[#3F3F46] bg-[#262626] text-[9px] font-medium text-[#DC143C]/90 hover:text-[#DC143C] hover:bg-[#DC143C]/10 hover:border-[#DC143C]/30 transition-colors flex-shrink-0"
+              className="flex items-center justify-center w-8 h-8 rounded border border-[#3F3F46] bg-[#262626] text-[#DC143C]/90 hover:text-[#DC143C] hover:bg-[#DC143C]/10 hover:border-[#DC143C]/30 transition-colors flex-shrink-0"
               title="Delete first frame"
               aria-label="Delete first frame"
             >
-              <Trash2 className="w-3 h-3" />
-              Delete
+              <Trash2 className="w-3.5 h-3.5" />
             </button>
           )}
         </div>
