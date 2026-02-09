@@ -8,7 +8,7 @@
  * source video and is used in "modify video" flows). Sends preferredProvider for the chosen model.
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Video, Image as ImageIcon, Loader2, Upload, X, Film } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
@@ -16,6 +16,14 @@ import { getEstimatedDuration } from '@/utils/jobTimeEstimates';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useAuth } from '@clerk/nextjs';
 import { GenerationPreview } from './GenerationPreview';
+
+/** Capabilities from GET /api/video/models (used for mode-based model filtering). */
+interface VideoModelCapabilities {
+  imageInterpolation?: boolean;
+  imageStart?: boolean;
+  textOnly?: boolean;
+  [key: string]: unknown;
+}
 
 interface VideoModel {
   id: string;
@@ -28,6 +36,7 @@ interface VideoModel {
   resolutions?: string[];
   requiresSourceVideo?: boolean;
   recommended?: boolean;
+  capabilities?: VideoModelCapabilities;
 }
 
 interface VideoGenerationToolsProps {
@@ -45,6 +54,52 @@ interface VideoGenerationToolsProps {
 type VideoMode = 'starting-frame' | 'frame-to-frame';
 
 const DEFAULT_ASPECT_RATIOS = ['16:9', '9:16', '1:1', '21:9', '9:21', '4:3', '3:4'];
+
+/** Single camera option: id is Luma concept key (or '' for None). Same dropdown for all providers; Luma gets concept, others get promptText. */
+interface CameraOption {
+  id: string;
+  label: string;
+  promptText: string;
+}
+
+/** Luma API concepts as baseline (Plan 0257). Order: None, then alphabetical by label. */
+const LUMA_CAMERA_OPTIONS: CameraOption[] = [
+  { id: '', label: 'None', promptText: '' },
+  { id: 'aerial', label: 'Aerial', promptText: 'aerial shot, bird\'s eye view from above' },
+  { id: 'aerial_drone', label: 'Aerial Drone', promptText: 'aerial drone shot, flying camera' },
+  { id: 'bolt_cam', label: 'Bolt Cam', promptText: 'fast bolt cam style movement' },
+  { id: 'crane_down', label: 'Crane Down', promptText: 'crane shot descending from high to low' },
+  { id: 'crane_up', label: 'Crane Up', promptText: 'crane shot rising from low to high' },
+  { id: 'dolly_zoom', label: 'Dolly Zoom', promptText: 'dolly zoom, vertigo effect' },
+  { id: 'elevator_doors', label: 'Elevator Doors', promptText: 'elevator doors style opening' },
+  { id: 'eye_level', label: 'Eye Level', promptText: 'eye level shot, neutral height' },
+  { id: 'ground_level', label: 'Ground Level', promptText: 'ground level shot, low to the ground' },
+  { id: 'handheld', label: 'Handheld', promptText: 'handheld camera, documentary style' },
+  { id: 'high_angle', label: 'High Angle', promptText: 'high angle shot, camera looking down' },
+  { id: 'low_angle', label: 'Low Angle', promptText: 'low angle shot, camera looking up' },
+  { id: 'orbit_left', label: 'Orbit Left', promptText: 'camera orbits left around subject' },
+  { id: 'orbit_right', label: 'Orbit Right', promptText: 'camera orbits right around subject' },
+  { id: 'over_the_shoulder', label: 'Over the Shoulder', promptText: 'over the shoulder shot' },
+  { id: 'overhead', label: 'Overhead', promptText: 'overhead shot, directly above' },
+  { id: 'pan_left', label: 'Pan Left', promptText: 'camera pans left' },
+  { id: 'pan_right', label: 'Pan Right', promptText: 'camera pans right' },
+  { id: 'pedestal_down', label: 'Pedestal Down', promptText: 'pedestal down, camera lowers vertically' },
+  { id: 'pedestal_up', label: 'Pedestal Up', promptText: 'pedestal up, camera raises vertically' },
+  { id: 'pov', label: 'Point of View', promptText: 'point of view, first-person perspective' },
+  { id: 'pull_out', label: 'Pull Out', promptText: 'camera pulls out, dolly back' },
+  { id: 'push_in', label: 'Push In', promptText: 'camera pushes in, dolly forward' },
+  { id: 'roll_left', label: 'Roll Left', promptText: 'camera rolls left' },
+  { id: 'roll_right', label: 'Roll Right', promptText: 'camera rolls right' },
+  { id: 'selfie', label: 'Selfie', promptText: 'selfie style, camera facing subject' },
+  { id: 'static', label: 'Static', promptText: 'static shot, no camera movement' },
+  { id: 'tilt_down', label: 'Tilt Down', promptText: 'camera tilts down' },
+  { id: 'tilt_up', label: 'Tilt Up', promptText: 'camera tilts up' },
+  { id: 'tiny_planet', label: 'Tiny Planet', promptText: 'tiny planet effect, 360 wrap' },
+  { id: 'truck_left', label: 'Truck Left', promptText: 'camera trucks left, lateral move' },
+  { id: 'truck_right', label: 'Truck Right', promptText: 'camera trucks right, lateral move' },
+  { id: 'zoom_in', label: 'Zoom In', promptText: 'zoom in toward subject' },
+  { id: 'zoom_out', label: 'Zoom Out', promptText: 'zoom out from subject' },
+];
 
 export function VideoGenerationTools({
   className = '',
@@ -159,6 +214,24 @@ export function VideoGenerationTools({
     fetchModels();
   }, [getToken]);
 
+  // When Frame to Frame is selected, show only models that support image-interpolation (Plan 0257).
+  const displayModels = useMemo(() => {
+    const list = models;
+    if (activeMode === 'frame-to-frame') {
+      return list.filter((m) => m.capabilities?.imageInterpolation === true);
+    }
+    return list;
+  }, [models, activeMode]);
+
+  // Keep selection valid: if current model is not in the displayed list (e.g. switched to Frame to Frame with Grok selected), reset to first valid.
+  useEffect(() => {
+    if (displayModels.length === 0) return;
+    const isCurrentInList = selectedModel && displayModels.some((m) => m.id === selectedModel);
+    if (!isCurrentInList) {
+      setSelectedModel(displayModels[0].id);
+    }
+  }, [activeMode, displayModels, selectedModel]);
+
   const selectedModelInfo = selectedModel ? models.find((m) => m.id === selectedModel) : null;
   const aspectRatioOptions = selectedModelInfo?.aspectRatios?.length
     ? selectedModelInfo.aspectRatios
@@ -199,27 +272,8 @@ export function VideoGenerationTools({
     return selectedDuration === 5 ? 50 : 100;
   };
 
-  // Camera angles for video generation (with motion descriptions)
-  const cameraAngles = [
-    { id: '', label: 'None', description: 'No specific camera angle', promptText: '' },
-    { id: 'wide-shot', label: 'Wide Shot', description: 'Establishing shot, shows full scene', promptText: 'wide shot, establishing shot, full scene visible' },
-    { id: 'medium-shot', label: 'Medium Shot', description: 'Medium framing, shows subject and surroundings', promptText: 'medium shot, shows subject and surroundings' },
-    { id: 'close-up', label: 'Close-Up', description: 'Tight framing on subject', promptText: 'close-up shot, tight framing on subject' },
-    { id: 'dolly-in', label: 'Dolly In', description: 'Camera moves forward toward subject', promptText: 'dolly shot, camera slowly pushes in toward subject' },
-    { id: 'dolly-out', label: 'Dolly Out', description: 'Camera moves backward away from subject', promptText: 'dolly shot, camera slowly pulls back from subject' },
-    { id: 'tracking', label: 'Tracking Shot', description: 'Camera follows subject horizontally', promptText: 'tracking shot, camera follows subject horizontally' },
-    { id: 'crane-up', label: 'Crane Up', description: 'Camera rises up from low to high', promptText: 'crane shot, camera rises up from low to high angle' },
-    { id: 'crane-down', label: 'Crane Down', description: 'Camera descends from high to low', promptText: 'crane shot, camera descends from high to low angle' },
-    { id: 'pan-left', label: 'Pan Left', description: 'Camera rotates left', promptText: 'pan shot, camera slowly rotates left' },
-    { id: 'pan-right', label: 'Pan Right', description: 'Camera rotates right', promptText: 'pan shot, camera slowly rotates right' },
-    { id: 'tilt-up', label: 'Tilt Up', description: 'Camera tilts upward', promptText: 'tilt shot, camera tilts upward' },
-    { id: 'tilt-down', label: 'Tilt Down', description: 'Camera tilts downward', promptText: 'tilt shot, camera tilts downward' },
-    { id: 'low-angle', label: 'Low Angle', description: 'Camera looking up at subject', promptText: 'low angle shot, camera looking up at subject' },
-    { id: 'high-angle', label: 'High Angle', description: 'Camera looking down at subject', promptText: 'high angle shot, camera looking down at subject' },
-    { id: 'bird-eye', label: 'Bird\'s Eye View', description: 'Aerial view from above', promptText: 'bird\'s eye view, aerial shot from above' },
-    { id: 'point-of-view', label: 'Point of View', description: 'First-person perspective', promptText: 'point of view shot, first-person perspective' },
-    { id: 'handheld', label: 'Handheld', description: 'Handheld camera movement', promptText: 'handheld camera, documentary style movement' },
-  ];
+  // Luma-baseline camera options (Plan 0257): one list for all providers. id = Luma concept key; Luma gets native concept, others get promptText.
+  const cameraAngles = LUMA_CAMERA_OPTIONS;
 
   // Format camera angle for video prompts
   const formatCameraAngleForVideo = (angleId: string): string => {
@@ -344,18 +398,23 @@ export function VideoGenerationTools({
         finalPrompt = angleText + finalPrompt;
       }
 
+      const selectedCameraOption = cameraAngles.find((a) => a.id === selectedCameraAngle);
       const requestBody: any = {
         prompt: finalPrompt,
         videoMode: activeMode === 'starting-frame' ? 'image-start' : 'image-interpolation',
         resolution: selectedResolution,
         duration: `${selectedDuration}s`,
         aspectRatio: aspectRatio,
-        cameraMotion: selectedCameraAngle ? cameraAngles.find(a => a.id === selectedCameraAngle)?.promptText || 'none' : 'none',
+        cameraMotion: selectedCameraOption?.promptText || 'none',
         sceneId: propSceneId ?? `playground_${Date.now()}`,
         sceneNumber: propSceneNumber,
         sceneName: propSceneName ?? `Playground ${activeMode === 'starting-frame' ? 'Starting Frame' : 'Frame to Frame'}`,
       };
       if (selectedModel) requestBody.preferredProvider = selectedModel;
+      // Luma baseline: id is the Luma concept key; send it when Luma is selected and an angle is chosen (Plan 0257).
+      if (selectedModel && selectedModel.startsWith('luma-') && selectedCameraAngle) {
+        requestBody.lumaConcepts = selectedCameraAngle;
+      }
       if (propShotNumber != null) requestBody.shotNumber = propShotNumber;
       if (propScreenplayId) requestBody.screenplayId = propScreenplayId;
 
@@ -493,14 +552,14 @@ export function VideoGenerationTools({
             disabled={isGenerating}
           >
             {cameraAngles.map((angle) => (
-              <option key={angle.id} value={angle.id}>
-                {angle.label} {angle.description ? `- ${angle.description}` : ''}
+              <option key={angle.id || 'none'} value={angle.id}>
+                {angle.label}
               </option>
             ))}
           </select>
           {selectedCameraAngle && (
             <p className="mt-1.5 text-xs text-[#808080]">
-              Will add: "{cameraAngles.find(a => a.id === selectedCameraAngle)?.promptText}"
+              Will add: &quot;{cameraAngles.find((a) => a.id === selectedCameraAngle)?.promptText}&quot;
             </p>
           )}
         </div>
@@ -556,7 +615,7 @@ export function VideoGenerationTools({
               <Loader2 className="w-4 h-4 animate-spin" />
               <span>Loading models...</span>
             </div>
-          ) : models.length === 0 ? (
+          ) : displayModels.length === 0 ? (
             <div className="w-full px-4 py-2.5 bg-[#1F1F1F] border border-[#3F3F46] rounded-lg text-[#808080]">
               No video models available. Check your connection and try again.
             </div>
@@ -571,7 +630,7 @@ export function VideoGenerationTools({
                   videoModelDropdownOpen && "ring-2 ring-cinema-red border-transparent"
                 )}
               >
-                <span>{selectedModelInfo?.label ?? models.find((m) => m.id === selectedModel)?.label ?? (selectedModel || 'Select model')}</span>
+                <span>{selectedModelInfo?.label ?? displayModels.find((m) => m.id === selectedModel)?.label ?? (selectedModel || 'Select model')}</span>
                 <span className={cn("text-[#808080] transition-transform", videoModelDropdownOpen && "rotate-180")}>▼</span>
               </button>
               {videoModelDropdownOpen && (
@@ -579,7 +638,7 @@ export function VideoGenerationTools({
                   className="absolute z-50 mt-1 w-full max-h-60 overflow-y-auto rounded-lg border border-[#3F3F46] bg-[#1F1F1F] shadow-lg"
                   style={{ minWidth: videoModelDropdownRef.current?.offsetWidth }}
                 >
-                  {models.map((m) => (
+                  {displayModels.map((m) => (
                     <button
                       key={m.id}
                       type="button"
@@ -646,7 +705,7 @@ export function VideoGenerationTools({
         <div className="flex-shrink-0 border-t border-white/10 p-4 md:p-6 bg-[#0A0A0A]">
           <button
             onClick={handleGenerate}
-            disabled={!prompt.trim() || isGenerating || models.length === 0 || !selectedModel ||
+            disabled={!prompt.trim() || isGenerating || displayModels.length === 0 || !selectedModel ||
               (activeMode === 'starting-frame' && !startImage && !startImageUrlFromProp) ||
               (activeMode === 'frame-to-frame' && (!frame1 || !frame2))}
             className={cn(
