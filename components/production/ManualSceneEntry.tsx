@@ -89,7 +89,6 @@ export function ManualSceneEntry({
               disabled={isGenerating || !value.trim()}
               className="flex items-center gap-2"
             >
-              <span className={isGenerating ? 'animate-spin' : ''}>🤖</span>
               {isGenerating ? 'Generating...' : 'Generate Scene with AI'}
             </Button>
           )}
@@ -104,14 +103,9 @@ export function ManualSceneEntry({
               size="sm"
             >
               {isAnalyzing ? (
-                <>
-                  <span className="mr-2 animate-spin">🤖</span>
-                  Analyzing Scene...
-                </>
+                <>Analyzing Scene...</>
               ) : (
-                <>
-                  🤖 Start
-                </>
+                <>Start</>
               )}
             </Button>
           ) : (

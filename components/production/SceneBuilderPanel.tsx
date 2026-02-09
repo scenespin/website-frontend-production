@@ -3874,14 +3874,9 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                             disabled={isAnalyzing}
                           >
                             {isAnalyzing ? (
-                              <>
-                                <span className="mr-2 animate-spin">🤖</span>
-                                Analyzing Scene...
-                              </>
+                              <>Analyzing Scene...</>
                             ) : (
-                              <>
-                                🤖 Start
-                              </>
+                              <>Start</>
                             )}
                           </Button>
                           
@@ -3946,7 +3941,12 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                   <Card className="bg-[#141414] border-[#3F3F46]">
                     <CardContent className="p-6 text-center">
                       <div className="flex flex-col items-center gap-3">
-                        <span className="text-4xl animate-spin">🤖</span>
+                        <div className="relative">
+                          <div className="w-16 h-16 border-4 border-[#DC143C] border-t-transparent rounded-full animate-spin" />
+                          <div className="absolute inset-0 flex items-center justify-center">
+                            <span className="text-2xl">🎬</span>
+                          </div>
+                        </div>
                         <div className="text-sm text-[#FFFFFF]">Analyzing scene...</div>
                         <div className="text-xs text-[#808080]">This may take a moment</div>
                       </div>

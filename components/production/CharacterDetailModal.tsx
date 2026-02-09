@@ -1134,7 +1134,6 @@ export function CharacterDetailModal({
                           </>
                         ) : coverageTab === 'generate' ? (
                           <>
-                            <span className="text-base">🤖</span>
                             <span>Generate Images</span>
                           </>
                         ) : coverageTab === 'upload' ? (
@@ -1172,7 +1171,6 @@ export function CharacterDetailModal({
                             : 'text-white hover:bg-[#2A2A2A]'
                         }`}
                       >
-                        <span className="text-base">🤖</span>
                         <span>Generate Images</span>
                         {coverageTab === 'generate' && (
                           <span className="ml-auto text-[#DC143C]">●</span>
@@ -1342,7 +1340,6 @@ export function CharacterDetailModal({
                         : 'bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C] text-[#FFFFFF]'
                     }`}
                     >
-                      <span className="text-base mr-2">🤖</span>
                       Generate Images
                     </button>
                 )}

@@ -1005,7 +1005,6 @@ export function LocationDetailModal({
                           </>
                         ) : activeTab === 'generate' ? (
                           <>
-                            <span className="text-base">🤖</span>
                             <span>Generate Images</span>
                           </>
                         ) : (
@@ -1032,7 +1031,6 @@ export function LocationDetailModal({
                           : 'text-white hover:bg-[#2A2A2A]'
                       }`}
                     >
-                      <span className="text-base">🤖</span>
                       <span>{isGeneratingAngles ? 'Generating...' : 'Generate Images'}</span>
                       {coverageTab === 'generate' && (
                         <span className="ml-auto text-[#DC143C]">●</span>
@@ -1155,7 +1153,6 @@ export function LocationDetailModal({
                           : 'bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C] text-[#FFFFFF]'
                       }`}
                     >
-                      <span className="text-base">🤖</span>
                       {isGeneratingAngles ? 'Generating...' : 'Generate Images'}
                     </button>
                   </div>

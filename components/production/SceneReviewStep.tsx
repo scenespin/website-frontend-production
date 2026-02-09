@@ -671,15 +671,9 @@ export function SceneReviewStep({
               className="flex-1 bg-[#DC143C] hover:bg-[#B91238] text-white"
             >
               {isGenerating ? (
-                <>
-                  <span className="mr-2">🤖</span>
-                  Generating...
-                </>
+                <>Generating...</>
               ) : (
-                <>
-                  <Play className="w-4 h-4 mr-2" />
-                  Generate Shots
-                </>
+                <>Generate Shots</>
               )}
             </Button>
           </div>
