@@ -173,6 +173,34 @@ export function VideoGenerationTools({
   const [generatedVideoUrl, setGeneratedVideoUrl] = useState<string | null>(null);
   const [generationTime, setGenerationTime] = useState<number | undefined>(undefined);
 
+  // Load latest completed video on mount so "Latest generated" shows the previous one
+  useEffect(() => {
+    let cancelled = false;
+    const loadLatestCompleted = async () => {
+      try {
+        const token = await getToken({ template: 'wryda-backend' });
+        if (!token || cancelled) return;
+        const { api: apiModule, setAuthTokenGetter } = await import('@/lib/api');
+        setAuthTokenGetter(() => getToken({ template: 'wryda-backend' }));
+        const response = await apiModule.video.getJobs({ limit: 1, status: 'completed' });
+        const data = response?.data ?? response;
+        if (cancelled || !data?.success || !Array.isArray(data.jobs) || data.jobs.length === 0) return;
+        const job = data.jobs[0];
+        const videoUrl = job.videos?.[0]?.videoUrl;
+        if (videoUrl) {
+          setGeneratedVideoUrl(videoUrl);
+          // Optional: set generation time from metadata if available
+          const meta = job.videos?.[0]?.assetMetadata;
+          if (meta?.generationTime != null) setGenerationTime(meta.generationTime);
+        }
+      } catch (e) {
+        if (!cancelled) console.warn('[VideoGen] Load latest completed job:', e);
+      }
+    };
+    loadLatestCompleted();
+    return () => { cancelled = true; };
+  }, []);
+
   // Fetch video models (exclude requiresSourceVideo for "generate from scratch")
   useEffect(() => {
     const fetchModels = async () => {
@@ -895,7 +923,7 @@ export function VideoGenerationTools({
           )}
         </div>
 
-        {/* Bottom: Latest generated video (updates when a video is generated this session; can be extended to load latest on mount) */}
+        {/* Bottom: Latest generated video (loaded from last completed job on mount; also updated when a video is generated this session) */}
         <div className="flex-1 flex flex-col min-h-0">
           <GenerationPreview
             isGenerating={isGenerating}
