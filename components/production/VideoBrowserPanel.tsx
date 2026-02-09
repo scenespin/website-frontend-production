@@ -40,6 +40,8 @@ export interface VideoBrowserEntry {
   videoMode?: string;
   /** Provider id (e.g. runway-gen4-turbo, veo-2) for display and sort */
   videoProvider?: string | null;
+  /** Override label for Provider column (e.g. "Premium Dialogue" for premium dialogue workflow) */
+  providerDisplayLabel?: string | null;
   /** Stable key for list (fileId or scene-shot-timestamp) */
   entryKey: string;
 }
@@ -127,6 +129,7 @@ function buildVideoEntries(
           hasFirstFrame: !!(variation.firstFrame?.s3Key),
           videoMode: metadata.videoMode,
           videoProvider: metadata.videoProvider ?? metadata.videoModel ?? null,
+          providerDisplayLabel: metadata.providerDisplayLabel ?? null,
           entryKey: `${scene.sceneId}-${shot.shotNumber}-${variation.timestamp}`,
         });
       }
@@ -156,6 +159,7 @@ function buildStandaloneEntries(
         hasFirstFrame: false,
         videoMode: metadata.videoMode,
         videoProvider: metadata.videoProvider ?? metadata.videoModel ?? null,
+        providerDisplayLabel: metadata.providerDisplayLabel ?? null,
         entryKey: (file as any).id || file.s3Key || `standalone-${index}`,
       };
     });
@@ -243,8 +247,8 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
           return mult * (ta < tb ? -1 : ta > tb ? 1 : 0);
         }
         case 'provider': {
-          const pa = getProviderLabel(a.videoProvider) ?? '—';
-          const pb = getProviderLabel(b.videoProvider) ?? '—';
+          const pa = a.providerDisplayLabel ?? getProviderLabel(a.videoProvider) ?? '—';
+          const pb = b.providerDisplayLabel ?? getProviderLabel(b.videoProvider) ?? '—';
           return mult * (pa < pb ? -1 : pa > pb ? 1 : 0);
         }
         case 'time':
