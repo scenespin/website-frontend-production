@@ -162,7 +162,8 @@ export function UnifiedDialogueDropdown({
   const currentQuality = selectedQuality || (isMultiCharacter ? 'reliable' : 'reliable');
   
   // Generate available options based on single vs multi-character
-  const lipSyncOptions = useMemo(() => {
+  // Typed explicitly as UnifiedDialogueOption[] so option.isRecommended/costWarning are always valid (avoids build error)
+  const lipSyncOptions = useMemo((): UnifiedDialogueOption[] => {
     if (isMultiCharacter) {
       return [
         {
@@ -182,46 +183,45 @@ export function UnifiedDialogueDropdown({
           costWarning: '~3x cost, slower generation'
         }
       ];
-    } else {
-      return [
-        {
-          quality: 'reliable' as DialogueQuality,
-          workflowType: 'first-frame-lipsync' as DialogueWorkflowType,
-          label: 'Wryda (Standard)',
-          description: 'Always generates successfully. May have minor visual artifacts.',
-        },
-        {
-          quality: 'reliable' as DialogueQuality,
-          workflowType: 'extreme-closeup' as DialogueWorkflowType,
-          label: 'Wryda (Extreme Close-Up - Face)',
-          description: 'Extreme close-up framing focusing on the face. Always generates successfully.',
-        },
-        {
-          quality: 'reliable' as DialogueQuality,
-          workflowType: 'extreme-closeup-mouth' as DialogueWorkflowType,
-          label: 'Wryda (Extreme Close-Up - Mouth)',
-          description: 'Extreme close-up framing focusing on the mouth. Always generates successfully.',
-        },
-        {
-          quality: 'premium' as DialogueQuality,
-          workflowType: 'first-frame-lipsync' as DialogueWorkflowType,
-          label: 'Premium Lip Sync (Standard)',
-          description: 'Highest quality output. Some content may be restricted by content safety filters.',
-        },
-        {
-          quality: 'premium' as DialogueQuality,
-          workflowType: 'extreme-closeup' as DialogueWorkflowType,
-          label: 'Premium Lip Sync (Extreme Close-Up - Face)',
-          description: 'Extreme close-up framing focusing on the face. Highest quality output.',
-        },
-        {
-          quality: 'premium' as DialogueQuality,
-          workflowType: 'extreme-closeup-mouth' as DialogueWorkflowType,
-          label: 'Premium Lip Sync (Extreme Close-Up - Mouth)',
-          description: 'Extreme close-up framing focusing on the mouth. Highest quality output.',
-        }
-      ];
     }
+    return [
+      {
+        quality: 'reliable' as DialogueQuality,
+        workflowType: 'first-frame-lipsync' as DialogueWorkflowType,
+        label: 'Standard',
+        description: 'Most standard shots.',
+      },
+      {
+        quality: 'reliable' as DialogueQuality,
+        workflowType: 'extreme-closeup' as DialogueWorkflowType,
+        label: 'Extreme Close-Up - Face',
+        description: 'Extreme close-up framing focusing on the face.',
+      },
+      {
+        quality: 'reliable' as DialogueQuality,
+        workflowType: 'extreme-closeup-mouth' as DialogueWorkflowType,
+        label: 'Extreme Close-Up - Mouth',
+        description: 'Extreme close-up framing focusing on the mouth.',
+      },
+      {
+        quality: 'premium' as DialogueQuality,
+        workflowType: 'first-frame-lipsync' as DialogueWorkflowType,
+        label: 'Premium (Standard)',
+        description: 'Higher quality output. Some content may be restricted by content safety filters.',
+      },
+      {
+        quality: 'premium' as DialogueQuality,
+        workflowType: 'extreme-closeup' as DialogueWorkflowType,
+        label: 'Premium (Extreme Close-Up - Face)',
+        description: 'Extreme close-up framing focusing on the face.',
+      },
+      {
+        quality: 'premium' as DialogueQuality,
+        workflowType: 'extreme-closeup-mouth' as DialogueWorkflowType,
+        label: 'Premium (Extreme Close-Up - Mouth)',
+        description: 'Extreme close-up framing focusing on the mouth.',
+      }
+    ];
   }, [isMultiCharacter]);
   
   const voiceoverOptions = useMemo(() => [
@@ -249,7 +249,7 @@ export function UnifiedDialogueDropdown({
     <div className="space-y-4">
       {/* Lip Sync Options */}
       <div>
-        <div className="text-xs font-medium text-[#FFFFFF] mb-2">LIP SYNC OPTIONS</div>
+        <div className="text-xs font-medium text-[#FFFFFF] mb-2">WRYDA LIP SYNC OPTIONS</div>
         <div className="space-y-2">
           {lipSyncOptions.map((option, idx) => {
             const isSelected = currentQuality === option.quality && 
