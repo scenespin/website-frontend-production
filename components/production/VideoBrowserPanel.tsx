@@ -77,17 +77,22 @@ function getProviderLabel(provider: string | null | undefined): string {
     : fallback || provider;
 }
 
+/** Format YYYYMMDD-HHMMSS or ISO timestamp for display. Uses video timestamp when available so time matches backend. */
 function formatTimestamp(ts: string): string {
   if (!ts) return '—';
-  // Support formats: "20241215-143022" or ISO
   const match = ts.match(/^(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})$/);
   if (match) {
-    const [, y, m, d, hh, mm] = match;
-    const month = new Date(Number(y), Number(m) - 1, 1).toLocaleString('default', { month: 'short' });
-    const hour = Number(hh);
-    const ampm = hour >= 12 ? 'PM' : 'AM';
-    const hour12 = hour % 12 || 12;
-    return `${month} ${d}, ${y} ${hour12}:${mm} ${ampm}`;
+    const [, y, m, d, hh, mm, ss] = match;
+    const date = new Date(Number(y), Number(m) - 1, Number(d), Number(hh), Number(mm), Number(ss || 0));
+    if (!Number.isNaN(date.getTime())) {
+      return date.toLocaleString(undefined, {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      });
+    }
   }
   try {
     const date = new Date(ts);
@@ -117,12 +122,13 @@ function buildVideoEntries(
         if (!variation.video?.s3Key) continue;
         const videoUrl = presignedUrls.get(variation.video.s3Key);
         const metadata = (variation.video as any).metadata || {};
+        const videoTimestamp = metadata.timestamp || variation.timestamp;
         entries.push({
           sceneNumber: scene.sceneNumber,
           sceneHeading: scene.sceneHeading,
           sceneId: scene.sceneId,
           shotNumber: shot.shotNumber,
-          timestamp: variation.timestamp,
+          timestamp: videoTimestamp,
           videoFileName: variation.video.fileName || `shot-${shot.shotNumber}.mp4`,
           videoS3Key: variation.video.s3Key,
           videoUrl,
@@ -130,7 +136,7 @@ function buildVideoEntries(
           videoMode: metadata.videoMode,
           videoProvider: metadata.videoProvider ?? metadata.videoModel ?? null,
           providerDisplayLabel: metadata.providerDisplayLabel ?? null,
-          entryKey: `${scene.sceneId}-${shot.shotNumber}-${variation.timestamp}`,
+          entryKey: `${scene.sceneId}-${shot.shotNumber}-${videoTimestamp}`,
         });
       }
     }
@@ -465,7 +471,7 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
                         Frame to frame
                       </span>
                     )}
-                    {entry.videoMode === 'image-start' && (
+                    {(entry.videoMode === 'image-start' || entry.providerDisplayLabel === 'Premium Dialogue') && (
                       <span className="text-[10px] font-medium text-sky-500/90 bg-sky-500/10 px-2 py-0.5 rounded" title="Image-to-video">
                         Image-to-video
                       </span>
@@ -475,19 +481,19 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
                         Reference images
                       </span>
                     )}
-                    {(entry.videoMode === 'text-only' || !entry.videoMode) && (
+                    {(entry.videoMode === 'text-only' || !entry.videoMode) && entry.providerDisplayLabel !== 'Premium Dialogue' && (
                       <span className="text-[10px] font-medium text-amber-500/90 bg-amber-500/10 px-2 py-0.5 rounded" title="Text-to-video">
                         Text-to-video
                       </span>
                     )}
-                    {entry.videoMode && !['image-interpolation', 'image-start', 'reference-images', 'text-only'].includes(entry.videoMode) && (
+                    {entry.videoMode && !['image-interpolation', 'image-start', 'reference-images', 'text-only'].includes(entry.videoMode) && entry.providerDisplayLabel !== 'Premium Dialogue' && (
                       <span className="text-[10px] font-medium text-[#808080] bg-[#262626] px-2 py-0.5 rounded" title={entry.videoMode}>
                         Video
                       </span>
                     )}
                   </span>
                   <span className="text-xs text-[#808080] w-24 flex-shrink-0">
-                    {getProviderLabel(entry.videoProvider)}
+                    {entry.providerDisplayLabel ?? getProviderLabel(entry.videoProvider)}
                   </span>
                   <span className="text-[10px] text-[#808080] flex-shrink-0">
                     {formatTimestamp(entry.timestamp)}
