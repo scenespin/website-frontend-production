@@ -62,7 +62,7 @@ export default function ScreenplayReadingModal({
   screenplayTitle
 }: ScreenplayReadingModalProps) {
   const { getToken } = useAuth();
-  const { characters, scenes: screenplayScenes } = useScreenplay();
+  const { characters, scenes: screenplayScenes, getSceneCharacters } = useScreenplay();
   const router = useRouter();
   
   // State
@@ -113,14 +113,17 @@ export default function ScreenplayReadingModal({
     if (isOpen && screenplayId) {
       // Use scenes from context first (already loaded), fallback to API if needed
       if (screenplayScenes && screenplayScenes.length > 0) {
-        // Transform context scenes to match our format
-        const transformedScenes = screenplayScenes.map(scene => ({
-          id: scene.id,
-          heading: scene.heading || '',
-          synopsis: scene.synopsis,
-          characterCount: 0, // Scene type doesn't have characters array - will be calculated if needed
-          hasDialogue: true // Assume true if scene exists
-        }));
+        // Transform context scenes to match our format; use getSceneCharacters for per-scene character count
+        const transformedScenes = screenplayScenes.map(scene => {
+          const sceneCharacters = getSceneCharacters(scene.id);
+          return {
+            id: scene.id,
+            heading: scene.heading || '',
+            synopsis: scene.synopsis,
+            characterCount: sceneCharacters.length,
+            hasDialogue: sceneCharacters.length > 0
+          };
+        });
         setScenes(transformedScenes);
       } else {
         // Fallback to API if context doesn't have scenes
@@ -128,7 +131,7 @@ export default function ScreenplayReadingModal({
       }
       fetchCharacterVoices();
     }
-  }, [isOpen, screenplayId, screenplayScenes]);
+  }, [isOpen, screenplayId, screenplayScenes, getSceneCharacters]);
 
   // Reset state when modal closes
   useEffect(() => {
