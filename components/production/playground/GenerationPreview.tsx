@@ -99,8 +99,8 @@ export function GenerationPreview({
                   src={generatedVideoUrl}
                   controls
                   className="w-full h-auto"
-                  autoPlay
                   loop
+                  playsInline
                 />
               )}
             </div>
