@@ -471,7 +471,7 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
                         Frame to frame
                       </span>
                     )}
-                    {(entry.videoMode === 'image-start' || entry.providerDisplayLabel === 'Premium Dialogue') && (
+                    {(entry.videoMode === 'image-start' || entry.providerDisplayLabel === 'Dialogue' || entry.providerDisplayLabel === 'Premium Dialogue') && (
                       <span className="text-[10px] font-medium text-sky-500/90 bg-sky-500/10 px-2 py-0.5 rounded" title="Image-to-video">
                         Image-to-video
                       </span>
@@ -481,12 +481,12 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
                         Reference images
                       </span>
                     )}
-                    {(entry.videoMode === 'text-only' || !entry.videoMode) && entry.providerDisplayLabel !== 'Premium Dialogue' && (
+                    {(entry.videoMode === 'text-only' || !entry.videoMode) && entry.providerDisplayLabel !== 'Dialogue' && entry.providerDisplayLabel !== 'Premium Dialogue' && (
                       <span className="text-[10px] font-medium text-amber-500/90 bg-amber-500/10 px-2 py-0.5 rounded" title="Text-to-video">
                         Text-to-video
                       </span>
                     )}
-                    {entry.videoMode && !['image-interpolation', 'image-start', 'reference-images', 'text-only'].includes(entry.videoMode) && entry.providerDisplayLabel !== 'Premium Dialogue' && (
+                    {entry.videoMode && !['image-interpolation', 'image-start', 'reference-images', 'text-only'].includes(entry.videoMode) && entry.providerDisplayLabel !== 'Dialogue' && entry.providerDisplayLabel !== 'Premium Dialogue' && (
                       <span className="text-[10px] font-medium text-[#808080] bg-[#262626] px-2 py-0.5 rounded" title={entry.videoMode}>
                         Video
                       </span>
