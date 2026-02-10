@@ -788,13 +788,20 @@ export function LocationDetailModal({
   }, [allImages]);
 
   // Feature 0223: Split ECU vs non-ECU backgrounds; main block shows only non-ECU
+  // Treat as ECU if metadata.useCase is set OR backgroundType is a known ECU type (fallback when metadata is missing)
+  const ECU_BACKGROUND_TYPES = ['ecu-soft', 'ecu-abstract-warm', 'ecu-abstract-cool', 'ecu-texture-echo'] as const;
+  const isEcuBackground = useCallback((b: { metadata?: { useCase?: string }; backgroundType?: string }) => {
+    if (b.metadata?.useCase === 'extreme-closeup') return true;
+    const bt = b.backgroundType ?? '';
+    return ECU_BACKGROUND_TYPES.some((t) => bt === t || bt.startsWith('ecu-'));
+  }, []);
   const ecuBackgrounds = useMemo(() =>
-    backgrounds.filter((b: any) => b.metadata?.useCase === 'extreme-closeup'),
-    [backgrounds]
+    backgrounds.filter((b: any) => isEcuBackground(b)),
+    [backgrounds, isEcuBackground]
   );
   const nonEcuBackgrounds = useMemo(() =>
-    backgrounds.filter((b: any) => b.metadata?.useCase !== 'extreme-closeup'),
-    [backgrounds]
+    backgrounds.filter((b: any) => !isEcuBackground(b)),
+    [backgrounds, isEcuBackground]
   );
   
   // 🔥 SIMPLIFIED: No timeOfDay/weather grouping - three top-level sections only (Angles | Backgrounds | Extreme close-ups)
