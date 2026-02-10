@@ -397,33 +397,35 @@ export default function ScreenplayReadingModal({
           // Close modal and redirect to jobs tab
           onClose();
           router.push(`/produce?tab=jobs&jobId=${data.jobId}`);
-        } else if (data.result) {
-          // Synchronous result - show immediately
-          setResult(data.result);
-          
-          // Handle failed scenes
-          if (data.result.scenesFailed && data.result.scenesFailed.length > 0) {
-            setFailedScenes(data.result.scenesFailed);
-            toast.warning(`Audio generated with ${data.result.scenesFailed.length} failed scene(s)`, {
-              description: 'Some scenes could not be processed. Check the error details below.'
-            });
-          } else {
-            toast.success('Audio generated successfully!');
-          }
-          
-          // 🔥 Refresh credits immediately after screenplay reading completes
-          if (typeof window !== 'undefined' && window.refreshCredits) {
-            window.refreshCredits();
-          }
-          
-          // Show Media Library notification
-          toast.info('Files saved to Media Library', {
-            description: 'You can access them from the Media Library tab'
-          });
+        } else {
+          // Synchronous result - backend may return result in data.result or data.data
+          const syncResult = data.result ?? data.data;
+          if (syncResult) {
+            setResult(syncResult);
 
-          // Initialize audio player
-          if (data.result.audioUrl) {
-            const audio = new Audio(data.result.audioUrl);
+            // Handle failed scenes
+            if (syncResult.scenesFailed && syncResult.scenesFailed.length > 0) {
+              setFailedScenes(syncResult.scenesFailed);
+              toast.warning(`Audio generated with ${syncResult.scenesFailed.length} failed scene(s)`, {
+                description: 'Some scenes could not be processed. Check the error details below.'
+              });
+            } else {
+              toast.success('Audio generated successfully!');
+            }
+
+            // 🔥 Refresh credits immediately after screenplay reading completes
+            if (typeof window !== 'undefined' && window.refreshCredits) {
+              window.refreshCredits();
+            }
+
+            // Show Media Library notification
+            toast.info('Files saved to Media Library', {
+              description: 'You can access them from the Media Library tab'
+            });
+
+            // Initialize audio player
+            if (syncResult.audioUrl) {
+              const audio = new Audio(syncResult.audioUrl);
             audio.addEventListener('loadedmetadata', () => {
               setDuration(audio.duration);
             });
@@ -435,6 +437,7 @@ export default function ScreenplayReadingModal({
               setCurrentTime(0);
             });
             setAudioElement(audio);
+          }
           }
         }
       } else {
