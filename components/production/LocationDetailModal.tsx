@@ -1987,6 +1987,9 @@ export function LocationDetailModal({
                                   </div>
                                 </div>
                   )}
+                      </div>
+                    </div>
+                  )}
 
                   {/* Feature 0223: Extreme close-up backgrounds - separate section */}
                   {ecuBackgrounds.length > 0 && (
@@ -2095,9 +2098,6 @@ export function LocationDetailModal({
                           </div>
                         </div>
                         )}
-                      </div>
-                    </div>
-                  )}
                   
                   {/* 🔥 SEPARATION: Creation Section Images - All Reference Images (Read-Only) */}
                   {allCreationImages.length > 0 && (
