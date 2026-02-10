@@ -18,6 +18,8 @@ interface GenerationPreviewProps {
   generationTime?: number; // in seconds
   onDownload?: () => void;
   onShare?: () => void;
+  /** Called when the video element fails to load (e.g. 404 after temp file expired). Parent can clear the URL so we show placeholder instead of empty player. */
+  onVideoError?: () => void;
   className?: string;
   /** Optional header label (default: "Output") */
   title?: string;
@@ -30,6 +32,7 @@ export function GenerationPreview({
   generationTime,
   onDownload,
   onShare,
+  onVideoError,
   className = '',
   title = 'Output',
 }: GenerationPreviewProps) {
@@ -101,6 +104,7 @@ export function GenerationPreview({
                   className="w-full h-auto"
                   loop
                   playsInline
+                  onError={onVideoError}
                 />
               )}
             </div>
