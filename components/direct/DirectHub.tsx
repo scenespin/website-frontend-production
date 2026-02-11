@@ -11,6 +11,8 @@ import { SceneBuilderPanel } from '@/components/production/SceneBuilderPanel';
 import { ShotBoardPanel } from '@/components/production/ShotBoardPanel';
 import { VideoBrowserPanel } from '@/components/production/VideoBrowserPanel';
 import { VideoGenerationTools } from '@/components/production/playground/VideoGenerationTools';
+import { WorkflowCompletionPoller } from '@/components/production/WorkflowCompletionPoller';
+import { useInFlightWorkflowJobsStore } from '@/lib/inFlightWorkflowJobsStore';
 import { DirectTabBar, DirectTab } from './DirectTabBar';
 import type { GenerateVideoContext } from '@/components/production/ShotBoardPanel';
 
@@ -24,6 +26,11 @@ export function DirectHub() {
 
   const [activeTab, setActiveTab] = useState<DirectTab>('scene-builder');
   const [videoGenPreFill, setVideoGenPreFill] = useState<GenerateVideoContext | null>(null);
+
+  // Stable key for WorkflowCompletionPoller (parent subscribes; poller does not - avoids #185)
+  const jobIdsKey = useInFlightWorkflowJobsStore((s) =>
+    [...s.jobIds].sort().join(',')
+  );
 
   useEffect(() => {
     const tabFromUrl = searchParams.get('tab');
@@ -74,6 +81,7 @@ export function DirectHub() {
 
   return (
     <div className="flex flex-col h-screen bg-[#0A0A0A]">
+      <WorkflowCompletionPoller jobIdsKey={jobIdsKey} />
       {/* Tab Navigation - Hidden on mobile, shown on desktop */}
       <div className="hidden md:block">
         <DirectTabBar

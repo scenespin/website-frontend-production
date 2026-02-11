@@ -1357,12 +1357,8 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
       job.results?.screenplayReading
     );
 
-    const completedWorkflowExecutionJobs = jobs.filter(job =>
-      job.status === 'completed' &&
-      job.jobType === 'workflow-execution'
-    );
-
-    if (completedScreenplayReadingJobs.length > 0 || completedWorkflowExecutionJobs.length > 0) {
+    // workflow-execution: handled by WorkflowCompletionPoller (runs when drawer closed)
+    if (completedScreenplayReadingJobs.length > 0) {
       queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] });
     }
   }, [jobs, screenplayId, queryClient, isOpen]);

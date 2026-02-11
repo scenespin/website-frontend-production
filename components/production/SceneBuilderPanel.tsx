@@ -78,6 +78,7 @@ import { VisualAnnotationPanel } from './VisualAnnotationPanel';
 import { ScreenplayStatusBanner } from './ScreenplayStatusBanner';
 import { SceneSelector } from './SceneSelector';
 import { useContextStore } from '@/lib/contextStore';
+import { useInFlightWorkflowJobsStore } from '@/lib/inFlightWorkflowJobsStore';
 import { OutfitSelector } from './OutfitSelector';
 import { CharacterOutfitSelector } from './CharacterOutfitSelector';
 import { DialogueConfirmationPanel } from './DialogueConfirmationPanel';
@@ -3212,6 +3213,8 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       
       console.log('[SceneBuilderPanel] ✅ Workflow execution started:', executionId);
       setWorkflowExecutionId(executionId);
+      // Register for completion polling (runs even when Jobs drawer closed - Videos tab auto-updates)
+      useInFlightWorkflowJobsStore.getState().addJob(executionId);
       // So JobsDrawer can show this job and store it in recent-job-ids (fetch-by-IDs on drawer open)
       if (typeof window !== 'undefined' && projectId) {
         window.dispatchEvent(new CustomEvent('wryda:optimistic-job', {

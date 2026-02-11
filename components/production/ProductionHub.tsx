@@ -50,6 +50,8 @@ import { ReadingsPanel } from './ReadingsPanel';
 import { ProductionErrorBoundary } from './ProductionErrorBoundary';
 import { ProductionTabBar } from './ProductionTabBar';
 import { JobsDrawer } from './JobsDrawer';
+import { WorkflowCompletionPoller } from './WorkflowCompletionPoller';
+import { useInFlightWorkflowJobsStore } from '@/lib/inFlightWorkflowJobsStore';
 
 // ============================================================================
 // TYPES
@@ -105,6 +107,11 @@ export function ProductionHub({}: ProductionHubProps) {
   
   // 🔥 FIX: Use ref to prevent circular updates when we programmatically change the tab
   const isUpdatingTabRef = useRef(false);
+
+  // Stable key for WorkflowCompletionPoller (parent subscribes; poller does not - avoids #185)
+  const jobIdsKey = useInFlightWorkflowJobsStore((s) =>
+    [...s.jobIds].sort().join(',')
+  );
   
   // ✅ FIX: All hooks must be called BEFORE early return
   // Sync activeTab with URL params (prevent circular updates and React error #300)
@@ -262,6 +269,7 @@ export function ProductionHub({}: ProductionHubProps) {
   if (isMobile) {
     return (
       <div className="flex flex-col h-screen bg-[#0A0A0A]">
+        <WorkflowCompletionPoller jobIdsKey={jobIdsKey} />
         {/* Mobile Tab Navigation - Hidden on mobile, shown on desktop */}
         <div className="hidden md:block">
           <ProductionTabBar
@@ -326,6 +334,7 @@ export function ProductionHub({}: ProductionHubProps) {
 
   return (
     <div className="flex flex-col h-screen bg-[#0A0A0A]">
+      <WorkflowCompletionPoller jobIdsKey={jobIdsKey} />
       {/* Horizontal Tab Navigation */}
       <ProductionTabBar
         activeTab={activeTab}
