@@ -27,6 +27,8 @@ export interface ShotVariation {
     fileId: string;
     s3Key: string;
     fileName: string;
+    /** Optional metadata from media file (e.g. providerId for Shots tab label). */
+    metadata?: { providerId?: string };
   };
   video?: {
     fileId: string;
@@ -192,13 +194,15 @@ export function useShotBoard(screenplayId: string, enabled: boolean = true): Use
       const matchingVideo = videoMap.get(videoKey);
       if (matchingVideo) videoKeysMatchedToFirstFrame.add(videoKey);
 
-      // Create variation
+      // Create variation (include first-frame metadata for provider label on Shots tab)
+      const firstFrameMeta = (firstFrame as any).metadata || {};
       const variation: ShotVariation = {
         timestamp,
         firstFrame: {
           fileId: firstFrame.id || '',
           s3Key: firstFrame.s3Key || '',
-          fileName: firstFrame.fileName || ''
+          fileName: firstFrame.fileName || '',
+          ...(firstFrameMeta.providerId && { metadata: { providerId: firstFrameMeta.providerId } })
         }
       };
 
@@ -243,7 +247,7 @@ export function useShotBoard(screenplayId: string, enabled: boolean = true): Use
       const videoMetadata = (video as any).metadata || {};
       variations.push({
         timestamp,
-        firstFrame: { fileId: '', s3Key: '', fileName: '' },
+        firstFrame: { fileId: '', s3Key: '', fileName: '' }, // Video-only variation, no first frame
         video: {
           fileId: (video as any).fileId || (video as any).id || '',
           s3Key: (video as any).s3Key || '',

@@ -14,6 +14,7 @@ import { useAuth } from '@clerk/nextjs';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { useShotBoard, type ShotBoardScene, type ShotBoardShot, getTotalShotCount } from '@/hooks/useShotBoard';
+import { formatProviderTag } from '@/utils/providerLabels';
 import { ImageViewer, type ImageItem } from './ImageViewer';
 
 interface ShotBoardPanelProps {
@@ -160,6 +161,16 @@ function ShotCell({
         <div className="absolute top-1 left-1 bg-[#DC143C] text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
           #{shot.shotNumber}
         </div>
+        {/* Image provider label (same style as production hub) — only when providerId present */}
+        {currentVariation.firstFrame.metadata?.providerId && (() => {
+          const tagText = formatProviderTag(currentVariation.firstFrame.metadata?.providerId);
+          if (!tagText) return null;
+          return (
+            <div className="absolute bottom-1 right-1 px-1.5 py-0.5 text-white text-[10px] rounded bg-black/70 backdrop-blur-sm">
+              {tagText}
+            </div>
+          );
+        })()}
       </div>
 
       {/* Toolbar: First frame · Frame | Video (visible layout so we can confirm this bundle loads) */}
