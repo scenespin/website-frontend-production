@@ -23,6 +23,7 @@ interface ApiModel {
   name: string;
   referenceLimit: number;
   quality: string;
+  credits?: number;
   enabled?: boolean;
 }
 
@@ -38,7 +39,7 @@ export function ReferenceShotSelector({
   onModelChange
 }: ReferenceShotSelectorProps) {
   const { getToken } = useAuth();
-  const [models, setModels] = useState<Array<{ id: ReferenceShotModel; name: string; refs: number; resolution: string }>>([]);
+  const [models, setModels] = useState<Array<{ id: ReferenceShotModel; name: string; credits: number; resolution: string }>>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -58,7 +59,7 @@ export function ReferenceShotSelector({
         const mapped = enabled.map((m: ApiModel) => ({
           id: m.id as ReferenceShotModel,
           name: m.name,
-          refs: m.referenceLimit,
+          credits: m.credits ?? 0,
           resolution: m.quality === '4K' ? '4K' : '2K'
         }));
         if (!cancelled) setModels(mapped);
@@ -106,12 +107,12 @@ export function ReferenceShotSelector({
         >
           {models.map((model) => (
             <option key={model.id} value={model.id} className="bg-[#1A1A1A] text-[#FFFFFF]">
-              {model.name} ({model.refs} refs • {model.resolution})
+              {model.name} ({model.resolution} • {model.credits} credits)
             </option>
           ))}
         </select>
         <div className="text-[10px] text-[#808080]">
-          Selected: {currentModel.name} ({currentModel.refs} references, {currentModel.resolution})
+          Selected: {currentModel.name} ({currentModel.credits} credits, {currentModel.resolution})
         </div>
       </div>
     </div>
