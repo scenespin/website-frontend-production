@@ -50,7 +50,6 @@ import { ReadingsPanel } from './ReadingsPanel';
 import { ProductionErrorBoundary } from './ProductionErrorBoundary';
 import { ProductionTabBar } from './ProductionTabBar';
 import { JobsDrawer } from './JobsDrawer';
-import { WorkflowCompletionPoller } from './WorkflowCompletionPoller';
 
 // ============================================================================
 // TYPES
@@ -263,7 +262,6 @@ export function ProductionHub({}: ProductionHubProps) {
   if (isMobile) {
     return (
       <div className="flex flex-col h-screen bg-[#0A0A0A]">
-        <WorkflowCompletionPoller />
         {/* Mobile Tab Navigation - Hidden on mobile, shown on desktop */}
         <div className="hidden md:block">
           <ProductionTabBar
@@ -328,7 +326,6 @@ export function ProductionHub({}: ProductionHubProps) {
 
   return (
     <div className="flex flex-col h-screen bg-[#0A0A0A]">
-      <WorkflowCompletionPoller />
       {/* Horizontal Tab Navigation */}
       <ProductionTabBar
         activeTab={activeTab}

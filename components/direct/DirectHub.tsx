@@ -11,7 +11,6 @@ import { SceneBuilderPanel } from '@/components/production/SceneBuilderPanel';
 import { ShotBoardPanel } from '@/components/production/ShotBoardPanel';
 import { VideoBrowserPanel } from '@/components/production/VideoBrowserPanel';
 import { VideoGenerationTools } from '@/components/production/playground/VideoGenerationTools';
-import { WorkflowCompletionPoller } from '@/components/production/WorkflowCompletionPoller';
 import { DirectTabBar, DirectTab } from './DirectTabBar';
 import type { GenerateVideoContext } from '@/components/production/ShotBoardPanel';
 
@@ -75,7 +74,6 @@ export function DirectHub() {
 
   return (
     <div className="flex flex-col h-screen bg-[#0A0A0A]">
-      <WorkflowCompletionPoller />
       {/* Tab Navigation - Hidden on mobile, shown on desktop */}
       <div className="hidden md:block">
         <DirectTabBar
