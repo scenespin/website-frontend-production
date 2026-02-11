@@ -3254,6 +3254,8 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     // Feature 0259: Full context reset (equivalent to hard refresh) so no sticky choices from previous run.
     setTimeout(() => {
       contextActions.resetToInitialState();
+      // Clear props fetch cache so re-selecting the same scene triggers a fresh fetch (props were empty after reset)
+      lastFetchedSceneRef.current = { sceneId: null, propIds: '' };
       setSelectedSceneId(null);
       setHasConfirmedSceneSelection(false);
       setIsGenerating(false);
