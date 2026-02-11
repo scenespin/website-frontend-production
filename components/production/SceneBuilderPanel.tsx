@@ -3251,21 +3251,15 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     // Job keeps running in backend (workflowRequest.screenplayId was set); Jobs panel loads from
     // /api/workflows/executions?screenplayId=... so the job appears there with progress. We open
     // the Jobs drawer below so the user sees it.
+    // Feature 0259: Full context reset (equivalent to hard refresh) so no sticky choices from previous run.
     setTimeout(() => {
-      setCurrentStep(1);
-      setWizardStep('analysis');
-      setSceneAnalysisResult(null);
+      contextActions.resetToInitialState();
       setSelectedSceneId(null);
       setHasConfirmedSceneSelection(false);
-      setCurrentShotIndex(0);
       setIsGenerating(false);
       setWorkflowExecutionId(null);
       setWorkflowStatus(null);
       localStorage.removeItem(`scene-builder-execution-${projectId}`);
-      setEnabledShots([]);
-      contextActions.setSelectedCharacterReferences({});
-      contextActions.setSelectedLocationReferences({});
-      contextActions.setSelectedVideoTypes({});
       setIsJobsDrawerOpen(true);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }, 1500);

@@ -265,7 +265,9 @@ export interface SceneBuilderActions {
   setCurrentShotIndex: (index: number) => void;
   setCurrentStep: (step: 1 | 2) => void;
   setEnabledShots: (shots: number[]) => void;
-  
+  /** Feature 0259: Reset all context state to initial (equivalent to hard refresh after run). */
+  resetToInitialState: () => void;
+
   // Scene Analysis Actions
   setSceneAnalysisResult: (result: SceneAnalysisResult | null) => void;
   
@@ -307,13 +309,10 @@ interface SceneBuilderProviderProps {
   projectId: string;
 }
 
-export function SceneBuilderProvider({ children, projectId }: SceneBuilderProviderProps) {
-  // Initialize state with defaults
-  const [state, setState] = useState<SceneBuilderState>({
-    // Scene Analysis
+/** Returns fresh initial state for Scene Builder. Used for mount and for resetAfterRun (Feature 0259). */
+function getInitialSceneBuilderState(): SceneBuilderState {
+  return {
     sceneAnalysisResult: null,
-    
-    // Character State
     selectedCharacterReferences: {},
     characterHeadshots: {},
     loadingHeadshots: {},
@@ -322,45 +321,30 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
     pronounMappingsForShots: {},
     pronounExtrasPrompts: {},
     autoResolvedPronouns: {},
-    
-    // Location State
     selectedLocationReferences: {},
     locationOptOuts: {},
     locationDescriptions: {},
-    
-    // Props State
     sceneProps: [],
     propsToShots: {},
     shotProps: {},
-    
-    // Dialogue Workflow State
     selectedDialogueQualities: {},
     selectedDialogueWorkflows: {},
     voiceoverBaseWorkflows: {},
     dialogueWorkflowPrompts: {},
     narrationOverrides: {},
     narrationNarratorCharacterId: {},
-    // Feature 0209: Off-frame voiceover (Hidden Mouth)
     offFrameShotType: {},
     offFrameListenerCharacterId: {},
     offFrameGroupCharacterIds: {},
     offFrameSceneContextPrompt: {},
     offFrameVideoPromptAdditive: {},
-    
-    // Prompt Override State
     firstFramePromptOverrides: {},
     videoPromptOverrides: {},
-    promptOverrideEnabled: {}, // Legacy: kept for backward compatibility
-    firstFrameOverrideEnabled: {}, // 🔥 NEW: Separate first frame override enabled
-    videoPromptOverrideEnabled: {}, // 🔥 NEW: Separate video prompt override enabled
-    
-    // Uploaded First Frames State
+    promptOverrideEnabled: {},
+    firstFrameOverrideEnabled: {},
+    videoPromptOverrideEnabled: {},
     uploadedFirstFrames: {},
-    
-    // Workflow Override State
     shotWorkflowOverrides: {},
-    
-    // Shot Configuration State
     shotCameraAngles: {},
     shotDurations: {},
     shotAspectRatios: {},
@@ -368,17 +352,11 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
     selectedVideoTypes: {},
     generateVideoForShot: {},
     motionDirectionPrompt: {},
-    
-    // Global Settings
     globalResolution: '4k',
-    
-    // Navigation State
     wizardStep: 'analysis',
     currentShotIndex: 0,
     currentStep: 1,
     enabledShots: [],
-    
-    // Media Library Data
     characterThumbnailS3KeyMap: new Map(),
     characterThumbnailUrlsMap: new Map(),
     characterFullImageUrlsMap: new Map(),
@@ -387,7 +365,11 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
     propThumbnailUrlsMap: new Map(),
     locationThumbnailS3KeyMap: new Map(),
     locationThumbnailUrlsMap: new Map()
-  });
+  };
+}
+
+export function SceneBuilderProvider({ children, projectId }: SceneBuilderProviderProps) {
+  const [state, setState] = useState<SceneBuilderState>(getInitialSceneBuilderState);
 
   // ============================================================================
   // Derive Character IDs for Media Library Query
@@ -1347,6 +1329,10 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
         });
         return newState;
       });
+    }, []),
+
+    resetToInitialState: useCallback(() => {
+      setState(getInitialSceneBuilderState());
     }, []),
     
     // Scene Analysis Actions
