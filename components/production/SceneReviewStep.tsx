@@ -29,6 +29,16 @@ import { getCharacterName, getCharacterSource } from './utils/sceneBuilderUtils'
 
 // Honest resolution (0237): No resolution selector. Output is 720p (Reliable/LongCat) or 1080p (Premium/VEO) by workflow.
 
+/** Display labels for reference shot (first frame) model IDs. Kept in sync with model-selection API / ReferenceShotSelector. */
+const REFERENCE_SHOT_MODEL_LABELS: Record<string, string> = {
+  'nano-banana-pro': 'Nano Banana Pro (4K)',
+  'nano-banana-pro-2k': 'Nano Banana Pro (2K)',
+  'flux2-max-4k-16:9': 'FLUX.2 [max] (4K 16:9)',
+  'flux2-max-2k': 'FLUX.2 [max] (2K)',
+  'flux2-pro-4k': 'FLUX.2 [pro] (4K 16:9)',
+  'flux2-pro-2k': 'FLUX.2 [pro] (2K 16:9)'
+};
+
 interface SceneReviewStepProps {
   sceneAnalysisResult: SceneAnalysisResult | null;
   enabledShots: number[];
@@ -540,19 +550,33 @@ export function SceneReviewStep({
                               const selectedImageId = config?.selectedImageId;
                               if (!selectedImageId) return null;
                               
-                              // For props, selectedImageId might be the s3Key or an ID
-                              // Try two-step lookup first (s3Key -> thumbnailS3Key -> URL); fallback to prop.imageUrl when maps missing
+                              // Resolve selectedImageId to s3Key: it may be an angle ref id (map is keyed by s3Key)
+                              const propWithRefs = prop as typeof prop & { angleReferences?: Array<{ id: string; s3Key: string; imageUrl?: string }>; images?: Array<{ s3Key?: string }>; baseReference?: { s3Key?: string } };
+                              let lookupKey = selectedImageId;
+                              if (propWithRefs.angleReferences?.length) {
+                                const ref = propWithRefs.angleReferences.find((r: { id: string; s3Key: string }) => r.id === selectedImageId || r.s3Key === selectedImageId);
+                                if (ref?.s3Key) lookupKey = ref.s3Key;
+                              }
+                              if (lookupKey === selectedImageId && propWithRefs.images?.length) {
+                                const img = propWithRefs.images.find((i: { s3Key?: string }) => i.s3Key === selectedImageId);
+                                if (img?.s3Key) lookupKey = img.s3Key;
+                              }
+                              if (lookupKey === selectedImageId && propWithRefs.baseReference?.s3Key === selectedImageId) {
+                                lookupKey = propWithRefs.baseReference.s3Key;
+                              }
+                              
+                              // Two-step lookup: s3Key -> thumbnailS3Key -> URL; fallback to prop.imageUrl when maps missing
                               let thumbnailUrl: string | undefined;
-                              if (propThumbnailS3KeyMap?.has(selectedImageId)) {
-                                const thumbnailS3Key = propThumbnailS3KeyMap.get(selectedImageId);
+                              if (propThumbnailS3KeyMap?.has(lookupKey)) {
+                                const thumbnailS3Key = propThumbnailS3KeyMap.get(lookupKey);
                                 if (thumbnailS3Key) {
                                   thumbnailUrl = propThumbnailUrlsMap?.get(thumbnailS3Key);
                                 }
                               } else {
-                                thumbnailUrl = propThumbnailUrlsMap?.get(selectedImageId);
+                                thumbnailUrl = propThumbnailUrlsMap?.get(lookupKey);
                               }
-                              if (!thumbnailUrl && prop.imageUrl && (prop.imageUrl.startsWith('http') || prop.imageUrl.startsWith('data:'))) {
-                                thumbnailUrl = prop.imageUrl;
+                              if (!thumbnailUrl && (prop as { imageUrl?: string }).imageUrl && ((prop as { imageUrl?: string }).imageUrl!.startsWith('http') || (prop as { imageUrl?: string }).imageUrl!.startsWith('data:'))) {
+                                thumbnailUrl = (prop as { imageUrl?: string }).imageUrl;
                               }
                               
                               return thumbnailUrl ? (
@@ -572,6 +596,12 @@ export function SceneReviewStep({
                                 </div>
                               ) : null;
                             })}
+                          </div>
+                        )}
+                        {/* Reference shot (first frame) model used for this shot */}
+                        {selectedReferenceShotModels[shot.slot] && (
+                          <div className="mt-2 text-[10px] text-[#808080]">
+                            Image model: {REFERENCE_SHOT_MODEL_LABELS[selectedReferenceShotModels[shot.slot]] ?? selectedReferenceShotModels[shot.slot]}
                           </div>
                         )}
                       </div>
