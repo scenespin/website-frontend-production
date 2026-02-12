@@ -94,13 +94,16 @@ export function usePropReferences(
     return filtered;
   }, [allAssetMediaFiles, propIds]);
 
-  // Build thumbnailS3KeyMap from Media Library results
+  // Build thumbnailS3KeyMap from Media Library results.
+  // When the API omits thumbnailS3Key (e.g. for some asset uploads), use the same convention as the backend:
+  // thumbnails/${s3Key} (see ExpiredMediaCleanupService.getThumbnailS3Key, S3Service.generateThumbnail).
+  // This ensures the map is populated so the config and review steps can resolve thumbnails the same way.
   const propThumbnailS3KeyMap = useMemo(() => {
     const map = new Map<string, string>();
     propMediaFiles.forEach((file: any) => {
-      if (file.s3Key && file.thumbnailS3Key) {
-        map.set(file.s3Key, file.thumbnailS3Key);
-      }
+      if (!file.s3Key) return;
+      const thumbnailKey = file.thumbnailS3Key || `thumbnails/${file.s3Key}`;
+      map.set(file.s3Key, thumbnailKey);
     });
     return map;
   }, [propMediaFiles]);

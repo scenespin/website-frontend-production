@@ -544,14 +544,14 @@ export function SceneReviewStep({
                                 </div>
                               ) : null;
                             })()}
-                            {/* Prop references */}
+                            {/* Prop references — same two-step lookup as character/location: s3Key -> thumbnailS3Key -> URL */}
                             {shotPropsForShot.map(prop => {
                               const config = shotPropsConfig[prop.id];
                               const selectedImageId = config?.selectedImageId;
                               if (!selectedImageId) return null;
                               
-                              // Resolve selectedImageId to s3Key: it may be an angle ref id (map is keyed by s3Key)
-                              const propWithRefs = prop as typeof prop & { angleReferences?: Array<{ id: string; s3Key: string; imageUrl?: string }>; images?: Array<{ s3Key?: string }>; baseReference?: { s3Key?: string } };
+                              // Resolve selectedImageId to s3Key (map is keyed by s3Key; selectedImageId may be angle ref id)
+                              const propWithRefs = prop as typeof prop & { angleReferences?: Array<{ id: string; s3Key: string }>; images?: Array<{ s3Key?: string }>; baseReference?: { s3Key?: string } };
                               let lookupKey = selectedImageId;
                               if (propWithRefs.angleReferences?.length) {
                                 const ref = propWithRefs.angleReferences.find((r: { id: string; s3Key: string }) => r.id === selectedImageId || r.s3Key === selectedImageId);
@@ -565,7 +565,6 @@ export function SceneReviewStep({
                                 lookupKey = propWithRefs.baseReference.s3Key;
                               }
                               
-                              // Two-step lookup: s3Key -> thumbnailS3Key -> URL; fallback to prop.imageUrl when maps missing
                               let thumbnailUrl: string | undefined;
                               if (propThumbnailS3KeyMap?.has(lookupKey)) {
                                 const thumbnailS3Key = propThumbnailS3KeyMap.get(lookupKey);
@@ -598,10 +597,13 @@ export function SceneReviewStep({
                             })}
                           </div>
                         )}
-                        {/* Reference shot (first frame) model used for this shot */}
+                        {/* Reference shot (first frame) model — own line with label and spacing */}
                         {selectedReferenceShotModels[shot.slot] && (
-                          <div className="mt-2 text-[10px] text-[#808080]">
-                            Image model: {REFERENCE_SHOT_MODEL_LABELS[selectedReferenceShotModels[shot.slot]] ?? selectedReferenceShotModels[shot.slot]}
+                          <div className="mt-4 pt-2 border-t border-[#3F3F46]">
+                            <div className="text-[10px] text-[#808080] mb-0.5">First frame model</div>
+                            <div className="text-xs text-[#FFFFFF]">
+                              {REFERENCE_SHOT_MODEL_LABELS[selectedReferenceShotModels[shot.slot]] ?? selectedReferenceShotModels[shot.slot]}
+                            </div>
                           </div>
                         )}
                       </div>
