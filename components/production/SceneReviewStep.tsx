@@ -606,15 +606,13 @@ export function SceneReviewStep({
                             })}
                           </div>
                         )}
-                        {/* Reference shot (first frame) model — own line with label and spacing */}
-                        {selectedReferenceShotModels[shot.slot] && (
-                          <div className="mt-4 pt-2 border-t border-[#3F3F46]">
-                            <div className="text-[10px] text-[#808080] mb-0.5">First frame model</div>
-                            <div className="text-xs text-[#FFFFFF]">
-                              {REFERENCE_SHOT_MODEL_LABELS[selectedReferenceShotModels[shot.slot]] ?? selectedReferenceShotModels[shot.slot]}
-                            </div>
+                        {/* Reference shot (first frame) model — own line with label and spacing. Use same default as config step when user never changed the dropdown. */}
+                        <div className="mt-4 pt-2 border-t border-[#3F3F46]">
+                          <div className="text-[10px] text-[#808080] mb-0.5">First frame model</div>
+                          <div className="text-xs text-[#FFFFFF]">
+                            {REFERENCE_SHOT_MODEL_LABELS[selectedReferenceShotModels[shot.slot] || 'nano-banana-pro-2k'] ?? (selectedReferenceShotModels[shot.slot] || 'nano-banana-pro-2k')}
                           </div>
-                        )}
+                        </div>
                       </div>
                     )}
                   </div>
