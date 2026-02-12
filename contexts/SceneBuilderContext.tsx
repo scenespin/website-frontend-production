@@ -67,6 +67,8 @@ export type ShotDuration = 'quick-cut' | 'extended-take';
 export type Resolution = '1080p' | '4k';
 export type AspectRatio = '16:9' | '9:16' | '1:1' | '21:9' | '9:21';
 export type ReferenceShotModel = 'nano-banana-pro' | 'nano-banana-pro-2k' | 'flux2-max-4k-16:9' | 'flux2-max-2k' | 'flux2-pro-4k' | 'flux2-pro-2k';
+/** Single source of truth for default first-frame model when user has not selected one. Change here to update dropdown display, review step, pricing, and workflow payload. */
+export const DEFAULT_REFERENCE_SHOT_MODEL: ReferenceShotModel = 'nano-banana-pro-2k';
 export type VideoType = 'cinematic-visuals' | 'natural-motion' | 'premium-quality';
 export type DialogueQuality = 'premium' | 'reliable';
 export type WizardStep = 'analysis' | 'shot-config' | 'review';

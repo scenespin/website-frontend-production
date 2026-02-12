@@ -21,7 +21,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Check, Film, ArrowLeft, Play } from 'lucide-react';
 import { SceneAnalysisResult } from '@/types/screenplay';
-import { useSceneBuilderState, useSceneBuilderActions } from '@/contexts/SceneBuilderContext';
+import { useSceneBuilderState, useSceneBuilderActions, DEFAULT_REFERENCE_SHOT_MODEL } from '@/contexts/SceneBuilderContext';
 import type { Resolution, CameraAngle } from './ShotConfigurationPanel';
 import { SceneBuilderService } from '@/services/SceneBuilderService';
 import { useAuth } from '@clerk/nextjs';
@@ -149,10 +149,10 @@ export function SceneReviewStep({
       
       setIsLoadingPricing(true);
       try {
-        // Ensure all shots have a reference model (default to nano-banana-pro-2k if not selected)
+        // Ensure all shots have a reference model (default when not selected)
         const referenceShotModelsWithDefaults: Record<number, 'nano-banana-pro' | 'nano-banana-pro-2k' | 'flux2-max-4k-16:9' | 'flux2-max-2k' | 'flux2-pro-4k' | 'flux2-pro-2k'> = {};
         selectedShots.forEach((shot: any) => {
-          referenceShotModelsWithDefaults[shot.slot] = selectedReferenceShotModels?.[shot.slot] || 'nano-banana-pro-2k';
+          referenceShotModelsWithDefaults[shot.slot] = selectedReferenceShotModels?.[shot.slot] || DEFAULT_REFERENCE_SHOT_MODEL;
         });
         
         const pricingResult = await SceneBuilderService.calculatePricing(
@@ -610,7 +610,7 @@ export function SceneReviewStep({
                         <div className="mt-4 pt-2 border-t border-[#3F3F46]">
                           <div className="text-[10px] text-[#808080] mb-0.5">First frame model</div>
                           <div className="text-xs text-[#FFFFFF]">
-                            {REFERENCE_SHOT_MODEL_LABELS[selectedReferenceShotModels[shot.slot] || 'nano-banana-pro-2k'] ?? (selectedReferenceShotModels[shot.slot] || 'nano-banana-pro-2k')}
+                            {REFERENCE_SHOT_MODEL_LABELS[selectedReferenceShotModels[shot.slot] || DEFAULT_REFERENCE_SHOT_MODEL] ?? (selectedReferenceShotModels[shot.slot] || DEFAULT_REFERENCE_SHOT_MODEL)}
                           </div>
                         </div>
                       </div>

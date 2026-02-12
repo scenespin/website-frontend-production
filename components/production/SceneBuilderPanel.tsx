@@ -88,7 +88,7 @@ import { isValidCharacterId, filterValidCharacterIds } from './utils/characterId
 import { categorizeCharacters } from './utils/characterCategorization';
 import { isOffFrameListenerShotType, isOffFrameGroupShotType } from '@/types/offFrame';
 import type { OffFrameShotType } from '@/types/offFrame';
-import { SceneBuilderProvider, useSceneBuilderState, useSceneBuilderActions, VideoType, type AspectRatio } from '@/contexts/SceneBuilderContext';
+import { SceneBuilderProvider, useSceneBuilderState, useSceneBuilderActions, VideoType, type AspectRatio, DEFAULT_REFERENCE_SHOT_MODEL } from '@/contexts/SceneBuilderContext';
 // Media Library mapping utilities are now used in hooks
 import { resolveCharacterHeadshotUrl, isValidImageUrl } from './utils/imageUrlResolver';
 import { SCENE_BUILDER_GRID_COLS, SCENE_BUILDER_GRID_GAP, THUMBNAIL_STYLE } from './utils/imageConstants';
@@ -639,7 +639,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       try {
         const referenceShotModels: Record<number, 'nano-banana-pro' | 'nano-banana-pro-2k' | 'flux2-max-4k-16:9' | 'flux2-max-2k' | 'flux2-pro-4k' | 'flux2-pro-2k'> = {};
         shots.forEach((s: any) => {
-          referenceShotModels[s.slot] = selectedReferenceShotModels[s.slot] || 'nano-banana-pro-2k';
+          referenceShotModels[s.slot] = selectedReferenceShotModels[s.slot] || DEFAULT_REFERENCE_SHOT_MODEL;
         });
         const videoTypes: Record<number, VideoType> = {};
         shots.forEach((s: any) => {

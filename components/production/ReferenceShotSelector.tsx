@@ -9,6 +9,7 @@
 
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@clerk/nextjs';
+import { DEFAULT_REFERENCE_SHOT_MODEL } from '@/contexts/SceneBuilderContext';
 
 export type ReferenceShotModel =
   | 'nano-banana-pro'
@@ -74,7 +75,7 @@ export function ReferenceShotSelector({
   }, [getToken]);
 
   const currentModel = models.find((m) => m.id === selectedModel) ?? models[0];
-  const selectValue = selectedModel ?? 'nano-banana-pro-2k';
+  const selectValue = selectedModel ?? DEFAULT_REFERENCE_SHOT_MODEL;
 
   if (isLoading) {
     return (

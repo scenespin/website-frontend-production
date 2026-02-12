@@ -26,7 +26,7 @@ import { ReferenceShotSelector } from './ReferenceShotSelector';
 import { VideoGenerationSelector } from './VideoGenerationSelector';
 import { DialogueWorkflowType } from './UnifiedDialogueDropdown';
 import { getAvailablePropImages, getSelectedPropImageUrl } from './utils/propImageUtils';
-import { useSceneBuilderState, useSceneBuilderActions, VideoType } from '@/contexts/SceneBuilderContext';
+import { useSceneBuilderState, useSceneBuilderActions, VideoType, DEFAULT_REFERENCE_SHOT_MODEL } from '@/contexts/SceneBuilderContext';
 import { useBulkPresignedUrls } from '@/hooks/useMediaLibrary';
 import { cn } from '@/lib/utils';
 import { resolveLocationImageUrl } from './utils/imageUrlResolver';
@@ -972,7 +972,7 @@ export function ShotConfigurationStep({
       
       setIsLoadingPricing(true);
       try {
-        const referenceShotModel = selectedReferenceShotModels[shot.slot] || 'nano-banana-pro-2k'; // Default to match UI
+        const referenceShotModel = selectedReferenceShotModels[shot.slot] || DEFAULT_REFERENCE_SHOT_MODEL;
         // 🔥 FIX Issue 3: Only include video type if video opt-in is enabled for dialogue shots
         const videoType = (shot.type === 'dialogue' && videoOptInForThisShot) ? selectedVideoTypes[shot.slot] : undefined;
         const pricingResult = await SceneBuilderService.calculatePricing(
