@@ -1333,6 +1333,10 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
 
     resetToInitialState: useCallback(() => {
       setState(getInitialSceneBuilderState());
+      // Invalidate sync guards so derived data (headshots, loading, maps) is written back into state on next effect run
+      lastHeadshotsSignatureRef.current = '';
+      lastLoadingHeadshotsSignatureRef.current = '';
+      lastMapsSignatureRef.current = '';
     }, []),
     
     // Scene Analysis Actions
