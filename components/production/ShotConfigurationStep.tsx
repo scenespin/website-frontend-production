@@ -327,7 +327,8 @@ export function ShotConfigurationStep({
   const finalSceneProps = state.sceneProps;
   const finalPropsToShots = state.propsToShots;
   const finalShotProps = state.shotProps;
-  const finalPropThumbnailS3KeyMap = state.propThumbnailS3KeyMap;
+  // Use parent's map when provided (from usePropReferences), else context state
+  const finalPropThumbnailS3KeyMap = propThumbnailS3KeyMap ?? state.propThumbnailS3KeyMap;
   const shotPronounExtrasPrompts = (state.pronounExtrasPrompts[shotSlot] || {});
   // 🔥 FIX: Use props first (from parent state), fallback to context state
   // This ensures pricing updates when user selects Premium/Wryda in UnifiedDialogueDropdown

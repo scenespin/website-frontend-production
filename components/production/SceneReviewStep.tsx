@@ -544,44 +544,53 @@ export function SceneReviewStep({
                                 </div>
                               ) : null;
                             })()}
-                            {/* Prop references — same two-step lookup as character/location: s3Key -> thumbnailS3Key -> URL */}
+                            {/* Prop references — same resolution + fallback chain as config step (ShotConfigurationPanel) */}
                             {shotPropsForShot.map(prop => {
                               const config = shotPropsConfig[prop.id];
                               const selectedImageId = config?.selectedImageId;
                               if (!selectedImageId) return null;
                               
-                              // Resolve selectedImageId to s3Key (map is keyed by s3Key; selectedImageId may be angle ref id)
-                              const propWithRefs = prop as typeof prop & { angleReferences?: Array<{ id: string; s3Key: string }>; images?: Array<{ s3Key?: string }>; baseReference?: { s3Key?: string } };
+                              const propWithRefs = prop as typeof prop & {
+                                angleReferences?: Array<{ id: string; s3Key: string; imageUrl?: string }>;
+                                images?: Array<{ s3Key?: string; url?: string }>;
+                                baseReference?: { s3Key?: string; imageUrl?: string };
+                              };
+                              // Same as config: resolve selectedImageId to s3Key and get the matching ref/img for fallbacks
                               let lookupKey = selectedImageId;
-                              if (propWithRefs.angleReferences?.length) {
-                                const ref = propWithRefs.angleReferences.find((r: { id: string; s3Key: string }) => r.id === selectedImageId || r.s3Key === selectedImageId);
-                                if (ref?.s3Key) lookupKey = ref.s3Key;
-                              }
-                              if (lookupKey === selectedImageId && propWithRefs.images?.length) {
-                                const img = propWithRefs.images.find((i: { s3Key?: string }) => i.s3Key === selectedImageId);
-                                if (img?.s3Key) lookupKey = img.s3Key;
-                              }
+                              const matchedRef = propWithRefs.angleReferences?.find((r) => r.id === selectedImageId || r.s3Key === selectedImageId);
+                              if (matchedRef?.s3Key) lookupKey = matchedRef.s3Key;
+                              const matchedImg = !matchedRef && propWithRefs.images?.length
+                                ? propWithRefs.images.find((i) => i.s3Key === selectedImageId)
+                                : undefined;
+                              if (matchedImg?.s3Key) lookupKey = matchedImg.s3Key;
                               if (lookupKey === selectedImageId && propWithRefs.baseReference?.s3Key === selectedImageId) {
                                 lookupKey = propWithRefs.baseReference.s3Key;
                               }
                               
-                              let thumbnailUrl: string | undefined;
+                              // Same order as config step: thumbnail → fallback to enriched ref/image URL (payload presigned)
+                              let displayUrl: string | undefined;
                               if (propThumbnailS3KeyMap?.has(lookupKey)) {
                                 const thumbnailS3Key = propThumbnailS3KeyMap.get(lookupKey);
-                                if (thumbnailS3Key) {
-                                  thumbnailUrl = propThumbnailUrlsMap?.get(thumbnailS3Key);
-                                }
-                              } else {
-                                thumbnailUrl = propThumbnailUrlsMap?.get(lookupKey);
+                                if (thumbnailS3Key) displayUrl = propThumbnailUrlsMap?.get(thumbnailS3Key);
                               }
-                              if (!thumbnailUrl && (prop as { imageUrl?: string }).imageUrl && ((prop as { imageUrl?: string }).imageUrl!.startsWith('http') || (prop as { imageUrl?: string }).imageUrl!.startsWith('data:'))) {
-                                thumbnailUrl = (prop as { imageUrl?: string }).imageUrl;
+                              if (!displayUrl) displayUrl = propThumbnailUrlsMap?.get(lookupKey);
+                              if (!displayUrl && matchedRef?.imageUrl && (matchedRef.imageUrl.startsWith('http') || matchedRef.imageUrl.startsWith('data:'))) {
+                                displayUrl = matchedRef.imageUrl;
+                              }
+                              if (!displayUrl && matchedImg?.url && (matchedImg.url.startsWith('http') || matchedImg.url.startsWith('data:'))) {
+                                displayUrl = matchedImg.url;
+                              }
+                              if (!displayUrl && propWithRefs.baseReference?.s3Key === lookupKey && propWithRefs.baseReference?.imageUrl?.startsWith('http')) {
+                                displayUrl = propWithRefs.baseReference.imageUrl;
+                              }
+                              if (!displayUrl && (prop as { imageUrl?: string }).imageUrl && ((prop as { imageUrl?: string }).imageUrl!.startsWith('http') || (prop as { imageUrl?: string }).imageUrl!.startsWith('data:'))) {
+                                displayUrl = (prop as { imageUrl?: string }).imageUrl;
                               }
                               
-                              return thumbnailUrl ? (
+                              return displayUrl ? (
                                 <div key={prop.id} className="relative">
                                   <img 
-                                    src={thumbnailUrl} 
+                                    src={displayUrl} 
                                     className="w-12 h-12 rounded border border-[#3F3F46] object-cover" 
                                     alt={`Prop: ${prop.name}`}
                                     onError={(e) => {
