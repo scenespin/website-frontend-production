@@ -74,12 +74,17 @@ export function useSceneVideos(screenplayId: string, enabled: boolean = true) {
   // This fetches only scene videos (not all files), reducing bandwidth and improving performance
   // The API uses entityType-entityId-index GSI which is much faster than scanning all files
   // includeAllFolders:true ensures videos in scene folders are included
+  // fetchAllPages so all scene videos load (no 50-item cap); same as shot board / link library
   const { data: allFiles = [], isLoading: filesLoading } = useMediaFiles(
-    screenplayId, 
-    undefined, 
-    enabled, 
+    screenplayId,
+    undefined,
+    enabled,
     true, // includeAllFolders: needed because videos are in scene folders
-    'scene' // entityType: filter at API level using GSI for efficiency
+    'scene', // entityType: filter at API level using GSI for efficiency
+    undefined,
+    false,
+    undefined,
+    true // fetchAllPages
   );
   const { data: folderTree = [], isLoading: foldersLoading } = useMediaFolderTree(screenplayId, enabled);
 

@@ -89,17 +89,22 @@ export function useShotBoard(screenplayId: string, enabled: boolean = true): Use
   // Fetch all scene-related files from Media Library
   // entityType='scene' uses GSI for efficient querying
   // includeAllFolders=true ensures files in scene folders are included
-  const { 
-    data: allFiles = [], 
-    isLoading: filesLoading, 
+  // fetchAllPages: true so shot board and link library see all scene files (no 50-item cap)
+  const {
+    data: allFiles = [],
+    isLoading: filesLoading,
     error: filesError,
-    refetch 
+    refetch,
   } = useMediaFiles(
     screenplayId,
     undefined,
     enabled && !!screenplayId,
     true, // includeAllFolders
-    'scene' // entityType filter
+    'scene', // entityType filter
+    undefined, // entityId
+    false, // directChildrenOnly
+    undefined, // limit (use default page size per request)
+    true // fetchAllPages – paginate until no nextToken so all scenes/shots load
   );
 
   // Process files into shot board structure

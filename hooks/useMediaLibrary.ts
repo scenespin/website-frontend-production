@@ -47,124 +47,125 @@ async function getAuthToken(getToken: (options?: { template?: string }) => Promi
 // QUERY HOOKS
 // ============================================================================
 
+/** Page size when fetching all pages (shot board / link library). Backend max is 200. */
+const MEDIA_LIST_PAGE_SIZE = 100;
+
+/**
+ * Map backend file shape to frontend MediaFile (single place for consistency).
+ */
+function mapBackendFileToMediaFile(file: any): MediaFile {
+  return {
+    id: file.fileId,
+    fileName: file.fileName,
+    s3Key: file.s3Key,
+    fileType: detectFileType(file.fileType),
+    mediaFileType: file.mediaFileType,
+    fileSize: file.fileSize,
+    storageType: (file.storageType || 'local') as 'local' | 'google-drive' | 'dropbox' | 'wryda-temp',
+    uploadedAt: file.createdAt,
+    expiresAt: undefined,
+    thumbnailUrl: undefined,
+    folderId: file.folderId,
+    folderPath: file.folderPath,
+    metadata: file.metadata,
+    thumbnailS3Key: file.metadata?.thumbnailS3Key || file.thumbnailS3Key,
+    entityType: file.entityType,
+    entityId: file.entityId,
+  };
+}
+
 /**
  * Query hook for fetching media files list
  * Feature 0128: Added optional folderId parameter for folder filtering
  * Feature: Added includeAllFolders parameter to show all files regardless of folder
  * Feature 0174: Added entityType and entityId parameters for efficient filtering
  * Feature 0220: Added directChildrenOnly for Archive – when true and folderId set, return only direct children of that folder
+ * Feature: limit + fetchAllPages for shot board / link library – scalable pagination (no 50-item cap)
  */
 export function useMediaFiles(
-  screenplayId: string, 
-  folderId?: string, 
-  enabled: boolean = true, 
+  screenplayId: string,
+  folderId?: string,
+  enabled: boolean = true,
   includeAllFolders: boolean = false,
   entityType?: 'character' | 'location' | 'asset' | 'scene' | 'standalone-video',
   entityId?: string,
-  directChildrenOnly: boolean = false
+  directChildrenOnly: boolean = false,
+  limit?: number,
+  fetchAllPages: boolean = false
 ) {
   const { getToken } = useAuth();
 
   return useQuery<MediaFile[], Error>({
-    queryKey: ['media', 'files', screenplayId, folderId || 'root', includeAllFolders ? 'all' : 'filtered', entityType, entityId, directChildrenOnly ? 'direct' : 'recursive'],
+    queryKey: ['media', 'files', screenplayId, folderId || 'root', includeAllFolders ? 'all' : 'filtered', entityType, entityId, directChildrenOnly ? 'direct' : 'recursive', limit ?? null, fetchAllPages],
     queryFn: async () => {
       const token = await getAuthToken(getToken);
       if (!token) {
         throw new Error('Not authenticated');
       }
 
-      const params = new URLSearchParams({
-        screenplayId,
-      });
-      if (folderId) {
-        params.append('folderId', folderId);
-      }
-      if (includeAllFolders) {
-        params.append('includeAllFolders', 'true');
-      }
-      if (entityType) {
-        params.append('entityType', entityType);
-      }
-      if (entityId) {
-        params.append('entityId', entityId);
-      }
-      if (directChildrenOnly && folderId) {
-        params.append('directChildrenOnly', 'true');
-      }
+      const buildParams = (pageToken?: string) => {
+        const params = new URLSearchParams({ screenplayId });
+        if (folderId) params.append('folderId', folderId);
+        if (includeAllFolders) params.append('includeAllFolders', 'true');
+        if (entityType) params.append('entityType', entityType);
+        if (entityId) params.append('entityId', entityId);
+        if (directChildrenOnly && folderId) params.append('directChildrenOnly', 'true');
+        const pageLimit = limit ?? (fetchAllPages ? MEDIA_LIST_PAGE_SIZE : undefined);
+        if (pageLimit != null) params.set('limit', String(pageLimit));
+        if (pageToken) params.set('nextToken', pageToken);
+        return params;
+      };
 
-      const response = await fetch(`/api/media/list?${params.toString()}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
+      const allBackendFiles: any[] = [];
+      let nextToken: string | undefined;
 
-      if (!response.ok) {
-        if (response.status === 404) {
-          // No files found - return empty array (not an error)
-          console.warn('[useMediaFiles] No files found (404):', { screenplayId, folderId, entityType, entityId });
-          return [];
-        }
-        const errorText = await response.text();
-        console.error('[useMediaFiles] Failed to fetch media files:', {
-          status: response.status,
-          statusText: response.statusText,
-          error: errorText.substring(0, 200),
-          params: { screenplayId, folderId, entityType, entityId },
+      do {
+        const params = buildParams(nextToken);
+        const response = await fetch(`/api/media/list?${params.toString()}`, {
+          headers: { Authorization: `Bearer ${token}` },
         });
-        throw new Error(`Failed to fetch media files: ${response.status} ${response.statusText}`);
-      }
 
-      const data: MediaFileListResponse = await response.json();
-      const backendFiles = data.files || [];
-      
-      // 🔥 FIX: Filter out archived/expired files before processing
-      // Backend marks expired files with isArchived: true (Feature 0200)
-      const activeFiles = backendFiles.filter((file: any) => {
-        // Filter out archived files (expired/deleted)
-        if (file.isArchived === true || file.metadata?.isArchived === true) {
-          return false;
+        if (!response.ok) {
+          if (response.status === 404) {
+            if (allBackendFiles.length === 0) {
+              console.warn('[useMediaFiles] No files found (404):', { screenplayId, folderId, entityType, entityId });
+              return [];
+            }
+            break;
+          }
+          const errorText = await response.text();
+          console.error('[useMediaFiles] Failed to fetch media files:', {
+            status: response.status,
+            statusText: response.statusText,
+            error: errorText.substring(0, 200),
+            params: { screenplayId, folderId, entityType, entityId },
+          });
+          throw new Error(`Failed to fetch media files: ${response.status} ${response.statusText}`);
         }
+
+        const data: MediaFileListResponse = await response.json();
+        const batch = data.files || [];
+        allBackendFiles.push(...batch);
+        nextToken = data.nextToken;
+      } while (fetchAllPages && entityType && nextToken);
+
+      // Filter out archived/expired (Feature 0200)
+      const activeFiles = allBackendFiles.filter((file: any) => {
+        if (file.isArchived === true || file.metadata?.isArchived === true) return false;
         return true;
       });
-      
-      // Debug logging for thumbnail verification
-      const filesWithThumbnails = activeFiles.filter((f: any) => f.metadata?.thumbnailS3Key || f.thumbnailS3Key);
+
       if (entityType && entityId) {
+        const filesWithThumbnails = activeFiles.filter((f: any) => f.metadata?.thumbnailS3Key || f.thumbnailS3Key);
         console.log('[useMediaFiles] Entity query results:', {
           entityType,
           entityId,
           filesFound: activeFiles.length,
-          filesFiltered: backendFiles.length - activeFiles.length,
           filesWithThumbnails: filesWithThumbnails.length,
-          sampleFiles: filesWithThumbnails.slice(0, 2).map((f: any) => ({
-            s3Key: f.s3Key?.substring(0, 50) + '...',
-            thumbnailS3Key: f.metadata?.thumbnailS3Key || f.thumbnailS3Key
-          }))
         });
       }
-      
-      // Map backend format to frontend MediaFile format
-      // Backend returns: { fileId, fileName, fileType (MIME), mediaFileType, fileSize, s3Key, folderId, folderPath, createdAt, metadata, storageType?, entityType?, entityId? }
-      // Frontend expects: { id, fileName, s3Key, fileType (enum), mediaFileType, fileSize, storageType, uploadedAt, folderId, folderPath, thumbnailS3Key, metadata (incl. cloudFileId/cloudFilePath) }
-      return activeFiles.map((file: any) => ({
-        id: file.fileId,
-        fileName: file.fileName,
-        s3Key: file.s3Key, // Required - used for on-demand presigned URL generation
-        fileType: detectFileType(file.fileType),
-        mediaFileType: file.mediaFileType, // 🔥 FIX: Preserve mediaFileType from backend (required for video filtering)
-        fileSize: file.fileSize,
-        storageType: (file.storageType || 'local') as 'local' | 'google-drive' | 'dropbox' | 'wryda-temp', // Pass through; cloud-synced files have 'google-drive' | 'dropbox'
-        uploadedAt: file.createdAt,
-        expiresAt: undefined,
-        thumbnailUrl: undefined, // Deprecated - use thumbnailS3Key with presigned URL instead
-        folderId: file.folderId, // Feature 0128: S3 folder support
-        folderPath: file.folderPath, // Feature 0128: Breadcrumb path
-        metadata: file.metadata, // Feature 0170: Include metadata (cloudFileId, cloudFilePath for Dropbox, etc.)
-        thumbnailS3Key: file.metadata?.thumbnailS3Key || file.thumbnailS3Key, // Feature 0174: Thumbnail S3 key (if exists)
-        // Preserve top-level entityType/entityId from GSI (backend stores them at top level for efficient querying)
-        entityType: file.entityType,
-        entityId: file.entityId,
-      }));
+
+      return activeFiles.map((file: any) => mapBackendFileToMediaFile(file));
     },
     enabled: enabled && !!screenplayId,
     staleTime: 5 * 1000, // 5 seconds - reduced further to catch new videos faster
