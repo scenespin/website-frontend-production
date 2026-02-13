@@ -32,6 +32,13 @@ import { cn } from '@/lib/utils';
 
 export type Resolution = '1080p' | '4k';
 export type ShotDuration = 'quick-cut' | 'extended-take'; // 'quick-cut' = ~5s, 'extended-take' = ~10s
+
+/** Elements-to-video duration options per model. Today only VEO 3.1; add entries when we support more models and a model selector. */
+const ELEMENTS_VIDEO_DURATIONS_BY_MODEL: Record<string, { label: string; options: readonly number[] }> = {
+  'veo-3.1': { label: 'VEO 3.1', options: [4, 6, 8] },
+};
+const ELEMENTS_DEFAULT_MODEL = 'veo-3.1';
+
 export type CameraAngle = 
   | 'close-up'
   | 'medium-shot'
@@ -158,6 +165,9 @@ interface ShotConfigurationPanelProps {
   /** Feature 0259: Video prompt for Elements path. Prefilled with best practice + chosen refs; user can edit. */
   elementsVideoPrompt?: string;
   onElementsVideoPromptChange?: (value: string) => void;
+  /** Feature 0262/0259: VEO duration in seconds (4, 6, or 8) when Elements on. Model-specific. */
+  elementsVideoDuration?: 4 | 6 | 8;
+  onElementsVideoDurationChange?: (seconds: 4 | 6 | 8) => void;
 }
 
 export function ShotConfigurationPanel({
@@ -245,7 +255,9 @@ export function ShotConfigurationPanel({
   onSelectedElementsForShotChange,
   elementsMaxSelect = 3,
   elementsVideoPrompt = '',
-  onElementsVideoPromptChange
+  onElementsVideoPromptChange,
+  elementsVideoDuration = 6,
+  onElementsVideoDurationChange
 }: ShotConfigurationPanelProps) {
   const shouldShowLocation = needsLocationAngle(shot) && sceneAnalysisResult?.location?.id && onLocationAngleChange;
 
@@ -1815,6 +1827,27 @@ export function ShotConfigurationPanel({
           </label>
           {useElementsForVideo && (
             <div className="ml-6 space-y-3">
+              <div className="flex flex-wrap items-center gap-2">
+                {(() => {
+                  const modelConfig = ELEMENTS_VIDEO_DURATIONS_BY_MODEL[ELEMENTS_DEFAULT_MODEL];
+                  const options = modelConfig?.options ?? [4, 6, 8];
+                  const durationLabel = modelConfig ? `${modelConfig.label} duration` : 'Duration';
+                  return (
+                    <>
+                      <span className="text-[10px] font-medium text-[#808080]">{durationLabel}:</span>
+                      <select
+                        value={elementsVideoDuration}
+                        onChange={(e) => onElementsVideoDurationChange?.(Number(e.target.value) as 4 | 6 | 8)}
+                        className="text-xs bg-[#0A0A0A] border border-[#3F3F46] rounded px-2 py-1 text-[#E5E7EB] focus:outline-none focus:ring-2 focus:ring-[#DC143C]"
+                      >
+                        {options.map((sec) => (
+                          <option key={sec} value={sec}>{sec}s</option>
+                        ))}
+                      </select>
+                    </>
+                  );
+                })()}
+              </div>
               <p className="text-[10px] text-[#808080] mb-1">Choose up to {elementsMaxSelect} references (character, location, or prop):</p>
               {(['character', 'location', 'prop'] as const).map((sectionType) => {
                 const sectionItems = elementsListForShot.filter((el) => el.type === sectionType);

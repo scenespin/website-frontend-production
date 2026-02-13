@@ -91,6 +91,9 @@ interface SceneReviewStepProps {
   uploadedFirstFrames?: Record<number, string>;
   // Feature 0234: Per-shot video opt-in state
   generateVideoForShot?: Record<number, boolean>;
+  // Feature 0262/0259: Per-shot Elements to Video (pricing: first frame = 0, video = VEO)
+  useElementsForVideo?: Record<number, boolean>;
+  elementsVideoDurations?: Record<number, 4 | 6 | 8>;
 }
 
 export function SceneReviewStep({
@@ -130,7 +133,9 @@ export function SceneReviewStep({
   propThumbnailS3KeyMap,
   propThumbnailUrlsMap,
   uploadedFirstFrames = {},
-  generateVideoForShot = {}
+  generateVideoForShot = {},
+  useElementsForVideo = {},
+  elementsVideoDurations = {}
 }: SceneReviewStepProps) {
   const { getToken } = useAuth();
   const [pricing, setPricing] = useState<{ totalHdPrice: number; totalK4Price: number; totalFirstFramePrice: number } | null>(null);
@@ -169,7 +174,9 @@ export function SceneReviewStep({
           selectedDialogueQualities,
           selectedDialogueWorkflows,
           voiceoverBaseWorkflows,
-          generateVideoForShot
+          generateVideoForShot,
+          useElementsForVideo,
+          elementsVideoDurations
         );
         
         setPricing({
@@ -186,7 +193,7 @@ export function SceneReviewStep({
     };
     
     fetchPricing();
-  }, [sceneAnalysisResult?.shotBreakdown?.shots, enabledShots, shotDurations, selectedReferenceShotModels, selectedDialogueQualities, selectedDialogueWorkflows, voiceoverBaseWorkflows, generateVideoForShot, getToken]);
+  }, [sceneAnalysisResult?.shotBreakdown?.shots, enabledShots, shotDurations, selectedReferenceShotModels, selectedDialogueQualities, selectedDialogueWorkflows, voiceoverBaseWorkflows, generateVideoForShot, useElementsForVideo, elementsVideoDurations, getToken]);
   
   if (!sceneAnalysisResult) {
     return (

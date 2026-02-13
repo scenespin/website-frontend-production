@@ -38,7 +38,7 @@ export function WorkflowCompletionPoller({ jobIdsKey }: WorkflowCompletionPoller
 
     const pollJob = async (
       jobId: string
-    ): Promise<{ status: string; projectId?: string } | null> => {
+    ): Promise<{ status: string; projectId?: string; error?: string } | null> => {
       try {
         const token = await getToken({ template: 'wryda-backend' });
         if (!token) return null;

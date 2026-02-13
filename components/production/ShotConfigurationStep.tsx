@@ -993,7 +993,9 @@ export function ShotConfigurationStep({
             ? { [shot.slot]: finalSelectedDialogueWorkflow }
             : undefined,
           undefined, // voiceoverBaseWorkflows
-          generateVideoForShot // 🔥 FIX Issue 3: Pass generateVideoForShot to ensure correct pricing
+          generateVideoForShot, // 🔥 FIX Issue 3: Pass generateVideoForShot to ensure correct pricing
+          state.useElementsForVideo, // Feature 0262/0259: Elements on → firstFramePrice=0, hdPrice=VEO for action
+          state.elementsVideoDurations // 4/6/8 sec when Elements on
         );
         
         const shotPricing = pricingResult.shots.find(s => s.shotSlot === shot.slot);
@@ -1014,7 +1016,7 @@ export function ShotConfigurationStep({
     };
     
     fetchPricing();
-  }, [shot?.slot, shot?.credits, shot?.type, shotDuration, selectedReferenceShotModels, selectedVideoTypes, videoOptInForThisShot, generateVideoForShot, getToken, isDialogueShot, finalSelectedDialogueQuality, finalSelectedDialogueWorkflow]);
+  }, [shot?.slot, shot?.credits, shot?.type, shotDuration, selectedReferenceShotModels, selectedVideoTypes, videoOptInForThisShot, generateVideoForShot, getToken, isDialogueShot, finalSelectedDialogueQuality, finalSelectedDialogueWorkflow, state.useElementsForVideo, state.elementsVideoDurations]);
 
   // Validate shot completion before allowing next
   const handleNext = () => {
@@ -1535,6 +1537,8 @@ export function ShotConfigurationStep({
                   elementsMaxSelect={VEO_MAX_ELEMENTS}
                   elementsVideoPrompt={state.videoPromptOverrides[shot.slot] ?? ''}
                   onElementsVideoPromptChange={(value) => actions.updateVideoPromptOverride(shot.slot, value)}
+                  elementsVideoDuration={state.elementsVideoDurations[shot.slot] ?? 6}
+                  onElementsVideoDurationChange={(seconds) => actions.updateElementsVideoDuration(shot.slot, seconds)}
                 />
               )}
               {/* Reference Shot (First Frame) - Action/establishing only: at bottom after config (prop selection, describe shot, etc.) so References carousel is right below model dropdown */}

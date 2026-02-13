@@ -147,6 +147,8 @@ export interface SceneBuilderState {
   useElementsForVideo: Record<number, boolean>;
   /** Feature 0259: Per-shot selected element ids for video (max 3 for VEO). Ids: character:${id} | location | prop:${id}. */
   selectedElementsForVideo: Record<number, string[]>;
+  /** Feature 0262/0259: Per-shot VEO duration in seconds (4, 6, or 8) when Elements to Video is on. */
+  elementsVideoDurations: Record<number, 4 | 6 | 8>;
   
   // Global Settings
   globalResolution: Resolution;
@@ -270,6 +272,8 @@ export interface SceneBuilderActions {
   /** Feature 0259: Elements for video — select up to VEO_MAX_ELEMENTS per shot. */
   setSelectedElementsForVideo: (byShot: Record<number, string[]>) => void;
   updateSelectedElementsForShot: (shotSlot: number, elementIds: string[]) => void;
+  /** Feature 0262/0259: Set VEO duration (4, 6, or 8 sec) for Elements shot. */
+  updateElementsVideoDuration: (shotSlot: number, seconds: 4 | 6 | 8) => void;
   
   // Global Settings Actions
   setGlobalResolution: (resolution: Resolution) => void;
@@ -368,6 +372,7 @@ function getInitialSceneBuilderState(): SceneBuilderState {
   motionDirectionPrompt: {},
   useElementsForVideo: {},
   selectedElementsForVideo: {},
+  elementsVideoDurations: {},
   globalResolution: '4k',
     wizardStep: 'analysis',
     currentShotIndex: 0,
@@ -1316,10 +1321,16 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
       setState(prev => ({ ...prev, useElementsForVideo: byShot }));
     }, []),
     updateUseElementsForVideo: useCallback((shotSlot, enabled) => {
-      setState(prev => ({
-        ...prev,
-        useElementsForVideo: { ...prev.useElementsForVideo, [shotSlot]: enabled }
-      }));
+      setState(prev => {
+        const next: SceneBuilderState = {
+          ...prev,
+          useElementsForVideo: { ...prev.useElementsForVideo, [shotSlot]: enabled }
+        };
+        if (enabled && prev.elementsVideoDurations[shotSlot] === undefined) {
+          next.elementsVideoDurations = { ...prev.elementsVideoDurations, [shotSlot]: 6 };
+        }
+        return next;
+      });
     }, []),
     setSelectedElementsForVideo: useCallback((byShot) => {
       setState(prev => ({ ...prev, selectedElementsForVideo: byShot }));
@@ -1334,7 +1345,13 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
         }
       }));
     }, []),
-    
+    updateElementsVideoDuration: useCallback((shotSlot, seconds) => {
+      setState(prev => ({
+        ...prev,
+        elementsVideoDurations: { ...prev.elementsVideoDurations, [shotSlot]: seconds }
+      }));
+    }, []),
+
     // Global Settings Actions
     setGlobalResolution: useCallback((resolution) => {
       setState(prev => ({ ...prev, globalResolution: resolution }));
