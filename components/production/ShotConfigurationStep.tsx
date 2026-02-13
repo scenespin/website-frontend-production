@@ -1746,7 +1746,7 @@ export function ShotConfigurationStep({
                         </div>
                       )}
                     </>
-                  )}
+                  }
                 />
               )}
             </>
