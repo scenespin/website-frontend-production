@@ -4981,7 +4981,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     try {
                         const { deleteAllScenes: apiDeleteAllScenes } = await import('@/utils/screenplayStorage');
                         console.log('[ScreenplayContext] 🗑️ Deleting all existing scenes (script has no scenes)...');
-                        await apiDeleteAllScenes(screenplayId, getToken);
+                        await apiDeleteAllScenes(screenplayId, getToken, { skipMediaCleanup: true });
                         console.log('[ScreenplayContext] ✅ Deleted all existing scenes from DynamoDB');
                         
                         // Clear scenes from state
@@ -5337,7 +5337,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     // This matches the import behavior which works perfectly
                     const { deleteAllScenes: apiDeleteAllScenes } = await import('@/utils/screenplayStorage');
                     console.log('[ScreenplayContext] 🗑️ Deleting ALL existing scenes first (prevents duplicates)...');
-                    await apiDeleteAllScenes(screenplayId, getToken);
+                    await apiDeleteAllScenes(screenplayId, getToken, { skipMediaCleanup: true });
                     console.log('[ScreenplayContext] ✅ Deleted all existing scenes from DynamoDB');
                     
                     // Now save the new scenes (clean slate, no duplicates)

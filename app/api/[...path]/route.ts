@@ -151,6 +151,11 @@ async function forwardRequest(
     if (authHeader) {
       headers['Authorization'] = authHeader;
     }
+    // Feature 0265: Forward Clerk session ID for editor lock (per-device session)
+    const clerkSessionId = request.headers.get('x-clerk-session-id') || request.headers.get('X-Clerk-Session-Id');
+    if (clerkSessionId) {
+      headers['X-Clerk-Session-Id'] = clerkSessionId;
+    }
     
     console.error(`[API Proxy] 📤 Forwarding with Content-Type: ${isMultipart ? 'auto (multipart)' : (headers['Content-Type'] || 'none')}`);
     

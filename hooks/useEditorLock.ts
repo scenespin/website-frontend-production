@@ -124,7 +124,7 @@ export function useEditorLock(screenplayId: string | null): UseEditorLockReturn 
     if (previousUserId !== null && (previousUserId !== currentUserId || previousSessionId !== currentSessionId)) {
       // User changed or session changed - try to release stale lock for current screenplay
       if (screenplayId) {
-        releaseEditorLock(screenplayId).catch(err => {
+        releaseEditorLock(screenplayId, currentSessionId).catch(err => {
           console.warn('[useEditorLock] Failed to release stale lock after user change:', err);
         });
       }
@@ -135,7 +135,7 @@ export function useEditorLock(screenplayId: string | null): UseEditorLockReturn 
 
     // If screenplay changed, release lock for previous screenplay
     if (previousScreenplayIdRef.current && previousScreenplayIdRef.current !== screenplayId) {
-      releaseEditorLock(previousScreenplayIdRef.current).catch(err => {
+      releaseEditorLock(previousScreenplayIdRef.current, currentSessionId).catch(err => {
         console.warn('[useEditorLock] Failed to release lock for previous screenplay:', err);
       });
     }
@@ -145,7 +145,7 @@ export function useEditorLock(screenplayId: string | null): UseEditorLockReturn 
     // Check lock status with a debounce to handle rapid changes (especially on mobile)
     const checkLock = async () => {
       try {
-        const status = await getEditorLock(screenplayId);
+        const status = await getEditorLock(screenplayId, currentSessionId);
         setLockStatus(status);
         // Reset error count on success
         errorCountRef.current = 0;
@@ -206,10 +206,11 @@ export function useEditorLock(screenplayId: string | null): UseEditorLockReturn 
       return;
     }
 
+    const sessionId = session?.id ?? '';
     try {
-      await acquireEditorLock(screenplayId);
+      await acquireEditorLock(screenplayId, sessionId);
       // Refresh lock status after acquiring
-      const status = await getEditorLock(screenplayId);
+      const status = await getEditorLock(screenplayId, sessionId);
       setLockStatus(status);
       // Reset error count on success
       errorCountRef.current = 0;
@@ -227,12 +228,12 @@ export function useEditorLock(screenplayId: string | null): UseEditorLockReturn 
       
       // If it's a conflict error, update status to show locked
       if (error.message.includes('locked by another session')) {
-        const status = await getEditorLock(screenplayId);
+        const status = await getEditorLock(screenplayId, sessionId);
         setLockStatus(status);
       }
       throw error;
     }
-  }, [screenplayId, user?.id]);
+  }, [screenplayId, user?.id, session?.id]);
 
   // Release lock
   const releaseLock = useCallback(async () => {
@@ -246,12 +247,12 @@ export function useEditorLock(screenplayId: string | null): UseEditorLockReturn 
     }
 
     try {
-      await releaseEditorLock(screenplayId);
+      await releaseEditorLock(screenplayId, session?.id ?? '');
       setLockStatus(null);
     } catch (error) {
       console.error('[useEditorLock] Failed to release lock:', error);
     }
-  }, [screenplayId]);
+  }, [screenplayId, session?.id]);
 
   // Send heartbeat
   const sendHeartbeat = useCallback(async () => {
@@ -265,12 +266,12 @@ export function useEditorLock(screenplayId: string | null): UseEditorLockReturn 
     }
 
     try {
-      await updateLockHeartbeat(screenplayId);
+      await updateLockHeartbeat(screenplayId, session?.id ?? '');
     } catch (error) {
       // Don't log heartbeat failures - they're not critical
       console.debug('[useEditorLock] Heartbeat failed (non-critical):', error);
     }
-  }, [screenplayId]);
+  }, [screenplayId, session?.id]);
 
   // Set up heartbeat interval when lock is acquired
   useEffect(() => {
@@ -296,11 +297,12 @@ export function useEditorLock(screenplayId: string | null): UseEditorLockReturn 
     };
   }, [screenplayId, lockStatus, sendHeartbeat]);
 
-  // Release lock on unmount
+  // Release lock on unmount (pass session ID so backend can match lock - Feature 0265)
   useEffect(() => {
+    const sid = session?.id ?? '';
     return () => {
       if (screenplayId) {
-        releaseEditorLock(screenplayId).catch(err => {
+        releaseEditorLock(screenplayId, sid).catch(err => {
           console.warn('[useEditorLock] Failed to release lock on unmount:', err);
         });
       }
@@ -308,7 +310,7 @@ export function useEditorLock(screenplayId: string | null): UseEditorLockReturn 
         clearInterval(heartbeatIntervalRef.current);
       }
     };
-  }, [screenplayId]);
+  }, [screenplayId, session?.id]);
 
   return {
     isLocked: lockStatus?.isLocked ?? false,

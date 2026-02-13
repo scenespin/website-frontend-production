@@ -36,13 +36,23 @@ function isFeatureEnabled(): boolean {
   return process.env.NEXT_PUBLIC_ENABLE_EDITOR_LOCK === 'true';
 }
 
+/** Build headers for editor-lock requests (Feature 0265: per-device session ID) */
+function editorLockHeaders(sessionId?: string): Record<string, string> {
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' };
+  if (sessionId && sessionId.trim()) {
+    headers['X-Clerk-Session-Id'] = sessionId.trim();
+  }
+  return headers;
+}
+
 /**
  * Get editor lock status for a screenplay
  * 
  * @param screenplayId - The screenplay ID
+ * @param sessionId - Optional Clerk session ID (sent as X-Clerk-Session-Id for per-device lock - Feature 0265)
  * @returns Lock status information
  */
-export async function getEditorLock(screenplayId: string): Promise<EditorLockStatus | null> {
+export async function getEditorLock(screenplayId: string, sessionId?: string): Promise<EditorLockStatus | null> {
   if (!isFeatureEnabled()) {
     return null; // Feature disabled, return null (no lock)
   }
@@ -55,9 +65,7 @@ export async function getEditorLock(screenplayId: string): Promise<EditorLockSta
   try {
     const response = await fetch(`/api/screenplays/${screenplayId}/editor-lock`, {
       method: 'GET',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: editorLockHeaders(sessionId),
     });
 
     if (!response.ok) {
@@ -86,10 +94,11 @@ export async function getEditorLock(screenplayId: string): Promise<EditorLockSta
  * Acquire an editor lock for a screenplay
  * 
  * @param screenplayId - The screenplay ID
+ * @param sessionId - Optional Clerk session ID (sent as X-Clerk-Session-Id for per-device lock - Feature 0265)
  * @returns Lock information
  * @throws Error if lock exists for same user on different device (409 Conflict)
  */
-export async function acquireEditorLock(screenplayId: string): Promise<EditorLock> {
+export async function acquireEditorLock(screenplayId: string, sessionId?: string): Promise<EditorLock> {
   if (!isFeatureEnabled()) {
     throw new Error('Editor lock feature is not enabled');
   }
@@ -97,9 +106,7 @@ export async function acquireEditorLock(screenplayId: string): Promise<EditorLoc
   try {
     const response = await fetch(`/api/screenplays/${screenplayId}/editor-lock`, {
       method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: editorLockHeaders(sessionId),
     });
 
     if (!response.ok) {
@@ -130,8 +137,9 @@ export async function acquireEditorLock(screenplayId: string): Promise<EditorLoc
  * Release an editor lock
  * 
  * @param screenplayId - The screenplay ID
+ * @param sessionId - Optional Clerk session ID (sent as X-Clerk-Session-Id - Feature 0265)
  */
-export async function releaseEditorLock(screenplayId: string): Promise<void> {
+export async function releaseEditorLock(screenplayId: string, sessionId?: string): Promise<void> {
   if (!isFeatureEnabled()) {
     return; // Feature disabled, nothing to release
   }
@@ -139,9 +147,7 @@ export async function releaseEditorLock(screenplayId: string): Promise<void> {
   try {
     const response = await fetch(`/api/screenplays/${screenplayId}/editor-lock`, {
       method: 'DELETE',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: editorLockHeaders(sessionId),
     });
 
     if (!response.ok) {
@@ -162,8 +168,9 @@ export async function releaseEditorLock(screenplayId: string): Promise<void> {
  * Update the heartbeat (lastActivity) for an editor lock
  * 
  * @param screenplayId - The screenplay ID
+ * @param sessionId - Optional Clerk session ID (sent as X-Clerk-Session-Id - Feature 0265)
  */
-export async function updateLockHeartbeat(screenplayId: string): Promise<void> {
+export async function updateLockHeartbeat(screenplayId: string, sessionId?: string): Promise<void> {
   if (!isFeatureEnabled()) {
     return; // Feature disabled, nothing to update
   }
@@ -171,9 +178,7 @@ export async function updateLockHeartbeat(screenplayId: string): Promise<void> {
   try {
     const response = await fetch(`/api/screenplays/${screenplayId}/editor-lock/heartbeat`, {
       method: 'PUT',
-      headers: {
-        'Content-Type': 'application/json',
-      },
+      headers: editorLockHeaders(sessionId),
     });
 
     if (!response.ok) {

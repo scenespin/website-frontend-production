@@ -842,7 +842,7 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                             (async () => {
                                 try {
                                     const { deleteAllScenes } = await import('@/utils/screenplayStorage');
-                                    await deleteAllScenes(screenplay.screenplayId!, getToken);
+                                    await deleteAllScenes(screenplay.screenplayId!, getToken, { skipMediaCleanup: true });
                                     console.log('[EditorContext] ✅ Deleted all scenes after undo');
                                     
                                     // Clear scenes from state

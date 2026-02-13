@@ -1053,18 +1053,27 @@ export async function deleteScene(
   }
 }
 
+/** Options for deleteAllScenes (Feature 0265: rescan preserves Direct Hub media) */
+export interface DeleteAllScenesOptions {
+  /** When true, only delete scene records; do not delete Media Library/S3. Use for rescan. */
+  skipMediaCleanup?: boolean;
+}
+
 /**
- * Delete all scenes for a screenplay (for Clear All)
+ * Delete all scenes for a screenplay (for Clear All or rescan).
+ * When options.skipMediaCleanup is true (rescan), only scene records are deleted; Direct Hub media is preserved.
  */
 export async function deleteAllScenes(
   screenplayId: string,
-  getToken: ReturnType<typeof useAuth>['getToken']
+  getToken: ReturnType<typeof useAuth>['getToken'],
+  options?: DeleteAllScenesOptions
 ): Promise<void> {
   const token = await getToken({ template: 'wryda-backend' });
+  const query = options?.skipMediaCleanup ? '?skipMediaCleanup=true' : '';
   
-  console.log('[screenplayStorage] 🔥 DELETE /api/screenplays/' + screenplayId + '/scenes (all)');
+  console.log('[screenplayStorage] 🔥 DELETE /api/screenplays/' + screenplayId + '/scenes (all)' + (options?.skipMediaCleanup ? ' [skipMediaCleanup]' : ''));
   
-  const response = await fetch(`/api/screenplays/${screenplayId}/scenes`, {
+  const response = await fetch(`/api/screenplays/${screenplayId}/scenes${query}`, {
     method: 'DELETE',
     headers: {
       'Authorization': `Bearer ${token}`
