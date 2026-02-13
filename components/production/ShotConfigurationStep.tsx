@@ -1539,229 +1539,217 @@ export function ShotConfigurationStep({
                   onElementsVideoPromptChange={(value) => actions.updateVideoPromptOverride(shot.slot, value)}
                   elementsVideoDuration={state.elementsVideoDurations[shot.slot] ?? 6}
                   onElementsVideoDurationChange={(seconds) => actions.updateElementsVideoDuration(shot.slot, seconds)}
+                  renderAfterReferenceSelection={
+                    <>
+                      {onReferenceShotModelChange && (
+                        <>
+                          <ReferenceShotSelector
+                            shotSlot={shot.slot}
+                            selectedModel={selectedReferenceShotModels[shot.slot]}
+                            onModelChange={finalOnReferenceShotModelChange}
+                          />
+                          {(() => {
+                            const references: Array<{ type: 'character' | 'location' | 'prop' | 'asset' | 'other'; imageUrl?: string; label: string; id: string }> = [];
+                            const allShotCharacters = new Set<string>();
+                            explicitCharacters.forEach(charId => allShotCharacters.add(charId));
+                            Object.values(shotMappings || {}).forEach(mapping => {
+                              if (mapping && mapping !== '__ignore__') {
+                                if (Array.isArray(mapping)) {
+                                  mapping.forEach(charId => allShotCharacters.add(charId));
+                                } else {
+                                  allShotCharacters.add(mapping);
+                                }
+                              }
+                            });
+                            (finalSelectedCharactersForShots[shot.slot] || []).forEach(charId => allShotCharacters.add(charId));
+                            const isOffFrameForDisplay = finalSelectedDialogueWorkflow === 'off-frame-voiceover' && activeTab === 'advanced';
+                            if (isOffFrameForDisplay) {
+                              if (finalOffFrameShotType === 'off-frame') allShotCharacters.delete(shot.characterId);
+                              if (finalOffFrameListenerCharacterId && finalOffFrameShotType && isOffFrameListenerShotType(finalOffFrameShotType as OffFrameShotType)) allShotCharacters.add(finalOffFrameListenerCharacterId);
+                              if (finalOffFrameShotType && isOffFrameGroupShotType(finalOffFrameShotType as OffFrameShotType) && (finalOffFrameGroupCharacterIds?.length ?? 0) > 0) finalOffFrameGroupCharacterIds.forEach((id: string) => allShotCharacters.add(id));
+                            } else {
+                              if (finalOffFrameListenerCharacterId) allShotCharacters.delete(finalOffFrameListenerCharacterId);
+                              (finalOffFrameGroupCharacterIds || []).forEach((id: string) => allShotCharacters.delete(id));
+                            }
+                            allShotCharacters.forEach(charId => {
+                              const char = allCharacters.find(c => c.id === charId);
+                              if (char) {
+                                const charRef = finalSelectedCharacterReferences[shot.slot]?.[charId];
+                                if (charRef && (charRef.imageUrl || charRef.s3Key)) {
+                                  let imageUrl = charRef.imageUrl;
+                                  if (!imageUrl && charRef.s3Key && finalCharacterHeadshots[charId]) {
+                                    const headshot = finalCharacterHeadshots[charId].find(h => h.s3Key === charRef.s3Key);
+                                    if (headshot?.imageUrl) imageUrl = headshot.imageUrl;
+                                  }
+                                  if (imageUrl) references.push({ type: 'character', imageUrl, label: char.name || `Character ${charId}`, id: `char-${charId}` });
+                                }
+                              }
+                            });
+                            const locationRef = finalSelectedLocationReferences[shot.slot];
+                            if (locationRef) {
+                              const location = finalSceneProps.find(loc => loc.id === shot.locationId);
+                              const locationImageUrl = resolveLocationImageUrl(locationRef, { thumbnailS3KeyMap: null, thumbnailUrlsMap: null, fullImageUrlsMap: locationReferenceFullImageUrlsMap || propImageUrlsMap });
+                              if (locationImageUrl) references.push({ type: 'location', imageUrl: locationImageUrl, label: location?.name || 'Location', id: `loc-${shot.slot}` });
+                            }
+                            const shotPropsForThisShot = finalSceneProps.filter(prop => finalPropsToShots[prop.id]?.includes(shot.slot));
+                            shotPropsForThisShot.forEach(prop => {
+                              const propConfig = finalShotProps[shot.slot]?.[prop.id];
+                              const availableImages = getAvailablePropImages(prop);
+                              const selectedImageId = propConfig?.selectedImageId || (availableImages.length > 0 ? availableImages[0].id : undefined);
+                              const selectedImage = selectedImageId ? availableImages.find(img => img.id === selectedImageId) : availableImages[0];
+                              if (selectedImage) {
+                                const fullProp = prop as typeof prop & { angleReferences?: Array<{ id: string; s3Key: string; imageUrl: string; label?: string }>; images?: Array<{ url: string; s3Key?: string }>; baseReference?: { s3Key?: string; imageUrl?: string } };
+                                let imageS3Key: string | null = null;
+                                if (fullProp.angleReferences) { const ref = fullProp.angleReferences.find(r => r.id === selectedImage.id); if (ref?.s3Key) imageS3Key = ref.s3Key; }
+                                if (!imageS3Key && fullProp.images) { const imgData = fullProp.images.find(i => i.url === selectedImage.id || i.s3Key === selectedImage.id); if (imgData?.s3Key) imageS3Key = imgData.s3Key; }
+                                if (!imageS3Key && fullProp.baseReference?.s3Key && selectedImage.label === 'Creation Image (Last Resort)') imageS3Key = fullProp.baseReference.s3Key;
+                                if (!imageS3Key && selectedImage.id && (selectedImage.id.startsWith('asset/') || selectedImage.id.includes('/'))) imageS3Key = selectedImage.id;
+                                let displayUrl: string | undefined;
+                                if (imageS3Key) {
+                                  if (finalPropThumbnailS3KeyMap?.has(imageS3Key)) { const thumbnailS3Key = finalPropThumbnailS3KeyMap.get(imageS3Key); if (thumbnailS3Key && propThumbnailUrlsMap?.has(thumbnailS3Key)) displayUrl = propThumbnailUrlsMap.get(thumbnailS3Key); }
+                                  if (!displayUrl && propImageUrlsMap?.has(imageS3Key)) displayUrl = propImageUrlsMap.get(imageS3Key);
+                                }
+                                if (!displayUrl && selectedImage.imageUrl) {
+                                  if (selectedImage.imageUrl.startsWith('http')) displayUrl = selectedImage.imageUrl;
+                                  else if (propImageUrlsMap?.has(selectedImage.imageUrl)) displayUrl = propImageUrlsMap.get(selectedImage.imageUrl);
+                                }
+                                if (!displayUrl) displayUrl = fullProp.baseReference?.imageUrl || prop.imageUrl;
+                                if (displayUrl) references.push({ type: 'prop', imageUrl: displayUrl, label: prop.name, id: `prop-${prop.id}` });
+                              }
+                            });
+                            return references.length > 0 ? <ReferencePreview references={references} className="mt-2 mb-3" /> : null;
+                          })()}
+                        </>
+                      )}
+                      {!uploadedFirstFrameUrl && isOverrideAllowed && (
+                        <div className="mt-4 pt-3 border-t border-[#3F3F46]">
+                          <div className="flex items-center gap-2 mb-3">
+                            <input
+                              type="checkbox"
+                              id={`first-frame-override-${shotSlot}`}
+                              checked={firstFrameOverrideEnabledFromContext}
+                              onChange={(e) => {
+                                const isChecked = e.target.checked;
+                                actions.updateFirstFrameOverrideEnabled(shotSlot, isChecked);
+                                if (!isChecked) actions.updateFirstFramePromptOverride(shotSlot, '');
+                              }}
+                              className="w-4 h-4 rounded border-[#3F3F46] bg-[#1A1A1A] text-[#DC143C] focus:ring-2 focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer"
+                            />
+                            <label htmlFor={`first-frame-override-${shotSlot}`} className="text-xs font-medium text-[#FFFFFF] cursor-pointer">Override First Frame</label>
+                          </div>
+                          {(firstFrameOverrideEnabledFromContext || !!finalFirstFramePromptOverride) && (
+                            <div className="space-y-3 mt-3">
+                              {(() => {
+                                const availableVariables: Array<{ label: string; variable: string; type: 'character' | 'location' | 'prop' }> = [];
+                                const allShotCharacters = new Set<string>();
+                                explicitCharacters.forEach(charId => allShotCharacters.add(charId));
+                                Object.values(shotMappings || {}).forEach(mapping => {
+                                  if (mapping && mapping !== '__ignore__') {
+                                    if (Array.isArray(mapping)) {
+                                      mapping.forEach(charId => allShotCharacters.add(charId));
+                                    } else {
+                                      allShotCharacters.add(mapping);
+                                    }
+                                  }
+                                });
+                                (finalSelectedCharactersForShots[shotSlot] || []).forEach((charId: string) => allShotCharacters.add(charId));
+                                const charactersWithRefs = Array.from(allShotCharacters).filter(charId =>
+                                  finalSelectedCharacterReferences[shotSlot]?.[charId]
+                                );
+                                charactersWithRefs.forEach((charId, index) => {
+                                  const char = allCharacters.find((c: any) => c.id === charId);
+                                  if (char) {
+                                    availableVariables.push({
+                                      label: char.name || `Character ${index + 1}`,
+                                      variable: `{{character${index + 1}}}`,
+                                      type: 'character'
+                                    });
+                                  }
+                                });
+                                if (finalSelectedLocationReferences[shotSlot]) {
+                                  const locationItem = finalSceneProps?.find((loc: any) => loc.id === shot.locationId);
+                                  const shotData = sceneAnalysisResult?.shotBreakdown?.shots?.find((s: any) => s.slot === shotSlot);
+                                  const locationLabel = (shotData as { locationDescription?: string } | undefined)?.locationDescription;
+                                  availableVariables.push({
+                                    label: locationItem?.name || locationLabel || 'Location',
+                                    variable: '{{location}}',
+                                    type: 'location'
+                                  });
+                                }
+                                const shotPropsForThisShot = (finalSceneProps || []).filter((prop: any) =>
+                                  finalPropsToShots[prop.id]?.includes(shotSlot)
+                                );
+                                shotPropsForThisShot.forEach((prop: any, index: number) => {
+                                  if (finalShotProps[shotSlot]?.[prop.id]?.selectedImageId) {
+                                    availableVariables.push({
+                                      label: prop.name || `Prop ${index + 1}`,
+                                      variable: `{{prop${index + 1}}}`,
+                                      type: 'prop'
+                                    });
+                                  }
+                                });
+                                return availableVariables.length > 0 ? (
+                                  <div className="mb-3 p-3 bg-[#0A0A0A] border border-[#3F3F46] rounded">
+                                    <label className="block text-[10px] text-[#808080] mb-2 font-medium">
+                                      Available Variables (from selected references):
+                                    </label>
+                                    <div className="space-y-1.5">
+                                      {availableVariables.map((item, idx) => (
+                                        <div key={idx} className="flex items-center gap-2 text-xs">
+                                          <code className="px-2 py-0.5 bg-[#1A1A1A] border border-[#3F3F46] rounded text-[#DC143C] font-mono text-[11px]">
+                                            {item.variable}
+                                          </code>
+                                          <span className="text-[#FFFFFF]">=</span>
+                                          <span className="text-[#808080]">{item.label}</span>
+                                        </div>
+                                      ))}
+                                    </div>
+                                    <div className="text-[9px] text-[#808080] italic mt-2">
+                                      Use these variables in your prompt. Only references with variables will be included.
+                                    </div>
+                                  </div>
+                                ) : (
+                                  <div className="mb-3 p-3 bg-[#0A0A0A] border border-[#3F3F46] rounded">
+                                    <div className="text-[10px] text-[#808080] italic">
+                                      No references selected. Select characters, location, or props above to create variables.
+                                    </div>
+                                  </div>
+                                );
+                              })()}
+                              <label className="block text-[10px] text-[#808080] mb-1.5">First Frame Prompt (Image Model)</label>
+                              <textarea
+                                ref={firstFrameTextareaRef}
+                                value={finalFirstFramePromptOverride || ''}
+                                onChange={(e) => finalOnFirstFramePromptOverrideChange(shotSlot, e.target.value)}
+                                placeholder="Enter custom prompt for first frame generation. Use variables like {{character1}}, {{location}}, {{prop1}} to include references."
+                                rows={3}
+                                className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none font-mono"
+                              />
+                              {firstFrameOverrideEnabledFromContext && !finalFirstFramePromptOverride?.trim() && !uploadedFirstFrameUrl && (
+                                <div className="mt-2 p-3 bg-[#2A1A0A] border border-[#DC6B3C] rounded">
+                                  <div className="flex items-start gap-2">
+                                    <svg className="w-4 h-4 text-[#DC6B3C] mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+                                      <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98 1.742 2.98H4.42c1.955 0 2.502-1.646 1.742-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+                                    </svg>
+                                    <div className="flex-1">
+                                      <p className="text-xs font-medium text-[#DC6B3C] mb-1">Warning: Empty Prompt</p>
+                                      <p className="text-[10px] text-[#FFB380]">
+                                        You've enabled "Override First Frame" but haven't entered a prompt. Please enter a prompt or upload an image before continuing.
+                                      </p>
+                                    </div>
+                                  </div>
+                                </div>
+                              )}
+                              <div className="text-[10px] text-[#808080] italic mt-2">This prompt will be used instead of the auto-generated prompt. Only references with variables will be included.</div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </>
+                  )}
                 />
-              )}
-              {/* Reference Shot (First Frame) - Action/establishing only: at bottom after config (prop selection, describe shot, etc.) so References carousel is right below model dropdown */}
-              {!isDialogueShot && onReferenceShotModelChange && (
-                <>
-                  <ReferenceShotSelector
-                    shotSlot={shot.slot}
-                    selectedModel={selectedReferenceShotModels[shot.slot]}
-                    onModelChange={finalOnReferenceShotModelChange}
-                  />
-                  {/* Reference Preview - Shows what references will be used for this shot (directly under Reference Shot) */}
-                  {(() => {
-                    const references: Array<{ type: 'character' | 'location' | 'prop' | 'asset' | 'other'; imageUrl?: string; label: string; id: string }> = [];
-                    const allShotCharacters = new Set<string>();
-                    explicitCharacters.forEach(charId => allShotCharacters.add(charId));
-                    Object.values(shotMappings || {}).forEach(mapping => {
-                      if (mapping && mapping !== '__ignore__') {
-                        if (Array.isArray(mapping)) {
-                          mapping.forEach(charId => allShotCharacters.add(charId));
-                        } else {
-                          allShotCharacters.add(mapping);
-                        }
-                      }
-                    });
-                    (finalSelectedCharactersForShots[shot.slot] || []).forEach(charId => allShotCharacters.add(charId));
-                    const isOffFrameForDisplay = finalSelectedDialogueWorkflow === 'off-frame-voiceover' && activeTab === 'advanced';
-                    if (isOffFrameForDisplay) {
-                      if (finalOffFrameShotType === 'off-frame') allShotCharacters.delete(shot.characterId);
-                      if (finalOffFrameListenerCharacterId && finalOffFrameShotType && isOffFrameListenerShotType(finalOffFrameShotType as OffFrameShotType)) allShotCharacters.add(finalOffFrameListenerCharacterId);
-                      if (finalOffFrameShotType && isOffFrameGroupShotType(finalOffFrameShotType as OffFrameShotType) && (finalOffFrameGroupCharacterIds?.length ?? 0) > 0) finalOffFrameGroupCharacterIds.forEach((id: string) => allShotCharacters.add(id));
-                    } else {
-                      if (finalOffFrameListenerCharacterId) allShotCharacters.delete(finalOffFrameListenerCharacterId);
-                      (finalOffFrameGroupCharacterIds || []).forEach((id: string) => allShotCharacters.delete(id));
-                    }
-                    allShotCharacters.forEach(charId => {
-                      const char = allCharacters.find(c => c.id === charId);
-                      if (char) {
-                        const charRef = finalSelectedCharacterReferences[shot.slot]?.[charId];
-                        if (charRef && (charRef.imageUrl || charRef.s3Key)) {
-                          let imageUrl = charRef.imageUrl;
-                          if (!imageUrl && charRef.s3Key && finalCharacterHeadshots[charId]) {
-                            const headshot = finalCharacterHeadshots[charId].find(h => h.s3Key === charRef.s3Key);
-                            if (headshot?.imageUrl) imageUrl = headshot.imageUrl;
-                          }
-                          if (imageUrl) references.push({ type: 'character', imageUrl, label: char.name || `Character ${charId}`, id: `char-${charId}` });
-                        }
-                      }
-                    });
-                    const locationRef = finalSelectedLocationReferences[shot.slot];
-                    if (locationRef) {
-                      const location = finalSceneProps.find(loc => loc.id === shot.locationId);
-                      const locationImageUrl = resolveLocationImageUrl(locationRef, { thumbnailS3KeyMap: null, thumbnailUrlsMap: null, fullImageUrlsMap: locationReferenceFullImageUrlsMap || propImageUrlsMap });
-                      if (locationImageUrl) references.push({ type: 'location', imageUrl: locationImageUrl, label: location?.name || 'Location', id: `loc-${shot.slot}` });
-                    }
-                    const shotPropsForThisShot = finalSceneProps.filter(prop => finalPropsToShots[prop.id]?.includes(shot.slot));
-                    shotPropsForThisShot.forEach(prop => {
-                      const propConfig = finalShotProps[shot.slot]?.[prop.id];
-                      const availableImages = getAvailablePropImages(prop);
-                      const selectedImageId = propConfig?.selectedImageId || (availableImages.length > 0 ? availableImages[0].id : undefined);
-                      const selectedImage = selectedImageId ? availableImages.find(img => img.id === selectedImageId) : availableImages[0];
-                      if (selectedImage) {
-                        const fullProp = prop as typeof prop & { angleReferences?: Array<{ id: string; s3Key: string; imageUrl: string; label?: string }>; images?: Array<{ url: string; s3Key?: string }>; baseReference?: { s3Key?: string; imageUrl?: string } };
-                        let imageS3Key: string | null = null;
-                        if (fullProp.angleReferences) { const ref = fullProp.angleReferences.find(r => r.id === selectedImage.id); if (ref?.s3Key) imageS3Key = ref.s3Key; }
-                        if (!imageS3Key && fullProp.images) { const imgData = fullProp.images.find(i => i.url === selectedImage.id || i.s3Key === selectedImage.id); if (imgData?.s3Key) imageS3Key = imgData.s3Key; }
-                        if (!imageS3Key && fullProp.baseReference?.s3Key && selectedImage.label === 'Creation Image (Last Resort)') imageS3Key = fullProp.baseReference.s3Key;
-                        if (!imageS3Key && selectedImage.id && (selectedImage.id.startsWith('asset/') || selectedImage.id.includes('/'))) imageS3Key = selectedImage.id;
-                        let displayUrl: string | undefined;
-                        if (imageS3Key) {
-                          if (finalPropThumbnailS3KeyMap?.has(imageS3Key)) { const thumbnailS3Key = finalPropThumbnailS3KeyMap.get(imageS3Key); if (thumbnailS3Key && propThumbnailUrlsMap?.has(thumbnailS3Key)) displayUrl = propThumbnailUrlsMap.get(thumbnailS3Key); }
-                          if (!displayUrl && propImageUrlsMap?.has(imageS3Key)) displayUrl = propImageUrlsMap.get(imageS3Key);
-                        }
-                        if (!displayUrl && selectedImage.imageUrl) {
-                          if (selectedImage.imageUrl.startsWith('http')) displayUrl = selectedImage.imageUrl;
-                          else if (propImageUrlsMap?.has(selectedImage.imageUrl)) displayUrl = propImageUrlsMap.get(selectedImage.imageUrl);
-                        }
-                        if (!displayUrl) displayUrl = fullProp.baseReference?.imageUrl || prop.imageUrl;
-                        if (displayUrl) references.push({ type: 'prop', imageUrl: displayUrl, label: prop.name, id: `prop-${prop.id}` });
-                      }
-                    });
-                    return references.length > 0 ? <ReferencePreview references={references} className="mt-2 mb-3" /> : null;
-                  })()}
-                </>
               )}
             </>
-          )}
-
-          {/* Override First Frame – for action shots and Narrate Shot only. Plan 0234: HIDDEN for lip-sync dialogue (use Motion Direction instead). */}
-          {!uploadedFirstFrameUrl && isOverrideAllowed && (
-            <div className="mt-4 pt-3 border-t border-[#3F3F46]">
-              <div className="flex items-center gap-2 mb-3">
-                <input
-                  type="checkbox"
-                  id={`first-frame-override-${shotSlot}`}
-                  checked={firstFrameOverrideEnabledFromContext}
-                  onChange={(e) => {
-                    const isChecked = e.target.checked;
-                    actions.updateFirstFrameOverrideEnabled(shotSlot, isChecked);
-                    if (!isChecked) actions.updateFirstFramePromptOverride(shotSlot, '');
-                  }}
-                  className="w-4 h-4 rounded border-[#3F3F46] bg-[#1A1A1A] text-[#DC143C] focus:ring-2 focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer"
-                />
-                <label htmlFor={`first-frame-override-${shotSlot}`} className="text-xs font-medium text-[#FFFFFF] cursor-pointer">Override First Frame</label>
-              </div>
-              {(firstFrameOverrideEnabledFromContext || !!finalFirstFramePromptOverride) && (
-                <div className="space-y-3 mt-3">
-                  {/* Feature 0234: Variable Chips - show available variables from selected references */}
-                  {(() => {
-                    const availableVariables: Array<{ label: string; variable: string; type: 'character' | 'location' | 'prop' }> = [];
-                    
-                    // Character references - get all characters for this shot
-                    const allShotCharacters = new Set<string>();
-                    explicitCharacters.forEach(charId => allShotCharacters.add(charId));
-                    Object.values(shotMappings || {}).forEach(mapping => {
-                      if (mapping && mapping !== '__ignore__') {
-                        if (Array.isArray(mapping)) {
-                          mapping.forEach(charId => allShotCharacters.add(charId));
-                        } else {
-                          allShotCharacters.add(mapping);
-                        }
-                      }
-                    });
-                    (finalSelectedCharactersForShots[shotSlot] || []).forEach((charId: string) => allShotCharacters.add(charId));
-                    
-                    // Filter to only those with selected references
-                    const charactersWithRefs = Array.from(allShotCharacters).filter(charId => 
-                      finalSelectedCharacterReferences[shotSlot]?.[charId]
-                    );
-                    
-                    charactersWithRefs.forEach((charId, index) => {
-                      const char = allCharacters.find((c: any) => c.id === charId);
-                      if (char) {
-                        availableVariables.push({
-                          label: char.name || `Character ${index + 1}`,
-                          variable: `{{character${index + 1}}}`,
-                          type: 'character'
-                        });
-                      }
-                    });
-                    
-                    // Location reference (label from scene props/location list when available, else shot or fallback)
-                    if (finalSelectedLocationReferences[shotSlot]) {
-                      const locationItem = finalSceneProps?.find((loc: any) => loc.id === shot.locationId);
-                      const shotData = sceneAnalysisResult?.shotBreakdown?.shots?.find((s: any) => s.slot === shotSlot);
-                      const locationLabel = (shotData as { locationDescription?: string } | undefined)?.locationDescription;
-                      availableVariables.push({
-                        label: locationItem?.name || locationLabel || 'Location',
-                        variable: '{{location}}',
-                        type: 'location'
-                      });
-                    }
-                    
-                    // Prop references
-                    const shotPropsForThisShot = (finalSceneProps || []).filter((prop: any) => 
-                      finalPropsToShots[prop.id]?.includes(shotSlot)
-                    );
-                    shotPropsForThisShot.forEach((prop: any, index: number) => {
-                      if (finalShotProps[shotSlot]?.[prop.id]?.selectedImageId) {
-                        availableVariables.push({
-                          label: prop.name || `Prop ${index + 1}`,
-                          variable: `{{prop${index + 1}}}`,
-                          type: 'prop'
-                        });
-                      }
-                    });
-                    
-                    return availableVariables.length > 0 ? (
-                      <div className="mb-3 p-3 bg-[#0A0A0A] border border-[#3F3F46] rounded">
-                        <label className="block text-[10px] text-[#808080] mb-2 font-medium">
-                          Available Variables (from selected references):
-                        </label>
-                        <div className="space-y-1.5">
-                          {availableVariables.map((item, idx) => (
-                            <div key={idx} className="flex items-center gap-2 text-xs">
-                              <code className="px-2 py-0.5 bg-[#1A1A1A] border border-[#3F3F46] rounded text-[#DC143C] font-mono text-[11px]">
-                                {item.variable}
-                              </code>
-                              <span className="text-[#FFFFFF]">=</span>
-                              <span className="text-[#808080]">{item.label}</span>
-                            </div>
-                          ))}
-                        </div>
-                        <div className="text-[9px] text-[#808080] italic mt-2">
-                          Use these variables in your prompt. Only references with variables will be included.
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="mb-3 p-3 bg-[#0A0A0A] border border-[#3F3F46] rounded">
-                        <div className="text-[10px] text-[#808080] italic">
-                          No references selected. Select characters, location, or props above to create variables.
-                        </div>
-                      </div>
-                    );
-                  })()}
-                  <label className="block text-[10px] text-[#808080] mb-1.5">First Frame Prompt (Image Model)</label>
-                  <textarea
-                    ref={firstFrameTextareaRef}
-                    value={finalFirstFramePromptOverride || ''}
-                    onChange={(e) => finalOnFirstFramePromptOverrideChange(shotSlot, e.target.value)}
-                    placeholder="Enter custom prompt for first frame generation. Use variables like {{character1}}, {{location}}, {{prop1}} to include references."
-                    rows={3}
-                    className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none font-mono"
-                  />
-                  {/* Warning message when override is enabled but prompt is empty */}
-                  {firstFrameOverrideEnabledFromContext && !finalFirstFramePromptOverride?.trim() && !uploadedFirstFrameUrl && (
-                    <div className="mt-2 p-3 bg-[#2A1A0A] border border-[#DC6B3C] rounded">
-                      <div className="flex items-start gap-2">
-                        <svg className="w-4 h-4 text-[#DC6B3C] mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98 1.742 2.98H4.42c1.955 0 2.502-1.646 1.742-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
-                        </svg>
-                        <div className="flex-1">
-                          <p className="text-xs font-medium text-[#DC6B3C] mb-1">Warning: Empty Prompt</p>
-                          <p className="text-[10px] text-[#FFB380]">
-                            You've enabled "Override First Frame" but haven't entered a prompt. Please enter a prompt or upload an image before continuing.
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-                  <div className="text-[10px] text-[#808080] italic mt-2">This prompt will be used instead of the auto-generated prompt. Only references with variables will be included.</div>
-                </div>
-              )}
-            </div>
           )}
 
           {/* Video Generation Selection – only when dialogue shot has video opt-in. */}
@@ -1795,7 +1783,7 @@ export function ShotConfigurationStep({
               </div>
             )}
 
-            {/* Cost Calculator - Explicit: first frame only vs first frame + video */}
+            {/* Cost Calculator - Explicit: first frame only vs first frame + video. Elements to Video adds video cost (no first frame). */}
             {pricing && (
               <div className="pt-3">
                 <div className="text-xs font-medium text-[#FFFFFF] mb-2">Estimated Cost</div>
@@ -1804,7 +1792,7 @@ export function ShotConfigurationStep({
                     <span className="text-[#808080]">Reference Shot (first frame):</span>
                     <span className="text-[#FFFFFF] font-medium">{pricing.firstFramePrice} credits</span>
                   </div>
-                  {(isDialogueShot && videoOptInForThisShot) && (
+                  {((isDialogueShot && videoOptInForThisShot) || !!state.useElementsForVideo?.[shot.slot]) && (
                     <>
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-[#808080]">Video (720p or 1080p by workflow):</span>
@@ -1820,7 +1808,7 @@ export function ShotConfigurationStep({
                       </div>
                     </>
                   )}
-                  {(!isDialogueShot || !videoOptInForThisShot) && (
+                  {(!isDialogueShot || !videoOptInForThisShot) && !state.useElementsForVideo?.[shot.slot] && (
                     <div className="pt-2 border-t border-[#3F3F46]">
                       <div className="flex items-center justify-between text-xs font-medium">
                         <span className="text-[#FFFFFF]">Charged: First frame only</span>

@@ -261,24 +261,24 @@ export function SceneReviewStep({
     { value: 'complete-scene', label: 'Complete Scene', category: 'action' }
   ];
 
-  // Feature 0234: Calculate total duration - only count shots with video opt-in
-  // Duration varies by quality: Premium (VEO) = 4s quick-cut / 8s extended-take, Reliable (LongCat/Wryda) = 5s quick-cut / 8s extended-take
+  // Feature 0234: Calculate total duration - dialogue video opt-in + Elements to Video (Feature 0259)
   const totalDuration = selectedShots.reduce((total: number, shot: any) => {
-    // Only dialogue shots with video opt-in contribute to duration
     if (shot.type === 'dialogue' && generateVideoForShot[shot.slot]) {
       const duration = shotDurations[shot.slot] || 'quick-cut';
       const quality = selectedDialogueQualities?.[shot.slot] || 'reliable';
-      // Premium (VEO): 4s quick-cut, 8s extended-take
-      // Reliable (LongCat/Wryda): 5s quick-cut, 8s extended-take
-      const seconds = duration === 'extended-take' 
-        ? 8  // Both Premium and Reliable use 8s for extended-take
-        : (quality === 'premium' ? 4 : 5);  // Premium = 4s, Reliable = 5s
+      const seconds = duration === 'extended-take'
+        ? 8
+        : (quality === 'premium' ? 4 : 5);
       return total + seconds;
     }
-    // Action/establishing shots and dialogue without video opt-in are first-frame-only (no duration)
+    // Feature 0259: Elements to Video adds VEO clip duration (4, 6, or 8s)
+    if (useElementsForVideo[shot.slot]) {
+      const sec = elementsVideoDurations[shot.slot];
+      return total + (sec === 4 || sec === 6 || sec === 8 ? sec : 6);
+    }
     return total;
   }, 0);
-  
+
   const hasAnyVideo = totalDuration > 0;
   const minutes = Math.floor(totalDuration / 60);
   const seconds = totalDuration % 60;

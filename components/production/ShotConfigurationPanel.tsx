@@ -1731,8 +1731,8 @@ export function ShotConfigurationPanel({
         </>
       )}
 
-      {/* Reference Shot (model + preview) slot: after ref selection. Flow: ref selection → model dropdown → reference preview → Motion Direction (if lip-sync) → expand area (LIP SYNC only). */}
-      {renderAfterReferenceSelection}
+      {/* Reference Shot (model + preview) + Override First Frame. Hidden when Elements to Video is on (Feature 0259). */}
+      {!useElementsForVideo && renderAfterReferenceSelection}
 
       {/* Feature 0234: Motion Direction – above "+ Add Dialogue Video" per plan. Lip-sync dialogue only. */}
       {showMotionDirection && (
