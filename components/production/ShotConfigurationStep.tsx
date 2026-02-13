@@ -26,7 +26,7 @@ import { ReferenceShotSelector } from './ReferenceShotSelector';
 import { VideoGenerationSelector } from './VideoGenerationSelector';
 import { DialogueWorkflowType } from './UnifiedDialogueDropdown';
 import { getAvailablePropImages, getSelectedPropImageUrl } from './utils/propImageUtils';
-import { useSceneBuilderState, useSceneBuilderActions, VideoType, DEFAULT_REFERENCE_SHOT_MODEL } from '@/contexts/SceneBuilderContext';
+import { useSceneBuilderState, useSceneBuilderActions, VideoType, DEFAULT_REFERENCE_SHOT_MODEL, VEO_MAX_ELEMENTS } from '@/contexts/SceneBuilderContext';
 import { useBulkPresignedUrls } from '@/hooks/useMediaLibrary';
 import { cn } from '@/lib/utils';
 import { resolveLocationImageUrl } from './utils/imageUrlResolver';
@@ -1382,6 +1382,9 @@ export function ShotConfigurationStep({
                   motionDirectionPrompt={state.motionDirectionPrompt[shotSlot] || ''}
                   onMotionDirectionChange={(value) => actions.updateMotionDirectionPrompt(shotSlot, value)}
                   showMotionDirection={isDialogueShot && !isSceneVoiceover}
+                  selectedElementsForVideo={state.selectedElementsForVideo[shotSlot] || []}
+                  onSelectedElementsForShotChange={(elementIds) => actions.updateSelectedElementsForShot(shotSlot, elementIds)}
+                  elementsMaxSelect={VEO_MAX_ELEMENTS}
                   renderAfterReferenceSelection={onReferenceShotModelChange ? (
                     <>
                       <ReferenceShotSelector shotSlot={shot.slot} selectedModel={selectedReferenceShotModels[shot.slot]} onModelChange={finalOnReferenceShotModelChange} />
@@ -1525,6 +1528,13 @@ export function ShotConfigurationStep({
                   shotWorkflowOverride={finalShotWorkflowOverride}
                   onShotWorkflowOverrideChange={finalOnShotWorkflowOverrideChange}
                   propThumbnailS3KeyMap={finalPropThumbnailS3KeyMap}
+                  useElementsForVideo={!!state.useElementsForVideo[shot.slot]}
+                  onUseElementsForVideoChange={(enabled) => actions.updateUseElementsForVideo(shot.slot, enabled)}
+                  selectedElementsForVideo={state.selectedElementsForVideo[shot.slot] || []}
+                  onSelectedElementsForShotChange={(elementIds) => actions.updateSelectedElementsForShot(shot.slot, elementIds)}
+                  elementsMaxSelect={VEO_MAX_ELEMENTS}
+                  elementsVideoPrompt={state.videoPromptOverrides[shot.slot] ?? ''}
+                  onElementsVideoPromptChange={(value) => actions.updateVideoPromptOverride(shot.slot, value)}
                 />
               )}
               {/* Reference Shot (First Frame) - Action/establishing only: at bottom after config (prop selection, describe shot, etc.) so References carousel is right below model dropdown */}

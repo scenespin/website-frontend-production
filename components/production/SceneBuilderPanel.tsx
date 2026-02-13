@@ -79,6 +79,7 @@ import { ScreenplayStatusBanner } from './ScreenplayStatusBanner';
 import { SceneSelector } from './SceneSelector';
 import { useContextStore } from '@/lib/contextStore';
 import { useInFlightWorkflowJobsStore } from '@/lib/inFlightWorkflowJobsStore';
+import { validateElementsForShots, buildSelectedElementsForVideoPayload } from '@/lib/elementsWorkflowUtils';
 import { OutfitSelector } from './OutfitSelector';
 import { CharacterOutfitSelector } from './CharacterOutfitSelector';
 import { DialogueConfirmationPanel } from './DialogueConfirmationPanel';
@@ -2485,6 +2486,14 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
           }
         }
       }
+
+      // Elements (0259): when Elements option is on for a shot, at least one reference and a non-empty prompt are required.
+      const elementsErrors = validateElementsForShots(shots, {
+        useElementsForVideo: contextState.useElementsForVideo,
+        selectedElementsForVideo: contextState.selectedElementsForVideo,
+        videoPromptOverrides: contextState.videoPromptOverrides
+      });
+      validationErrors.push(...elementsErrors);
       
       if (validationErrors.length > 0) {
         toast.error('Please complete all required fields', {
@@ -3131,6 +3140,10 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
         selectedReferenceShotModels: Object.keys(selectedReferenceShotModels).length > 0 ? selectedReferenceShotModels : undefined, // Per-shot first frame provider selection: { shotSlot: 'nano-banana-pro' | 'nano-banana-pro-2k' | 'flux2-max-4k-16:9' | 'flux2-max-2k' | 'flux2-pro-4k' | 'flux2-pro-2k' }
         voiceoverBaseWorkflows: Object.keys(voiceoverBaseWorkflows).length > 0 ? voiceoverBaseWorkflows : undefined, // NEW: Per-shot voiceover base workflows (for Narrate Shot and Hidden Mouth Dialogue): { shotSlot: baseWorkflow }
         shotWorkflowOverrides: Object.keys(shotWorkflowOverrides).length > 0 ? shotWorkflowOverrides : undefined, // NEW: Per-shot workflow overrides (for action shots and dialogue shots): { shotSlot: workflow }
+        selectedElementsForVideo: buildSelectedElementsForVideoPayload(
+          contextState.selectedElementsForVideo,
+          contextState.useElementsForVideo
+        ), // Feature 0259: Per-shot element ids when Elements option is on (character:id | location | prop:id), max 3
         dialogueWorkflowPrompts: Object.keys(contextState.dialogueWorkflowPrompts).length > 0 ? contextState.dialogueWorkflowPrompts : undefined, // Per-shot dialogue workflow override prompts: { shotSlot: prompt }
         narrationOverrides: Object.keys(contextState.narrationOverrides).length > 0 ? contextState.narrationOverrides : undefined, // Narrate Shot: what the narrator says per shot (required for scene-voiceover)
         // Narrate Shot: which character is the narrator per shot (defaults to speaking character when unset)

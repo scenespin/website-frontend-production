@@ -69,6 +69,8 @@ export type AspectRatio = '16:9' | '9:16' | '1:1' | '21:9' | '9:21';
 export type ReferenceShotModel = 'nano-banana-pro' | 'nano-banana-pro-2k' | 'flux2-max-4k-16:9' | 'flux2-max-2k' | 'flux2-pro-4k' | 'flux2-pro-2k';
 /** Single source of truth for default first-frame model when user has not selected one. Change here to update dropdown display, review step, pricing, and workflow payload. */
 export const DEFAULT_REFERENCE_SHOT_MODEL: ReferenceShotModel = 'nano-banana-pro-2k';
+/** Feature 0259: Max reference elements per shot for video (VEO limit). */
+export const VEO_MAX_ELEMENTS = 3;
 export type VideoType = 'cinematic-visuals' | 'natural-motion' | 'premium-quality';
 export type DialogueQuality = 'premium' | 'reliable';
 export type WizardStep = 'analysis' | 'shot-config' | 'review';
@@ -141,6 +143,10 @@ export interface SceneBuilderState {
   generateVideoForShot: Record<number, boolean>;
   /** Feature 0234: Additive motion direction for lip-sync dialogue (e.g., "tilts head", "rolls eyes"). */
   motionDirectionPrompt: Record<number, string>;
+  /** Feature 0259: Per-shot "Elements" option on (show ref list + prompt). UI-only; submit uses selectedElementsForVideo. */
+  useElementsForVideo: Record<number, boolean>;
+  /** Feature 0259: Per-shot selected element ids for video (max 3 for VEO). Ids: character:${id} | location | prop:${id}. */
+  selectedElementsForVideo: Record<number, string[]>;
   
   // Global Settings
   globalResolution: Resolution;
@@ -258,6 +264,12 @@ export interface SceneBuilderActions {
   /** Feature 0234: Additive motion direction for lip-sync dialogue. */
   setMotionDirectionPrompt: (byShot: Record<number, string>) => void;
   updateMotionDirectionPrompt: (shotSlot: number, prompt: string) => void;
+  /** Feature 0259: Elements option on/off (UI). When on, show ref list + prompt. */
+  setUseElementsForVideo: (byShot: Record<number, boolean>) => void;
+  updateUseElementsForVideo: (shotSlot: number, enabled: boolean) => void;
+  /** Feature 0259: Elements for video — select up to VEO_MAX_ELEMENTS per shot. */
+  setSelectedElementsForVideo: (byShot: Record<number, string[]>) => void;
+  updateSelectedElementsForShot: (shotSlot: number, elementIds: string[]) => void;
   
   // Global Settings Actions
   setGlobalResolution: (resolution: Resolution) => void;
@@ -353,8 +365,10 @@ function getInitialSceneBuilderState(): SceneBuilderState {
     selectedReferenceShotModels: {},
     selectedVideoTypes: {},
     generateVideoForShot: {},
-    motionDirectionPrompt: {},
-    globalResolution: '4k',
+  motionDirectionPrompt: {},
+  useElementsForVideo: {},
+  selectedElementsForVideo: {},
+  globalResolution: '4k',
     wizardStep: 'analysis',
     currentShotIndex: 0,
     currentStep: 1,
@@ -1293,6 +1307,30 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
         motionDirectionPrompt: {
           ...prev.motionDirectionPrompt,
           [shotSlot]: prompt
+        }
+      }));
+    }, []),
+    
+    // Feature 0259: Elements option on/off (UI); then refs + prompt
+    setUseElementsForVideo: useCallback((byShot) => {
+      setState(prev => ({ ...prev, useElementsForVideo: byShot }));
+    }, []),
+    updateUseElementsForVideo: useCallback((shotSlot, enabled) => {
+      setState(prev => ({
+        ...prev,
+        useElementsForVideo: { ...prev.useElementsForVideo, [shotSlot]: enabled }
+      }));
+    }, []),
+    setSelectedElementsForVideo: useCallback((byShot) => {
+      setState(prev => ({ ...prev, selectedElementsForVideo: byShot }));
+    }, []),
+    updateSelectedElementsForShot: useCallback((shotSlot, elementIds) => {
+      const capped = elementIds.slice(0, VEO_MAX_ELEMENTS);
+      setState(prev => ({
+        ...prev,
+        selectedElementsForVideo: {
+          ...prev.selectedElementsForVideo,
+          [shotSlot]: capped
         }
       }));
     }, []),

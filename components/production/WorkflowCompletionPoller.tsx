@@ -8,11 +8,13 @@
  * this component does NOT subscribe, avoiding React render loops (see #185).
  *
  * Mirrors Jobs panel: GET /api/workflows/:id, silent auth fail, refetchQueries on completion.
+ * On failure: shows execution error in a toast so the user sees the backend message.
  */
 
 import { useEffect, useRef } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { useQueryClient } from '@tanstack/react-query';
+import { toast } from 'sonner';
 import { useInFlightWorkflowJobsStore } from '@/lib/inFlightWorkflowJobsStore';
 
 const POLL_INTERVAL_MS = 4000;
@@ -53,6 +55,7 @@ export function WorkflowCompletionPoller({ jobIdsKey }: WorkflowCompletionPoller
         return {
           status: exec.status || 'running',
           projectId: exec.projectId,
+          error: exec.error,
         };
       } catch {
         return null;
@@ -73,11 +76,17 @@ export function WorkflowCompletionPoller({ jobIdsKey }: WorkflowCompletionPoller
         const result = await pollJob(jobId);
         if (!result) continue;
 
-        const { status, projectId } = result;
+        const { status, projectId, error } = result;
         if (status === 'completed' || status === 'failed') {
           removeJob(jobId);
           if (status === 'completed' && projectId?.trim()) {
             queryClient.refetchQueries({ queryKey: ['media', 'files', projectId] });
+          }
+          if (status === 'failed') {
+            toast.error('Workflow failed', {
+              description: error || 'Execution failed. Check the Jobs panel for details.',
+              duration: 8000,
+            });
           }
         }
       }

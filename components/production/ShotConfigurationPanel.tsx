@@ -147,7 +147,17 @@ interface ShotConfigurationPanelProps {
   motionDirectionPrompt?: string;
   onMotionDirectionChange?: (value: string) => void;
   showMotionDirection?: boolean;
-  // Feature 0182: Continuation (REMOVED - deferred to post-launch)
+  /** Feature 0259: Elements option on for this shot (when true, show ref list + prompt). */
+  useElementsForVideo?: boolean;
+  onUseElementsForVideoChange?: (enabled: boolean) => void;
+  /** Feature 0259: Selected element ids for video (character:id | location | prop:id). Max 3. */
+  selectedElementsForVideo?: string[];
+  onSelectedElementsForShotChange?: (elementIds: string[]) => void;
+  /** Max elements selectable (VEO = 3). */
+  elementsMaxSelect?: number;
+  /** Feature 0259: Video prompt for Elements path. Prefilled with best practice + chosen refs; user can edit. */
+  elementsVideoPrompt?: string;
+  onElementsVideoPromptChange?: (value: string) => void;
 }
 
 export function ShotConfigurationPanel({
@@ -228,7 +238,14 @@ export function ShotConfigurationPanel({
   onCollapseDialogueVideo,
   motionDirectionPrompt = '',
   onMotionDirectionChange,
-  showMotionDirection = false
+  showMotionDirection = false,
+  useElementsForVideo = false,
+  onUseElementsForVideoChange,
+  selectedElementsForVideo = [],
+  onSelectedElementsForShotChange,
+  elementsMaxSelect = 3,
+  elementsVideoPrompt = '',
+  onElementsVideoPromptChange
 }: ShotConfigurationPanelProps) {
   const shouldShowLocation = needsLocationAngle(shot) && sceneAnalysisResult?.location?.id && onLocationAngleChange;
 
@@ -305,6 +322,68 @@ export function ShotConfigurationPanel({
     });
     return keys;
   }, [sceneProps, propsToShots, shot.slot, propThumbnailS3KeyMap]);
+
+  // Feature 0259: Build list of reference elements for this shot (characters with ref, location, props with image)
+  const elementsListForShot = React.useMemo(() => {
+    const items: { id: string; label: string; type: 'character' | 'location' | 'prop' }[] = [];
+    const charIds = selectedCharactersForShots[shot.slot] || (shot.characterId ? [shot.characterId] : []);
+    charIds.forEach((charId: string) => {
+      const ref = selectedCharacterReferences[shot.slot]?.[charId];
+      if (ref && (ref.imageUrl || ref.s3Key)) {
+        const char = allCharacters.find((c: { id: string }) => c.id === charId);
+        items.push({ id: `character:${charId}`, label: char?.name || `Character ${charId}`, type: 'character' });
+      }
+    });
+    if (selectedLocationReferences[shot.slot] && (selectedLocationReferences[shot.slot].imageUrl || selectedLocationReferences[shot.slot].s3Key)) {
+      items.push({ id: 'location', label: 'Location', type: 'location' });
+    }
+    const assignedProps = sceneProps.filter((p: { id: string }) => propsToShots[p.id]?.includes(shot.slot));
+    assignedProps.forEach((prop: { id: string; name: string }) => {
+      const config = shotProps[shot.slot]?.[prop.id];
+      const availableImages = getAvailablePropImages(prop as Parameters<typeof getAvailablePropImages>[0]);
+      const hasImage = (config?.selectedImageId && availableImages.some((img: { id: string }) => img.id === config.selectedImageId)) || availableImages.length > 0;
+      if (hasImage) {
+        items.push({ id: `prop:${prop.id}`, label: prop.name, type: 'prop' });
+      }
+    });
+    return items;
+  }, [shot.slot, shot.characterId, selectedCharactersForShots, selectedCharacterReferences, selectedLocationReferences, sceneProps, propsToShots, shotProps, allCharacters]);
+
+  // Feature 0259: Veo 3.1 best-practice prompt (ingredients-to-video + five-part formula). See Veo prompting guide.
+  // Formula: [Cinematography] + [Subject] + [Action] + [Context] + [Style & Ambiance]
+  const elementsVideoPromptSuggestion = React.useMemo(() => {
+    if (selectedElementsForVideo.length === 0) return '';
+    const labels = selectedElementsForVideo
+      .map((id) => elementsListForShot.find((el) => el.id === id)?.label)
+      .filter(Boolean) as string[];
+    if (labels.length === 0) return '';
+    const refList = labels.join(', ');
+    const actionLine = (shot as { narrationBlock?: { text?: string }; description?: string }).narrationBlock?.text
+      || (shot as { description?: string }).description
+      || '';
+    const actionPart = actionLine.trim();
+    // Ingredients-to-video opener (Veo guide); then subject/action/context from script; then cinematography + style.
+    const intro = `Using the provided images for ${refList}, create `;
+    const body = actionPart
+      ? `${actionPart}. `
+      : 'a scene—describe the subject, action, and context. ';
+    const cinematographyAndStyle = 'Medium shot. Cinematic lighting, professional quality.';
+    return `${intro}${body}${cinematographyAndStyle}`;
+  }, [selectedElementsForVideo, elementsListForShot, shot]);
+
+  // When Elements selection changes, update stored prompt to the new suggestion (so prefill stays in sync with refs).
+  const prevSuggestionRef = React.useRef('');
+  React.useEffect(() => {
+    if (selectedElementsForVideo.length === 0) {
+      prevSuggestionRef.current = '';
+      return;
+    }
+    if (!onElementsVideoPromptChange) return;
+    if (elementsVideoPromptSuggestion !== prevSuggestionRef.current) {
+      prevSuggestionRef.current = elementsVideoPromptSuggestion;
+      onElementsVideoPromptChange(elementsVideoPromptSuggestion);
+    }
+  }, [elementsVideoPromptSuggestion, selectedElementsForVideo.length, onElementsVideoPromptChange]);
   
   // 🔥 NEW: Fetch thumbnail URLs for all prop images
   const { data: propThumbnailUrlsMap } = useBulkPresignedUrls(propThumbnailS3Keys, propThumbnailS3Keys.length > 0);
@@ -1712,6 +1791,83 @@ export function ShotConfigurationPanel({
             </>
           )}
         </>
+      )}
+
+      {/* Feature 0259: Elements — checkbox opens ref list + prompt; then choose up to 3 references and edit prompt. */}
+      {elementsListForShot.length > 0 && onUseElementsForVideoChange && onSelectedElementsForShotChange && (
+        <div className="mt-4 pt-4 border-t border-[#3F3F46]">
+          <h4 className="text-sm font-medium text-[#FFFFFF] mb-2">Elements to Video</h4>
+          <label className="flex items-center gap-2 cursor-pointer group mb-2">
+            <input
+              type="checkbox"
+              checked={useElementsForVideo}
+              onChange={(e) => {
+                const enabled = e.target.checked;
+                onUseElementsForVideoChange(enabled);
+                if (!enabled) {
+                  onSelectedElementsForShotChange([]);
+                  onElementsVideoPromptChange?.('');
+                }
+              }}
+              className="w-4 h-4 rounded border-[#3F3F46] bg-[#1A1A1A] text-[#DC143C] focus:ring-2 focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer"
+            />
+            <span className="text-xs font-medium text-[#FFFFFF] group-hover:text-[#E5E7EB]">Create video with elements instead of a first frame</span>
+          </label>
+          {useElementsForVideo && (
+            <div className="ml-6 space-y-3">
+              <p className="text-[10px] text-[#808080] mb-1">Choose up to {elementsMaxSelect} references (character, location, or prop):</p>
+              {(['character', 'location', 'prop'] as const).map((sectionType) => {
+                const sectionItems = elementsListForShot.filter((el) => el.type === sectionType);
+                if (sectionItems.length === 0) return null;
+                const sectionLabel = sectionType === 'character' ? 'Characters' : sectionType === 'location' ? 'Location' : 'Props';
+                return (
+                  <div key={sectionType} className="space-y-1">
+                    <div className="text-[10px] font-medium text-[#808080] uppercase tracking-wide">{sectionLabel}</div>
+                    <div className="flex flex-wrap gap-x-4 gap-y-1">
+                      {sectionItems.map((el) => {
+                        const isChecked = selectedElementsForVideo.includes(el.id);
+                        const atMax = selectedElementsForVideo.length >= elementsMaxSelect;
+                        const canCheck = atMax ? isChecked : true;
+                        return (
+                          <label key={el.id} className={cn('flex items-center gap-1.5 cursor-pointer', !canCheck && !isChecked && 'opacity-60 cursor-not-allowed')}>
+                            <input
+                              type="checkbox"
+                              checked={isChecked}
+                              disabled={!canCheck && !isChecked}
+                              onChange={() => {
+                                if (isChecked) {
+                                  onSelectedElementsForShotChange(selectedElementsForVideo.filter((id) => id !== el.id));
+                                } else if (selectedElementsForVideo.length < elementsMaxSelect) {
+                                  onSelectedElementsForShotChange([...selectedElementsForVideo, el.id]);
+                                }
+                              }}
+                              className="w-3.5 h-3.5 rounded border-[#3F3F46] bg-[#1A1A1A] text-[#DC143C] focus:ring-2 focus:ring-[#DC143C] cursor-pointer disabled:cursor-not-allowed"
+                            />
+                            <span className="text-xs text-[#E5E7EB]">{el.label}</span>
+                          </label>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+              {/* Video prompt for AI: prefilled with best practice + chosen refs; user can edit. Backend uses this when Elements path runs. */}
+              {onElementsVideoPromptChange && (
+                <div>
+                  <label className="text-[10px] font-medium text-[#808080] mb-1 block">Video prompt (required)</label>
+                  <textarea
+                    value={elementsVideoPrompt}
+                    onChange={(e) => onElementsVideoPromptChange(e.target.value)}
+                    placeholder={elementsVideoPromptSuggestion}
+                    rows={3}
+                    className="w-full px-3 py-2 text-xs bg-[#0A0A0A] border border-[#3F3F46] rounded text-[#FFFFFF] placeholder-[#6B7280] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-[#DC143C] resize-y min-h-[4rem]"
+                  />
+                  <p className="text-[10px] text-[#808080] mt-1">Veo 3.1 best practice: use the provided images for your refs, then subject + action + context + style. Prefilled from the script—edit shot type (e.g. close-up, wide shot) and mood as needed.</p>
+                </div>
+              )}
+            </div>
+          )}
+        </div>
       )}
 
     </div>
