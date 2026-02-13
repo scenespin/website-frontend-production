@@ -1785,13 +1785,26 @@ export function ShotConfigurationStep({
 
           {/* Single separator then Aspect ratio + Estimated Cost (fewer lines under Add Dialogue Video) */}
           <div className="border-t border-[#3F3F46]">
-            {onAspectRatioChange && (
+            {onAspectRatioChange && !state.useElementsForVideo?.[shot.slot] && (
               <div className="pt-2">
                 <label className="block text-[10px] text-[#808080] mb-1.5">Output aspect ratio (image &amp; video)</label>
                 <AspectRatioSelector
                   value={shotAspectRatio || '16:9'}
                   onChange={(value) => finalOnAspectRatioChange(shot.slot, value as '16:9' | '9:16' | '1:1' | '21:9' | '9:21')}
                 />
+              </div>
+            )}
+            {onAspectRatioChange && state.useElementsForVideo?.[shot.slot] && (
+              <div className="pt-2">
+                <label className="block text-[10px] text-[#808080] mb-1.5">Elements video aspect ratio (VEO: 16:9 or 9:16)</label>
+                <select
+                  value={state.elementsVideoAspectRatios?.[shot.slot] ?? '16:9'}
+                  onChange={(e) => actions.updateElementsVideoAspectRatio(shot.slot, e.target.value as '16:9' | '9:16')}
+                  className="w-full h-9 text-sm px-3 py-2 bg-[#1F1F1F] border border-[#3F3F46] rounded-md text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
+                >
+                  <option value="16:9">16:9 (Horizontal)</option>
+                  <option value="9:16">9:16 (Vertical)</option>
+                </select>
               </div>
             )}
 

@@ -337,11 +337,24 @@ export function ShotConfigurationPanel({
     return keys;
   }, [sceneProps, propsToShots, shot.slot, propThumbnailS3KeyMap]);
 
-  // Feature 0259: Build list of reference elements for this shot (characters with ref, location, props with image)
+  // Feature 0259/0264: Build list of reference elements for this shot (characters with ref, location, props with image).
+  // Character set aligned with Reference Preview: explicitCharacters + shotMappings + selectedCharactersForShots (no off-frame filtering here).
   const elementsListForShot = React.useMemo(() => {
     const items: { id: string; label: string; type: 'character' | 'location' | 'prop' }[] = [];
-    const charIds = selectedCharactersForShots[shot.slot] || (shot.characterId ? [shot.characterId] : []);
-    charIds.forEach((charId: string) => {
+    const allShotCharacters = new Set<string>();
+    (explicitCharacters || []).forEach((charId: string) => allShotCharacters.add(charId));
+    Object.values(shotMappings || {}).forEach((mapping: string | string[]) => {
+      if (mapping && mapping !== '__ignore__') {
+        if (Array.isArray(mapping)) {
+          mapping.forEach((charId: string) => allShotCharacters.add(charId));
+        } else {
+          allShotCharacters.add(mapping);
+        }
+      }
+    });
+    (selectedCharactersForShots[shot.slot] || []).forEach((charId: string) => allShotCharacters.add(charId));
+    if (shot.characterId) allShotCharacters.add(shot.characterId);
+    allShotCharacters.forEach((charId: string) => {
       const ref = selectedCharacterReferences[shot.slot]?.[charId];
       if (ref && (ref.imageUrl || ref.s3Key)) {
         const char = allCharacters.find((c: { id: string }) => c.id === charId);
@@ -361,7 +374,7 @@ export function ShotConfigurationPanel({
       }
     });
     return items;
-  }, [shot.slot, shot.characterId, selectedCharactersForShots, selectedCharacterReferences, selectedLocationReferences, sceneProps, propsToShots, shotProps, allCharacters]);
+  }, [shot.slot, shot.characterId, explicitCharacters, shotMappings, selectedCharactersForShots, selectedCharacterReferences, selectedLocationReferences, sceneProps, propsToShots, shotProps, allCharacters]);
 
   // Feature 0259: Veo 3.1 best-practice prompt (ingredients-to-video + five-part formula). See Veo prompting guide.
   // Formula: [Cinematography] + [Subject] + [Action] + [Context] + [Style & Ambiance]

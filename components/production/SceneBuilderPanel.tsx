@@ -3145,6 +3145,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
           contextState.useElementsForVideo
         ), // Feature 0259: Per-shot element ids when Elements option is on (character:id | location | prop:id), max 3
         elementsVideoDurations: Object.keys(contextState.elementsVideoDurations).length > 0 ? contextState.elementsVideoDurations : undefined, // Feature 0262/0259: VEO 4/6/8s when Elements on
+        elementsVideoAspectRatios: Object.keys(contextState.elementsVideoAspectRatios || {}).length > 0 ? contextState.elementsVideoAspectRatios : undefined, // Feature 0264: VEO 16:9/9:16 when Elements on
         dialogueWorkflowPrompts: Object.keys(contextState.dialogueWorkflowPrompts).length > 0 ? contextState.dialogueWorkflowPrompts : undefined, // Per-shot dialogue workflow override prompts: { shotSlot: prompt }
         narrationOverrides: Object.keys(contextState.narrationOverrides).length > 0 ? contextState.narrationOverrides : undefined, // Narrate Shot: what the narrator says per shot (required for scene-voiceover)
         // Narrate Shot: which character is the narrator per shot (defaults to speaking character when unset)

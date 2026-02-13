@@ -149,7 +149,9 @@ export interface SceneBuilderState {
   selectedElementsForVideo: Record<number, string[]>;
   /** Feature 0262/0259: Per-shot VEO duration in seconds (4, 6, or 8) when Elements to Video is on. */
   elementsVideoDurations: Record<number, 4 | 6 | 8>;
-  
+  /** Feature 0264: Per-shot VEO aspect ratio (16:9 or 9:16) when Elements to Video is on. */
+  elementsVideoAspectRatios: Record<number, '16:9' | '9:16'>;
+
   // Global Settings
   globalResolution: Resolution;
   
@@ -274,7 +276,9 @@ export interface SceneBuilderActions {
   updateSelectedElementsForShot: (shotSlot: number, elementIds: string[]) => void;
   /** Feature 0262/0259: Set VEO duration (4, 6, or 8 sec) for Elements shot. */
   updateElementsVideoDuration: (shotSlot: number, seconds: 4 | 6 | 8) => void;
-  
+  /** Feature 0264: Set VEO aspect ratio (16:9 or 9:16) for Elements shot. */
+  updateElementsVideoAspectRatio: (shotSlot: number, value: '16:9' | '9:16') => void;
+
   // Global Settings Actions
   setGlobalResolution: (resolution: Resolution) => void;
   
@@ -373,6 +377,7 @@ function getInitialSceneBuilderState(): SceneBuilderState {
   useElementsForVideo: {},
   selectedElementsForVideo: {},
   elementsVideoDurations: {},
+  elementsVideoAspectRatios: {},
   globalResolution: '4k',
     wizardStep: 'analysis',
     currentShotIndex: 0,
@@ -1329,6 +1334,9 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
         if (enabled && prev.elementsVideoDurations[shotSlot] === undefined) {
           next.elementsVideoDurations = { ...prev.elementsVideoDurations, [shotSlot]: 6 };
         }
+        if (enabled && prev.elementsVideoAspectRatios[shotSlot] === undefined) {
+          next.elementsVideoAspectRatios = { ...prev.elementsVideoAspectRatios, [shotSlot]: '16:9' };
+        }
         return next;
       });
     }, []),
@@ -1349,6 +1357,12 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
       setState(prev => ({
         ...prev,
         elementsVideoDurations: { ...prev.elementsVideoDurations, [shotSlot]: seconds }
+      }));
+    }, []),
+    updateElementsVideoAspectRatio: useCallback((shotSlot, value) => {
+      setState(prev => ({
+        ...prev,
+        elementsVideoAspectRatios: { ...prev.elementsVideoAspectRatios, [shotSlot]: value }
       }));
     }, []),
 
