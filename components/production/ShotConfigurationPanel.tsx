@@ -33,11 +33,13 @@ import { cn } from '@/lib/utils';
 export type Resolution = '1080p' | '4k';
 export type ShotDuration = 'quick-cut' | 'extended-take'; // 'quick-cut' = ~5s, 'extended-take' = ~10s
 
-/** Elements-to-video duration options per model. Today only VEO 3.1; add entries when we support more models and a model selector. */
-const ELEMENTS_VIDEO_DURATIONS_BY_MODEL: Record<string, { label: string; options: readonly number[] }> = {
-  'veo-3.1': { label: 'VEO 3.1', options: [4, 6, 8] },
+/** Elements-to-video duration options per model. Add entries when we support more models and a model selector. */
+const ELEMENTS_VIDEO_DURATIONS_BY_MODEL: Record<string, { options: readonly number[] }> = {
+  'veo-3.1': { options: [4, 6, 8] },
 };
 const ELEMENTS_DEFAULT_MODEL = 'veo-3.1';
+/** Shown next to duration dropdown; update when more models are available. */
+const ELEMENTS_VIDEO_MODEL_MESSAGE = 'Currently VEO 3.1; more models coming soon.';
 
 export type CameraAngle = 
   | 'close-up'
@@ -369,18 +371,21 @@ export function ShotConfigurationPanel({
       .map((id) => elementsListForShot.find((el) => el.id === id)?.label)
       .filter(Boolean) as string[];
     if (labels.length === 0) return '';
-    const refList = labels.join(', ');
+    const refList = labels.length > 1
+      ? `${labels.slice(0, -1).join(', ')}, and ${labels[labels.length - 1]}`
+      : labels[0];
     const actionLine = (shot as { narrationBlock?: { text?: string }; description?: string }).narrationBlock?.text
       || (shot as { description?: string }).description
       || '';
     const actionPart = actionLine.trim();
-    // Ingredients-to-video opener (Veo guide); then subject/action/context from script; then cinematography + style.
-    const intro = `Using the provided images for ${refList}, create `;
+    // Option B: refs → cinematography → subject/action/context → style (no "create").
+    const intro = `Using the provided images for ${refList}, `;
+    const cinematography = 'Medium shot. ';
     const body = actionPart
       ? `${actionPart}. `
-      : 'a scene—describe the subject, action, and context. ';
-    const cinematographyAndStyle = 'Medium shot. Cinematic lighting, professional quality.';
-    return `${intro}${body}${cinematographyAndStyle}`;
+      : 'Describe subject, action, and setting. ';
+    const style = 'Cinematic lighting, professional quality.';
+    return `${intro}${cinematography}${body}${style}`;
   }, [selectedElementsForVideo, elementsListForShot, shot]);
 
   // When Elements selection changes, update stored prompt to the new suggestion (so prefill stays in sync with refs).
@@ -1827,26 +1832,21 @@ export function ShotConfigurationPanel({
           </label>
           {useElementsForVideo && (
             <div className="ml-6 space-y-3">
-              <div className="flex flex-wrap items-center gap-2">
-                {(() => {
-                  const modelConfig = ELEMENTS_VIDEO_DURATIONS_BY_MODEL[ELEMENTS_DEFAULT_MODEL];
-                  const options = modelConfig?.options ?? [4, 6, 8];
-                  const durationLabel = modelConfig ? `${modelConfig.label} duration` : 'Duration';
-                  return (
-                    <>
-                      <span className="text-[10px] font-medium text-[#808080]">{durationLabel}:</span>
-                      <select
-                        value={elementsVideoDuration}
-                        onChange={(e) => onElementsVideoDurationChange?.(Number(e.target.value) as 4 | 6 | 8)}
-                        className="text-xs bg-[#0A0A0A] border border-[#3F3F46] rounded px-2 py-1 text-[#E5E7EB] focus:outline-none focus:ring-2 focus:ring-[#DC143C]"
-                      >
-                        {options.map((sec) => (
-                          <option key={sec} value={sec}>{sec}s</option>
-                        ))}
-                      </select>
-                    </>
-                  );
-                })()}
+              <div className="flex flex-wrap items-center gap-2 gap-y-1">
+                <span className="text-[10px] font-medium text-[#808080]">Duration:</span>
+                <select
+                  value={elementsVideoDuration}
+                  onChange={(e) => onElementsVideoDurationChange?.(Number(e.target.value) as 4 | 6 | 8)}
+                  className="text-xs bg-[#0A0A0A] border border-[#3F3F46] rounded px-2 py-1 text-[#E5E7EB] focus:outline-none focus:ring-2 focus:ring-[#DC143C]"
+                  aria-describedby="elements-video-model-message"
+                >
+                  {((ELEMENTS_VIDEO_DURATIONS_BY_MODEL[ELEMENTS_DEFAULT_MODEL]?.options) ?? [4, 6, 8]).map((sec) => (
+                    <option key={sec} value={sec}>{sec}s</option>
+                  ))}
+                </select>
+                <span id="elements-video-model-message" className="text-[10px] text-[#808080]">
+                  {ELEMENTS_VIDEO_MODEL_MESSAGE}
+                </span>
               </div>
               <p className="text-[10px] text-[#808080] mb-1">Choose up to {elementsMaxSelect} references (character, location, or prop):</p>
               {(['character', 'location', 'prop'] as const).map((sectionType) => {
@@ -1895,7 +1895,7 @@ export function ShotConfigurationPanel({
                     rows={3}
                     className="w-full px-3 py-2 text-xs bg-[#0A0A0A] border border-[#3F3F46] rounded text-[#FFFFFF] placeholder-[#6B7280] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-[#DC143C] resize-y min-h-[4rem]"
                   />
-                  <p className="text-[10px] text-[#808080] mt-1">Veo 3.1 best practice: use the provided images for your refs, then subject + action + context + style. Prefilled from the script—edit shot type (e.g. close-up, wide shot) and mood as needed.</p>
+                  <p className="text-[10px] text-[#808080] mt-1">Best practice: use the provided images as refs, then subject + action + context + style. Prefilled from the script—edit shot type (e.g. close-up, wide shot) and mood as needed.</p>
                 </div>
               )}
             </div>
