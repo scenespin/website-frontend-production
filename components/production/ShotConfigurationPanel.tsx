@@ -258,7 +258,7 @@ export function ShotConfigurationPanel({
   elementsMaxSelect = 3,
   elementsVideoPrompt = '',
   onElementsVideoPromptChange,
-  elementsVideoDuration = 6,
+  elementsVideoDuration = 4,
   onElementsVideoDurationChange
 }: ShotConfigurationPanelProps) {
   const shouldShowLocation = needsLocationAngle(shot) && sceneAnalysisResult?.location?.id && onLocationAngleChange;
@@ -376,8 +376,28 @@ export function ShotConfigurationPanel({
     return items;
   }, [shot.slot, shot.characterId, explicitCharacters, shotMappings, selectedCharactersForShots, selectedCharacterReferences, selectedLocationReferences, sceneProps, propsToShots, shotProps, allCharacters]);
 
+  // Replace pronouns in narrative text with character names so the model knows who is who (e.g. "She stares" → "SARAH stares").
+  const replacePronounsWithCharacterNames = React.useCallback(
+    (text: string, mappings: Record<string, string | string[]>, characters: { id: string; name?: string }[]): string => {
+      if (!text.trim() || !mappings || Object.keys(mappings).length === 0) return text;
+      let result = text;
+      const resolveName = (charId: string) => characters.find((c) => c.id === charId)?.name || `Character ${charId}`;
+      const pronouns = Object.keys(mappings).filter((p) => p !== '__ignore__').sort((a, b) => b.length - a.length);
+      for (const pronoun of pronouns) {
+        const mapping = mappings[pronoun];
+        if (!mapping) continue;
+        const names = Array.isArray(mapping) ? mapping.map(resolveName).join(' and ') : resolveName(mapping);
+        const re = new RegExp(`\\b(${pronoun.replace(/[.*+?^${}()|[\]\\]/g, '\\$1')})\\b`, 'gi');
+        result = result.replace(re, () => names);
+      }
+      return result;
+    },
+    []
+  );
+
   // Feature 0259: Veo 3.1 best-practice prompt (ingredients-to-video + five-part formula). See Veo prompting guide.
   // Formula: [Cinematography] + [Subject] + [Action] + [Context] + [Style & Ambiance]
+  // Narrative uses character names (pronouns replaced) so the model knows which reference image is which.
   const elementsVideoPromptSuggestion = React.useMemo(() => {
     if (selectedElementsForVideo.length === 0) return '';
     const labels = selectedElementsForVideo
@@ -390,7 +410,7 @@ export function ShotConfigurationPanel({
     const actionLine = (shot as { narrationBlock?: { text?: string }; description?: string }).narrationBlock?.text
       || (shot as { description?: string }).description
       || '';
-    const actionPart = actionLine.trim();
+    const actionPart = replacePronounsWithCharacterNames(actionLine.trim(), shotMappings || {}, allCharacters);
     // Option B: refs → cinematography → subject/action/context → style (no "create").
     const intro = `Using the provided images for ${refList}, `;
     const cinematography = 'Medium shot. ';
@@ -399,7 +419,7 @@ export function ShotConfigurationPanel({
       : 'Describe subject, action, and setting. ';
     const style = 'Cinematic lighting, professional quality.';
     return `${intro}${cinematography}${body}${style}`;
-  }, [selectedElementsForVideo, elementsListForShot, shot]);
+  }, [selectedElementsForVideo, elementsListForShot, shot, shotMappings, allCharacters, replacePronounsWithCharacterNames]);
 
   // When Elements selection changes, update stored prompt to the new suggestion (so prefill stays in sync with refs).
   const prevSuggestionRef = React.useRef('');

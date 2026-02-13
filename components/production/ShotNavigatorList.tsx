@@ -91,7 +91,6 @@ export function ShotNavigatorList({
         {sortedShots.map((shot) => {
           const isSelected = shot.slot === currentShotSlot;
           const shotType = shot.type === 'dialogue' ? 'Dialogue' : 'Action';
-          const credits = (shotDisplayCredits != null && shotDisplayCredits[shot.slot] != null) ? shotDisplayCredits[shot.slot] : (shot.credits || 0);
           const isComplete = completedShots.has(shot.slot);
           const isNavigableShot = isNavigable(shot.slot);
           const isNextShot = shot.slot === nextShotSlot;
@@ -156,11 +155,7 @@ export function ShotNavigatorList({
                 </p>
               )}
 
-              {/* Credits Badge */}
               <div className="flex items-center gap-1 mt-1 flex-wrap">
-                <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 border-[#3F3F46] text-[#808080]">
-                  {credits} credits
-                </Badge>
                 {isComplete && (
                   <Badge variant="outline" className="text-[9px] px-1.5 py-0 h-4 border-green-500 text-green-400">
                     ✓ Complete

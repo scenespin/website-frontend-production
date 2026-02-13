@@ -295,11 +295,6 @@ export function SceneAnalysisStep({
                         <div className="text-xs text-[#808080] mt-1 line-clamp-2">
                           {shot.description || shot.dialogueBlock?.dialogue || 'No description'}
                         </div>
-                        <div className="flex items-center gap-2 mt-2">
-                          <span className="text-[10px] text-[#808080]">
-                            {shot.credits || 0} credits
-                          </span>
-                        </div>
                       </div>
                     </div>
                     

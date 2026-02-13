@@ -1332,7 +1332,7 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
           useElementsForVideo: { ...prev.useElementsForVideo, [shotSlot]: enabled }
         };
         if (enabled && prev.elementsVideoDurations[shotSlot] === undefined) {
-          next.elementsVideoDurations = { ...prev.elementsVideoDurations, [shotSlot]: 6 };
+          next.elementsVideoDurations = { ...prev.elementsVideoDurations, [shotSlot]: 4 };
         }
         if (enabled && prev.elementsVideoAspectRatios[shotSlot] === undefined) {
           next.elementsVideoAspectRatios = { ...prev.elementsVideoAspectRatios, [shotSlot]: '16:9' };
