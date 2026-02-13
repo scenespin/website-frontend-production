@@ -438,8 +438,9 @@ export function ShotConfigurationPanel({
       ? `${actionPart}. `
       : 'Describe subject, action, and setting. ';
     const style = 'Cinematic lighting, professional quality.';
+    const qualityControl = 'Without text overlays, subtitles, or watermarks.';
 
-    return `${intro}${cinematography}${contextStr}${body}${style}`;
+    return `${intro}${cinematography}${contextStr}${body}${style} ${qualityControl}`;
   }, [selectedElementsForVideo, elementsListForShot, shot, shotMappings, allCharacters, sceneAnalysisResult?.location?.name, replacePronounsWithCharacterNames]);
 
   // When Elements selection changes, update stored prompt to the new suggestion (so prefill stays in sync with refs).
