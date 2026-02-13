@@ -395,31 +395,52 @@ export function ShotConfigurationPanel({
     []
   );
 
-  // Feature 0259: Veo 3.1 best-practice prompt (ingredients-to-video + five-part formula). See Veo prompting guide.
-  // Formula: [Cinematography] + [Subject] + [Action] + [Context] + [Style & Ambiance]
-  // Narrative uses character names (pronouns replaced) so the model knows which reference image is which.
+  // Feature 0259: Veo 3.1 best-practice prompt. Formula: [Cinematography] + [Subject] + [Action] + [Context] + [Style & Ambiance]
+  // Ref list and context are built from selected elements (generic for N items; UI caps selection per model, e.g. 3 for VEO).
   const elementsVideoPromptSuggestion = React.useMemo(() => {
     if (selectedElementsForVideo.length === 0) return '';
+    const locationName = sceneAnalysisResult?.location?.name || 'the setting';
     const labels = selectedElementsForVideo
-      .map((id) => elementsListForShot.find((el) => el.id === id)?.label)
+      .map((id) => {
+        if (id === 'location') return locationName;
+        return elementsListForShot.find((el) => el.id === id)?.label;
+      })
       .filter(Boolean) as string[];
     if (labels.length === 0) return '';
     const refList = labels.length > 1
       ? `${labels.slice(0, -1).join(', ')}, and ${labels[labels.length - 1]}`
       : labels[0];
+    const intro = `Using the provided images for ${refList}, `;
+    const cinematography = 'Medium shot. ';
+
+    // [Context]: one phrase for environment (location) + background elements (props). Veo guide: "Detail the environment and background elements."
+    const hasLocation = selectedElementsForVideo.includes('location');
+    const propLabels = selectedElementsForVideo
+      .filter((id) => id.startsWith('prop:'))
+      .map((id) => elementsListForShot.find((el) => el.id === id)?.label)
+      .filter(Boolean) as string[];
+    const contextParts: string[] = [];
+    if (hasLocation) contextParts.push(`In the ${locationName},`);
+    if (propLabels.length > 0) {
+      const propPhrase =
+        propLabels.length === 1
+          ? `with the ${propLabels[0]} visible in the scene`
+          : `with the ${propLabels.slice(0, -1).join(', ')} and ${propLabels[propLabels.length - 1]} visible in the scene`;
+      contextParts.push(propPhrase);
+    }
+    const contextStr = contextParts.length > 0 ? contextParts.join(' ') + ' ' : '';
+
     const actionLine = (shot as { narrationBlock?: { text?: string }; description?: string }).narrationBlock?.text
       || (shot as { description?: string }).description
       || '';
     const actionPart = replacePronounsWithCharacterNames(actionLine.trim(), shotMappings || {}, allCharacters);
-    // Option B: refs → cinematography → subject/action/context → style (no "create").
-    const intro = `Using the provided images for ${refList}, `;
-    const cinematography = 'Medium shot. ';
     const body = actionPart
       ? `${actionPart}. `
       : 'Describe subject, action, and setting. ';
     const style = 'Cinematic lighting, professional quality.';
-    return `${intro}${cinematography}${body}${style}`;
-  }, [selectedElementsForVideo, elementsListForShot, shot, shotMappings, allCharacters, replacePronounsWithCharacterNames]);
+
+    return `${intro}${cinematography}${contextStr}${body}${style}`;
+  }, [selectedElementsForVideo, elementsListForShot, shot, shotMappings, allCharacters, sceneAnalysisResult?.location?.name, replacePronounsWithCharacterNames]);
 
   // When Elements selection changes, update stored prompt to the new suggestion (so prefill stays in sync with refs).
   const prevSuggestionRef = React.useRef('');
