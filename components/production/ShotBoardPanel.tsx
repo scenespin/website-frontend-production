@@ -50,6 +50,8 @@ function ShotCell({
   onFrameClick,
   onDeleteFirstFrame,
   globalIndex,
+  variationIndex,
+  onVariationChange,
 }: {
   shot: ShotBoardShot;
   sceneHeading: string;
@@ -59,13 +61,13 @@ function ShotCell({
   onFrameClick?: (index: number) => void;
   onDeleteFirstFrame?: (s3Key: string) => void;
   globalIndex?: number;
+  variationIndex: number;
+  onVariationChange: (newIndex: number) => void;
 }) {
-  const [variationIndex, setVariationIndex] = useState(0);
   // Only show variations that have a first frame (avoids empty placeholder for video-only / text-to-video)
   const variations = shot.variations.filter((v) => v.firstFrame?.s3Key);
   const hasMultipleVariations = variations.length > 1;
-
-  const currentIndex = Math.min(variationIndex, variations.length - 1);
+  const currentIndex = Math.min(Math.max(0, variationIndex), variations.length - 1);
   const currentVariation = variations[currentIndex];
 
   if (!currentVariation) {
@@ -80,12 +82,12 @@ function ShotCell({
 
   const handlePrev = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setVariationIndex((i) => Math.max(0, i - 1));
+    onVariationChange(Math.max(0, currentIndex - 1));
   };
 
   const handleNext = (e: React.MouseEvent) => {
     e.stopPropagation();
-    setVariationIndex((i) => Math.min(variations.length - 1, i + 1));
+    onVariationChange(Math.min(variations.length - 1, currentIndex + 1));
   };
 
   const handleDownloadFirstFrame = async (e: React.MouseEvent) => {
@@ -259,6 +261,8 @@ function SceneRow({
   onFrameClick,
   onDeleteFirstFrame,
   viewerIndexByShot,
+  variationIndexByShot,
+  onVariationChange,
 }: {
   scene: ShotBoardScene;
   presignedUrls: Map<string, string>;
@@ -266,6 +270,8 @@ function SceneRow({
   onFrameClick?: (index: number) => void;
   onDeleteFirstFrame?: (s3Key: string) => void;
   viewerIndexByShot: Map<string, number>;
+  variationIndexByShot: Record<string, number>;
+  onVariationChange: (shotKey: string, newIndex: number) => void;
 }) {
   const sceneNumber = scene.sceneNumber;
   return (
@@ -285,19 +291,24 @@ function SceneRow({
       </div>
       <div className="p-4">
         <div className="flex gap-3 overflow-x-auto pb-2">
-          {scene.shots.map((shot) => (
-            <ShotCell
-              key={`${scene.sceneId}-${shot.shotNumber}`}
-              shot={shot}
-              sceneHeading={scene.sceneHeading}
-              sceneNumber={sceneNumber}
-              presignedUrls={presignedUrls}
-              onGenerateVideo={onGenerateVideo}
-              onFrameClick={onFrameClick}
-              onDeleteFirstFrame={onDeleteFirstFrame}
-              globalIndex={viewerIndexByShot.get(`${scene.sceneId}-${shot.shotNumber}`)}
-            />
-          ))}
+          {scene.shots.map((shot) => {
+            const shotKey = `${scene.sceneId}-${shot.shotNumber}`;
+            return (
+              <ShotCell
+                key={shotKey}
+                shot={shot}
+                sceneHeading={scene.sceneHeading}
+                sceneNumber={sceneNumber}
+                presignedUrls={presignedUrls}
+                onGenerateVideo={onGenerateVideo}
+                onFrameClick={onFrameClick}
+                onDeleteFirstFrame={onDeleteFirstFrame}
+                globalIndex={viewerIndexByShot.get(shotKey)}
+                variationIndex={variationIndexByShot[shotKey] ?? 0}
+                onVariationChange={(n) => onVariationChange(shotKey, n)}
+              />
+            );
+          })}
         </div>
       </div>
     </div>
@@ -327,22 +338,33 @@ export function ShotBoardPanel({ className = '', onNavigateToSceneBuilder, onGen
   const [generateVideoContext, setGenerateVideoContext] = useState<GenerateVideoContext | null>(null);
   const [imageViewerOpen, setImageViewerOpen] = useState(false);
   const [imageViewerIndex, setImageViewerIndex] = useState(0);
+  // Current variation index per shot (shotKey -> index). Click opens viewer on this frame; viewer list built from it.
+  const [variationIndexByShot, setVariationIndexByShot] = useState<Record<string, number>>({});
 
-  // Flat list of first frames for ImageViewer — same rule as ShotCell: first variation that has a first frame (keeps list and cards in sync)
+  const handleVariationChange = useCallback((shotKey: string, newIndex: number) => {
+    setVariationIndexByShot((prev) => ({ ...prev, [shotKey]: newIndex }));
+  }, []);
+
+  // Flat list of first frames for ImageViewer — one image per shot, using current variation per shot (so click opens same frame as in square)
   const { allFirstFrameImages, viewerIndexByShot } = useMemo(() => {
     const items: ImageItem[] = [];
     const indexByShot = new Map<string, number>();
     let index = 0;
     for (const scene of scenes) {
       for (const shot of scene.shots) {
+        const shotKey = `${scene.sceneId}-${shot.shotNumber}`;
         const variationsWithFrame = shot.variations.filter((v) => v.firstFrame?.s3Key);
-        const firstVariation = variationsWithFrame[0];
-        if (!firstVariation) continue;
-        const url = presignedUrls.get(firstVariation.firstFrame.s3Key);
+        const selectedIdx = Math.min(
+          Math.max(0, variationIndexByShot[shotKey] ?? 0),
+          variationsWithFrame.length - 1
+        );
+        const selectedVariation = variationsWithFrame[selectedIdx];
+        if (!selectedVariation) continue;
+        const url = presignedUrls.get(selectedVariation.firstFrame.s3Key);
         if (!url) continue;
-        indexByShot.set(`${scene.sceneId}-${shot.shotNumber}`, index);
+        indexByShot.set(shotKey, index);
         items.push({
-          id: `${scene.sceneId}-${shot.shotNumber}`,
+          id: shotKey,
           url,
           label: `Scene ${scene.sceneNumber} · Shot ${shot.shotNumber}`,
         });
@@ -350,7 +372,7 @@ export function ShotBoardPanel({ className = '', onNavigateToSceneBuilder, onGen
       }
     }
     return { allFirstFrameImages: items, viewerIndexByShot: indexByShot };
-  }, [scenes, presignedUrls]);
+  }, [scenes, presignedUrls, variationIndexByShot]);
 
   const handleFrameClick = useCallback((index: number) => {
     setImageViewerIndex(index);
@@ -499,6 +521,8 @@ export function ShotBoardPanel({ className = '', onNavigateToSceneBuilder, onGen
                 onFrameClick={allFirstFrameImages.length > 0 ? handleFrameClick : undefined}
                 onDeleteFirstFrame={handleDeleteFirstFrame}
                 viewerIndexByShot={viewerIndexByShot}
+                variationIndexByShot={variationIndexByShot}
+                onVariationChange={handleVariationChange}
               />
             ))}
           </div>
