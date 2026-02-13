@@ -1331,11 +1331,17 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
           ...prev,
           useElementsForVideo: { ...prev.useElementsForVideo, [shotSlot]: enabled }
         };
-        if (enabled && prev.elementsVideoDurations[shotSlot] === undefined) {
-          next.elementsVideoDurations = { ...prev.elementsVideoDurations, [shotSlot]: 4 };
-        }
-        if (enabled && prev.elementsVideoAspectRatios[shotSlot] === undefined) {
-          next.elementsVideoAspectRatios = { ...prev.elementsVideoAspectRatios, [shotSlot]: '16:9' };
+        if (enabled) {
+          if (prev.elementsVideoDurations[shotSlot] === undefined) {
+            next.elementsVideoDurations = { ...prev.elementsVideoDurations, [shotSlot]: 4 };
+          }
+          if (prev.elementsVideoAspectRatios[shotSlot] === undefined) {
+            next.elementsVideoAspectRatios = { ...prev.elementsVideoAspectRatios, [shotSlot]: '16:9' };
+          }
+        } else {
+          // When turning Elements off: clear video prompt override state so "Override Video Prompt" validation doesn't block (Elements and override share videoPromptOverrides).
+          next.videoPromptOverrideEnabled = { ...prev.videoPromptOverrideEnabled, [shotSlot]: false };
+          next.videoPromptOverrides = { ...prev.videoPromptOverrides, [shotSlot]: '' };
         }
         return next;
       });
