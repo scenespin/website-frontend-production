@@ -1047,7 +1047,19 @@ export function ShotConfigurationStep({
         validationErrors.push('What the narrator says is required for Narrate Shot. Please enter the narration text.');
       }
     }
-    
+
+    // Feature 0259: Elements to Video — when enabled, require at least one reference and a non-empty video prompt
+    if (state.useElementsForVideo?.[shotSlot]) {
+      const elementsSelected = state.selectedElementsForVideo[shotSlot] ?? [];
+      if (elementsSelected.length === 0) {
+        validationErrors.push('Elements to Video: Select at least one reference (character, location, or prop).');
+      }
+      const elementsPrompt = (state.videoPromptOverrides?.[shotSlot] ?? '').trim();
+      if (elementsPrompt === '') {
+        validationErrors.push('Elements to Video: Enter a video prompt (it will be prefilled once you select at least one reference).');
+      }
+    }
+
     // Plan 0233: First frame override is allowed for all shots (dialogue and action). No non–lip-sync / video-override validation here.
     
     // 2. Validate location requirement (skip if first frame is uploaded)
