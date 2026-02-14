@@ -29,7 +29,7 @@ interface UseEditorLockReturn {
 const HEARTBEAT_INTERVAL_MS = 30 * 1000; // 30 seconds
 
 /** Set to true to force editor lock off (e.g. for testing). Overrides env flag. */
-const FORCE_EDITOR_LOCK_OFF = true;
+const FORCE_EDITOR_LOCK_OFF = false;
 
 const DEFAULT_UNLOCKED: UseEditorLockReturn = {
   isLocked: false,
