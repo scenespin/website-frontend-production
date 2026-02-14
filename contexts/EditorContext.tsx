@@ -145,9 +145,14 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
     const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
     const githubSyncTimerRef = useRef<NodeJS.Timeout | null>(null);
     const isInitialLoadRef = useRef(true); // Prevent auto-clear during initial import
-    
+
+    // Need screenplay id early so editor lock runs even when URL has no ?project= (e.g. second browser/tab)
+    const screenplay = useScreenplay();
+    const lockScreenplayId = projectId || screenplay?.screenplayId ?? null;
+
     // Feature 0187: Editor Lock for Multi-Device Conflict Prevention
-    // Lock is per screenplayId - each screenplay has its own independent lock
+    // Lock is per screenplayId - each screenplay has its own independent lock.
+    // Use lockScreenplayId so lock runs when screenplay is loaded from context even without ?project= in URL.
     const {
         isLocked,
         isCollaboratorEditing,
@@ -155,7 +160,7 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
         acquireLock,
         releaseLock,
         sendHeartbeat
-    } = useEditorLock(projectId);
+    } = useEditorLock(lockScreenplayId);
     
     // 🔥 FIX 1: Guard pattern - track which screenplay_id we've loaded (like ScreenplayContext)
     // Stores the last screenplay_id (or 'no-id') that we initialized for
@@ -225,9 +230,8 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
         
         console.log('[EditorContext] 🗑️ Cleared localStorage for screenplay:', screenplayId);
     }, [getScreenplayStorageKey]);
-    
+
     // Get GitHub config from localStorage (optional export feature)
-    const screenplay = useScreenplay();
     const githubConfigStr = typeof window !== 'undefined' ? localStorage.getItem('screenplay_github_config') : null;
     const githubConfig = githubConfigStr ? JSON.parse(githubConfigStr) : null;
     
