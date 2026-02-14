@@ -148,7 +148,7 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
 
     // Need screenplay id early so editor lock runs even when URL has no ?project= (e.g. second browser/tab)
     const screenplay = useScreenplay();
-    const lockScreenplayId = projectId || screenplay?.screenplayId ?? null;
+    const lockScreenplayId = (projectId || screenplay?.screenplayId) ?? null;
 
     // Feature 0187: Editor Lock for Multi-Device Conflict Prevention
     // Lock is per screenplayId - each screenplay has its own independent lock.
