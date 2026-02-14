@@ -3137,7 +3137,13 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
               }, {}),
             }
           : {}),
-        selectedReferenceShotModels: Object.keys(selectedReferenceShotModels).length > 0 ? selectedReferenceShotModels : undefined, // Per-shot first frame provider selection: { shotSlot: 'nano-banana-pro' | 'nano-banana-pro-2k' | 'flux2-max-4k-16:9' | 'flux2-max-2k' | 'flux2-pro-4k' | 'flux2-pro-2k' }
+        // Always send per-shot model with defaults so backend uses UI default (2K) when user never changed dropdown (Option A: production-ready)
+        selectedReferenceShotModels: enabledShots.length > 0
+          ? enabledShots.reduce<Record<number, 'nano-banana-pro' | 'nano-banana-pro-2k' | 'flux2-max-4k-16:9' | 'flux2-max-2k' | 'flux2-pro-4k' | 'flux2-pro-2k'>>((acc, slot) => {
+              acc[slot] = selectedReferenceShotModels[slot] || DEFAULT_REFERENCE_SHOT_MODEL;
+              return acc;
+            }, {})
+          : undefined,
         voiceoverBaseWorkflows: Object.keys(voiceoverBaseWorkflows).length > 0 ? voiceoverBaseWorkflows : undefined, // NEW: Per-shot voiceover base workflows (for Narrate Shot and Hidden Mouth Dialogue): { shotSlot: baseWorkflow }
         shotWorkflowOverrides: Object.keys(shotWorkflowOverrides).length > 0 ? shotWorkflowOverrides : undefined, // NEW: Per-shot workflow overrides (for action shots and dialogue shots): { shotSlot: workflow }
         selectedElementsForVideo: buildSelectedElementsForVideoPayload(
