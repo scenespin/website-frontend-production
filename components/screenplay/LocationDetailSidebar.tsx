@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo, useRef } from "react"
+import { useState, useEffect, useMemo, useRef, useCallback } from "react"
 import { X, Trash2, Plus, Image as ImageIcon, Upload, Sparkles } from "lucide-react"
 import { motion } from 'framer-motion'
 import type { Location, ImageAsset } from '@/types/screenplay'
