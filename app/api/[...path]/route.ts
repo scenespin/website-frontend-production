@@ -151,7 +151,11 @@ async function forwardRequest(
     if (authHeader) {
       headers['Authorization'] = authHeader;
     }
-    // Feature 0265: Forward Clerk session ID for editor lock (per-device session)
+    // Editor lock: prefer tab ID (per-tab), fallback to Clerk session ID
+    const editorTabId = request.headers.get('x-editor-tab-id') || request.headers.get('X-Editor-Tab-Id');
+    if (editorTabId) {
+      headers['X-Editor-Tab-Id'] = editorTabId;
+    }
     const clerkSessionId = request.headers.get('x-clerk-session-id') || request.headers.get('X-Clerk-Session-Id');
     if (clerkSessionId) {
       headers['X-Clerk-Session-Id'] = clerkSessionId;

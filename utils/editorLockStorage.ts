@@ -36,11 +36,11 @@ function isFeatureEnabled(): boolean {
   return process.env.NEXT_PUBLIC_ENABLE_EDITOR_LOCK === 'true';
 }
 
-/** Build headers for editor-lock requests (Feature 0265: per-device session ID) */
-function editorLockHeaders(sessionId?: string): Record<string, string> {
+/** Build headers for editor-lock requests. Sends X-Editor-Tab-Id (per-tab lock) when provided. */
+function editorLockHeaders(holderId?: string): Record<string, string> {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' };
-  if (sessionId && sessionId.trim()) {
-    headers['X-Clerk-Session-Id'] = sessionId.trim();
+  if (holderId && holderId.trim()) {
+    headers['X-Editor-Tab-Id'] = holderId.trim();
   }
   return headers;
 }
@@ -49,10 +49,10 @@ function editorLockHeaders(sessionId?: string): Record<string, string> {
  * Get editor lock status for a screenplay
  * 
  * @param screenplayId - The screenplay ID
- * @param sessionId - Optional Clerk session ID (sent as X-Clerk-Session-Id for per-device lock - Feature 0265)
+ * @param holderId - Tab ID (or session ID fallback) sent as X-Editor-Tab-Id for per-tab lock
  * @returns Lock status information
  */
-export async function getEditorLock(screenplayId: string, sessionId?: string): Promise<EditorLockStatus | null> {
+export async function getEditorLock(screenplayId: string, holderId?: string): Promise<EditorLockStatus | null> {
   if (!isFeatureEnabled()) {
     return null; // Feature disabled, return null (no lock)
   }
@@ -65,7 +65,7 @@ export async function getEditorLock(screenplayId: string, sessionId?: string): P
   try {
     const response = await fetch(`/api/screenplays/${screenplayId}/editor-lock`, {
       method: 'GET',
-      headers: editorLockHeaders(sessionId),
+      headers: editorLockHeaders(holderId),
     });
 
     if (!response.ok) {
@@ -82,10 +82,9 @@ export async function getEditorLock(screenplayId: string, sessionId?: string): P
     }
 
     const data = await response.json();
-    // Debug: in second browser/tab, expect sessionIdSent: true and isLocked: true
     if (typeof window !== 'undefined') {
       console.debug('[EditorLockStorage] GET editor-lock', {
-        sessionIdSent: !!(sessionId && sessionId.trim()),
+        holderIdSent: !!(holderId && holderId.trim()),
         isLocked: data?.isLocked,
         hasLock: !!data?.lock,
       });
@@ -102,11 +101,11 @@ export async function getEditorLock(screenplayId: string, sessionId?: string): P
  * Acquire an editor lock for a screenplay
  * 
  * @param screenplayId - The screenplay ID
- * @param sessionId - Optional Clerk session ID (sent as X-Clerk-Session-Id for per-device lock - Feature 0265)
+ * @param holderId - Tab ID sent as X-Editor-Tab-Id for per-tab lock
  * @returns Lock information
- * @throws Error if lock exists for same user on different device (409 Conflict)
+ * @throws Error if lock exists for same user on different tab (409 Conflict)
  */
-export async function acquireEditorLock(screenplayId: string, sessionId?: string): Promise<EditorLock> {
+export async function acquireEditorLock(screenplayId: string, holderId?: string): Promise<EditorLock> {
   if (!isFeatureEnabled()) {
     throw new Error('Editor lock feature is not enabled');
   }
@@ -114,7 +113,7 @@ export async function acquireEditorLock(screenplayId: string, sessionId?: string
   try {
     const response = await fetch(`/api/screenplays/${screenplayId}/editor-lock`, {
       method: 'POST',
-      headers: editorLockHeaders(sessionId),
+      headers: editorLockHeaders(holderId),
     });
 
     if (!response.ok) {
@@ -145,9 +144,9 @@ export async function acquireEditorLock(screenplayId: string, sessionId?: string
  * Release an editor lock
  * 
  * @param screenplayId - The screenplay ID
- * @param sessionId - Optional Clerk session ID (sent as X-Clerk-Session-Id - Feature 0265)
+ * @param holderId - Tab ID sent as X-Editor-Tab-Id
  */
-export async function releaseEditorLock(screenplayId: string, sessionId?: string): Promise<void> {
+export async function releaseEditorLock(screenplayId: string, holderId?: string): Promise<void> {
   if (!isFeatureEnabled()) {
     return; // Feature disabled, nothing to release
   }
@@ -155,7 +154,7 @@ export async function releaseEditorLock(screenplayId: string, sessionId?: string
   try {
     const response = await fetch(`/api/screenplays/${screenplayId}/editor-lock`, {
       method: 'DELETE',
-      headers: editorLockHeaders(sessionId),
+      headers: editorLockHeaders(holderId),
     });
 
     if (!response.ok) {
@@ -176,9 +175,9 @@ export async function releaseEditorLock(screenplayId: string, sessionId?: string
  * Update the heartbeat (lastActivity) for an editor lock
  * 
  * @param screenplayId - The screenplay ID
- * @param sessionId - Optional Clerk session ID (sent as X-Clerk-Session-Id - Feature 0265)
+ * @param holderId - Tab ID sent as X-Editor-Tab-Id
  */
-export async function updateLockHeartbeat(screenplayId: string, sessionId?: string): Promise<void> {
+export async function updateLockHeartbeat(screenplayId: string, holderId?: string): Promise<void> {
   if (!isFeatureEnabled()) {
     return; // Feature disabled, nothing to update
   }
@@ -186,7 +185,7 @@ export async function updateLockHeartbeat(screenplayId: string, sessionId?: stri
   try {
     const response = await fetch(`/api/screenplays/${screenplayId}/editor-lock/heartbeat`, {
       method: 'PUT',
-      headers: editorLockHeaders(sessionId),
+      headers: editorLockHeaders(holderId),
     });
 
     if (!response.ok) {

@@ -1,15 +1,13 @@
 /**
  * useEditorLock Hook
- * Feature 0187: Editor Lock for Multi-Device Conflict Prevention
- * 
- * Custom hook for managing editor locks to prevent conflicts when the same user
- * account is logged in on multiple devices simultaneously.
- * 
- * Lock is per (screenplayId, userId) combination - each screenplay has its own independent lock.
+ * Feature 0187: Editor Lock — per-tab within same browser.
+ *
+ * Lock is per (screenplayId, userId); holder is identified by tab ID so only one tab
+ * can hold the lock. Other tabs in the same browser see the banner (read-only).
  */
 
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { useSession, useUser } from '@clerk/nextjs';
+import { useUser } from '@clerk/nextjs';
 import {
   getEditorLock,
   acquireEditorLock,
@@ -17,9 +15,10 @@ import {
   updateLockHeartbeat,
   EditorLockStatus
 } from '../utils/editorLockStorage';
+import { getOrCreateEditorTabId } from '../utils/editorTabId';
 
 interface UseEditorLockReturn {
-  isLocked: boolean; // True if locked by same user on different device
+  isLocked: boolean; // True if locked by same user in another tab
   isCollaboratorEditing: boolean; // True if different user has lock
   lockedBy: string | null; // Display name of user who has lock
   acquireLock: () => Promise<void>;
@@ -30,15 +29,14 @@ interface UseEditorLockReturn {
 const HEARTBEAT_INTERVAL_MS = 30 * 1000; // 30 seconds
 
 /**
- * Hook for managing editor locks
- * 
+ * Hook for managing editor locks (per-tab).
+ *
  * @param screenplayId - The screenplay ID (null if no screenplay is open)
  * @returns Lock state and management functions
  */
 export function useEditorLock(screenplayId: string | null): UseEditorLockReturn {
-  const { session } = useSession();
   const { user } = useUser();
-  
+
   const [lockStatus, setLockStatus] = useState<EditorLockStatus | null>(null);
   const heartbeatIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const previousScreenplayIdRef = useRef<string | null>(null);
@@ -46,7 +44,6 @@ export function useEditorLock(screenplayId: string | null): UseEditorLockReturn 
 
   // Check if feature is enabled
   if (!isFeatureEnabled) {
-    // Return default values if feature is disabled
     return {
       isLocked: false,
       isCollaboratorEditing: false,
@@ -57,46 +54,31 @@ export function useEditorLock(screenplayId: string | null): UseEditorLockReturn 
     };
   }
 
-  // Track previous user ID to detect logout/login
   const previousUserIdRef = useRef<string | null>(null);
-  const previousSessionIdRef = useRef<string | null>(null);
   const isProcessingRef = useRef(false);
   const lastProcessedKeyRef = useRef<string | null>(null);
   const processingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const errorCountRef = useRef(0); // Track consecutive errors to prevent loops
+  const errorCountRef = useRef(0);
   const lastErrorTimeRef = useRef<number>(0);
 
   // Check lock status when screenplayId changes
   useEffect(() => {
-    // Early return if feature is disabled (double-check)
     if (!isFeatureEnabled) {
       setLockStatus(null);
       return;
     }
-    
-    // Wait for all required values to be stable (not undefined/null)
     if (!screenplayId || !user?.id) {
       setLockStatus(null);
       return;
     }
-
-    // Feature 0265: Require a real Clerk session ID before participating in lock.
-    // If we run before session is loaded, we used to send fallback-${userId}, so both
-    // browsers got the same "session" and the backend never returned isLocked: true.
-    if (!session?.id) {
-      setLockStatus(null);
-      return;
-    }
-    
-    // Don't make API calls if feature is disabled (defensive check)
     if (process.env.NEXT_PUBLIC_ENABLE_EDITOR_LOCK !== 'true') {
       setLockStatus(null);
       return;
     }
 
     const currentUserId = user.id;
-    const currentSessionId = session.id;
-    const processKey = `${screenplayId}:${currentUserId}:${currentSessionId}`;
+    const currentTabId = getOrCreateEditorTabId();
+    const processKey = `${screenplayId}:${currentUserId}:${currentTabId}`;
     
     // Prevent duplicate processing - if we're already processing the same key, skip
     if (isProcessingRef.current && lastProcessedKeyRef.current === processKey) {
@@ -122,24 +104,18 @@ export function useEditorLock(screenplayId: string | null): UseEditorLockReturn 
     lastProcessedKeyRef.current = processKey;
 
     const previousUserId = previousUserIdRef.current;
-    const previousSessionId = previousSessionIdRef.current;
-    
-    // If user or session changed (logout/login), try to release any stale locks
-    if (previousUserId !== null && (previousUserId !== currentUserId || previousSessionId !== currentSessionId)) {
-      // User changed or session changed - try to release stale lock for current screenplay
-      if (screenplayId) {
-        releaseEditorLock(screenplayId, currentSessionId).catch(err => {
-          console.warn('[useEditorLock] Failed to release stale lock after user change:', err);
-        });
-      }
+
+    // If user changed (logout/login), try to release any stale locks for this screenplay
+    if (previousUserId !== null && previousUserId !== currentUserId && screenplayId) {
+      releaseEditorLock(screenplayId, currentTabId).catch(err => {
+        console.warn('[useEditorLock] Failed to release stale lock after user change:', err);
+      });
     }
-    
     previousUserIdRef.current = currentUserId;
-    previousSessionIdRef.current = currentSessionId;
 
     // If screenplay changed, release lock for previous screenplay
     if (previousScreenplayIdRef.current && previousScreenplayIdRef.current !== screenplayId) {
-      releaseEditorLock(previousScreenplayIdRef.current, currentSessionId).catch(err => {
+      releaseEditorLock(previousScreenplayIdRef.current, currentTabId).catch(err => {
         console.warn('[useEditorLock] Failed to release lock for previous screenplay:', err);
       });
     }
@@ -149,11 +125,10 @@ export function useEditorLock(screenplayId: string | null): UseEditorLockReturn 
     // Check lock status with a debounce to handle rapid changes (especially on mobile)
     const checkLock = async () => {
       try {
-        const status = await getEditorLock(screenplayId, currentSessionId);
+        const status = await getEditorLock(screenplayId, currentTabId);
         setLockStatus(status);
-        // Debug: when testing editor lock, Session B should see this when lock is held by Session A
         if (status?.isLocked) {
-          console.debug('[useEditorLock] Lock held by another device – banner should show');
+          console.debug('[useEditorLock] Lock held by another tab – banner should show');
         }
         // Reset error count on success
         errorCountRef.current = 0;
@@ -195,7 +170,7 @@ export function useEditorLock(screenplayId: string | null): UseEditorLockReturn 
         clearTimeout(debounceTimeout);
       }
     };
-  }, [screenplayId, user?.id, session?.id]);
+  }, [screenplayId, user?.id]);
 
   // Acquire lock
   const acquireLock = useCallback(async () => {
@@ -214,11 +189,10 @@ export function useEditorLock(screenplayId: string | null): UseEditorLockReturn 
       return;
     }
 
-    const sessionId = session?.id ?? '';
+    const tabId = getOrCreateEditorTabId();
     try {
-      await acquireEditorLock(screenplayId, sessionId);
-      // Refresh lock status after acquiring
-      const status = await getEditorLock(screenplayId, sessionId);
+      await acquireEditorLock(screenplayId, tabId);
+      const status = await getEditorLock(screenplayId, tabId);
       setLockStatus(status);
       // Reset error count on success
       errorCountRef.current = 0;
@@ -235,13 +209,13 @@ export function useEditorLock(screenplayId: string | null): UseEditorLockReturn 
       }
       
       // If it's a conflict error, update status to show locked
-      if (error.message.includes('locked by another session')) {
-        const status = await getEditorLock(screenplayId, sessionId);
+      if (error.message.includes('locked by another session') || error.message.includes('locked by another tab')) {
+        const status = await getEditorLock(screenplayId, tabId);
         setLockStatus(status);
       }
       throw error;
     }
-  }, [screenplayId, user?.id, session?.id]);
+  }, [screenplayId, user?.id]);
 
   // Release lock
   const releaseLock = useCallback(async () => {
@@ -255,12 +229,12 @@ export function useEditorLock(screenplayId: string | null): UseEditorLockReturn 
     }
 
     try {
-      await releaseEditorLock(screenplayId, session?.id ?? '');
+      await releaseEditorLock(screenplayId, getOrCreateEditorTabId());
       setLockStatus(null);
     } catch (error) {
       console.error('[useEditorLock] Failed to release lock:', error);
     }
-  }, [screenplayId, session?.id]);
+  }, [screenplayId]);
 
   // Send heartbeat
   const sendHeartbeat = useCallback(async () => {
@@ -274,12 +248,11 @@ export function useEditorLock(screenplayId: string | null): UseEditorLockReturn 
     }
 
     try {
-      await updateLockHeartbeat(screenplayId, session?.id ?? '');
+      await updateLockHeartbeat(screenplayId, getOrCreateEditorTabId());
     } catch (error) {
-      // Don't log heartbeat failures - they're not critical
       console.debug('[useEditorLock] Heartbeat failed (non-critical):', error);
     }
-  }, [screenplayId, session?.id]);
+  }, [screenplayId]);
 
   // Set up heartbeat interval when lock is acquired
   useEffect(() => {
@@ -305,20 +278,18 @@ export function useEditorLock(screenplayId: string | null): UseEditorLockReturn 
     };
   }, [screenplayId, lockStatus, sendHeartbeat]);
 
-  // Release lock on unmount (pass session ID so backend can match lock - Feature 0265)
+  // Release lock on unmount
   useEffect(() => {
-    const sid = session?.id ?? '';
+    const tabId = getOrCreateEditorTabId();
     return () => {
       if (screenplayId) {
-        releaseEditorLock(screenplayId, sid).catch(err => {
+        releaseEditorLock(screenplayId, tabId).catch(err => {
           console.warn('[useEditorLock] Failed to release lock on unmount:', err);
         });
       }
-      if (heartbeatIntervalRef.current) {
-        clearInterval(heartbeatIntervalRef.current);
-      }
+      if (heartbeatIntervalRef.current) clearInterval(heartbeatIntervalRef.current);
     };
-  }, [screenplayId, session?.id]);
+  }, [screenplayId]);
 
   return {
     isLocked: lockStatus?.isLocked ?? false,
