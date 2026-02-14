@@ -239,8 +239,10 @@ export default function AssetDetailSidebar({
       }));
   }, [asset?.id, asset?.images, formData.images]);
 
-  const assetMediaS3Keys = useMemo(() => {
-    const keys = payloadImages.map((img: any) => img.metadata?.s3Key ?? img.s3Key).filter(Boolean);
+  const assetMediaS3Keys = useMemo((): string[] => {
+    const keys = payloadImages
+      .map((img: any) => img.metadata?.s3Key ?? img.s3Key)
+      .filter((k): k is string => Boolean(k));
     return [...new Set(keys)];
   }, [payloadImages]);
 
