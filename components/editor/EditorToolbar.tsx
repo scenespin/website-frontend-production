@@ -864,7 +864,7 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                 {/* 🔥 FEATURE 0117: Re-Scan Script Button - Emoji */}
                 {/* Feature 0187: Disable rescan button when editor is locked */}
                 {effectiveCanEditScript && (
-                    <div className="tooltip tooltip-bottom" data-tip={isEditorLocked ? 'Editor is locked by another device' : isRescanning ? 'Scanning... Please wait' : rescanCooldown ? 'Please wait a moment before scanning again' : (isLoading || !hasInitializedFromDynamoDB) ? 'Please wait for scenes to load' : 'Scan script for new characters/locations (keeps existing data)'}>
+                    <div className="tooltip tooltip-bottom" data-tip={isEditorLocked ? 'Editor is locked by another tab' : isRescanning ? 'Scanning... Please wait' : rescanCooldown ? 'Please wait a moment before scanning again' : (isLoading || !hasInitializedFromDynamoDB) ? 'Please wait for scenes to load' : 'Scan script for new characters/locations (keeps existing data)'}>
                         <button
                             onClick={handleRescan}
                             disabled={isEditorLocked || isRescanning || rescanCooldown || !state.content.trim() || isLoading || !hasInitializedFromDynamoDB}
@@ -1255,7 +1255,7 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                     {/* Rescan */}
                     {/* Feature 0187: Disable rescan button when editor is locked */}
                     {effectiveCanEditScript && (
-                        <div className="tooltip tooltip-bottom" data-tip={isEditorLocked ? 'Editor is locked by another device' : isRescanning ? 'Scanning... Please wait' : rescanCooldown ? 'Please wait a moment' : (isLoading || !hasInitializedFromDynamoDB) ? 'Please wait for scenes to load' : 'Scan script for new characters/locations'}>
+                        <div className="tooltip tooltip-bottom" data-tip={isEditorLocked ? 'Editor is locked by another tab' : isRescanning ? 'Scanning... Please wait' : rescanCooldown ? 'Please wait a moment' : (isLoading || !hasInitializedFromDynamoDB) ? 'Please wait for scenes to load' : 'Scan script for new characters/locations'}>
                         <button
                                 onClick={handleRescan}
                                 disabled={isEditorLocked || isRescanning || rescanCooldown || !state.content.trim() || isLoading || !hasInitializedFromDynamoDB}

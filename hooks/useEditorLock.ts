@@ -27,6 +27,8 @@ interface UseEditorLockReturn {
 }
 
 const HEARTBEAT_INTERVAL_MS = 30 * 1000; // 30 seconds
+/** When this tab is locked, poll for lock status; when lock is gone (released or stale), auto-acquire. */
+const LOCKED_TAB_POLL_INTERVAL_MS = 45 * 1000; // 45 seconds
 
 /** Set to true to force editor lock off (e.g. for testing). Overrides env flag. */
 const FORCE_EDITOR_LOCK_OFF = false;
@@ -51,6 +53,7 @@ export function useEditorLock(screenplayId: string | null): UseEditorLockReturn 
 
   const [lockStatus, setLockStatus] = useState<EditorLockStatus | null>(null);
   const heartbeatIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const lockedTabPollIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const previousScreenplayIdRef = useRef<string | null>(null);
   const isFeatureEnabled = !FORCE_EDITOR_LOCK_OFF && process.env.NEXT_PUBLIC_ENABLE_EDITOR_LOCK === 'true';
 
@@ -281,6 +284,47 @@ export function useEditorLock(screenplayId: string | null): UseEditorLockReturn 
       }
     };
   }, [screenplayId, lockStatus, sendHeartbeat]);
+
+  // When this tab is locked, poll for lock status; when lock is gone (released or stale), auto-acquire
+  useEffect(() => {
+    if (!isFeatureEnabled || !screenplayId || !user?.id || !lockStatus?.isLocked) {
+      if (lockedTabPollIntervalRef.current) {
+        clearInterval(lockedTabPollIntervalRef.current);
+        lockedTabPollIntervalRef.current = null;
+      }
+      return;
+    }
+
+    const tabId = getOrCreateEditorTabId();
+    const poll = async () => {
+      try {
+        const status = await getEditorLock(screenplayId, tabId);
+        if (!status?.isLocked) {
+          // Lock released or stale – acquire so this tab can edit
+          await acquireEditorLock(screenplayId, tabId);
+          const newStatus = await getEditorLock(screenplayId, tabId);
+          setLockStatus(newStatus);
+          if (lockedTabPollIntervalRef.current) {
+            clearInterval(lockedTabPollIntervalRef.current);
+            lockedTabPollIntervalRef.current = null;
+          }
+        } else {
+          setLockStatus(status);
+        }
+      } catch (e) {
+        // Non-fatal: next poll will retry
+        console.debug('[useEditorLock] Locked-tab poll failed (will retry):', e);
+      }
+    };
+
+    lockedTabPollIntervalRef.current = setInterval(poll, LOCKED_TAB_POLL_INTERVAL_MS);
+    return () => {
+      if (lockedTabPollIntervalRef.current) {
+        clearInterval(lockedTabPollIntervalRef.current);
+        lockedTabPollIntervalRef.current = null;
+      }
+    };
+  }, [screenplayId, user?.id, lockStatus?.isLocked, isFeatureEnabled]);
 
   // Release lock on unmount
   useEffect(() => {

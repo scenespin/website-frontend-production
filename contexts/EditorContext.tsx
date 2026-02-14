@@ -6,7 +6,7 @@ import { FountainElementType } from '@/utils/fountain';
 import { useScreenplay } from './ScreenplayContext';
 import { parseContentForImport } from '@/utils/fountainAutoImport';
 import { saveToGitHub } from '@/utils/github';
-import { useAuth, useUser } from '@clerk/nextjs';
+import { useAuth, useUser, useSession } from '@clerk/nextjs';
 import { createScreenplay, updateScreenplay, getScreenplay } from '@/utils/screenplayStorage';
 import { getCurrentScreenplayId, setCurrentScreenplayId, migrateFromLocalStorage } from '@/utils/clerkMetadata';
 import { toast } from 'sonner';
@@ -172,6 +172,7 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
     // Feature 0111: DynamoDB Storage
     const { getToken } = useAuth();
     const { user } = useUser(); // Feature 0119: Get user for Clerk metadata
+    const { session } = useSession(); // Track session so we refetch when re-login (e.g. after using another device)
     const pathname = usePathname(); // Check if we're on the editor page
     const screenplayIdRef = useRef<string | null>(null);
     const localSaveCounterRef = useRef(0);
@@ -239,8 +240,8 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
     const saveNow = useCallback(async () => {
         // Feature 0187: Check if editor is locked before saving
         if (isLocked) {
-            console.warn('[EditorContext] ⚠️ Save blocked - editor is locked by another device');
-            toast.error('Editor is locked by another device. Cannot save.');
+            console.warn('[EditorContext] ⚠️ Save blocked - editor is locked by another tab');
+            toast.error('Editor is locked by another tab. Cannot save.');
             return false;
         }
         
@@ -473,7 +474,7 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
     const setContent = useCallback((content: string, markDirty: boolean = true) => {
         // Feature 0187: Check if editor is locked before allowing edits
         if (isLocked && markDirty) {
-            console.warn('[EditorContext] ⚠️ Edit blocked - editor is locked by another device');
+            console.warn('[EditorContext] ⚠️ Edit blocked - editor is locked by another tab');
             return; // Don't allow edits if locked
         }
         
@@ -1439,6 +1440,25 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
         
         previousUserIdRef.current = currentUserId;
     }, [user?.id]);
+
+    // 🔥 FIX: Reset load guard when session changes (re-login on this device after using another)
+    // Same user.id but new session.id → we must refetch so we see the other device's saves.
+    // Only reset when we have a new non-null session (not on logout/null) to avoid hydration
+    // flicker and redundant clears before redirect; ref is always updated for next comparison.
+    const previousSessionIdRef = useRef<string | null>(null);
+    useEffect(() => {
+        const currentSessionId = typeof session?.id === 'string' ? session.id : null;
+        const previousSessionId = previousSessionIdRef.current;
+        const hasNewSession = currentSessionId && currentSessionId !== previousSessionId;
+        if (hasNewSession) {
+            console.log('[EditorContext] 🔄 New session - resetting load guard for fresh refetch');
+            hasInitializedRef.current = false;
+            screenplayIdRef.current = null;
+            screenplayVersionRef.current = null;
+            setState(defaultState);
+        }
+        previousSessionIdRef.current = currentSessionId;
+    }, [session?.id]);
 
     // Feature 0111: Load screenplay from DynamoDB (or localStorage as fallback) on mount
     useEffect(() => {
