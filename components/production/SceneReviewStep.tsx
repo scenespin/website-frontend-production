@@ -613,12 +613,21 @@ export function SceneReviewStep({
                             })}
                           </div>
                         )}
-                        {/* Reference shot (first frame) model — own line with label and spacing. Use same default as config step when user never changed the dropdown. */}
+                        {/* Elements path: "Video from elements". Otherwise: first frame model. */}
                         <div className="mt-4 pt-2 border-t border-[#3F3F46]">
-                          <div className="text-[10px] text-[#808080] mb-0.5">First frame model</div>
-                          <div className="text-xs text-[#FFFFFF]">
-                            {REFERENCE_SHOT_MODEL_LABELS[selectedReferenceShotModels[shot.slot] || DEFAULT_REFERENCE_SHOT_MODEL] ?? (selectedReferenceShotModels[shot.slot] || DEFAULT_REFERENCE_SHOT_MODEL)}
-                          </div>
+                          {useElementsForVideo[shot.slot] ? (
+                            <>
+                              <div className="text-[10px] text-[#808080] mb-0.5">Video from elements</div>
+                              <div className="text-xs text-[#FFFFFF]">Reference-driven (characters, location, props)</div>
+                            </>
+                          ) : (
+                            <>
+                              <div className="text-[10px] text-[#808080] mb-0.5">First frame model</div>
+                              <div className="text-xs text-[#FFFFFF]">
+                                {REFERENCE_SHOT_MODEL_LABELS[selectedReferenceShotModels[shot.slot] || DEFAULT_REFERENCE_SHOT_MODEL] ?? (selectedReferenceShotModels[shot.slot] || DEFAULT_REFERENCE_SHOT_MODEL)}
+                              </div>
+                            </>
+                          )}
                         </div>
                       </div>
                     )}
