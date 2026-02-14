@@ -1553,35 +1553,31 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                                 const localStorageTitle = typeof window !== 'undefined' ? localStorage.getItem(titleKey) : null;
                                 const hasLocalStorageContent = localStorageContent && localStorageContent.trim().length > 0;
                                 
-                                // 🔥 FIX: Prefer database content on fresh load (when localStorage is empty)
-                                // Only use localStorage if it exists AND is different from DB (for eventual consistency)
+                                // Server is source of truth so cross-device stays in sync (e.g. save on A, open on B).
+                                // Only use localStorage when we have no DB content (offline/error); otherwise
+                                // B would show B's old localStorage instead of A's saved content.
                                 const dbContent = screenplay.content || '';
                                 const dbTitle = screenplay.title || 'Untitled Screenplay';
-                                
+                                const hasDbContent = dbContent.trim().length > 0;
+
                                 let contentToUse: string;
                                 let titleToUse: string;
-                                
-                                // 🔥 SIMPLE PATTERN (like characters/locations): Database is source of truth
-                                // localStorage is only for crash recovery, not preference
-                                if (hasLocalStorageContent && localStorageContent !== dbContent) {
-                                    // localStorage has unsaved changes - use it (will be saved on next save)
-                                    console.log('[EditorContext] 🔄 Using localStorage (has unsaved changes, key:', draftKey, ')');
-                                    contentToUse = localStorageContent;
+                                if (!hasDbContent && hasLocalStorageContent) {
+                                    console.log('[EditorContext] 🔄 Using localStorage (no DB content, key:', draftKey, ')');
+                                    contentToUse = localStorageContent!;
                                     titleToUse = localStorageTitle || dbTitle;
                                 } else {
-                                    // Use database (source of truth) - matches characters/locations pattern
                                     console.log('[EditorContext] ✅ Using database content (source of truth)');
                                     contentToUse = dbContent;
                                     titleToUse = dbTitle;
                                 }
                                 
-                                // Update state with screenplay data (preferring localStorage if available)
                                 setState(prev => ({
                                     ...prev,
                                     title: titleToUse,
                                     content: contentToUse,
                                     author: screenplay.author || prev.author,
-                                    isDirty: hasLocalStorageContent && localStorageContent !== screenplay.content // Mark dirty if using localStorage
+                                    isDirty: !hasDbContent && hasLocalStorageContent
                                 }));
                                 
                                 // 🔥 FIX: Update lastSyncedContent with the database content (source of truth)
@@ -1695,7 +1691,6 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                                 console.log('[EditorContext] 📄 Database content loaded successfully:', dbContentLength, 'characters');
                             }
                             
-                            // Feature 0132: Check per-screenplay localStorage for newer content (handles DynamoDB eventual consistency)
                             const draftKey = getScreenplayStorageKey('screenplay_draft', savedScreenplayId);
                             const titleKey = getScreenplayStorageKey('screenplay_title', savedScreenplayId);
                             const authorKey = getScreenplayStorageKey('screenplay_author', savedScreenplayId);
@@ -1703,43 +1698,34 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                             const localStorageTitle = typeof window !== 'undefined' ? localStorage.getItem(titleKey) : null;
                             const localStorageAuthor = typeof window !== 'undefined' ? localStorage.getItem(authorKey) : null;
                             const hasLocalStorageContent = localStorageContent && localStorageContent.trim().length > 0;
-                            
-                            // 🔥 FIX: Prefer database content on fresh load (when localStorage is empty)
-                            // Only use localStorage if it exists AND is different from DB (for eventual consistency)
-                            // This ensures fresh logins always get the latest database content
+
                             const dbContent = savedScreenplay.content || '';
                             const dbTitle = savedScreenplay.title || 'Untitled Screenplay';
                             const dbAuthor = savedScreenplay.author || '';
-                            
+                            const hasDbContent = dbContent.trim().length > 0;
+
                             let contentToUse: string;
                             let titleToUse: string;
                             let authorToUse: string;
-                            
-                            // 🔥 SIMPLE PATTERN (like characters/locations): Database is source of truth
-                            // localStorage is only for crash recovery, not preference
-                            // If localStorage differs, it means we have unsaved changes - use localStorage
-                            // Otherwise, use database (source of truth)
-                            if (hasLocalStorageContent && localStorageContent !== dbContent) {
-                                // localStorage has unsaved changes - use it (will be saved on next save)
-                                console.log('[EditorContext] 🔄 Using localStorage (has unsaved changes, key:', draftKey, ')');
+                            if (!hasDbContent && hasLocalStorageContent) {
+                                console.log('[EditorContext] 🔄 Using localStorage (no DB content, key:', draftKey, ')');
                                 contentToUse = localStorageContent;
                                 titleToUse = localStorageTitle || dbTitle;
                                 authorToUse = localStorageAuthor || dbAuthor;
                             } else {
-                                // Use database (source of truth) - matches characters/locations pattern
                                 console.log('[EditorContext] ✅ Using database content (source of truth)');
                                 contentToUse = dbContent;
                                 titleToUse = dbTitle;
                                 authorToUse = dbAuthor;
                             }
-                            
+
                             screenplayIdRef.current = savedScreenplayId;
                             setState(prev => ({
                                 ...prev,
                                 content: contentToUse,
                                 title: titleToUse,
                                 author: authorToUse || prev.author,
-                                isDirty: hasLocalStorageContent && localStorageContent !== savedScreenplay.content // Mark dirty if using localStorage
+                                isDirty: !hasDbContent && hasLocalStorageContent
                             }));
                             isInitialLoadRef.current = false;
                             // 🔥 FIX 3: Mark as initialized after successful load

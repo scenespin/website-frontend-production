@@ -28,6 +28,18 @@ interface UseEditorLockReturn {
 
 const HEARTBEAT_INTERVAL_MS = 30 * 1000; // 30 seconds
 
+/** Set to true to force editor lock off (e.g. for testing). Overrides env flag. */
+const FORCE_EDITOR_LOCK_OFF = true;
+
+const DEFAULT_UNLOCKED: UseEditorLockReturn = {
+  isLocked: false,
+  isCollaboratorEditing: false,
+  lockedBy: null,
+  acquireLock: async () => {},
+  releaseLock: async () => {},
+  sendHeartbeat: async () => {},
+};
+
 /**
  * Hook for managing editor locks (per-tab).
  *
@@ -40,18 +52,10 @@ export function useEditorLock(screenplayId: string | null): UseEditorLockReturn 
   const [lockStatus, setLockStatus] = useState<EditorLockStatus | null>(null);
   const heartbeatIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const previousScreenplayIdRef = useRef<string | null>(null);
-  const isFeatureEnabled = process.env.NEXT_PUBLIC_ENABLE_EDITOR_LOCK === 'true';
+  const isFeatureEnabled = !FORCE_EDITOR_LOCK_OFF && process.env.NEXT_PUBLIC_ENABLE_EDITOR_LOCK === 'true';
 
-  // Check if feature is enabled
   if (!isFeatureEnabled) {
-    return {
-      isLocked: false,
-      isCollaboratorEditing: false,
-      lockedBy: null,
-      acquireLock: async () => {},
-      releaseLock: async () => {},
-      sendHeartbeat: async () => {},
-    };
+    return DEFAULT_UNLOCKED;
   }
 
   const previousUserIdRef = useRef<string | null>(null);
