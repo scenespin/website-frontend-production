@@ -82,6 +82,14 @@ export async function getEditorLock(screenplayId: string, sessionId?: string): P
     }
 
     const data = await response.json();
+    // Debug: in second browser/tab, expect sessionIdSent: true and isLocked: true
+    if (typeof window !== 'undefined') {
+      console.debug('[EditorLockStorage] GET editor-lock', {
+        sessionIdSent: !!(sessionId && sessionId.trim()),
+        isLocked: data?.isLocked,
+        hasLock: !!data?.lock,
+      });
+    }
     return data;
   } catch (error: any) {
     console.error('[EditorLockStorage] Failed to get editor lock:', error);

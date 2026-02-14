@@ -75,9 +75,15 @@ export function useEditorLock(screenplayId: string | null): UseEditorLockReturn 
     }
     
     // Wait for all required values to be stable (not undefined/null)
-    // On mobile, session?.id might be unstable, so we allow it to be optional
     if (!screenplayId || !user?.id) {
-      // No screenplay open or user not authenticated
+      setLockStatus(null);
+      return;
+    }
+
+    // Feature 0265: Require a real Clerk session ID before participating in lock.
+    // If we run before session is loaded, we used to send fallback-${userId}, so both
+    // browsers got the same "session" and the backend never returned isLocked: true.
+    if (!session?.id) {
       setLockStatus(null);
       return;
     }
@@ -88,10 +94,8 @@ export function useEditorLock(screenplayId: string | null): UseEditorLockReturn 
       return;
     }
 
-    // Use session ID if available, otherwise use a fallback based on user ID
-    // This handles cases where session?.id is unstable on mobile
     const currentUserId = user.id;
-    const currentSessionId = session?.id || `fallback-${currentUserId}`;
+    const currentSessionId = session.id;
     const processKey = `${screenplayId}:${currentUserId}:${currentSessionId}`;
     
     // Prevent duplicate processing - if we're already processing the same key, skip
@@ -147,6 +151,10 @@ export function useEditorLock(screenplayId: string | null): UseEditorLockReturn 
       try {
         const status = await getEditorLock(screenplayId, currentSessionId);
         setLockStatus(status);
+        // Debug: when testing editor lock, Session B should see this when lock is held by Session A
+        if (status?.isLocked) {
+          console.debug('[useEditorLock] Lock held by another device – banner should show');
+        }
         // Reset error count on success
         errorCountRef.current = 0;
       } catch (error: any) {
