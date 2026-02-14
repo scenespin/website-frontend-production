@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect, useMemo, useRef } from "react"
+import { useState, useEffect, useMemo, useRef, useCallback } from "react"
 import { X, Trash2, Plus, Image as ImageIcon, Upload, Sparkles, Package, Search, Check } from "lucide-react"
 import { motion } from 'framer-motion'
 import type { Asset, AssetCategory } from '@/types/asset'
@@ -211,7 +211,7 @@ export default function AssetDetailSidebar({
     regenerateUrls();
   }, [asset?.id, asset?.images, getToken]);
 
-  // 🔥 Feature 0200: Media Library as source of truth for asset images (same pattern as CharacterDetailSidebar)
+  // 🔥 Payload-first (same as Character/Location): list from asset/formData, Media Library only for display URLs.
   const { data: assetMediaFiles = [] } = useMediaFiles(
     screenplayId || '',
     undefined,
@@ -220,14 +220,33 @@ export default function AssetDetailSidebar({
     'asset',
     asset?.id
   );
+  // Build list from asset.images / formData.images; ML only for URLs.
+  const payloadImages = useMemo(() => {
+    const raw = asset?.images ?? formData.images ?? [];
+    return raw
+      .filter((img: any) => {
+        const s3 = img.s3Key ?? img.metadata?.s3Key;
+        return s3 && !String(s3).startsWith('thumbnails/');
+      })
+      .map((img: any) => ({
+        ...img,
+        imageUrl: img.url ?? img.imageUrl,
+        metadata: {
+          s3Key: img.s3Key ?? img.metadata?.s3Key,
+          source: img.metadata?.source || 'user-upload',
+          ...img.metadata,
+        },
+      }));
+  }, [asset?.id, asset?.images, formData.images]);
+
   const assetMediaS3Keys = useMemo(() => {
-    return assetMediaFiles
-      .filter((file: any) => file.s3Key && !file.s3Key.startsWith('thumbnails/'))
-      .map((file: any) => file.s3Key);
-  }, [assetMediaFiles]);
+    const keys = payloadImages.map((img: any) => img.metadata?.s3Key ?? img.s3Key).filter(Boolean);
+    return [...new Set(keys)];
+  }, [payloadImages]);
+
   const { data: assetPresignedUrlsSidebar = new Map() } = useBulkPresignedUrls(
     assetMediaS3Keys,
-    assetMediaS3Keys.length > 0
+    !!screenplayId && !!asset?.id && assetMediaS3Keys.length > 0
   );
   const dropboxUrlMap = useDropboxPreviewUrls(assetMediaFiles, assetMediaFiles.length > 0);
   const presignedMapsForDisplay = useMemo(() => ({
@@ -235,24 +254,41 @@ export default function AssetDetailSidebar({
     thumbnailS3KeyMap: null as Map<string, string> | null,
     thumbnailUrlsMap: null as Map<string, string> | null,
   }), [assetPresignedUrlsSidebar]);
-  const assetMediaLibraryImages = useMemo(() => {
-    return assetMediaFiles
-      .filter((file: any) => file.s3Key && !file.s3Key.startsWith('thumbnails/'))
-      .map((file: any) => {
-        const displayUrl = getMediaFileDisplayUrl(file, presignedMapsForDisplay, dropboxUrlMap);
-        return {
-          id: file.id,
-          imageUrl: displayUrl || '',
-          createdAt: file.uploadedAt || new Date().toISOString(),
-          metadata: {
-            s3Key: file.s3Key,
-            source: file.metadata?.source || 'user-upload',
-            ...file.metadata,
-          },
-        };
-      })
-      .filter((img: any) => !!img.imageUrl);
-  }, [assetMediaFiles, presignedMapsForDisplay, dropboxUrlMap]);
+
+  const mediaFileMap = useMemo(() => {
+    const map = new Map<string, any>();
+    assetMediaFiles.forEach((file: any) => {
+      if (file.s3Key && !file.s3Key.startsWith('thumbnails/')) map.set(file.s3Key, file);
+    });
+    return map;
+  }, [assetMediaFiles]);
+
+  const getDisplayUrl = useCallback((img: { imageUrl?: string; url?: string; metadata?: { s3Key?: string }; s3Key?: string }) => {
+    const s3Key = img.metadata?.s3Key ?? img.s3Key;
+    if (!s3Key) return img.imageUrl ?? img.url ?? '';
+    const file = mediaFileMap.get(s3Key);
+    return getMediaFileDisplayUrl(
+      file ?? { id: s3Key, storageType: 'local' as const, s3Key },
+      presignedMapsForDisplay,
+      dropboxUrlMap
+    ) || img.imageUrl || img.url || '';
+  }, [mediaFileMap, presignedMapsForDisplay, dropboxUrlMap]);
+
+  const assetDisplayImages = useMemo(() => {
+    return payloadImages.map((img: any) => {
+      const displayUrl = (img.imageUrl || img.url)?.startsWith?.('http') ? (img.imageUrl || img.url) : getDisplayUrl(img);
+      return {
+        id: img.id,
+        imageUrl: displayUrl || '',
+        createdAt: img.uploadedAt || new Date().toISOString(),
+        metadata: {
+          s3Key: img.metadata?.s3Key ?? img.s3Key,
+          source: img.metadata?.source || 'user-upload',
+          ...img.metadata,
+        },
+      };
+    }).filter((img: any) => !!img.imageUrl);
+  }, [payloadImages, getDisplayUrl]);
 
   // 🔥 FIX: Refetch asset data after StorageDecisionModal closes (like MediaLibrary refetches files)
   // This ensures the UI reflects the latest asset data, including newly uploaded images
@@ -1121,11 +1157,9 @@ export default function AssetDetailSidebar({
               <div className="space-y-3">
                 {/* Upload Buttons */}
                 {(() => {
-                  const currentImages = assetMediaLibraryImages.length > 0
-                    ? assetMediaLibraryImages
-                    : (asset?.images || []);
+                  const currentImages = asset ? (asset.images ?? formData.images ?? []) : [];
                   const userUploadedCount = currentImages.filter((img: any) => {
-                    const source = img.metadata?.source;
+                    const source = (img.metadata as any)?.source;
                     return !source || source === 'user-upload';
                   }).length;
                   
@@ -1156,24 +1190,14 @@ export default function AssetDetailSidebar({
                 })()}
                 
                 {/* Image Gallery */}
-                {asset && (formData.images?.length > 0 || assetMediaLibraryImages.length > 0) && (() => {
-                  // 🔥 Feature 0200: Prefer Media Library with resolved URLs (S3/Drive/Dropbox); fallback to formData.images
-                  const allImages = assetMediaLibraryImages.length > 0
-                    ? assetMediaLibraryImages
-                    : formData.images!.map((img: any, idx: number) => {
-                        const imageUrl = img.s3Key && regeneratedImageUrls[img.s3Key] ? regeneratedImageUrls[img.s3Key] : img.url;
-                        return {
-                          id: `asset-img-${idx}`,
-                          imageUrl,
-                          createdAt: img.uploadedAt,
-                          metadata: {
-                            ...(img.s3Key ? { s3Key: img.s3Key } : {}),
-                            ...(img.metadata || {}),
-                            source: img.metadata?.source || (img.s3Key ? undefined : 'user-upload'),
-                          },
-                        };
-                      });
-                  
+                {asset && (payloadImages.length > 0 || formData.images?.length > 0) && (() => {
+                  // 🔥 Payload-first: list from asset/formData; URLs from ML/presign. Aligns with Character/Location.
+                  const allImages = assetDisplayImages.map((img: any) => {
+                    const s3Key = img.metadata?.s3Key;
+                    const imageUrl = s3Key && regeneratedImageUrls[s3Key] ? regeneratedImageUrls[s3Key] : img.imageUrl;
+                    return { ...img, imageUrl };
+                  });
+
                   const userUploadedImages = allImages.filter((img: any) => {
                     const source = (img.metadata as any)?.source;
                     // Show images with no source, 'user-upload', or undefined source (defaults to user-upload)
