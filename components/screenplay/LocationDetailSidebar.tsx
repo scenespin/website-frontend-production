@@ -573,6 +573,15 @@ export default function LocationDetailSidebar({
             }, 2000); // 2 second delay for DynamoDB eventual consistency
           }
 
+          // 🔥 FIX: Invalidate media files so Creation sidebar's useMediaFiles refetches and shows new images
+          // Without this, the "Location Images" section stays at 0/5 because it uses cached Media Library list
+          if (screenplayId) {
+            queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId], exact: false });
+            setTimeout(() => {
+              queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId], exact: false, type: 'active' });
+            }, 800); // Slight delay so backend Media Library has the new registration
+          }
+
           // Update parent component
           const updatedLocation = { ...location, images: uploadedImages };
           onUpdate(updatedLocation);
