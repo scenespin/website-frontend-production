@@ -243,7 +243,7 @@ export default function AssetDetailSidebar({
     const keys = payloadImages
       .map((img: any) => img.metadata?.s3Key ?? img.s3Key)
       .filter((k): k is string => Boolean(k));
-    return [...new Set(keys)];
+    return [...new Set<string>(keys)];
   }, [payloadImages]);
 
   const { data: assetPresignedUrlsSidebar = new Map() } = useBulkPresignedUrls(
