@@ -152,7 +152,7 @@ export default function LocationDetailSidebar({
     }
   }, [locations, location?.id, location?.images]) // Watch locations array, location.id, and location.images
 
-  // 🔥 Feature 0200: Media Library as source of truth for location images (same pattern as CharacterDetailSidebar)
+  // 🔥 Payload-first (same as CharacterDetailSidebar): list from context, Media Library only for display URLs.
   const { data: locationMediaFiles = [] } = useMediaFiles(
     screenplayId || '',
     undefined,
@@ -161,14 +161,24 @@ export default function LocationDetailSidebar({
     'location',
     location?.id
   );
+  // Feature 0256-style: Build list from location.images / getEntityImages; ML only for URLs.
+  const payloadImages = useMemo(() => {
+    if (!location?.id) return [];
+    const fromPayload = location.images ?? getEntityImages('location', location.id) ?? [];
+    return fromPayload.filter((img: any) => {
+      const s3 = img.metadata?.s3Key;
+      return s3 && !String(s3).startsWith('thumbnails/');
+    });
+  }, [location?.id, location?.images, getEntityImages]);
+
   const locationMediaS3Keys = useMemo(() => {
-    return locationMediaFiles
-      .filter((file: any) => file.s3Key && !file.s3Key.startsWith('thumbnails/'))
-      .map((file: any) => file.s3Key);
-  }, [locationMediaFiles]);
+    const keys = payloadImages.map((img: any) => img.metadata?.s3Key).filter(Boolean);
+    return [...new Set(keys)];
+  }, [payloadImages]);
+
   const { data: locationPresignedUrls = new Map() } = useBulkPresignedUrls(
     locationMediaS3Keys,
-    locationMediaS3Keys.length > 0
+    !!screenplayId && !!location?.id && locationMediaS3Keys.length > 0
   );
   const dropboxUrlMap = useDropboxPreviewUrls(locationMediaFiles, locationMediaFiles.length > 0);
   const presignedMapsForDisplay = useMemo(() => ({
@@ -176,24 +186,41 @@ export default function LocationDetailSidebar({
     thumbnailS3KeyMap: null as Map<string, string> | null,
     thumbnailUrlsMap: null as Map<string, string> | null,
   }), [locationPresignedUrls]);
-  const locationMediaLibraryImages = useMemo(() => {
-    return locationMediaFiles
-      .filter((file: any) => file.s3Key && !file.s3Key.startsWith('thumbnails/'))
-      .map((file: any) => {
-        const displayUrl = getMediaFileDisplayUrl(file, presignedMapsForDisplay, dropboxUrlMap);
-        return {
-          id: file.id,
-          imageUrl: displayUrl || '',
-          metadata: {
-            s3Key: file.s3Key,
-            source: file.metadata?.source || 'upload',
-            ...file.metadata,
-          },
-          createdAt: file.uploadedAt || new Date().toISOString(),
-        };
-      })
-      .filter((img: any) => !!img.imageUrl);
-  }, [locationMediaFiles, presignedMapsForDisplay, dropboxUrlMap]);
+
+  const mediaFileMap = useMemo(() => {
+    const map = new Map<string, any>();
+    locationMediaFiles.forEach((file: any) => {
+      if (file.s3Key && !file.s3Key.startsWith('thumbnails/')) map.set(file.s3Key, file);
+    });
+    return map;
+  }, [locationMediaFiles]);
+
+  const getDisplayUrl = useCallback((img: { imageUrl?: string; metadata?: { s3Key?: string } }) => {
+    const s3Key = img.metadata?.s3Key;
+    if (!s3Key) return img.imageUrl || '';
+    const file = mediaFileMap.get(s3Key);
+    return getMediaFileDisplayUrl(
+      file ?? { id: s3Key, storageType: 'local' as const, s3Key },
+      presignedMapsForDisplay,
+      dropboxUrlMap
+    ) || img.imageUrl || '';
+  }, [mediaFileMap, presignedMapsForDisplay, dropboxUrlMap]);
+
+  const locationDisplayImages = useMemo(() => {
+    return payloadImages.map((img: any) => {
+      const displayUrl = img.imageUrl && img.imageUrl.startsWith('http') ? img.imageUrl : getDisplayUrl(img);
+      return {
+        id: img.id,
+        imageUrl: displayUrl || '',
+        metadata: {
+          s3Key: img.metadata?.s3Key,
+          source: img.metadata?.source || 'upload',
+          ...img.metadata,
+        },
+        createdAt: img.createdAt || new Date().toISOString(),
+      };
+    }).filter((img: any) => !!img.imageUrl);
+  }, [payloadImages, getDisplayUrl]);
 
   // 🔥 FIX: Regenerate expired presigned URLs for images that have s3Key (legacy when Media Library empty)
   useEffect(() => {
@@ -302,13 +329,17 @@ export default function LocationDetailSidebar({
     // Support multiple files - process all selected files
     const fileArray = Array.from(files);
 
-    // 🔥 NEW: Validate 5-image limit (1 base + 4 additional). Prefer Media Library count when available.
-    const currentImages = (location && locationMediaLibraryImages.length > 0)
-      ? locationMediaLibraryImages
-      : (location ? getEntityImages('location', location.id) : []);
+    // 🔥 Payload-first: count creation refs from context (same list as sidebar).
+    const currentImages = location ? (location.images ?? getEntityImages('location', location.id) ?? []) : [];
     const currentCount = currentImages.filter((img: any) => {
       const source = (img.metadata as any)?.source;
-      return !source || source === 'user-upload';
+      const createdIn = (img.metadata as any)?.createdIn;
+      return (
+        source !== 'angle-generation' &&
+        source !== 'image-generation' &&
+        createdIn !== 'production-hub' &&
+        (!source || source === 'user-upload')
+      );
     }).length;
     const maxImages = 5;
     
@@ -776,54 +807,34 @@ export default function LocationDetailSidebar({
             </label>
           </div>
           {(() => {
-            // 🔥 Feature 0200: Prefer Media Library with resolved URLs (S3/Drive/Dropbox); fallback to context getEntityImages
-            const images = (location && locationMediaLibraryImages.length > 0)
-              ? locationMediaLibraryImages
-              : (location ? getEntityImages('location', location.id) : []);
-            const allImages = location ? (locationMediaLibraryImages.length > 0 ? locationMediaLibraryImages : images.map((img: any) => {
-              const s3Key = img.metadata?.s3Key;
-              const imageUrl = s3Key && regeneratedImageUrls[s3Key] ? regeneratedImageUrls[s3Key] : img.imageUrl;
-              return { ...img, imageUrl };
-            })) : pendingImages.map((img, idx) => ({
-              id: `pending-${idx}`,
-              imageUrl: img.imageUrl,
-              metadata: { 
-                s3Key: img.s3Key,
-                prompt: img.prompt, 
-                modelUsed: img.modelUsed 
-              },
-              createdAt: new Date().toISOString()
-            }))
-            
-            // 🔥 Fix (1): Creation refs from context (API) — show them even if Media Library tagged as production-hub
-            const contextCreationImages = location ? getEntityImages('location', location.id) : [];
-            const creationS3KeysFromContext = new Set(
-              contextCreationImages
-                .filter((img: any) => {
-                  const source = (img.metadata as any)?.source;
-                  const createdIn = (img.metadata as any)?.createdIn;
-                  return source !== 'angle-generation' &&
-                         source !== 'image-generation' &&
-                         createdIn !== 'production-hub' &&
-                         (!source || source === 'user-upload');
+            // 🔥 Payload-first: list always from context (location.images / getEntityImages); URLs from ML/presign. Aligns with Character and card.
+            const allImages = location
+              ? locationDisplayImages.map((img: any) => {
+                  const s3Key = img.metadata?.s3Key;
+                  const imageUrl = s3Key && regeneratedImageUrls[s3Key] ? regeneratedImageUrls[s3Key] : img.imageUrl;
+                  return { ...img, imageUrl };
                 })
-                .map((img: any) => img.metadata?.s3Key)
-                .filter((k): k is string => !!k)
-            );
-            
-            // 🔥 FIX: Filter out Production Hub angle-generated images from Creation section
-            // Also include any image whose s3Key is in context creation refs (so re-uploads from Production Hub still show)
-            const userUploadedImages = allImages.filter(img => {
-              const source = (img.metadata as any)?.source;
-              const createdIn = (img.metadata as any)?.createdIn;
-              const passesCreationFilter =
+              : pendingImages.map((img, idx) => ({
+                  id: `pending-${idx}`,
+                  imageUrl: img.imageUrl,
+                  metadata: {
+                    s3Key: img.s3Key,
+                    prompt: img.prompt,
+                    modelUsed: img.modelUsed,
+                  },
+                  createdAt: new Date().toISOString(),
+                }));
+
+            // Filter to Creation-only refs (exclude Production Hub angle/image-generation and createdIn production-hub)
+            const userUploadedImages = allImages.filter((img: any) => {
+              const source = img.metadata?.source;
+              const createdIn = img.metadata?.createdIn;
+              return (
                 source !== 'angle-generation' &&
                 source !== 'image-generation' &&
                 createdIn !== 'production-hub' &&
-                (!source || source === 'user-upload');
-              const s3KeyInContextCreation =
-                (img.metadata as any)?.s3Key && creationS3KeysFromContext.has((img.metadata as any).s3Key);
-              return passesCreationFilter || s3KeyInContextCreation;
+                (!source || source === 'user-upload')
+              );
             });
             
             return (
