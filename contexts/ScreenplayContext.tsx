@@ -5140,13 +5140,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     continue; // Already active, skip
                 }
                 
-                // Check if matches existing active location (fuzzy - simple contains check for locations)
-                const activeFuzzyMatch = activeLocations.find(loc => {
-                    const upperLocName = loc.name.toUpperCase();
-                    return upperLocName === upperScriptName || 
-                           upperLocName.includes(upperScriptName) || 
-                           upperScriptName.includes(upperLocName);
-                });
+                // Check if matches existing active location (exact only - substring caused e.g. "PARK" to be skipped when "PARKING GARAGE" existed)
+                const activeFuzzyMatch = activeLocations.find(loc => loc.name.toUpperCase() === upperScriptName);
                 if (activeFuzzyMatch) {
                     continue; // Already active via fuzzy match, skip
                 }
@@ -5161,13 +5156,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     continue;
                 }
                 
-                // 🔥 PHASE 4: Check for reference card match (fuzzy)
-                const fuzzyRefMatch = referenceCardLocations.find(loc => {
-                    const upperLocName = loc.name.toUpperCase();
-                    return upperLocName === upperScriptName || 
-                           upperLocName.includes(upperScriptName) || 
-                           upperScriptName.includes(upperLocName);
-                });
+                // 🔥 PHASE 4: Check for reference card match (exact only - avoid e.g. "WATER PARK" linking to card "PARK")
+                const fuzzyRefMatch = referenceCardLocations.find(loc => loc.name.toUpperCase() === upperScriptName);
                 if (fuzzyRefMatch) {
                     console.log(`[ScreenplayContext] 🔗 Phase 4: Linking script location "${scriptLocName}" to reference card "${fuzzyRefMatch.name}" (fuzzy match)`);
                     locationsToLink.push({ scriptName: scriptLocName, referenceCard: fuzzyRefMatch });
