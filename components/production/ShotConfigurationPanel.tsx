@@ -444,7 +444,7 @@ export function ShotConfigurationPanel({
     return false;
   }, []);
 
-  // Feature 0259: Veo 3.1 best-practice prompt. Formula: [Cinematography] + [Subject] + [Action] + [Context] + [Style & Ambiance]
+  // Feature 0259: Elements prefill uses a strict Veo-oriented scaffold with hard rules for silent action.
   // Ref list and context are built from selected elements (generic for N items; UI caps selection per model, e.g. 3 for VEO).
   const elementsVideoPromptSuggestion = React.useMemo(() => {
     if (selectedElementsForVideo.length === 0) return '';
@@ -497,12 +497,35 @@ export function ShotConfigurationPanel({
     const weatherGuardrail = isInteriorScene
       ? 'Interior scene. Exterior weather may be visible only through windows/openings. Do not show precipitation, snow, rain, or fog inside the room.'
       : '';
-    const speechSuppression = 'No spoken dialogue, no lip-sync, no mouth movement for speech, and no on-screen speaking. Silent visual action only.';
-    const qualityControl = 'No text overlays, subtitles, labels, or watermarks.';
 
-    return [intro, cinematography, actionSentence, contextStr, style, weatherGuardrail, speechSuppression, qualityControl]
-      .filter(Boolean)
-      .join(' ');
+    const hardRules = [
+      'HARD RULES:',
+      '- No spoken dialogue.',
+      '- No lip-sync.',
+      '- No mouth movement for speech, singing, or vocalization.',
+      '- Keep mouths closed unless naturally parted for breathing only.',
+      '- Do not generate subtitles, captions, or any on-screen text.',
+    ].join('\n');
+
+    const audioRules = [
+      'Audio:',
+      '- Ambient environment sound only (room tone, wind, footsteps, fabric movement).',
+      '- No voices or speech-like sounds.',
+    ].join('\n');
+
+    const sceneContext = weatherGuardrail ? `${contextStr} ${weatherGuardrail}` : contextStr;
+    const negativePrompt = 'speech, talking, dialogue, lip-sync, vocalization, singing, subtitles, captions, on-screen text, watermark';
+
+    return [
+      intro,
+      hardRules,
+      audioRules,
+      `Visual Action:\n${actionSentence}`,
+      `Scene Context:\n${sceneContext}`,
+      `Cinematography:\n${cinematography}`,
+      `Style & Ambiance:\n${style}`,
+      `Negative prompt:\n${negativePrompt}`,
+    ].join('\n\n');
   }, [selectedElementsForVideo, elementsListForShot, shot, shotMappings, allCharacters, sceneAnalysisResult, replacePronounsWithCharacterNames, toVisualOnlyAction, inferInteriorScene]);
 
   // When Elements selection changes, update stored prompt to the new suggestion (so prefill stays in sync with refs).
