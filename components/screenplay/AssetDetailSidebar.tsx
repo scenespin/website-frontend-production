@@ -374,8 +374,8 @@ export default function AssetDetailSidebar({
         toast.error(`${file.name} is not an image file`);
         return;
       }
-      if (file.size > 10 * 1024 * 1024) {
-        toast.error(`${file.name} is too large. Maximum size is 10MB.`);
+      if (file.size > 50 * 1024 * 1024) {
+        toast.error(`${file.name} is too large. Maximum size is 50MB.`);
         return;
       }
     }
@@ -415,7 +415,7 @@ export default function AssetDetailSidebar({
 
         if (!presignedResponse.ok) {
           if (presignedResponse.status === 413) {
-            throw new Error(`${file.name} is too large. Maximum size is 10MB.`);
+            throw new Error(`${file.name} is too large. Maximum size is 50MB.`);
           } else if (presignedResponse.status === 401) {
             throw new Error('Please sign in to upload files.');
           } else {
