@@ -79,6 +79,7 @@ function ShotCell({
   }
 
   const firstFrameUrl = presignedUrls.get(currentVariation.firstFrame.s3Key);
+  const aspectRatioLabel = currentVariation.firstFrame.metadata?.aspectRatio;
 
   const handlePrev = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -173,6 +174,11 @@ function ShotCell({
             </div>
           );
         })()}
+        {aspectRatioLabel ? (
+          <div className="absolute bottom-1 left-1 px-1.5 py-0.5 text-white text-[10px] rounded bg-black/70 backdrop-blur-sm">
+            {aspectRatioLabel}
+          </div>
+        ) : null}
       </div>
 
       {/* Toolbar: First frame · Frame | Video (visible layout so we can confirm this bundle loads) */}

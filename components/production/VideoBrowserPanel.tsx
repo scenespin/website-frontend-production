@@ -42,6 +42,8 @@ export interface VideoBrowserEntry {
   videoProvider?: string | null;
   /** Override label for Provider column (e.g. "Premium Dialogue" for premium dialogue workflow) */
   providerDisplayLabel?: string | null;
+  /** Video aspect ratio label (e.g. 16:9, 9:16, 1:1) */
+  aspectRatio?: string | null;
   /** Stable key for list (fileId or scene-shot-timestamp) */
   entryKey: string;
 }
@@ -123,6 +125,7 @@ function buildVideoEntries(
         const videoUrl = presignedUrls.get(variation.video.s3Key);
         const metadata = (variation.video as any).metadata || {};
         const videoTimestamp = metadata.timestamp || variation.timestamp;
+        const aspectRatio = getVideoAspectRatio(metadata);
         entries.push({
           sceneNumber: scene.sceneNumber,
           sceneHeading: scene.sceneHeading,
@@ -136,6 +139,7 @@ function buildVideoEntries(
           videoMode: metadata.videoMode,
           videoProvider: metadata.videoProvider ?? metadata.videoModel ?? null,
           providerDisplayLabel: metadata.providerDisplayLabel ?? null,
+          aspectRatio,
           entryKey: `${scene.sceneId}-${shot.shotNumber}-${videoTimestamp}`,
         });
       }
@@ -153,6 +157,7 @@ function buildStandaloneEntries(
     .map((file, index) => {
       const metadata = (file as any).metadata || {};
       const timestamp = metadata.timestamp || (file as any).uploadedAt || (file as any).createdAt || '';
+      const aspectRatio = getVideoAspectRatio(metadata);
       return {
         sceneNumber: null,
         sceneHeading: null,
@@ -166,9 +171,16 @@ function buildStandaloneEntries(
         videoMode: metadata.videoMode,
         videoProvider: metadata.videoProvider ?? metadata.videoModel ?? null,
         providerDisplayLabel: metadata.providerDisplayLabel ?? null,
+        aspectRatio,
         entryKey: (file as any).id || file.s3Key || `standalone-${index}`,
       };
     });
+}
+
+function getVideoAspectRatio(metadata: Record<string, any>): string | null {
+  const direct = metadata?.aspectRatio ?? metadata?.aspect_ratio;
+  if (typeof direct === 'string' && direct.trim().length > 0) return direct.trim();
+  return null;
 }
 
 interface VideoBrowserPanelProps {
@@ -443,7 +455,7 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
         <div className="flex-1 overflow-y-auto">
           <div className="p-4">
             {/* Sortable column headers */}
-            <div className="flex items-center gap-4 px-4 py-2 text-[10px] font-medium text-[#808080] uppercase tracking-wider border-b border-[#3F3F46] mb-2">
+            <div className="flex items-center gap-4 px-4 py-2 text-xs font-medium text-[#808080] border-b border-[#3F3F46] mb-2">
               <button type="button" onClick={() => handleSort('scene')} className="flex items-center gap-1 w-16 flex-shrink-0 text-left hover:text-[#B3B3B3]">
                 Scene {sortKey === 'scene' ? (sortDir === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />) : <ArrowUpDown className="w-3 h-3 opacity-50" />}
               </button>
@@ -454,6 +466,7 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
               <button type="button" onClick={() => handleSort('provider')} className="flex items-center gap-1 w-24 flex-shrink-0 text-left hover:text-[#B3B3B3]">
                 Provider {sortKey === 'provider' ? (sortDir === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />) : <ArrowUpDown className="w-3 h-3 opacity-50" />}
               </button>
+              <span className="w-16 flex-shrink-0 text-left">Aspect Ratio</span>
               <button type="button" onClick={() => handleSort('time')} className="flex items-center gap-1 flex-shrink-0 text-left hover:text-[#B3B3B3]">
                 Time {sortKey === 'time' ? (sortDir === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />) : <ArrowUpDown className="w-3 h-3 opacity-50" />}
               </button>
@@ -503,6 +516,9 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
                   </span>
                   <span className="text-xs text-[#808080] w-24 flex-shrink-0">
                     {entry.providerDisplayLabel ?? getProviderLabel(entry.videoProvider)}
+                  </span>
+                  <span className="text-xs text-[#808080] w-16 flex-shrink-0">
+                    {entry.aspectRatio || '—'}
                   </span>
                   <span className="text-[10px] text-[#808080] flex-shrink-0">
                     {formatTimestamp(entry.timestamp)}

@@ -28,7 +28,7 @@ export interface ShotVariation {
     s3Key: string;
     fileName: string;
     /** Optional metadata from media file (e.g. providerId for Shots tab label). */
-    metadata?: { providerId?: string };
+    metadata?: { providerId?: string; aspectRatio?: string };
   };
   video?: {
     fileId: string;
@@ -201,13 +201,18 @@ export function useShotBoard(screenplayId: string, enabled: boolean = true): Use
 
       // Create variation (include first-frame metadata for provider label on Shots tab)
       const firstFrameMeta = (firstFrame as any).metadata || {};
+      const firstFrameMetadata: { providerId?: string; aspectRatio?: string } = {};
+      if (firstFrameMeta.providerId) firstFrameMetadata.providerId = firstFrameMeta.providerId;
+      if (typeof firstFrameMeta.aspectRatio === 'string' && firstFrameMeta.aspectRatio.trim().length > 0) {
+        firstFrameMetadata.aspectRatio = firstFrameMeta.aspectRatio.trim();
+      }
       const variation: ShotVariation = {
         timestamp,
         firstFrame: {
           fileId: firstFrame.id || '',
           s3Key: firstFrame.s3Key || '',
           fileName: firstFrame.fileName || '',
-          ...(firstFrameMeta.providerId && { metadata: { providerId: firstFrameMeta.providerId } })
+          ...((firstFrameMetadata.providerId || firstFrameMetadata.aspectRatio) && { metadata: firstFrameMetadata })
         }
       };
 
