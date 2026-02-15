@@ -24,7 +24,7 @@ import { cn } from '@/lib/utils';
 
 export type VideoSection = 'scene' | 'standalone';
 
-export type VideoSortKey = 'scene' | 'shot' | 'type' | 'provider' | 'time';
+export type VideoSortKey = 'scene' | 'type' | 'provider' | 'time';
 
 export interface VideoBrowserEntry {
   /** Null/undefined for standalone entries (show "—") */
@@ -234,33 +234,44 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
 
   const rawEntries = currentSection === 'scene' ? sceneEntries : standaloneEntries;
   const videoEntries = useMemo(() => {
+    const nullLastNum = (x: number | null | undefined, y: number | null | undefined): number => {
+      const xNull = x == null ? 1 : 0;
+      const yNull = y == null ? 1 : 0;
+      if (xNull !== yNull) return xNull - yNull;
+      return (x ?? 0) - (y ?? 0);
+    };
+    const sceneThenShotCmp = (a: VideoBrowserEntry, b: VideoBrowserEntry): number => {
+      const sceneCmp = nullLastNum(a.sceneNumber, b.sceneNumber);
+      if (sceneCmp !== 0) return sceneCmp;
+      return nullLastNum(a.shotNumber, b.shotNumber);
+    };
+
     const sorted = [...rawEntries].sort((a, b) => {
       const mult = sortDir === 'asc' ? 1 : -1;
-      const nullLastNum = (x: number | null | undefined, y: number | null | undefined): number => {
-        const xNull = x == null ? 1 : 0;
-        const yNull = y == null ? 1 : 0;
-        if (xNull !== yNull) return xNull - yNull;
-        return (x ?? 0) - (y ?? 0);
-      };
+      let primary = 0;
       switch (sortKey) {
         case 'scene':
-          return mult * nullLastNum(a.sceneNumber, b.sceneNumber);
-        case 'shot':
-          return mult * nullLastNum(a.shotNumber, b.shotNumber);
+          primary = mult * sceneThenShotCmp(a, b);
+          break;
         case 'type': {
           const ta = a.videoMode ?? '';
           const tb = b.videoMode ?? '';
-          return mult * (ta < tb ? -1 : ta > tb ? 1 : 0);
+          primary = mult * (ta < tb ? -1 : ta > tb ? 1 : 0);
+          break;
         }
         case 'provider': {
           const pa = a.providerDisplayLabel ?? getProviderLabel(a.videoProvider) ?? '—';
           const pb = b.providerDisplayLabel ?? getProviderLabel(b.videoProvider) ?? '—';
-          return mult * (pa < pb ? -1 : pa > pb ? 1 : 0);
+          primary = mult * (pa < pb ? -1 : pa > pb ? 1 : 0);
+          break;
         }
         case 'time':
         default:
-          return mult * (a.timestamp < b.timestamp ? -1 : a.timestamp > b.timestamp ? 1 : 0);
+          primary = mult * (a.timestamp < b.timestamp ? -1 : a.timestamp > b.timestamp ? 1 : 0);
+          break;
       }
+      // Keep scene/shot ordering deterministic when primary sort ties.
+      return primary !== 0 ? primary : sceneThenShotCmp(a, b);
     });
     return sorted;
   }, [rawEntries, sortKey, sortDir]);
@@ -436,9 +447,7 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
               <button type="button" onClick={() => handleSort('scene')} className="flex items-center gap-1 w-16 flex-shrink-0 text-left hover:text-[#B3B3B3]">
                 Scene {sortKey === 'scene' ? (sortDir === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />) : <ArrowUpDown className="w-3 h-3 opacity-50" />}
               </button>
-              <button type="button" onClick={() => handleSort('shot')} className="flex items-center gap-1 w-14 flex-shrink-0 text-left hover:text-[#B3B3B3]">
-                Shot {sortKey === 'shot' ? (sortDir === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />) : <ArrowUpDown className="w-3 h-3 opacity-50" />}
-              </button>
+              <span className="w-14 flex-shrink-0 text-left">Shot</span>
               <button type="button" onClick={() => handleSort('type')} className="flex items-center gap-1 w-28 flex-shrink-0 text-left hover:text-[#B3B3B3]">
                 Type {sortKey === 'type' ? (sortDir === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />) : <ArrowUpDown className="w-3 h-3 opacity-50" />}
               </button>

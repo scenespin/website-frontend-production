@@ -274,6 +274,10 @@ function SceneRow({
   onVariationChange: (shotKey: string, newIndex: number) => void;
 }) {
   const sceneNumber = scene.sceneNumber;
+  const shotsWithFirstFrame = useMemo(
+    () => scene.shots.filter((shot) => shot.variations.some((v) => !!v.firstFrame?.s3Key)),
+    [scene.shots]
+  );
   return (
     <div className="bg-[#141414] rounded-lg border border-[#3F3F46] overflow-hidden">
       <div className="px-4 py-3 border-b border-[#3F3F46] flex items-center justify-between">
@@ -284,14 +288,14 @@ function SceneRow({
           <div>
             <h3 className="text-sm font-semibold text-white">{scene.sceneHeading}</h3>
             <p className="text-[10px] text-[#808080]">
-              {scene.shots.length} shot{scene.shots.length !== 1 ? 's' : ''}
+              {shotsWithFirstFrame.length} shot{shotsWithFirstFrame.length !== 1 ? 's' : ''}
             </p>
           </div>
         </div>
       </div>
       <div className="p-4">
         <div className="flex gap-3 overflow-x-auto pb-2">
-          {scene.shots.map((shot) => {
+          {shotsWithFirstFrame.map((shot) => {
             const shotKey = `${scene.sceneId}-${shot.shotNumber}`;
             return (
               <ShotCell
@@ -467,7 +471,17 @@ export function ShotBoardPanel({ className = '', onNavigateToSceneBuilder, onGen
     );
   }
 
-  const totalShots = getTotalShotCount(scenes);
+  const visibleScenes = useMemo(
+    () =>
+      scenes
+        .map((scene) => ({
+          ...scene,
+          shots: scene.shots.filter((shot) => shot.variations.some((v) => !!v.firstFrame?.s3Key)),
+        }))
+        .filter((scene) => scene.shots.length > 0),
+    [scenes]
+  );
+  const totalShots = getTotalShotCount(visibleScenes);
 
   return (
     <div className={`h-full flex flex-col bg-[#0A0A0A] ${className}`}>
@@ -476,7 +490,7 @@ export function ShotBoardPanel({ className = '', onNavigateToSceneBuilder, onGen
         <div className="flex items-center gap-3">
           <h2 className="text-lg font-semibold text-white">Shots</h2>
           <span className="text-xs text-[#808080]">
-            {scenes.length} scene{scenes.length !== 1 ? 's' : ''} • {totalShots} shot{totalShots !== 1 ? 's' : ''}
+            {visibleScenes.length} scene{visibleScenes.length !== 1 ? 's' : ''} • {totalShots} shot{totalShots !== 1 ? 's' : ''}
           </span>
         </div>
         <button
@@ -491,7 +505,7 @@ export function ShotBoardPanel({ className = '', onNavigateToSceneBuilder, onGen
       </div>
 
       {/* Content */}
-      {scenes.length === 0 ? (
+      {visibleScenes.length === 0 ? (
         /* Empty State */
         <div className="flex-1 flex flex-col items-center justify-center p-8 text-center">
           <Clapperboard className="w-12 h-12 text-[#808080] mb-4" />
@@ -512,7 +526,7 @@ export function ShotBoardPanel({ className = '', onNavigateToSceneBuilder, onGen
         /* Scene List */
         <div className="flex-1 overflow-y-auto">
           <div className="p-4 space-y-4">
-            {scenes.map((scene) => (
+            {visibleScenes.map((scene) => (
               <SceneRow
                 key={scene.sceneId}
                 scene={scene}
