@@ -70,7 +70,8 @@ export async function createCheckoutSession(
             cancelUrl,
         }),
     });
-    return response.url;
+    // Backend returns { success: true, data: { sessionId, url } }
+    return response.data?.url || response.url || '';
 }
 
 /**

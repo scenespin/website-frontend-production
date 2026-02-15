@@ -45,7 +45,7 @@ export async function POST(req) {
   try {
     switch (eventType) {
       case "checkout.session.completed": {
-        // First payment is successful and a subscription is created (if mode was set to "subscription" in ButtonCheckout)
+        // First payment is successful and a subscription is created.
         // ✅ Grant access to the product
 
         const session = await findCheckoutSession(data.object.id);

@@ -1,6 +1,7 @@
 import Stripe from "stripe";
 
-// This is used to create a Stripe Checkout for one-time payments. It's usually triggered with the <ButtonCheckout /> component. Webhooks are used to update the user's state in the database.
+// Legacy helper for direct Stripe Checkout session creation.
+// Current billing flows use /api/billing/* routes via lib/stripe-client.
 export const createCheckout = async ({
   priceId,
   mode,
