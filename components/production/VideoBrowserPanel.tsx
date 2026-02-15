@@ -85,7 +85,8 @@ function formatTimestamp(ts: string): string {
   const match = ts.match(/^(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})$/);
   if (match) {
     const [, y, m, d, hh, mm, ss] = match;
-    const date = new Date(Number(y), Number(m) - 1, Number(d), Number(hh), Number(mm), Number(ss || 0));
+    // Timestamp format is UTC from backend (YYYYMMDD-HHMMSS). Parse as UTC, then display in local timezone.
+    const date = new Date(Date.UTC(Number(y), Number(m) - 1, Number(d), Number(hh), Number(mm), Number(ss || 0)));
     if (!Number.isNaN(date.getTime())) {
       return date.toLocaleString(undefined, {
         month: 'short',
