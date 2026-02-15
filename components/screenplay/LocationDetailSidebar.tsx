@@ -161,14 +161,25 @@ export default function LocationDetailSidebar({
     'location',
     location?.id
   );
-  // Feature 0256-style: Build list from location.images / getEntityImages; ML only for URLs.
+  // Feature 0256-style: Entity-first list from location.images / getEntityImages; ML only for URLs.
   const payloadImages = useMemo(() => {
     if (!location?.id) return [];
-    const fromPayload = location.images ?? getEntityImages('location', location.id) ?? [];
-    return fromPayload.filter((img: any) => {
-      const s3 = img.metadata?.s3Key;
-      return s3 && !String(s3).startsWith('thumbnails/');
-    });
+    const raw = location.images ?? getEntityImages('location', location.id) ?? [];
+    return raw
+      .filter((img: any) => {
+        const s3 = img.metadata?.s3Key ?? img.s3Key;
+        return s3 && !String(s3).startsWith('thumbnails/');
+      })
+      .map((img: any) => ({
+        ...img,
+        imageUrl: img.imageUrl ?? img.url,
+        metadata: {
+          s3Key: img.metadata?.s3Key ?? img.s3Key,
+          source: img.metadata?.source || 'user-upload',
+          createdIn: img.metadata?.createdIn || 'creation',
+          ...img.metadata,
+        },
+      }));
   }, [location?.id, location?.images, getEntityImages]);
 
   const locationMediaS3Keys = useMemo(() => {
@@ -214,7 +225,8 @@ export default function LocationDetailSidebar({
         imageUrl: displayUrl || '',
         metadata: {
           s3Key: img.metadata?.s3Key,
-          source: img.metadata?.source || 'upload',
+          source: img.metadata?.source || 'user-upload',
+          createdIn: img.metadata?.createdIn || 'creation',
           ...img.metadata,
         },
         createdAt: img.createdAt || new Date().toISOString(),
@@ -338,7 +350,7 @@ export default function LocationDetailSidebar({
         source !== 'angle-generation' &&
         source !== 'image-generation' &&
         createdIn !== 'production-hub' &&
-        (!source || source === 'user-upload')
+        (!source || source === 'user-upload' || source === 'upload')
       );
     }).length;
     const maxImages = 5;
@@ -478,7 +490,9 @@ export default function LocationDetailSidebar({
             imageUrl: img.imageUrl || img.url,
             createdAt: img.createdAt || new Date().toISOString(),
             metadata: {
-              s3Key: img.s3Key || img.metadata?.s3Key
+              s3Key: img.s3Key || img.metadata?.s3Key,
+              source: img.metadata?.source || 'user-upload',
+              createdIn: img.metadata?.createdIn || 'creation'
             }
           }));
         } else if (isCreating) {
@@ -506,7 +520,9 @@ export default function LocationDetailSidebar({
                 s3Key: s3Key,
                 createdAt: new Date().toISOString(),
                 metadata: {
-                  s3Key: s3Key
+                  s3Key: s3Key,
+                  source: 'user-upload',
+                  createdIn: 'creation'
                 }
               });
             } else {
@@ -519,7 +535,9 @@ export default function LocationDetailSidebar({
                 s3Key: s3Key,
                 createdAt: new Date().toISOString(),
                 metadata: {
-                  s3Key: s3Key
+                  s3Key: s3Key,
+                  source: 'user-upload',
+                  createdIn: 'creation'
                 }
               });
             }
@@ -534,7 +552,9 @@ export default function LocationDetailSidebar({
               s3Key: s3Key,
               createdAt: new Date().toISOString(),
               metadata: {
-                s3Key: s3Key
+                s3Key: s3Key,
+                source: 'user-upload',
+                createdIn: 'creation'
               }
             });
           }
@@ -833,7 +853,7 @@ export default function LocationDetailSidebar({
                 source !== 'angle-generation' &&
                 source !== 'image-generation' &&
                 createdIn !== 'production-hub' &&
-                (!source || source === 'user-upload')
+                (!source || source === 'user-upload' || source === 'upload')
               );
             });
             
@@ -885,7 +905,7 @@ export default function LocationDetailSidebar({
                               return source !== 'angle-generation' && 
                                      source !== 'image-generation' && 
                                      createdIn !== 'production-hub' &&
-                                     (!source || source === 'user-upload');
+                                     (!source || source === 'user-upload' || source === 'upload');
                             });
                             const imageToDelete = creationImages[index];
                             
