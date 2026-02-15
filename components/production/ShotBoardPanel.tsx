@@ -442,6 +442,18 @@ export function ShotBoardPanel({ className = '', onNavigateToSceneBuilder, onGen
     [screenplayId, getToken, queryClient, refetch]
   );
 
+  const visibleScenes = useMemo(
+    () =>
+      scenes
+        .map((scene) => ({
+          ...scene,
+          shots: scene.shots.filter((shot) => shot.variations.some((v) => !!v.firstFrame?.s3Key)),
+        }))
+        .filter((scene) => scene.shots.length > 0),
+    [scenes]
+  );
+  const totalShots = getTotalShotCount(visibleScenes);
+
   // Loading state
   if (!screenplayId || isLoading) {
     return (
@@ -470,18 +482,6 @@ export function ShotBoardPanel({ className = '', onNavigateToSceneBuilder, onGen
       </div>
     );
   }
-
-  const visibleScenes = useMemo(
-    () =>
-      scenes
-        .map((scene) => ({
-          ...scene,
-          shots: scene.shots.filter((shot) => shot.variations.some((v) => !!v.firstFrame?.s3Key)),
-        }))
-        .filter((scene) => scene.shots.length > 0),
-    [scenes]
-  );
-  const totalShots = getTotalShotCount(visibleScenes);
 
   return (
     <div className={`h-full flex flex-col bg-[#0A0A0A] ${className}`}>
