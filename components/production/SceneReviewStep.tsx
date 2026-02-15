@@ -49,6 +49,7 @@ interface SceneReviewStepProps {
   // Per-shot overrides (no resolution - global only, set in review step)
   shotCameraAngles?: Record<number, CameraAngle>;
   shotDurations?: Record<number, 'quick-cut' | 'extended-take'>;
+  shotAspectRatios?: Record<number, '16:9' | '9:16' | '1:1' | '21:9' | '9:21'>;
   // Character mappings
   selectedCharacterReferences: Record<number, Record<string, { poseId?: string; s3Key?: string; imageUrl?: string }>>;
   characterOutfits: Record<number, Record<string, string>>;
@@ -95,6 +96,7 @@ interface SceneReviewStepProps {
   // Feature 0262/0259: Per-shot Elements to Video (pricing: first frame = 0, video = VEO)
   useElementsForVideo?: Record<number, boolean>;
   elementsVideoDurations?: Record<number, 4 | 6 | 8>;
+  elementsVideoAspectRatios?: Record<number, '16:9' | '9:16'>;
 }
 
 export function SceneReviewStep({
@@ -104,6 +106,7 @@ export function SceneReviewStep({
   onGlobalResolutionChange,
   shotCameraAngles = {},
   shotDurations = {},
+  shotAspectRatios = {},
   selectedCharacterReferences,
   characterOutfits,
   selectedLocationReferences,
@@ -136,7 +139,8 @@ export function SceneReviewStep({
   uploadedFirstFrames = {},
   generateVideoForShot = {},
   useElementsForVideo = {},
-  elementsVideoDurations = {}
+  elementsVideoDurations = {},
+  elementsVideoAspectRatios = {}
 }: SceneReviewStepProps) {
   const { getToken } = useAuth();
   const [pricing, setPricing] = useState<{ totalHdPrice: number; totalK4Price: number; totalFirstFramePrice: number } | null>(null);
@@ -614,6 +618,30 @@ export function SceneReviewStep({
                             })}
                           </div>
                         )}
+                        {(() => {
+                          const isElementsVideo = !!useElementsForVideo[shot.slot];
+                          const isDialogueVideo = shot.type === 'dialogue' && !!generateVideoForShot[shot.slot];
+                          const hasVideoForShot = isElementsVideo || isDialogueVideo;
+                          const hasFirstFrameForShot = !isElementsVideo;
+                          const firstFrameAspectRatio = shotAspectRatios[shot.slot] || '16:9';
+                          const videoAspectRatio = isElementsVideo
+                            ? (elementsVideoAspectRatios[shot.slot] || '16:9')
+                            : (shotAspectRatios[shot.slot] || '16:9');
+                          return (
+                            <div className="mt-3 space-y-1">
+                              {hasFirstFrameForShot && (
+                                <div className="text-[10px] text-[#808080]">
+                                  First frame aspect ratio: <span className="text-[#FFFFFF]">{firstFrameAspectRatio}</span>
+                                </div>
+                              )}
+                              {hasVideoForShot && (
+                                <div className="text-[10px] text-[#808080]">
+                                  Video aspect ratio: <span className="text-[#FFFFFF]">{videoAspectRatio}</span>
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })()}
                         {/* Elements path: "Video from elements". Otherwise: first frame model. */}
                         <div className="mt-4 pt-2 border-t border-[#3F3F46]">
                           {useElementsForVideo[shot.slot] ? (

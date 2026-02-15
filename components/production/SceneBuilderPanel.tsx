@@ -4901,6 +4901,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                 onGlobalResolutionChange={setGlobalResolution}
                 shotCameraAngles={shotCameraAngles}
                 shotDurations={shotDurations}
+                shotAspectRatios={shotAspectRatios}
                 selectedCharacterReferences={selectedCharacterReferences}
                 characterOutfits={characterOutfits}
                 selectedLocationReferences={selectedLocationReferences}
@@ -4949,6 +4950,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                 generateVideoForShot={generateVideoForShot}
                 useElementsForVideo={contextState.useElementsForVideo}
                 elementsVideoDurations={contextState.elementsVideoDurations}
+                elementsVideoAspectRatios={contextState.elementsVideoAspectRatios}
               />
             )}
 
