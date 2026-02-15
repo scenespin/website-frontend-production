@@ -16,10 +16,15 @@ export interface ShotForValidation {
 
 export type ElementsVideoModelId = 'veo-3.1';
 export type ElementsVideoDurationSeconds = 4 | 6 | 8;
+export type ElementsVideoAspectRatio = '16:9' | '9:16';
 
 /** Elements-to-video duration capabilities per model. */
 export const ELEMENTS_VIDEO_DURATIONS_BY_MODEL: Record<ElementsVideoModelId, { options: readonly ElementsVideoDurationSeconds[] }> = {
   'veo-3.1': { options: [8] }, // reference_to_video currently supports only 8s
+};
+/** Elements-to-video aspect ratio capabilities per model. */
+export const ELEMENTS_VIDEO_ASPECT_RATIOS_BY_MODEL: Record<ElementsVideoModelId, { options: readonly ElementsVideoAspectRatio[] }> = {
+  'veo-3.1': { options: ['16:9', '9:16'] }, // VEO supports landscape/portrait
 };
 
 export const DEFAULT_ELEMENTS_VIDEO_MODEL: ElementsVideoModelId = 'veo-3.1';
@@ -55,6 +60,29 @@ export function getElementsVideoModelMessage(
   modelId: ElementsVideoModelId = DEFAULT_ELEMENTS_VIDEO_MODEL
 ): string {
   return ELEMENTS_VIDEO_MODEL_MESSAGE_BY_MODEL[modelId] || ELEMENTS_VIDEO_MODEL_MESSAGE_BY_MODEL[DEFAULT_ELEMENTS_VIDEO_MODEL];
+}
+
+export function getElementsVideoAspectRatioOptions(
+  modelId: ElementsVideoModelId = DEFAULT_ELEMENTS_VIDEO_MODEL
+): readonly ElementsVideoAspectRatio[] {
+  return ELEMENTS_VIDEO_ASPECT_RATIOS_BY_MODEL[modelId]?.options ?? ['16:9'];
+}
+
+export function getDefaultElementsVideoAspectRatio(
+  modelId: ElementsVideoModelId = DEFAULT_ELEMENTS_VIDEO_MODEL
+): ElementsVideoAspectRatio {
+  return getElementsVideoAspectRatioOptions(modelId)[0] ?? '16:9';
+}
+
+export function getEffectiveElementsVideoAspectRatio(
+  rawAspectRatio: string | undefined,
+  modelId: ElementsVideoModelId = DEFAULT_ELEMENTS_VIDEO_MODEL
+): ElementsVideoAspectRatio {
+  const options = getElementsVideoAspectRatioOptions(modelId);
+  if (rawAspectRatio && options.includes(rawAspectRatio as ElementsVideoAspectRatio)) {
+    return rawAspectRatio as ElementsVideoAspectRatio;
+  }
+  return getDefaultElementsVideoAspectRatio(modelId);
 }
 
 /**
@@ -125,6 +153,28 @@ export function buildElementsVideoDurationsPayload(
     const slotNum = parseInt(slot, 10);
     const raw = elementsVideoDurations?.[slotNum];
     normalized[slotNum] = getEffectiveElementsVideoDuration(raw, modelId);
+  }
+  return normalized;
+}
+
+/**
+ * Builds normalized elementsVideoAspectRatios payload for shots where Elements is enabled.
+ * Values are normalized against the active model capabilities.
+ */
+export function buildElementsVideoAspectRatiosPayload(
+  elementsVideoAspectRatios: Record<number, string> | undefined,
+  useElementsForVideo: Record<number, boolean> | undefined,
+  modelId: ElementsVideoModelId = DEFAULT_ELEMENTS_VIDEO_MODEL
+): Record<number, ElementsVideoAspectRatio> | undefined {
+  if (!useElementsForVideo || typeof useElementsForVideo !== 'object') return undefined;
+  const entries = Object.entries(useElementsForVideo).filter(([, enabled]) => !!enabled);
+  if (entries.length === 0) return undefined;
+
+  const normalized: Record<number, ElementsVideoAspectRatio> = {};
+  for (const [slot] of entries) {
+    const slotNum = parseInt(slot, 10);
+    const raw = elementsVideoAspectRatios?.[slotNum];
+    normalized[slotNum] = getEffectiveElementsVideoAspectRatio(raw, modelId);
   }
   return normalized;
 }

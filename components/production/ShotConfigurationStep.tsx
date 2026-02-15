@@ -33,6 +33,11 @@ import { resolveLocationImageUrl } from './utils/imageUrlResolver';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { isOffFrameListenerShotType, isOffFrameGroupShotType } from '@/types/offFrame';
 import type { OffFrameShotType } from '@/types/offFrame';
+import {
+  getElementsVideoAspectRatioOptions,
+  getEffectiveElementsVideoAspectRatio,
+  DEFAULT_ELEMENTS_VIDEO_MODEL,
+} from '@/lib/elementsWorkflowUtils';
 
 // Aspect Ratio Selector Component (Custom DaisyUI Dropdown)
 const ASPECT_RATIO_OPTIONS = [
@@ -1796,15 +1801,27 @@ export function ShotConfigurationStep({
             )}
             {onAspectRatioChange && state.useElementsForVideo?.[shot.slot] && (
               <div className="pt-2">
-                <label className="block text-[10px] text-[#808080] mb-1.5">Elements video aspect ratio (VEO: 16:9 or 9:16)</label>
-                <select
-                  value={state.elementsVideoAspectRatios?.[shot.slot] ?? '16:9'}
-                  onChange={(e) => actions.updateElementsVideoAspectRatio(shot.slot, e.target.value as '16:9' | '9:16')}
-                  className="w-full h-9 text-sm px-3 py-2 bg-[#1F1F1F] border border-[#3F3F46] rounded-md text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
-                >
-                  <option value="16:9">16:9 (Horizontal)</option>
-                  <option value="9:16">9:16 (Vertical)</option>
-                </select>
+                <label className="block text-[10px] text-[#808080] mb-1.5">Elements video aspect ratio</label>
+                {(() => {
+                  const options = getElementsVideoAspectRatioOptions(DEFAULT_ELEMENTS_VIDEO_MODEL);
+                  const displayValue = getEffectiveElementsVideoAspectRatio(
+                    state.elementsVideoAspectRatios?.[shot.slot],
+                    DEFAULT_ELEMENTS_VIDEO_MODEL
+                  );
+                  return (
+                    <select
+                      value={displayValue}
+                      onChange={(e) => actions.updateElementsVideoAspectRatio(shot.slot, e.target.value as '16:9' | '9:16')}
+                      className="w-full h-9 text-sm px-3 py-2 bg-[#1F1F1F] border border-[#3F3F46] rounded-md text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
+                    >
+                      {options.map((value) => (
+                        <option key={value} value={value}>
+                          {value === '9:16' ? '9:16 (Vertical)' : '16:9 (Horizontal)'}
+                        </option>
+                      ))}
+                    </select>
+                  );
+                })()}
               </div>
             )}
 

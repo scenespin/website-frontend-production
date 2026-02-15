@@ -83,6 +83,7 @@ import {
   validateElementsForShots,
   buildSelectedElementsForVideoPayload,
   buildElementsVideoDurationsPayload,
+  buildElementsVideoAspectRatiosPayload,
 } from '@/lib/elementsWorkflowUtils';
 import { OutfitSelector } from './OutfitSelector';
 import { CharacterOutfitSelector } from './CharacterOutfitSelector';
@@ -3158,7 +3159,10 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
           contextState.elementsVideoDurations,
           contextState.useElementsForVideo
         ), // Feature 0262/0259: normalized by model capabilities for Elements-enabled shots
-        elementsVideoAspectRatios: Object.keys(contextState.elementsVideoAspectRatios || {}).length > 0 ? contextState.elementsVideoAspectRatios : undefined, // Feature 0264: VEO 16:9/9:16 when Elements on
+        elementsVideoAspectRatios: buildElementsVideoAspectRatiosPayload(
+          contextState.elementsVideoAspectRatios,
+          contextState.useElementsForVideo
+        ), // Feature 0264: normalized by model capabilities for Elements-enabled shots
         dialogueWorkflowPrompts: Object.keys(contextState.dialogueWorkflowPrompts).length > 0 ? contextState.dialogueWorkflowPrompts : undefined, // Per-shot dialogue workflow override prompts: { shotSlot: prompt }
         narrationOverrides: Object.keys(contextState.narrationOverrides).length > 0 ? contextState.narrationOverrides : undefined, // Narrate Shot: what the narrator says per shot (required for scene-voiceover)
         // Narrate Shot: which character is the narrator per shot (defaults to speaking character when unset)

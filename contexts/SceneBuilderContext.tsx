@@ -19,7 +19,7 @@ import { filterValidCharacterIds } from '@/components/production/utils/character
 import { getCharactersFromActionShot } from '@/components/production/utils/sceneBuilderUtils';
 import { useCharacters } from '@/hooks/useCharacterBank';
 import { useBulkPresignedUrls } from '@/hooks/useMediaLibrary';
-import { getDefaultElementsVideoDuration } from '@/lib/elementsWorkflowUtils';
+import { getDefaultElementsVideoDuration, getDefaultElementsVideoAspectRatio } from '@/lib/elementsWorkflowUtils';
 
 // ============================================================================
 // Types
@@ -1354,7 +1354,7 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
             next.elementsVideoDurations = { ...prev.elementsVideoDurations, [shotSlot]: getDefaultElementsVideoDuration() };
           }
           if (prev.elementsVideoAspectRatios[shotSlot] === undefined) {
-            next.elementsVideoAspectRatios = { ...prev.elementsVideoAspectRatios, [shotSlot]: '16:9' };
+            next.elementsVideoAspectRatios = { ...prev.elementsVideoAspectRatios, [shotSlot]: getDefaultElementsVideoAspectRatio() };
           }
         } else {
           // When turning Elements off: clear video prompt override state so "Override Video Prompt" validation doesn't block (Elements and override share videoPromptOverrides).
