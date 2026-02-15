@@ -882,19 +882,35 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
     }, []),
     
     updatePropImage: useCallback((shotSlot, propId, imageId) => {
-      setState(prev => ({
-        ...prev,
-        shotProps: {
-          ...prev.shotProps,
-          [shotSlot]: {
-            ...prev.shotProps[shotSlot],
-            [propId]: {
-              ...prev.shotProps[shotSlot]?.[propId],
-              selectedImageId: imageId
+      setState(prev => {
+        const next = {
+          ...prev,
+          shotProps: {
+            ...prev.shotProps,
+            [shotSlot]: {
+              ...prev.shotProps[shotSlot],
+              [propId]: {
+                ...prev.shotProps[shotSlot]?.[propId],
+                selectedImageId: imageId
+              }
             }
           }
+        };
+
+        // If a prop image is cleared, also remove this prop from Elements selection for the shot.
+        if (!imageId) {
+          const current = next.selectedElementsForVideo?.[shotSlot] || [];
+          const filtered = current.filter((id: string) => id !== `prop:${propId}`);
+          if (filtered.length !== current.length) {
+            next.selectedElementsForVideo = {
+              ...next.selectedElementsForVideo,
+              [shotSlot]: filtered
+            };
+          }
         }
-      }));
+
+        return next;
+      });
     }, []),
     
     // Dialogue Workflow Actions

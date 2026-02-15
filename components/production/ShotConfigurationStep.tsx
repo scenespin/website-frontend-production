@@ -752,10 +752,10 @@ export function ShotConfigurationStep({
     shotPropsForThisShot.forEach(prop => {
       const propConfig = finalShotProps[shot.slot]?.[prop.id];
       const availableImages = getAvailablePropImages(prop);
-      const selectedImageId = propConfig?.selectedImageId || (availableImages.length > 0 ? availableImages[0].id : undefined);
+      const selectedImageId = propConfig?.selectedImageId;
       const selectedImage = selectedImageId 
         ? availableImages.find(img => img.id === selectedImageId)
-        : availableImages[0];
+        : undefined;
       
       if (selectedImage) {
         // Find the s3Key for the selected image
@@ -804,10 +804,10 @@ export function ShotConfigurationStep({
     shotPropsForThisShot.forEach(prop => {
       const propConfig = finalShotProps[shot.slot]?.[prop.id];
       const availableImages = getAvailablePropImages(prop);
-      const selectedImageId = propConfig?.selectedImageId || (availableImages.length > 0 ? availableImages[0].id : undefined);
+      const selectedImageId = propConfig?.selectedImageId;
       const selectedImage = selectedImageId 
         ? availableImages.find(img => img.id === selectedImageId)
-        : availableImages[0];
+        : undefined;
       
       if (selectedImage) {
         const fullProp = prop as typeof prop & {
@@ -1445,8 +1445,8 @@ export function ShotConfigurationStep({
                         shotPropsForThisShot.forEach(prop => {
                           const propConfig = finalShotProps[shot.slot]?.[prop.id];
                           const availableImages = getAvailablePropImages(prop);
-                          const selectedImageId = propConfig?.selectedImageId || (availableImages.length > 0 ? availableImages[0].id : undefined);
-                          const selectedImage = selectedImageId ? availableImages.find(img => img.id === selectedImageId) : availableImages[0];
+                          const selectedImageId = propConfig?.selectedImageId;
+                          const selectedImage = selectedImageId ? availableImages.find(img => img.id === selectedImageId) : undefined;
                           if (selectedImage) {
                             const fullProp = prop as typeof prop & { angleReferences?: Array<{ id: string; s3Key: string; imageUrl: string; label?: string }>; images?: Array<{ url: string; s3Key?: string }>; baseReference?: { s3Key?: string; imageUrl?: string } };
                             let imageS3Key: string | null = null;
@@ -1607,8 +1607,8 @@ export function ShotConfigurationStep({
                             shotPropsForThisShot.forEach(prop => {
                               const propConfig = finalShotProps[shot.slot]?.[prop.id];
                               const availableImages = getAvailablePropImages(prop);
-                              const selectedImageId = propConfig?.selectedImageId || (availableImages.length > 0 ? availableImages[0].id : undefined);
-                              const selectedImage = selectedImageId ? availableImages.find(img => img.id === selectedImageId) : availableImages[0];
+                              const selectedImageId = propConfig?.selectedImageId;
+                              const selectedImage = selectedImageId ? availableImages.find(img => img.id === selectedImageId) : undefined;
                               if (selectedImage) {
                                 const fullProp = prop as typeof prop & { angleReferences?: Array<{ id: string; s3Key: string; imageUrl: string; label?: string }>; images?: Array<{ url: string; s3Key?: string }>; baseReference?: { s3Key?: string; imageUrl?: string } };
                                 let imageS3Key: string | null = null;

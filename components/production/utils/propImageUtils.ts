@@ -150,7 +150,7 @@ export function getAvailablePropImagesByGroup(prop: PropType): {
 
 /**
  * Get the selected image s3Key for a prop based on the selectedImageId.
- * Falls back to the first available image if no selection is made.
+ * Returns undefined if no explicit selection is made.
  * 
  * 🔥 Feature 0200: Returns s3Key (not imageUrl) - presigned URLs should be fetched separately
  * Don't use expired imageUrl values from entity props.
@@ -160,23 +160,15 @@ export function getSelectedPropImageUrl(
   selectedImageId?: string
 ): string | undefined {
   const availableImages = getAvailablePropImages(prop);
-  
-  if (availableImages.length === 0) {
-    return undefined; // 🔥 Feature 0200: Don't fall back to prop.imageUrl (may be expired)
+
+  if (!selectedImageId || availableImages.length === 0) {
+    return undefined; // Explicit-only behavior for prop references.
   }
-  
-  // If selectedImageId exists, use it; otherwise, first image is auto-selected
-  const effectiveSelectedId = selectedImageId || availableImages[0]?.id;
-  
-  if (effectiveSelectedId) {
-    const selectedImage = availableImages.find(img => img.id === effectiveSelectedId);
-    if (selectedImage) {
-      // Return s3Key (which is stored in imageUrl field) - presigned URL will be fetched separately
-      return selectedImage.imageUrl;
-    }
-  }
-  
-  // Fallback to first available image
-  return availableImages[0]?.imageUrl;
+
+  const selectedImage = availableImages.find(img => img.id === selectedImageId);
+  if (!selectedImage) return undefined;
+
+  // Return s3Key (which is stored in imageUrl field) - presigned URL will be fetched separately
+  return selectedImage.imageUrl;
 }
 

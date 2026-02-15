@@ -367,7 +367,7 @@ export function ShotConfigurationPanel({
     assignedProps.forEach((prop: { id: string; name: string }) => {
       const config = shotProps[shot.slot]?.[prop.id];
       const availableImages = getAvailablePropImages(prop as Parameters<typeof getAvailablePropImages>[0]);
-      const hasImage = (config?.selectedImageId && availableImages.some((img: { id: string }) => img.id === config.selectedImageId)) || availableImages.length > 0;
+      const hasImage = !!(config?.selectedImageId && availableImages.some((img: { id: string }) => img.id === config.selectedImageId));
       if (hasImage) {
         items.push({ id: `prop:${prop.id}`, label: prop.name, type: 'prop' });
       }
@@ -507,6 +507,16 @@ export function ShotConfigurationPanel({
 
   // When Elements selection changes, update stored prompt to the new suggestion (so prefill stays in sync with refs).
   const prevSuggestionRef = React.useRef('');
+  // Keep Elements selections valid against the current eligible list (e.g., remove stale prop:* ids when prop image is cleared).
+  React.useEffect(() => {
+    if (!onSelectedElementsForShotChange || selectedElementsForVideo.length === 0) return;
+    const validIds = new Set(elementsListForShot.map((el) => el.id));
+    const filtered = selectedElementsForVideo.filter((id) => validIds.has(id));
+    if (filtered.length !== selectedElementsForVideo.length) {
+      onSelectedElementsForShotChange(filtered);
+    }
+  }, [elementsListForShot, selectedElementsForVideo, onSelectedElementsForShotChange]);
+
   React.useEffect(() => {
     if (selectedElementsForVideo.length === 0) {
       prevSuggestionRef.current = '';
@@ -1123,10 +1133,10 @@ export function ShotConfigurationPanel({
                             <div className="flex items-center gap-2 flex-1">
                               {(() => {
                                 const availableImages = getAvailablePropImages(fullProp);
-                                const selectedImageId = propConfig.selectedImageId || (availableImages.length > 0 ? availableImages[0].id : undefined);
+                                const selectedImageId = propConfig.selectedImageId;
                                 const selectedImage = selectedImageId 
                                   ? availableImages.find(img => img.id === selectedImageId)
-                                  : availableImages[0];
+                                  : undefined;
                                 
                                 let imageS3Key: string | null = null;
                                 if (selectedImage) {
@@ -1705,12 +1715,12 @@ export function ShotConfigurationPanel({
                           console.log('[PropImageDebug] Available images for', prop.name, ':', availableImages.length, availableImages);
                           
                           const propConfig = shotProps[shot.slot]?.[prop.id] || {};
-                          const selectedImageId = propConfig.selectedImageId || (availableImages.length > 0 ? availableImages[0].id : undefined);
+                          const selectedImageId = propConfig.selectedImageId;
                           
                           // Find the selected image
                           const selectedImage = selectedImageId 
                             ? availableImages.find(img => img.id === selectedImageId)
-                            : availableImages[0];
+                            : undefined;
                           
                           // Get the s3Key for the selected image
                           let imageS3Key: string | null = null;
