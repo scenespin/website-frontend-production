@@ -14,6 +14,49 @@ export interface ShotForValidation {
   type: string;
 }
 
+export type ElementsVideoModelId = 'veo-3.1';
+export type ElementsVideoDurationSeconds = 4 | 6 | 8;
+
+/** Elements-to-video duration capabilities per model. */
+export const ELEMENTS_VIDEO_DURATIONS_BY_MODEL: Record<ElementsVideoModelId, { options: readonly ElementsVideoDurationSeconds[] }> = {
+  'veo-3.1': { options: [8] }, // reference_to_video currently supports only 8s
+};
+
+export const DEFAULT_ELEMENTS_VIDEO_MODEL: ElementsVideoModelId = 'veo-3.1';
+
+export const ELEMENTS_VIDEO_MODEL_MESSAGE_BY_MODEL: Record<ElementsVideoModelId, string> = {
+  'veo-3.1': 'Currently VEO 3.1, 8s; more models coming soon.',
+};
+
+export function getElementsVideoDurationOptions(
+  modelId: ElementsVideoModelId = DEFAULT_ELEMENTS_VIDEO_MODEL
+): readonly ElementsVideoDurationSeconds[] {
+  return ELEMENTS_VIDEO_DURATIONS_BY_MODEL[modelId]?.options ?? [8];
+}
+
+export function getDefaultElementsVideoDuration(
+  modelId: ElementsVideoModelId = DEFAULT_ELEMENTS_VIDEO_MODEL
+): ElementsVideoDurationSeconds {
+  return getElementsVideoDurationOptions(modelId)[0] ?? 8;
+}
+
+export function getEffectiveElementsVideoDuration(
+  rawDuration: number | undefined,
+  modelId: ElementsVideoModelId = DEFAULT_ELEMENTS_VIDEO_MODEL
+): ElementsVideoDurationSeconds {
+  const options = getElementsVideoDurationOptions(modelId);
+  if (rawDuration != null && options.includes(rawDuration as ElementsVideoDurationSeconds)) {
+    return rawDuration as ElementsVideoDurationSeconds;
+  }
+  return getDefaultElementsVideoDuration(modelId);
+}
+
+export function getElementsVideoModelMessage(
+  modelId: ElementsVideoModelId = DEFAULT_ELEMENTS_VIDEO_MODEL
+): string {
+  return ELEMENTS_VIDEO_MODEL_MESSAGE_BY_MODEL[modelId] || ELEMENTS_VIDEO_MODEL_MESSAGE_BY_MODEL[DEFAULT_ELEMENTS_VIDEO_MODEL];
+}
+
 /**
  * Validates Elements requirements for action/establishing shots.
  * When useElementsForVideo[slot] is true: requires at least one reference and a non-empty prompt.
@@ -62,4 +105,26 @@ export function buildSelectedElementsForVideoPayload(
   return withEntries.length > 0
     ? Object.fromEntries(withEntries.map(([k, v]) => [parseInt(k, 10), v]))
     : undefined;
+}
+
+/**
+ * Builds normalized elementsVideoDurations payload for shots where Elements is enabled.
+ * Values are normalized against the active model capabilities.
+ */
+export function buildElementsVideoDurationsPayload(
+  elementsVideoDurations: Record<number, number> | undefined,
+  useElementsForVideo: Record<number, boolean> | undefined,
+  modelId: ElementsVideoModelId = DEFAULT_ELEMENTS_VIDEO_MODEL
+): Record<number, ElementsVideoDurationSeconds> | undefined {
+  if (!useElementsForVideo || typeof useElementsForVideo !== 'object') return undefined;
+  const entries = Object.entries(useElementsForVideo).filter(([, enabled]) => !!enabled);
+  if (entries.length === 0) return undefined;
+
+  const normalized: Record<number, ElementsVideoDurationSeconds> = {};
+  for (const [slot] of entries) {
+    const slotNum = parseInt(slot, 10);
+    const raw = elementsVideoDurations?.[slotNum];
+    normalized[slotNum] = getEffectiveElementsVideoDuration(raw, modelId);
+  }
+  return normalized;
 }

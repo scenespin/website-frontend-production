@@ -29,17 +29,16 @@ import { toast } from 'sonner';
 import { getAvailablePropImages } from './utils/propImageUtils';
 import { PropImageSelector } from './PropImageSelector';
 import { cn } from '@/lib/utils';
+import {
+  DEFAULT_ELEMENTS_VIDEO_MODEL,
+  getDefaultElementsVideoDuration,
+  getEffectiveElementsVideoDuration,
+  getElementsVideoDurationOptions,
+  getElementsVideoModelMessage,
+} from '@/lib/elementsWorkflowUtils';
 
 export type Resolution = '1080p' | '4k';
 export type ShotDuration = 'quick-cut' | 'extended-take'; // 'quick-cut' = ~5s, 'extended-take' = ~10s
-
-/** Elements-to-video duration options per model. Add entries when we support more models and a model selector. */
-const ELEMENTS_VIDEO_DURATIONS_BY_MODEL: Record<string, { options: readonly number[] }> = {
-  'veo-3.1': { options: [4, 6, 8] },
-};
-const ELEMENTS_DEFAULT_MODEL = 'veo-3.1';
-/** Shown next to duration dropdown; update when more models are available. */
-const ELEMENTS_VIDEO_MODEL_MESSAGE = 'Currently VEO 3.1; more models coming soon.';
 
 export type CameraAngle = 
   | 'close-up'
@@ -258,7 +257,7 @@ export function ShotConfigurationPanel({
   elementsMaxSelect = 3,
   elementsVideoPrompt = '',
   onElementsVideoPromptChange,
-  elementsVideoDuration = 4,
+  elementsVideoDuration = getDefaultElementsVideoDuration(),
   onElementsVideoDurationChange
 }: ShotConfigurationPanelProps) {
   const shouldShowLocation = needsLocationAngle(shot) && sceneAnalysisResult?.location?.id && onLocationAngleChange;
@@ -1889,18 +1888,24 @@ export function ShotConfigurationPanel({
             <div className="ml-6 space-y-3">
               <div className="flex flex-wrap items-center gap-2 gap-y-1">
                 <span className="text-[10px] font-medium text-[#808080]">Duration:</span>
-                <select
-                  value={elementsVideoDuration}
-                  onChange={(e) => onElementsVideoDurationChange?.(Number(e.target.value) as 4 | 6 | 8)}
-                  className="text-xs bg-[#0A0A0A] border border-[#3F3F46] rounded px-2 py-1 text-[#E5E7EB] focus:outline-none focus:ring-2 focus:ring-[#DC143C]"
-                  aria-describedby="elements-video-model-message"
-                >
-                  {((ELEMENTS_VIDEO_DURATIONS_BY_MODEL[ELEMENTS_DEFAULT_MODEL]?.options) ?? [4, 6, 8]).map((sec) => (
-                    <option key={sec} value={sec}>{sec}s</option>
-                  ))}
-                </select>
+                {(() => {
+                  const options = getElementsVideoDurationOptions(DEFAULT_ELEMENTS_VIDEO_MODEL);
+                  const displayValue = getEffectiveElementsVideoDuration(elementsVideoDuration, DEFAULT_ELEMENTS_VIDEO_MODEL);
+                  return (
+                    <select
+                      value={displayValue}
+                      onChange={(e) => onElementsVideoDurationChange?.(Number(e.target.value) as 4 | 6 | 8)}
+                      className="text-xs bg-[#0A0A0A] border border-[#3F3F46] rounded px-2 py-1 text-[#E5E7EB] focus:outline-none focus:ring-2 focus:ring-[#DC143C]"
+                      aria-describedby="elements-video-model-message"
+                    >
+                      {options.map((sec) => (
+                        <option key={sec} value={sec}>{sec}s</option>
+                      ))}
+                    </select>
+                  );
+                })()}
                 <span id="elements-video-model-message" className="text-[10px] text-[#808080]">
-                  {ELEMENTS_VIDEO_MODEL_MESSAGE}
+                  {getElementsVideoModelMessage(DEFAULT_ELEMENTS_VIDEO_MODEL)}
                 </span>
               </div>
               <p className="text-[10px] text-[#808080] mb-1">Choose up to {elementsMaxSelect} references (character, location, or prop):</p>

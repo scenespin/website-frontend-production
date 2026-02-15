@@ -1549,7 +1549,7 @@ export function ShotConfigurationStep({
                   elementsMaxSelect={VEO_MAX_ELEMENTS}
                   elementsVideoPrompt={state.videoPromptOverrides[shot.slot] ?? ''}
                   onElementsVideoPromptChange={(value) => actions.updateVideoPromptOverride(shot.slot, value)}
-                  elementsVideoDuration={state.elementsVideoDurations[shot.slot] ?? 4}
+                  elementsVideoDuration={state.elementsVideoDurations[shot.slot]}
                   onElementsVideoDurationChange={(seconds) => actions.updateElementsVideoDuration(shot.slot, seconds)}
                   renderAfterReferenceSelection={
                     <>

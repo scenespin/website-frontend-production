@@ -26,6 +26,7 @@ import type { Resolution, CameraAngle } from './ShotConfigurationPanel';
 import { SceneBuilderService } from '@/services/SceneBuilderService';
 import { useAuth } from '@clerk/nextjs';
 import { getCharacterName, getCharacterSource } from './utils/sceneBuilderUtils';
+import { DEFAULT_ELEMENTS_VIDEO_MODEL, getEffectiveElementsVideoDuration } from '@/lib/elementsWorkflowUtils';
 
 // Honest resolution (0237): No resolution selector. Output is 720p (Reliable/LongCat) or 1080p (Premium/VEO) by workflow.
 
@@ -271,10 +272,10 @@ export function SceneReviewStep({
         : (quality === 'premium' ? 4 : 5);
       return total + seconds;
     }
-    // Feature 0259: Elements to Video adds VEO clip duration (4, 6, or 8s)
+    // Feature 0259: Elements duration is normalized from model capabilities.
     if (useElementsForVideo[shot.slot]) {
-      const sec = elementsVideoDurations[shot.slot];
-      return total + (sec === 4 || sec === 6 || sec === 8 ? sec : 6);
+      const sec = getEffectiveElementsVideoDuration(elementsVideoDurations[shot.slot], DEFAULT_ELEMENTS_VIDEO_MODEL);
+      return total + sec;
     }
     return total;
   }, 0);
