@@ -477,8 +477,8 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
                       </span>
                     )}
                     {entry.videoMode === 'reference-images' && (
-                      <span className="text-[10px] font-medium text-violet-500/90 bg-violet-500/10 px-2 py-0.5 rounded" title="Reference images">
-                        Reference images
+                      <span className="text-[10px] font-medium text-violet-500/90 bg-violet-500/10 px-2 py-0.5 rounded" title="Elements">
+                        Elements
                       </span>
                     )}
                     {(entry.videoMode === 'text-only' || !entry.videoMode) && entry.providerDisplayLabel !== 'Dialogue' && entry.providerDisplayLabel !== 'Premium Dialogue' && (
