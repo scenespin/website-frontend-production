@@ -394,6 +394,56 @@ export function ShotConfigurationPanel({
     []
   );
 
+  // Convert script-derived lines into visual-only action guidance.
+  const toVisualOnlyAction = React.useCallback((text: string): string => {
+    if (!text.trim()) return '';
+    const withoutQuotedDialogue = text
+      .replace(/"[^"]*"/g, ' ')
+      .replace(/“[^”]*”/g, ' ')
+      .replace(/‘[^’]*’/g, ' ')
+      .replace(/'[^'\n]{8,}'/g, ' ');
+    const normalized = withoutQuotedDialogue
+      .replace(/\s+/g, ' ')
+      .replace(/^[A-Z][A-Z0-9 .'\-]{1,40}:\s*/g, '')
+      .trim();
+    if (!normalized) return '';
+
+    const speechOnlyVerb = /\b(says|said|asks|asked|replies|replied|yells|yelled|whispers|whispered|shouts|shouted|murmurs|murmured|speaks|spoke|tells|told|announces|announced)\b/i;
+    const physicalVerb = /\b(walks?|runs?|turns?|looks?|stares?|moves?|opens?|closes?|grabs?|holds?|sits?|stands?|leans?|enters?|exits?|nods?|points?|reaches?|glances?|steps?)\b/i;
+
+    const cleanedSentences = normalized
+      .split(/[.!?]+/)
+      .map((s) => s.trim())
+      .filter(Boolean)
+      .map((sentence) =>
+        sentence
+          .replace(/\b(to\s+[A-Z][a-z]+:)\b/g, ' ')
+          .replace(/\b(says|said|asks|asked|replies|replied|yells|yelled|whispers|whispered|shouts|shouted|murmurs|murmured|speaks|spoke|tells|told|announces|announced)\b/gi, ' ')
+          .replace(/\s+/g, ' ')
+          .trim()
+      )
+      .filter((sentence) => {
+        if (!sentence) return false;
+        if (speechOnlyVerb.test(sentence) && !physicalVerb.test(sentence)) return false;
+        return true;
+      });
+
+    return cleanedSentences.slice(0, 2).join('. ').trim();
+  }, []);
+
+  const inferInteriorScene = React.useCallback((sceneHeading: string, locationName: string, actionText: string): boolean => {
+    const heading = (sceneHeading || '').toUpperCase();
+    if (heading.includes('INT.')) return true;
+    if (heading.includes('EXT.')) return false;
+
+    const combined = `${locationName} ${actionText}`.toLowerCase();
+    const interiorHints = /\b(inside|indoors?|interior|office|room|apartment|house|kitchen|bedroom|hallway|lobby|studio|classroom|hospital|restaurant|cafe|bar|store|shop|warehouse|building)\b/;
+    const exteriorHints = /\b(outside|outdoors?|exterior|street|road|highway|park|forest|beach|mountain|field|alley|parking|rooftop)\b/;
+    if (interiorHints.test(combined)) return true;
+    if (exteriorHints.test(combined)) return false;
+    return false;
+  }, []);
+
   // Feature 0259: Veo 3.1 best-practice prompt. Formula: [Cinematography] + [Subject] + [Action] + [Context] + [Style & Ambiance]
   // Ref list and context are built from selected elements (generic for N items; UI caps selection per model, e.g. 3 for VEO).
   const elementsVideoPromptSuggestion = React.useMemo(() => {
@@ -409,8 +459,8 @@ export function ShotConfigurationPanel({
     const refList = labels.length > 1
       ? `${labels.slice(0, -1).join(', ')}, and ${labels[labels.length - 1]}`
       : labels[0];
-    const intro = `Using the provided images for ${refList}, `;
-    const cinematography = 'Medium shot. ';
+    const intro = `Using the provided reference images for ${refList}.`;
+    const cinematography = 'Medium shot with a subtle dolly-in camera move.';
 
     // [Context]: one phrase for environment (location) + background elements (props). Veo guide: "Detail the environment and background elements."
     const hasLocation = selectedElementsForVideo.includes('location');
@@ -427,20 +477,33 @@ export function ShotConfigurationPanel({
           : `with the ${propLabels.slice(0, -1).join(', ')} and ${propLabels[propLabels.length - 1]} visible in the scene`;
       contextParts.push(propPhrase);
     }
-    const contextStr = contextParts.length > 0 ? contextParts.join(' ') + ' ' : '';
+    const contextStr = contextParts.length > 0 ? `${contextParts.join(' ')}.` : 'Keep the environment grounded and coherent with the references.';
 
     const actionLine = (shot as { narrationBlock?: { text?: string }; description?: string }).narrationBlock?.text
       || (shot as { description?: string }).description
       || '';
-    const actionPart = replacePronounsWithCharacterNames(actionLine.trim(), shotMappings || {}, allCharacters);
-    const body = actionPart
-      ? `${actionPart}. `
-      : 'Describe subject, action, and setting. ';
-    const style = 'Cinematic lighting, professional quality.';
-    const qualityControl = 'Without text overlays, subtitles, or watermarks.';
+    const actionWithNames = replacePronounsWithCharacterNames(actionLine.trim(), shotMappings || {}, allCharacters);
+    const visualAction = toVisualOnlyAction(actionWithNames);
+    const actionSentence = visualAction
+      ? `${visualAction}.`
+      : 'The subject performs one clear physical action with readable body movement and expression.';
+    const style = 'Photorealistic cinematic style, controlled lighting, natural motion, and consistent character likeness.';
 
-    return `${intro}${cinematography}${contextStr}${body}${style} ${qualityControl}`;
-  }, [selectedElementsForVideo, elementsListForShot, shot, shotMappings, allCharacters, sceneAnalysisResult?.location?.name, replacePronounsWithCharacterNames]);
+    const heading =
+      ((sceneAnalysisResult as unknown as { sceneHeading?: string; heading?: string })?.sceneHeading
+      || (sceneAnalysisResult as unknown as { sceneHeading?: string; heading?: string })?.heading
+      || '');
+    const isInteriorScene = inferInteriorScene(heading, locationName, `${actionWithNames} ${contextStr}`);
+    const weatherGuardrail = isInteriorScene
+      ? 'Interior scene. Exterior weather may be visible only through windows/openings. Do not show precipitation, snow, rain, or fog inside the room.'
+      : '';
+    const speechSuppression = 'No spoken dialogue, no lip-sync, no mouth movement for speech, and no on-screen speaking. Silent visual action only.';
+    const qualityControl = 'No text overlays, subtitles, labels, or watermarks.';
+
+    return [intro, cinematography, actionSentence, contextStr, style, weatherGuardrail, speechSuppression, qualityControl]
+      .filter(Boolean)
+      .join(' ');
+  }, [selectedElementsForVideo, elementsListForShot, shot, shotMappings, allCharacters, sceneAnalysisResult, replacePronounsWithCharacterNames, toVisualOnlyAction, inferInteriorScene]);
 
   // When Elements selection changes, update stored prompt to the new suggestion (so prefill stays in sync with refs).
   const prevSuggestionRef = React.useRef('');
