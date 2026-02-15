@@ -3044,6 +3044,8 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
         aspectRatio: enabledShots.length > 0 && shotAspectRatios[enabledShots[0]] 
           ? shotAspectRatios[enabledShots[0]] 
           : '16:9',
+        // Per-shot aspect ratio map (required for dialogue/premium dialogue to keep each shot's selected ratio)
+        shotAspectRatios: Object.keys(shotAspectRatios).length > 0 ? shotAspectRatios : undefined,
         duration,
         qualityTier,
         shotBreakdown: sceneAnalysisResult?.shotBreakdown ? {
