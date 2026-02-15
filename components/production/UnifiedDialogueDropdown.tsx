@@ -249,7 +249,6 @@ export function UnifiedDialogueDropdown({
     <div className="space-y-4">
       {/* Lip Sync Options */}
       <div>
-        <div className="text-xs font-medium text-[#FFFFFF] mb-2">WRYDA LIP SYNC OPTIONS</div>
         <div className="space-y-2">
           {lipSyncOptions.map((option, idx) => {
             const isSelected = currentQuality === option.quality && 

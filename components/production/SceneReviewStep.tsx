@@ -740,7 +740,7 @@ export function SceneReviewStep({
                 </div>
                 {hasAnyVideo && (
                   <div className="text-[10px] text-[#808080] italic mt-2 pt-2 border-t border-[#3F3F46]">
-                    Reliable (Wryda) = 720p · Premium (VEO) = 1080p
+                    Standard = 720p · Premium = 1080p
                   </div>
                 )}
               </div>

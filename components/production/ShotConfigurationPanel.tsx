@@ -1912,7 +1912,6 @@ export function ShotConfigurationPanel({
               </div>
               {onDialogueWorkflowChange && (
                 <div className="space-y-3 pb-3 border-b border-[#3F3F46]">
-                  <div className="text-xs font-medium text-[#FFFFFF] mb-2">Dialogue Workflow Selection</div>
                   <UnifiedDialogueDropdown
             shot={shot}
             selectedQuality={selectedDialogueQuality}
