@@ -145,6 +145,23 @@ export function SceneReviewStep({
   const { getToken } = useAuth();
   const [pricing, setPricing] = useState<{ totalHdPrice: number; totalK4Price: number; totalFirstFramePrice: number } | null>(null);
   const [isLoadingPricing, setIsLoadingPricing] = useState(false);
+
+  const resolveDialogueVideoAspectRatio = (
+    firstFrameRatio: '16:9' | '9:16' | '1:1' | '21:9' | '9:21',
+    quality: 'premium' | 'reliable'
+  ): '16:9' | '9:16' | '1:1' | '3:2' | '2:3' => {
+    if (quality === 'premium') {
+      // Premium Dialogue (VEO): only 16:9 and 9:16.
+      return firstFrameRatio === '9:16' || firstFrameRatio === '9:21' ? '9:16' : '16:9';
+    }
+    // Standard Dialogue (Grok): 16:9, 9:16, 3:2, 2:3, 1:1
+    if (firstFrameRatio === '16:9' || firstFrameRatio === '9:16' || firstFrameRatio === '1:1') {
+      return firstFrameRatio;
+    }
+    if (firstFrameRatio === '21:9') return '16:9';
+    if (firstFrameRatio === '9:21') return '9:16';
+    return '16:9';
+  };
   
   // Fetch pricing from backend (server-side margin calculation)
   useEffect(() => {
@@ -618,45 +635,71 @@ export function SceneReviewStep({
                             })}
                           </div>
                         )}
-                        {(() => {
-                          const isElementsVideo = !!useElementsForVideo[shot.slot];
-                          const isDialogueVideo = shot.type === 'dialogue' && !!generateVideoForShot[shot.slot];
-                          const hasVideoForShot = isElementsVideo || isDialogueVideo;
-                          const hasFirstFrameForShot = !isElementsVideo;
-                          const firstFrameAspectRatio = shotAspectRatios[shot.slot] || '16:9';
-                          const videoAspectRatio = isElementsVideo
-                            ? (elementsVideoAspectRatios[shot.slot] || '16:9')
-                            : (shotAspectRatios[shot.slot] || '16:9');
-                          return (
-                            <div className="mt-3 space-y-1">
-                              {hasFirstFrameForShot && (
-                                <div className="text-[10px] text-[#808080]">
-                                  First frame aspect ratio: <span className="text-[#FFFFFF]">{firstFrameAspectRatio}</span>
-                                </div>
-                              )}
-                              {hasVideoForShot && (
-                                <div className="text-[10px] text-[#808080]">
-                                  Video aspect ratio: <span className="text-[#FFFFFF]">{videoAspectRatio}</span>
-                                </div>
-                              )}
-                            </div>
-                          );
-                        })()}
                         {/* Elements path: "Video from elements". Otherwise: first frame model. */}
                         <div className="mt-4 pt-2 border-t border-[#3F3F46]">
-                          {useElementsForVideo[shot.slot] ? (
-                            <>
-                              <div className="text-[10px] text-[#808080] mb-0.5">Video from elements</div>
-                              <div className="text-xs text-[#FFFFFF]">Reference-driven (characters, location, props)</div>
-                            </>
-                          ) : (
-                            <>
-                              <div className="text-[10px] text-[#808080] mb-0.5">First frame model</div>
-                              <div className="text-xs text-[#FFFFFF]">
-                                {REFERENCE_SHOT_MODEL_LABELS[selectedReferenceShotModels[shot.slot] || DEFAULT_REFERENCE_SHOT_MODEL] ?? (selectedReferenceShotModels[shot.slot] || DEFAULT_REFERENCE_SHOT_MODEL)}
+                          {(() => {
+                            const isElementsVideo = !!useElementsForVideo[shot.slot];
+                            const isDialogueVideo = shot.type === 'dialogue' && !!generateVideoForShot[shot.slot];
+                            const hasVideoForShot = isElementsVideo || isDialogueVideo;
+                            const hasFirstFrameForShot = !isElementsVideo;
+                            const firstFrameAspectRatio = (shotAspectRatios[shot.slot] || '16:9') as '16:9' | '9:16' | '1:1' | '21:9' | '9:21';
+                            const dialogueQuality = (selectedDialogueQualities?.[shot.slot] || 'reliable') as 'premium' | 'reliable';
+
+                            const videoAspectRatio = isElementsVideo
+                              ? (elementsVideoAspectRatios[shot.slot] || '16:9')
+                              : isDialogueVideo
+                                ? resolveDialogueVideoAspectRatio(firstFrameAspectRatio, dialogueQuality)
+                                : (shotAspectRatios[shot.slot] || '16:9');
+
+                            const showAdjustment = hasVideoForShot && hasFirstFrameForShot && videoAspectRatio !== firstFrameAspectRatio;
+                            const videoWorkflowLabel = isElementsVideo
+                              ? 'Elements'
+                              : isDialogueVideo
+                                ? (dialogueQuality === 'premium' ? 'Premium Dialogue' : 'Dialogue')
+                                : null;
+
+                            return (
+                              <div className="space-y-1">
+                                {isElementsVideo ? (
+                                  <>
+                                    <div className="text-[10px] text-[#808080] mb-0.5">Video from elements</div>
+                                    <div className="text-xs text-[#FFFFFF]">Reference-driven (characters, location, props)</div>
+                                  </>
+                                ) : (
+                                  <>
+                                    <div className="text-[10px] text-[#808080] mb-0.5">First frame model</div>
+                                    <div className="text-xs text-[#FFFFFF]">
+                                      {REFERENCE_SHOT_MODEL_LABELS[selectedReferenceShotModels[shot.slot] || DEFAULT_REFERENCE_SHOT_MODEL] ?? (selectedReferenceShotModels[shot.slot] || DEFAULT_REFERENCE_SHOT_MODEL)}
+                                    </div>
+                                  </>
+                                )}
+
+                                {hasFirstFrameForShot && (
+                                  <div className="text-[10px] text-[#808080]">
+                                    First frame aspect ratio: <span className="text-[#FFFFFF]">{firstFrameAspectRatio}</span>
+                                  </div>
+                                )}
+
+                                {videoWorkflowLabel && (
+                                  <div className="text-[10px] text-[#808080]">
+                                    Video workflow: <span className="text-[#FFFFFF]">{videoWorkflowLabel}</span>
+                                  </div>
+                                )}
+
+                                {hasVideoForShot && (
+                                  <div className="text-[10px] text-[#808080]">
+                                    Video aspect ratio: <span className="text-[#FFFFFF]">{videoAspectRatio}</span>
+                                  </div>
+                                )}
+
+                                {showAdjustment && (
+                                  <div className="text-[10px] text-[#808080]">
+                                    Adjusted from {firstFrameAspectRatio} to {videoAspectRatio} for this video workflow.
+                                  </div>
+                                )}
                               </div>
-                            </>
-                          )}
+                            );
+                          })()}
                         </div>
                       </div>
                     )}
