@@ -2490,6 +2490,38 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
             );
           }
         }
+
+        // Extreme close-up workflows require a matching pose reference on the selected speaking character.
+        if (shot.type === 'dialogue' && shot.characterId) {
+          const selectedWorkflow = selectedDialogueWorkflows[shot.slot];
+          const requiredPoseId = selectedWorkflow === 'extreme-closeup-mouth'
+            ? 'extreme-close-up-mouth'
+            : selectedWorkflow === 'extreme-closeup'
+              ? 'extreme-close-up'
+              : null;
+          if (requiredPoseId) {
+            const selectedRef = selectedCharacterReferences[shot.slot]?.[shot.characterId];
+            const matchedHeadshotPoseId = (() => {
+              if (!selectedRef) return undefined;
+              const headshots = characterHeadshots[shot.characterId] || [];
+              const matched = headshots.find((h: any) =>
+                (selectedRef.s3Key && h?.s3Key && selectedRef.s3Key === h.s3Key) ||
+                (selectedRef.imageUrl && h?.imageUrl && selectedRef.imageUrl === h.imageUrl)
+              );
+              return matched?.poseId;
+            })();
+            const effectivePoseId = selectedRef?.poseId || matchedHeadshotPoseId;
+            if (effectivePoseId !== requiredPoseId) {
+              const charName = getCharacterName(shot.characterId, allCharacters, sceneAnalysisResult);
+              const workflowLabel = selectedWorkflow === 'extreme-closeup-mouth'
+                ? 'Extreme close-up mouth'
+                : 'Extreme close-up';
+              validationErrors.push(
+                `Shot ${shot.slot}: ${workflowLabel} requires ${charName} to use a ${requiredPoseId} character image. Please select that pose in Character Images.`
+              );
+            }
+          }
+        }
       }
 
       // Elements (0259): when Elements option is on for a shot, at least one reference and a non-empty prompt are required.

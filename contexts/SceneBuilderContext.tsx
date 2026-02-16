@@ -511,27 +511,34 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
       if (!idSet.has(char.id)) return;
       const seen = new Set<string>();
       const headshots: CharacterHeadshot[] = [];
-      const add = (s3Key: string, label?: string, outfitName?: string) => {
+      const add = (s3Key: string, label?: string, outfitName?: string, poseId?: string) => {
         if (!s3Key || s3Key.startsWith('thumbnails/') || seen.has(s3Key)) return;
         seen.add(s3Key);
         headshots.push({
           s3Key,
           imageUrl: characterPayloadUrls.get(s3Key) || '',
           label: label || char.name,
-          outfitName
+          outfitName,
+          ...(poseId ? { poseId } : {})
         });
       };
       (char.images || []).forEach((img: any) => {
         const k = img.s3Key || img.metadata?.s3Key;
-        if (k) add(k, img.metadata?.poseName || img.metadata?.outfitName || char.name, img.metadata?.outfitName);
+        const poseId = img.poseId || img.metadata?.poseId;
+        if (k) add(k, img.metadata?.poseName || img.metadata?.outfitName || char.name, img.metadata?.outfitName, poseId);
       });
       (char.poseReferences || char.angleReferences || []).forEach((ref: any) => {
-        if (ref?.s3Key) add(ref.s3Key, ref.label || ref.metadata?.poseName || char.name, ref.metadata?.outfitName);
+        const poseId = ref.poseId || ref.metadata?.poseId;
+        if (ref?.s3Key) add(ref.s3Key, ref.label || ref.metadata?.poseName || char.name, ref.metadata?.outfitName, poseId);
       });
       (char.references || []).forEach((ref: any) => {
-        if (ref?.s3Key) add(ref.s3Key, ref.label || char.name, ref.metadata?.outfitName);
+        const poseId = ref.poseId || ref.metadata?.poseId;
+        if (ref?.s3Key) add(ref.s3Key, ref.label || char.name, ref.metadata?.outfitName, poseId);
       });
-      if (char.baseReference?.s3Key) add(char.baseReference.s3Key, `${char.name} - Base`);
+      if (char.baseReference?.s3Key) {
+        const basePoseId = char.baseReference.poseId || char.baseReference.metadata?.poseId;
+        add(char.baseReference.s3Key, `${char.name} - Base`, undefined, basePoseId);
+      }
       if (headshots.length > 0) out[char.id] = headshots;
     });
     return out;
