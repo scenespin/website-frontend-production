@@ -34,10 +34,10 @@ import { DEFAULT_ELEMENTS_VIDEO_MODEL, getEffectiveElementsVideoDuration } from 
 const REFERENCE_SHOT_MODEL_LABELS: Record<string, string> = {
   'nano-banana-pro': 'Nano Banana Pro (4K)',
   'nano-banana-pro-2k': 'Nano Banana Pro (2K)',
-  'flux2-max-4k-16:9': 'FLUX.2 [max] (4K 16:9)',
+  'flux2-max-4k-16:9': 'FLUX.2 [max] (4K)',
   'flux2-max-2k': 'FLUX.2 [max] (2K)',
-  'flux2-pro-4k': 'FLUX.2 [pro] (4K 16:9)',
-  'flux2-pro-2k': 'FLUX.2 [pro] (2K 16:9)'
+  'flux2-pro-4k': 'FLUX.2 [pro] (4K)',
+  'flux2-pro-2k': 'FLUX.2 [pro] (2K)'
 };
 
 interface SceneReviewStepProps {

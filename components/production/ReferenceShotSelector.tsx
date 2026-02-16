@@ -115,6 +115,9 @@ export function ReferenceShotSelector({
         <div className="text-[10px] text-[#808080]">
           Selected: {currentModel.name} ({currentModel.credits} credits, {currentModel.resolution})
         </div>
+        <div className="text-[10px] text-[#808080]">
+          Supports 16:9, 9:16, 1:1, 21:9, 9:21 (depends on workflow/model).
+        </div>
       </div>
     </div>
   );
