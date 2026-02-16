@@ -64,6 +64,7 @@ function ShotCell({
   variationIndex: number;
   onVariationChange: (newIndex: number) => void;
 }) {
+  const { getToken } = useAuth();
   // Only show variations that have a first frame (avoids empty placeholder for video-only / text-to-video)
   const variations = shot.variations.filter((v) => v.firstFrame?.s3Key);
   const hasMultipleVariations = variations.length > 1;
@@ -93,11 +94,22 @@ function ShotCell({
 
   const handleDownloadFirstFrame = async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!firstFrameUrl) return;
+    if (!currentVariation.firstFrame.s3Key) return;
     const filename = currentVariation.firstFrame.fileName || `shot-${shot.shotNumber}-first-frame.jpg`;
     try {
-      const response = await fetch(firstFrameUrl);
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) {
+        toast.error('Please sign in to download');
+        return;
+      }
+
+      const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+      const proxyUrl = `${BACKEND_API_URL}/api/media/file?key=${encodeURIComponent(currentVariation.firstFrame.s3Key)}`;
+      const response = await fetch(proxyUrl, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (!response.ok) throw new Error(response.statusText);
+
       const blob = await response.blob();
       const blobUrl = URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -206,7 +218,7 @@ function ShotCell({
           <button
             type="button"
             onClick={handleDownloadFirstFrame}
-            disabled={!firstFrameUrl}
+            disabled={!currentVariation.firstFrame.s3Key}
             className="flex items-center justify-center w-8 h-8 rounded border border-[#3F3F46] bg-[#262626] text-[#A1A1AA] hover:text-white hover:bg-[#2A2A2A] hover:border-[#52525B] disabled:opacity-40 disabled:cursor-not-allowed transition-colors flex-shrink-0"
             title="Download first frame"
             aria-label="Download first frame"
