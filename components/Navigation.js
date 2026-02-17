@@ -32,8 +32,9 @@ import {
   Palette,
   Wand2
 } from 'lucide-react';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import { useDrawer } from '@/contexts/DrawerContext';
+import { useCredits } from '@/contexts/CreditsContext';
 import { ProjectCreationModal } from '@/components/project/ProjectCreationModal';
 import { useRouter } from 'next/navigation';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
@@ -41,7 +42,8 @@ import { getCurrentScreenplayId } from '@/utils/clerkMetadata';
 
 export default function Navigation() {
   const { user } = useUser();
-  const { getToken, signOut } = useAuth();
+  const { signOut } = useAuth();
+  const { credits, loading: loadingCredits } = useCredits();
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -50,10 +52,6 @@ export default function Navigation() {
   const { openDrawer } = useDrawer();
   const [showCreateModal, setShowCreateModal] = useState(false);
   const { screenplayId: contextScreenplayId } = useScreenplay();
-  
-  // Credit balance state
-  const [credits, setCredits] = useState(null);
-  const [loadingCredits, setLoadingCredits] = useState(true);
   
   // Current screenplay state
   const [currentScreenplayName, setCurrentScreenplayName] = useState(null);
@@ -75,160 +73,6 @@ export default function Navigation() {
     }
   };
   
-  // Use ref to track if we've fetched credits to prevent infinite loops
-  const hasFetchedCredits = useRef(false);
-  const lastFetchTime = useRef(0);
-  
-  // Fetch user's credit balance (only once per user session, or if it's been > 30 seconds)
-  useEffect(() => {
-    if (user?.id && getToken) {
-      const now = Date.now();
-      const timeSinceLastFetch = now - lastFetchTime.current;
-      
-      // Fetch if never fetched, or if it's been more than 30 seconds (force refresh on page load after delay)
-      if (!hasFetchedCredits.current || timeSinceLastFetch > 30000) {
-        hasFetchedCredits.current = true;
-        lastFetchTime.current = now;
-        // Force refresh on initial load or after delay to ensure fresh data
-        fetchCreditBalance(0, timeSinceLastFetch > 30000);
-      }
-    }
-  }, [user?.id, getToken]);
-  
-  // Refetch credits when page becomes visible (fixes logout/login persistence issue)
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden && user?.id && getToken) {
-        // Force refresh when page becomes visible to get latest balance
-        fetchCreditBalance(0, true);
-      }
-    };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
-  }, [user?.id]);
-  
-  // Periodic credit refresh (every 30 seconds) - acceptable with Redis cache
-  // With Redis: 90% cache hit rate, so 30s polling is efficient and scalable
-  // Event-driven refresh handles immediate updates after operations
-  useEffect(() => {
-    if (!user?.id || !getToken) return;
-    
-    const interval = setInterval(() => {
-      // Only refresh if page is visible (don't waste resources on hidden tabs)
-      if (!document.hidden) {
-        fetchCreditBalance(0, false);
-      }
-    }, 30000); // 30 seconds - acceptable with Redis cache (90% hit rate, scales to 10K+ users)
-    
-    return () => clearInterval(interval);
-  }, [user?.id, getToken]);
-  
-  // Expose refresh function globally so other components can trigger credit refresh
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      window.refreshCredits = () => {
-        console.log('[Navigation] 🔔 window.refreshCredits() called from external component');
-        console.log('[Navigation] 🔔 Stack trace:', new Error().stack);
-        fetchCreditBalance(0, true); // Force refresh when called externally
-        // Dispatch custom event so other components (like CreditWidget) can listen
-        if (typeof window !== 'undefined') {
-          console.log('[Navigation] 🔔 Dispatching creditsRefreshed event');
-          window.dispatchEvent(new CustomEvent('creditsRefreshed'));
-        }
-      };
-      
-      // Add manual test function for debugging
-      window.testCreditRefresh = () => {
-        console.log('[Navigation] 🧪 TEST: Manual credit refresh triggered');
-        if (window.refreshCredits) {
-          window.refreshCredits();
-        } else {
-          console.error('[Navigation] ❌ TEST FAILED: window.refreshCredits is not available');
-        }
-      };
-      
-      console.log('[Navigation] ✅ window.refreshCredits() function registered');
-      console.log('[Navigation] ✅ window.testCreditRefresh() function registered (for debugging)');
-    }
-    return () => {
-      if (typeof window !== 'undefined' && window.refreshCredits) {
-        console.log('[Navigation] 🧹 Cleaning up window.refreshCredits()');
-        delete window.refreshCredits;
-      }
-    };
-  }, [user?.id, getToken]);
-  
-      async function fetchCreditBalance(retryCount = 0, forceRefresh = false) {
-        try {
-          // Set up auth token with wryda-backend template
-          const { api, setAuthTokenGetter } = await import('@/lib/api');
-          setAuthTokenGetter(() => getToken({ template: 'wryda-backend' }));
-          
-          console.log('[Navigation] 🔄 Fetching credits, user ID:', user?.id, 'forceRefresh:', forceRefresh, 'retryCount:', retryCount);
-          
-          // Use refresh parameter to bypass cache if forceRefresh is true
-          const startTime = Date.now();
-          const response = await api.user.getCredits(forceRefresh);
-          const fetchDuration = Date.now() - startTime;
-          
-          console.log('[Navigation] 📡 API call completed in', fetchDuration + 'ms');
-          // 🔒 SECURITY: Don't log full response (contains bearer token) - only log data
-          const safeResponse = {
-            status: response.status,
-            statusText: response.statusText,
-            data: response.data,
-            // Don't include config/headers which contain Authorization token
-          };
-          console.log('[Navigation] 📦 API response (sanitized):', safeResponse);
-          console.log('[Navigation] 📦 response.data:', response.data);
-          console.log('[Navigation] 📦 response.data.data:', response.data?.data);
-          
-          // FIX: API response is response.data.data.balance (not response.data.balance)
-          const creditsData = response.data.data;
-          
-          console.log('[Navigation] 🔍 Parsed creditsData:', creditsData);
-          console.log('[Navigation] 🔍 Credits balance value:', creditsData?.balance, 'type:', typeof creditsData?.balance);
-          
-          if (creditsData && typeof creditsData.balance === 'number') {
-            const oldCredits = credits;
-            setCredits(creditsData.balance);
-            lastFetchTime.current = Date.now(); // Update last fetch time
-            console.log('[Navigation] ✅ Credits updated:', {
-              old: oldCredits,
-              new: creditsData.balance,
-              change: creditsData.balance - (oldCredits || 0),
-              forceRefresh,
-              fetchDuration: fetchDuration + 'ms'
-            });
-          } else {
-            console.error('[Navigation] ❌ Invalid credits data, setting to 0', {
-              creditsData,
-              balanceType: typeof creditsData?.balance,
-              balanceValue: creditsData?.balance
-            });
-            setCredits(0);
-          }
-        } catch (error) {
-          console.error('[Navigation] Failed to fetch credits:', error);
-          console.error('[Navigation] Error details:', error?.response?.data);
-          
-          // If it's a 401 error, don't retry - just set to 0
-          if (error?.response?.status === 401) {
-            setCredits(0);
-          } else if (retryCount < 2) {
-            // Retry on network error
-            setTimeout(() => fetchCreditBalance(retryCount + 1, forceRefresh), 1000 * (retryCount + 1));
-          } else {
-            setCredits(0); // Fallback to 0 after retries
-          }
-        } finally {
-          if (retryCount === 0) {
-            setLoadingCredits(false);
-          }
-        }
-      }
-
   // Fetch current screenplay name
   useEffect(() => {
     if (currentScreenplayId && user) {

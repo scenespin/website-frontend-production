@@ -2,75 +2,25 @@
 
 import { useState, useEffect, useRef } from 'react';
 import { useUser } from '@clerk/nextjs';
-import { Zap, ChevronDown, Settings, Plus, X } from 'lucide-react';
-import { api } from '@/lib/api';
+import { Zap, ChevronDown, Settings, Plus } from 'lucide-react';
+import { useCredits } from '@/contexts/CreditsContext';
 import { getAutoRechargeSettings, CREDIT_PACKAGES } from '@/lib/stripe-client';
 import QuickPurchaseModal from './QuickPurchaseModal';
 import AutoRechargeModal from './AutoRechargeModal';
 
 export default function CreditWidget() {
   const { user } = useUser();
-  const [credits, setCredits] = useState(null);
+  const { credits, loading, refreshCredits } = useCredits();
   const [autoRecharge, setAutoRecharge] = useState(null);
   const [showDropdown, setShowDropdown] = useState(false);
   const [showQuickPurchase, setShowQuickPurchase] = useState(false);
   const [showAutoRecharge, setShowAutoRecharge] = useState(false);
-  const [loading, setLoading] = useState(true);
   const dropdownRef = useRef(null);
 
   useEffect(() => {
     if (user) {
-      fetchData();
+      fetchAutoRechargeSettings();
     }
-  }, [user]);
-
-  // Listen to global refreshCredits event
-  useEffect(() => {
-    if (typeof window !== 'undefined') {
-      // Create a custom event listener for credit refresh
-      const handleRefresh = () => {
-        console.log('[CreditWidget] 🔔 creditsRefreshed event received, forcing refresh...');
-        fetchData(true); // Force refresh when event is triggered
-      };
-      
-      // Listen to custom credit refresh events (dispatched by Navigation component)
-      window.addEventListener('creditsRefreshed', handleRefresh);
-      console.log('[CreditWidget] ✅ Registered creditsRefreshed event listener');
-      
-      return () => {
-        console.log('[CreditWidget] 🧹 Removing creditsRefreshed event listener');
-        window.removeEventListener('creditsRefreshed', handleRefresh);
-      };
-    }
-  }, [user]);
-
-  // Periodic credit refresh (every 30 seconds) - acceptable with Redis cache
-  // With Redis: 90% cache hit rate, so 30s polling is efficient and scalable
-  // Event-driven refresh handles immediate updates after operations
-  useEffect(() => {
-    if (!user) return;
-    
-    const interval = setInterval(() => {
-      // Only refresh if page is visible (don't waste resources on hidden tabs)
-      if (!document.hidden) {
-        fetchData();
-      }
-    }, 30000); // 30 seconds - acceptable with Redis cache (90% hit rate, scales to 10K+ users)
-    
-    return () => clearInterval(interval);
-  }, [user]);
-
-  // Refetch credits when page becomes visible
-  useEffect(() => {
-    const handleVisibilityChange = () => {
-      if (!document.hidden && user) {
-        // Force refresh when page becomes visible to get latest balance
-        fetchData();
-      }
-    };
-    
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-    return () => document.removeEventListener('visibilitychange', handleVisibilityChange);
   }, [user]);
 
   // Close dropdown when clicking outside
@@ -84,72 +34,25 @@ export default function CreditWidget() {
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  async function fetchData(forceRefresh = false) {
+  async function fetchAutoRechargeSettings() {
     try {
-      console.log('[CreditWidget] 🔄 fetchData called, forceRefresh:', forceRefresh);
-      setLoading(true);
-      // Auth token is handled globally by LayoutClient.js
-      // The API interceptor will handle auth token retrieval
-      // If auth isn't ready yet, the request will fail gracefully
-
-      // Fetch credits (use refresh parameter to bypass cache if needed)
-      const startTime = Date.now();
-      const creditsResponse = await api.user.getCredits(forceRefresh);
-      const fetchDuration = Date.now() - startTime;
-      
-      console.log('[CreditWidget] 📡 API call completed in', fetchDuration + 'ms');
-      // 🔒 SECURITY: Don't log full response (contains bearer token) - only log data
-      const safeResponse = {
-        status: creditsResponse.status,
-        statusText: creditsResponse.statusText,
-        data: creditsResponse.data,
-        // Don't include config/headers which contain Authorization token
-      };
-      console.log('[CreditWidget] 📦 API response (sanitized):', safeResponse);
-      
-      const creditsData = creditsResponse.data.data;
-      const oldCredits = credits;
-      const newCredits = creditsData?.balance || 0;
-      
-      console.log('[CreditWidget] 🔍 Credits data:', {
-        old: oldCredits,
-        new: newCredits,
-        change: newCredits - (oldCredits || 0),
-        forceRefresh,
-        fetchDuration: fetchDuration + 'ms'
-      });
-      
-      setCredits(newCredits);
-
-      // Fetch auto-recharge status
-      try {
-        const autoRechargeData = await getAutoRechargeSettings();
-        setAutoRecharge(autoRechargeData);
-      } catch (error) {
-        console.error('Failed to fetch auto-recharge:', error);
-        setAutoRecharge({ enabled: false });
-      }
+      const autoRechargeData = await getAutoRechargeSettings();
+      setAutoRecharge(autoRechargeData);
     } catch (error) {
-      console.error('Failed to fetch credit data:', error);
-      setCredits(0);
-    } finally {
-      setLoading(false);
+      console.error('Failed to fetch auto-recharge:', error);
+      setAutoRecharge({ enabled: false });
     }
   }
 
   const handlePurchaseSuccess = () => {
-    fetchData(true); // Force refresh credits (bypass cache)
+    refreshCredits(true);
     setShowQuickPurchase(false);
     setShowDropdown(false);
-    
-    // Also trigger global refresh for Navigation component
-    if (typeof window !== 'undefined' && window.refreshCredits) {
-      window.refreshCredits();
-    }
   };
 
   const handleAutoRechargeUpdate = () => {
-    fetchData(); // Refresh auto-recharge status
+    fetchAutoRechargeSettings();
+    refreshCredits(true);
     setShowAutoRecharge(false);
     setShowDropdown(false);
   };

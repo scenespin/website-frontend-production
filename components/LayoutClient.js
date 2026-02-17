@@ -13,6 +13,7 @@ import { ScreenplayProvider } from "@/contexts/ScreenplayContext";
 import { EditorProvider } from "@/contexts/EditorContext";
 import { DrawerProvider } from "@/contexts/DrawerContext";
 import { ChatProvider } from "@/contexts/ChatContext";
+import { CreditsProvider } from "@/contexts/CreditsContext";
 import { QueryClientProvider } from "@/providers/QueryClientProvider";
 import { fixCorruptedBeatsInLocalStorage } from "@/utils/fixCorruptedBeats";
 // Temporarily disabled - Mobile Debug Panel (bug drawer on mobile)
@@ -275,6 +276,7 @@ const ClientLayout = ({ children }) => {
         <EditorProvider>
           <DrawerProvider>
             <ChatProvider>
+          <CreditsProvider>
           {/* Run data migration FIRST to fix corrupted beats */}
           <DataMigration />
           
@@ -318,6 +320,7 @@ const ClientLayout = ({ children }) => {
 
           {/* Set Crisp customer chat support */}
           <CrispChat />
+          </CreditsProvider>
           </ChatProvider>
         </DrawerProvider>
       </EditorProvider>

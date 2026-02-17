@@ -3,7 +3,6 @@
 import { useEffect, useState, useRef, useCallback } from 'react';
 import { useUser, useAuth } from '@clerk/nextjs';
 import { api } from '@/lib/api';
-import apiClient from '@/lib/api';
 import Link from 'next/link';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
 import { ProjectCreationModal } from '@/components/project/ProjectCreationModal';
@@ -46,7 +45,6 @@ export default function Dashboard() {
   const pathname = usePathname();
   const searchParams = useSearchParams();
   const [loading, setLoading] = useState(true);
-  const [credits, setCredits] = useState(null);
   const [projects, setProjects] = useState([]);
   // Phase 4.5: Separate owned and collaborated screenplays
   const [ownedScreenplays, setOwnedScreenplays] = useState([]);
@@ -335,8 +333,7 @@ export default function Dashboard() {
       // Feature 0130: Fetch data independently so one failure doesn't break everything
       // Only fetch screenplays - no project API fallback
       // Note: Next.js API routes handle auth server-side, so we don't need to send token
-      const [creditsRes, screenplaysRes, videosRes] = await Promise.allSettled([
-        api.user.getCredits(),
+      const [screenplaysRes, videosRes] = await Promise.allSettled([
         fetch('/api/screenplays/list?status=active&limit=100', {
           cache: 'no-store', // 🔥 FIX: Prevent browser caching
           headers: {
@@ -352,38 +349,6 @@ export default function Dashboard() {
           }),
         api.video.getJobs()
       ]);
-      
-      // Handle credits (critical)
-      if (creditsRes.status === 'fulfilled') {
-        console.log('[Dashboard] Credits API response:', creditsRes.value);
-        console.log('[Dashboard] Credits data:', creditsRes.value.data);
-        console.log('[Dashboard] Credits balance:', creditsRes.value.data?.data);
-        console.log('[Dashboard] Current user ID:', user?.id);
-        // creditsRes.value is axios response, .data is API response, .data.data is actual data
-        const creditsData = creditsRes.value.data.data;
-        console.log('[Dashboard] Credits data balance value:', creditsData?.balance);
-        setCredits(creditsData);
-        
-        // If balance is 0, try refreshing cache (might be stale)
-        if (creditsData?.balance === 0) {
-          console.log('[Dashboard] Balance is 0, refreshing cache...');
-          console.log('[Dashboard] User ID for refresh:', user?.id);
-          try {
-            const refreshRes = await apiClient.get('/api/credits/balance?refresh=true');
-            const refreshedData = refreshRes.data.data;
-            console.log('[Dashboard] Refreshed balance:', refreshedData);
-            console.log('[Dashboard] Refreshed balance value:', refreshedData?.balance);
-            if (refreshedData?.balance > 0) {
-              setCredits(refreshedData);
-            }
-          } catch (refreshError) {
-            console.error('[Dashboard] Error refreshing credits:', refreshError);
-          }
-        }
-      } else {
-        console.error('Error fetching credits:', creditsRes.reason);
-        setCredits({ balance: 0 }); // Fallback
-      }
       
       // Feature 0130: Only use screenplays - no project API fallback
       const allScreenplays = [];

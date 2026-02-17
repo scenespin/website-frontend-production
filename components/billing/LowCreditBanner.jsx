@@ -3,20 +3,18 @@
 import { useState, useEffect } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { X } from 'lucide-react';
-import { api } from '@/lib/api';
+import { useCredits } from '@/contexts/CreditsContext';
 
 const LOW_CREDIT_THRESHOLD = 500;
 const NEW_USER_THRESHOLD_HOURS = 48; // Show welcome message for accounts < 48 hours old
 
 export default function LowCreditBanner() {
   const { user } = useUser();
-  const [credits, setCredits] = useState(null);
+  const { credits, loading } = useCredits();
   const [dismissed, setDismissed] = useState(false);
-  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     if (user) {
-      fetchCredits();
       // Check if banner was dismissed in this session
       const dismissedKey = `low_credit_banner_dismissed_${user.id}`;
       const wasDismissed = sessionStorage.getItem(dismissedKey);
@@ -25,19 +23,6 @@ export default function LowCreditBanner() {
       }
     }
   }, [user]);
-
-  async function fetchCredits() {
-    try {
-      const response = await api.user.getCredits();
-      const creditsData = response.data.data;
-      setCredits(creditsData?.balance || 0);
-    } catch (error) {
-      console.error('Failed to fetch credits:', error);
-      setCredits(0);
-    } finally {
-      setLoading(false);
-    }
-  }
 
   const handleDismiss = () => {
     setDismissed(true);
