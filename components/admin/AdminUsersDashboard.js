@@ -41,6 +41,13 @@ export default function AdminUsersDashboard() {
   const [selectedUser, setSelectedUser] = useState(null);
   const [showEditModal, setShowEditModal] = useState(false);
 
+  const getDisplayCredits = (u) => {
+    if (!u) return 0;
+    if (typeof u.credit_balance === 'number') return u.credit_balance;
+    if (typeof u.credits_balance === 'number') return u.credits_balance;
+    return 0;
+  };
+
   useEffect(() => {
     if (user) {
       fetchUsers();
@@ -287,7 +294,7 @@ export default function AdminUsersDashboard() {
                     <td>
                       <div className="flex items-center gap-1">
                         <Zap className="w-4 h-4 text-cinema-gold" />
-                        <span className="font-bold">{u.credits_balance || 0}</span>
+                        <span className="font-bold">{getDisplayCredits(u)}</span>
                       </div>
                     </td>
                     <td>
@@ -389,7 +396,7 @@ export default function AdminUsersDashboard() {
               <div className="alert alert-info">
                 <AlertTriangle className="w-5 h-5" />
                 <span className="text-sm">
-                  Current Credits: <strong>{selectedUser.credits_balance || 0}</strong>
+                  Current Credits: <strong>{getDisplayCredits(selectedUser)}</strong>
                 </span>
               </div>
             </div>

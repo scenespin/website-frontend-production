@@ -283,6 +283,12 @@ export function useVideoGeneration() {
         isPolling: true,
       }));
 
+      // Refresh credits immediately after job creation so UI reflects
+      // the same spendable balance path used by backend metering.
+      if (typeof window !== 'undefined' && window.refreshCredits) {
+        window.refreshCredits();
+      }
+
       // Start polling immediately
       await pollJobStatus(jobId);
 
@@ -304,6 +310,12 @@ export function useVideoGeneration() {
       toast.error('❌ Failed to start video generation', {
         description: error.message,
       });
+
+      // Force a refresh in error cases (especially insufficient credits)
+      // so displayed balance stays aligned with backend-authoritative balance.
+      if (typeof window !== 'undefined' && window.refreshCredits) {
+        window.refreshCredits();
+      }
 
       throw error;
     }
