@@ -51,7 +51,7 @@ interface VideoGenerationToolsProps {
   shotNumber?: number;
 }
 
-type VideoMode = 'starting-frame' | 'frame-to-frame';
+type VideoMode = 'text-to-video' | 'starting-frame' | 'frame-to-frame';
 
 const DEFAULT_ASPECT_RATIOS = ['16:9', '9:16', '1:1', '21:9', '9:21', '4:3', '3:4'];
 
@@ -245,10 +245,13 @@ export function VideoGenerationTools({
   // When Frame to Frame is selected, show only models that support image-interpolation (Plan 0257).
   const displayModels = useMemo(() => {
     const list = models;
-    if (activeMode === 'frame-to-frame') {
-      return list.filter((m) => m.capabilities?.imageInterpolation === true);
+    if (activeMode === 'text-to-video') {
+      return list.filter((m) => m.capabilities?.textOnly === true);
     }
-    return list;
+    if (activeMode === 'starting-frame') {
+      return list.filter((m) => m.capabilities?.imageStart === true);
+    }
+    return list.filter((m) => m.capabilities?.imageInterpolation === true);
   }, [models, activeMode]);
 
   // Keep selection valid: if current model is not in the displayed list (e.g. switched to Frame to Frame with Grok selected), reset to first valid.
@@ -427,16 +430,28 @@ export function VideoGenerationTools({
       }
 
       const selectedCameraOption = cameraAngles.find((a) => a.id === selectedCameraAngle);
+      const defaultSceneName =
+        activeMode === 'text-to-video'
+          ? 'Playground Text to Video'
+          : activeMode === 'starting-frame'
+          ? 'Playground Starting Frame'
+          : 'Playground Frame to Frame';
+
       const requestBody: any = {
         prompt: finalPrompt,
-        videoMode: activeMode === 'starting-frame' ? 'image-start' : 'image-interpolation',
+        videoMode:
+          activeMode === 'text-to-video'
+            ? 'text-only'
+            : activeMode === 'starting-frame'
+            ? 'image-start'
+            : 'image-interpolation',
         resolution: selectedResolution,
         duration: `${selectedDuration}s`,
         aspectRatio: aspectRatio,
         cameraMotion: selectedCameraOption?.promptText || 'none',
         sceneId: propSceneId ?? `playground_${Date.now()}`,
         sceneNumber: propSceneNumber,
-        sceneName: propSceneName ?? `Playground ${activeMode === 'starting-frame' ? 'Starting Frame' : 'Frame to Frame'}`,
+        sceneName: propSceneName ?? defaultSceneName,
       };
       if (selectedModel) requestBody.preferredProvider = selectedModel;
       // Luma baseline: id is the Luma concept key; send it when Luma is selected and an angle is chosen (Plan 0257).
@@ -547,6 +562,19 @@ export function VideoGenerationTools({
         <div className="flex-shrink-0 mb-6">
         <div className="flex gap-2 flex-wrap">
           <button
+            onClick={() => setActiveMode('text-to-video')}
+            className={cn(
+              "flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors",
+              activeMode === 'text-to-video'
+                ? "bg-cinema-red text-white"
+                : "bg-[#1F1F1F] text-[#808080] hover:text-white hover:bg-[#2A2A2A]"
+            )}
+          >
+            <Video className="w-4 h-4" />
+            <span>Text to Video</span>
+          </button>
+
+          <button
             onClick={() => setActiveMode('starting-frame')}
             className={cn(
               "flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors",
@@ -608,7 +636,9 @@ export function VideoGenerationTools({
           <textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            placeholder={activeMode === 'starting-frame' 
+            placeholder={activeMode === 'text-to-video'
+              ? "Describe the scene, action, and cinematic style you want to generate..."
+              : activeMode === 'starting-frame'
               ? "Describe the motion, camera movement, and action you want in the video..."
               : "Describe the transition and motion between the two frames..."
             }
@@ -803,9 +833,21 @@ export function VideoGenerationTools({
         {/* Top: Input frame(s) preview / upload */}
         <div className="flex-shrink-0 border-b border-white/10 p-4">
           <h3 className="text-sm font-medium text-white mb-3">
-            {activeMode === 'starting-frame' ? 'Starting Frame' : 'Frame to Frame'}
+            {activeMode === 'text-to-video'
+              ? 'Text to Video'
+              : activeMode === 'starting-frame'
+              ? 'Starting Frame'
+              : 'Frame to Frame'}
           </h3>
-          {activeMode === 'starting-frame' ? (
+          {activeMode === 'text-to-video' ? (
+            <div className="rounded-lg border border-[#3F3F46] bg-[#0A0A0A] min-h-[200px] flex items-center justify-center p-6">
+              <div className="text-center">
+                <Video className="w-8 h-8 text-[#808080] mx-auto mb-2" />
+                <p className="text-sm font-medium text-[#B3B3B3] mb-1">No input image required</p>
+                <p className="text-xs text-[#808080]">Use your prompt to generate a video from text.</p>
+              </div>
+            </div>
+          ) : activeMode === 'starting-frame' ? (
             <div className="rounded-lg border-2 border-dashed border-[#3F3F46] overflow-hidden bg-[#0A0A0A] min-h-[200px] flex items-center justify-center">
               {!startImage && !startImageUrlFromProp ? (
                 <button
