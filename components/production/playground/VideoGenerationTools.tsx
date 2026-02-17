@@ -44,6 +44,9 @@ interface VideoGenerationToolsProps {
   screenplayId?: string;
   /** Pre-fill starting frame from Shot Board (presigned URL) */
   initialStartImageUrl?: string;
+  /** Optional line context handoff from Shot Board variation */
+  initialLineText?: string;
+  initialLineType?: string;
   /** Optional: scene/shot context for job placement and labeling */
   sceneId?: string;
   sceneNumber?: number;  // Feature 0241: Scene number for Media Library folder structure
@@ -105,6 +108,8 @@ export function VideoGenerationTools({
   className = '',
   screenplayId: propScreenplayId,
   initialStartImageUrl,
+  initialLineText,
+  initialLineType,
   sceneId: propSceneId,
   sceneNumber: propSceneNumber,
   sceneName: propSceneName,
@@ -144,6 +149,8 @@ export function VideoGenerationTools({
   const [startImage, setStartImage] = useState<{ file: File; preview: string; s3Key?: string } | null>(null);
   const [startImageUrlFromProp, setStartImageUrlFromProp] = useState<string | null>(null);
   const startImageInputRef = useRef<HTMLInputElement>(null);
+  const lineContextText = typeof initialLineText === 'string' ? initialLineText.trim() : '';
+  const lineContextType = typeof initialLineType === 'string' ? initialLineType.trim() : '';
 
   // When initialStartImageUrl is provided (e.g. from Shot Board), pre-fill starting frame
   useEffect(() => {
@@ -630,9 +637,27 @@ export function VideoGenerationTools({
 
         {/* Prompt Input */}
         <div className="flex-shrink-0">
-          <label className="block text-sm font-medium text-white mb-2">
-            Prompt
-          </label>
+          <div className="flex items-center justify-between mb-2">
+            <label className="block text-sm font-medium text-white">
+              Prompt
+            </label>
+            {lineContextText ? (
+              <button
+                type="button"
+                onClick={() => setPrompt(lineContextText)}
+                disabled={isGenerating}
+                className="text-xs px-2 py-1 rounded border border-[#3F3F46] bg-[#1F1F1F] text-[#B3B3B3] hover:text-white hover:border-[#52525B] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                title="Replace prompt with selected line context"
+              >
+                Use line context
+              </button>
+            ) : null}
+          </div>
+          {lineContextText ? (
+            <p className="mb-2 text-xs text-[#808080] truncate" title={lineContextText}>
+              {lineContextType ? `${lineContextType}: ` : ''}{lineContextText}
+            </p>
+          ) : null}
           <textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}

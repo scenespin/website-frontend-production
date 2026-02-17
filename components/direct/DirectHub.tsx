@@ -124,6 +124,8 @@ export function DirectHub() {
               className="min-h-full"
               screenplayId={screenplayId ?? undefined}
               initialStartImageUrl={videoGenPreFill?.firstFrameUrl}
+              initialLineText={videoGenPreFill?.lineText}
+              initialLineType={videoGenPreFill?.lineType}
               sceneId={videoGenPreFill?.sceneId}
               sceneNumber={videoGenPreFill?.sceneNumber}
               sceneName={videoGenPreFill?.sceneHeading}

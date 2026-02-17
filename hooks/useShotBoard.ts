@@ -28,7 +28,12 @@ export interface ShotVariation {
     s3Key: string;
     fileName: string;
     /** Optional metadata from media file (e.g. providerId for Shots tab label). */
-    metadata?: { providerId?: string; aspectRatio?: string };
+    metadata?: {
+      providerId?: string;
+      aspectRatio?: string;
+      lineText?: string;
+      lineType?: string;
+    };
   };
   video?: {
     fileId: string;
@@ -201,10 +206,21 @@ export function useShotBoard(screenplayId: string, enabled: boolean = true): Use
 
       // Create variation (include first-frame metadata for provider label on Shots tab)
       const firstFrameMeta = (firstFrame as any).metadata || {};
-      const firstFrameMetadata: { providerId?: string; aspectRatio?: string } = {};
+      const firstFrameMetadata: {
+        providerId?: string;
+        aspectRatio?: string;
+        lineText?: string;
+        lineType?: string;
+      } = {};
       if (firstFrameMeta.providerId) firstFrameMetadata.providerId = firstFrameMeta.providerId;
       if (typeof firstFrameMeta.aspectRatio === 'string' && firstFrameMeta.aspectRatio.trim().length > 0) {
         firstFrameMetadata.aspectRatio = firstFrameMeta.aspectRatio.trim();
+      }
+      if (typeof firstFrameMeta.lineText === 'string' && firstFrameMeta.lineText.trim().length > 0) {
+        firstFrameMetadata.lineText = firstFrameMeta.lineText.trim();
+      }
+      if (typeof firstFrameMeta.lineType === 'string' && firstFrameMeta.lineType.trim().length > 0) {
+        firstFrameMetadata.lineType = firstFrameMeta.lineType.trim();
       }
       const variation: ShotVariation = {
         timestamp,
@@ -212,7 +228,7 @@ export function useShotBoard(screenplayId: string, enabled: boolean = true): Use
           fileId: firstFrame.id || '',
           s3Key: firstFrame.s3Key || '',
           fileName: firstFrame.fileName || '',
-          ...((firstFrameMetadata.providerId || firstFrameMetadata.aspectRatio) && { metadata: firstFrameMetadata })
+          ...((firstFrameMetadata.providerId || firstFrameMetadata.aspectRatio || firstFrameMetadata.lineText || firstFrameMetadata.lineType) && { metadata: firstFrameMetadata })
         }
       };
 

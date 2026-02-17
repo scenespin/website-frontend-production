@@ -30,6 +30,8 @@ export interface GenerateVideoContext {
   sceneNumber: number;  // Feature 0241: Scene number for Media Library folder structure
   shotNumber: number;
   sceneHeading: string;
+  lineText?: string;
+  lineType?: string;
 }
 
 /**
@@ -81,6 +83,8 @@ function ShotCell({
 
   const firstFrameUrl = presignedUrls.get(currentVariation.firstFrame.s3Key);
   const aspectRatioLabel = currentVariation.firstFrame.metadata?.aspectRatio;
+  const lineText = currentVariation.firstFrame.metadata?.lineText;
+  const lineType = currentVariation.firstFrame.metadata?.lineType;
 
   const handlePrev = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -134,6 +138,8 @@ function ShotCell({
       sceneNumber,
       shotNumber: shot.shotNumber,
       sceneHeading,
+      ...(lineText ? { lineText } : {}),
+      ...(lineType ? { lineType } : {}),
     });
   };
 
@@ -265,6 +271,14 @@ function ShotCell({
           <span className="w-6 flex-shrink-0" aria-hidden />
         )}
       </div>
+      {lineText ? (
+        <div
+          className="px-2 py-1.5 border-t border-[#3F3F46] bg-[#141414] text-[10px] text-[#B3B3B3] truncate"
+          title={lineText}
+        >
+          {lineType ? `${lineType}: ` : ''}{lineText}
+        </div>
+      ) : null}
     </div>
   );
 }
