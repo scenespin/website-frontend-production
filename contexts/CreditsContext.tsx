@@ -17,7 +17,7 @@ export function CreditsProvider({ children }: { children: React.ReactNode }) {
   const [credits, setCredits] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const refreshCredits = useCallback(async (forceRefresh: boolean = false) => {
+  const refreshCredits = useCallback(async (forceRefresh: boolean = true) => {
     if (!user) {
       setCredits(null);
       setLoading(false);
@@ -47,7 +47,7 @@ export function CreditsProvider({ children }: { children: React.ReactNode }) {
 
     const interval = setInterval(() => {
       if (!document.hidden) {
-        refreshCredits(false);
+        refreshCredits(true);
       }
     }, 30000);
 

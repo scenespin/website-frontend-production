@@ -465,6 +465,11 @@ export function VideoGenerationTools({
       setAuthTokenGetter(() => getToken({ template: 'wryda-backend' }));
       const response = await apiModule.video.generateAsync(requestBody);
       const result = response?.data ?? response;
+
+      // Keep global credits UI synchronized immediately after generation starts.
+      if (typeof window !== 'undefined' && window.refreshCredits) {
+        window.refreshCredits();
+      }
       
       // Calculate generation time
       const elapsed = (Date.now() - startTime) / 1000;
@@ -513,6 +518,9 @@ export function VideoGenerationTools({
     } catch (error: any) {
       console.error('Video generation failed:', error);
       toast.error(error.message || 'Failed to generate video');
+      if (typeof window !== 'undefined' && window.refreshCredits) {
+        window.refreshCredits();
+      }
       setGeneratedVideoUrl(null);
     } finally {
       setIsGenerating(false);
