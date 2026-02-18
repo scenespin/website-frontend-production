@@ -1960,7 +1960,7 @@ export function ShotConfigurationPanel({
       )}
 
       {/* Action output mode: explicit selector for action shots, preserving existing elements toggle semantics underneath. */}
-      {isActionShot && elementsListForShot.length > 0 && onUseElementsForVideoChange && onSelectedElementsForShotChange && (
+      {isActionShot && onUseElementsForVideoChange && onSelectedElementsForShotChange && (
         <div className="mt-4 pt-4 border-t border-[#3F3F46]">
           <h4 className="text-sm font-medium text-[#FFFFFF] mb-2">Action Output Mode</h4>
           <div className="space-y-2">
@@ -1983,12 +1983,22 @@ export function ShotConfigurationPanel({
                 type="radio"
                 name={`action-output-mode-${shot.slot}`}
                 checked={useElementsForVideo}
-                onChange={() => onUseElementsForVideoChange(true)}
-                className="w-4 h-4 border-[#3F3F46] bg-[#1A1A1A] text-[#DC143C] focus:ring-2 focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer"
+                onChange={() => {
+                  if (elementsListForShot.length > 0) {
+                    onUseElementsForVideoChange(true);
+                  }
+                }}
+                disabled={elementsListForShot.length === 0}
+                className="w-4 h-4 border-[#3F3F46] bg-[#1A1A1A] text-[#DC143C] focus:ring-2 focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               />
-              <span className="text-xs font-medium text-[#FFFFFF] group-hover:text-[#E5E7EB]">Elements to Video</span>
+              <span className={`text-xs font-medium ${elementsListForShot.length === 0 ? 'text-[#808080]' : 'text-[#FFFFFF] group-hover:text-[#E5E7EB]'}`}>Elements to Video</span>
             </label>
           </div>
+          {elementsListForShot.length === 0 && (
+            <p className="text-[10px] text-[#808080] mt-2">
+              Elements mode becomes available after selecting eligible references for this shot.
+            </p>
+          )}
           {useElementsForVideo && (
             <div className="ml-6 space-y-3">
               <p className="text-[10px] text-[#808080] mb-1">Using selected references to generate video directly (no first-frame model step).</p>
