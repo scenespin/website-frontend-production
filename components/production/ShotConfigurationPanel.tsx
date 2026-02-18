@@ -1959,28 +1959,39 @@ export function ShotConfigurationPanel({
         </>
       )}
 
-      {/* Feature 0259: Elements — checkbox opens ref list + prompt; then choose up to 3 references and edit prompt. */}
-      {elementsListForShot.length > 0 && onUseElementsForVideoChange && onSelectedElementsForShotChange && (
+      {/* Action output mode: explicit selector for action shots, preserving existing elements toggle semantics underneath. */}
+      {isActionShot && elementsListForShot.length > 0 && onUseElementsForVideoChange && onSelectedElementsForShotChange && (
         <div className="mt-4 pt-4 border-t border-[#3F3F46]">
-          <h4 className="text-sm font-medium text-[#FFFFFF] mb-2">Elements to Video</h4>
-          <label className="flex items-center gap-2 cursor-pointer group mb-2">
-            <input
-              type="checkbox"
-              checked={useElementsForVideo}
-              onChange={(e) => {
-                const enabled = e.target.checked;
-                onUseElementsForVideoChange(enabled);
-                if (!enabled) {
+          <h4 className="text-sm font-medium text-[#FFFFFF] mb-2">Action Output Mode</h4>
+          <div className="space-y-2">
+            <label className="flex items-center gap-2 cursor-pointer group">
+              <input
+                type="radio"
+                name={`action-output-mode-${shot.slot}`}
+                checked={!useElementsForVideo}
+                onChange={() => {
+                  onUseElementsForVideoChange(false);
                   onSelectedElementsForShotChange([]);
                   onElementsVideoPromptChange?.('');
-                }
-              }}
-              className="w-4 h-4 rounded border-[#3F3F46] bg-[#1A1A1A] text-[#DC143C] focus:ring-2 focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer"
-            />
-            <span className="text-xs font-medium text-[#FFFFFF] group-hover:text-[#E5E7EB]">Create video with elements instead of a first frame</span>
-          </label>
+                }}
+                className="w-4 h-4 border-[#3F3F46] bg-[#1A1A1A] text-[#DC143C] focus:ring-2 focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer"
+              />
+              <span className="text-xs font-medium text-[#FFFFFF] group-hover:text-[#E5E7EB]">First Frame (Action Only)</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer group">
+              <input
+                type="radio"
+                name={`action-output-mode-${shot.slot}`}
+                checked={useElementsForVideo}
+                onChange={() => onUseElementsForVideoChange(true)}
+                className="w-4 h-4 border-[#3F3F46] bg-[#1A1A1A] text-[#DC143C] focus:ring-2 focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer"
+              />
+              <span className="text-xs font-medium text-[#FFFFFF] group-hover:text-[#E5E7EB]">Elements to Video</span>
+            </label>
+          </div>
           {useElementsForVideo && (
             <div className="ml-6 space-y-3">
+              <p className="text-[10px] text-[#808080] mb-1">Using selected references to generate video directly (no first-frame model step).</p>
               <div className="flex flex-wrap items-center gap-2 gap-y-1">
                 <span className="text-[10px] font-medium text-[#808080]">Duration:</span>
                 {(() => {
