@@ -4,11 +4,11 @@
  * Video Browser Panel (Feature 0254)
  *
  * Two sections in the same list: Scene-context videos (from Shots/Scene Builder) and Standalone videos.
- * Toggle icon next to Refresh switches between sections. Same table: Scene | Shot | Type | Time | Actions.
+ * Segmented control next to Refresh switches between sections. Same table: Scene | Shot | Type | Time | Actions.
  */
 
 import React, { useMemo, useState, useCallback } from 'react';
-import { RefreshCw, Loader2, Play, Video, Download, Trash2, Layers, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { RefreshCw, Loader2, Play, Video, Download, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@clerk/nextjs';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
@@ -299,9 +299,9 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
     }
   }, [screenplayId, queryClient, refetch]);
 
-  const toggleSection = useCallback(() => {
-    setCurrentSection((s) => (s === 'scene' ? 'standalone' : 'scene'));
-  }, []);
+  const sceneCount = sceneEntries.length;
+  const standaloneCount = standaloneEntries.length;
+  const totalCount = sceneCount + standaloneCount;
 
   const handlePlay = useCallback((url: string | undefined) => {
     if (url) setPlayingVideoUrl(url);
@@ -407,38 +407,56 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
 
   return (
     <div className={cn('h-full flex flex-col bg-[#0A0A0A]', className)}>
-      {/* Header: count + toggle (Scene / Standalone) + Refresh */}
-      <div className="flex-shrink-0 px-4 py-3 border-b border-[#3F3F46] flex items-center justify-between gap-2">
-        <span className="text-xs text-[#808080]">
-          {videoEntries.length} video{videoEntries.length !== 1 ? 's' : ''}
-        </span>
-        <div className="flex items-center gap-1">
+      {/* Header: desktop single-row, mobile stacked for tap-friendly controls */}
+      <div className="flex-shrink-0 px-4 py-3 border-b border-[#3F3F46] flex flex-col sm:flex-row sm:items-center gap-2">
+        <button
+          type="button"
+          onClick={handleRefresh}
+          disabled={presignedUrlsLoading}
+          className="order-1 self-end sm:order-3 sm:self-auto sm:ml-auto flex items-center gap-2 px-3 py-1.5 text-sm text-[#B3B3B3] hover:text-white hover:bg-[#1A1A1A] rounded transition-colors disabled:opacity-50"
+          title="Refresh videos"
+          aria-label="Refresh videos"
+        >
+          <RefreshCw className={cn('w-4 h-4', presignedUrlsLoading && 'animate-spin')} />
+          Refresh
+        </button>
+        <div className="order-2 sm:order-1 inline-flex w-full sm:w-auto items-center rounded-md border border-[#3F3F46] bg-[#141414] p-0.5">
           <button
             type="button"
-            onClick={toggleSection}
+            onClick={() => setCurrentSection('scene')}
             className={cn(
-              'p-2 rounded transition-colors',
+              'flex-1 sm:flex-none text-center px-3 py-2 sm:py-1.5 text-xs rounded transition-colors',
               currentSection === 'scene'
-                ? 'text-[#DC143C] bg-[#DC143C]/10 hover:bg-[#DC143C]/20'
+                ? 'text-white bg-[#262626]'
                 : 'text-[#B3B3B3] hover:text-white hover:bg-[#1A1A1A]'
             )}
-            title={currentSection === 'scene' ? 'Showing scene videos (click for standalone)' : 'Showing standalone videos (click for scene)'}
-            aria-label={currentSection === 'scene' ? 'Switch to standalone videos' : 'Switch to scene videos'}
+            aria-pressed={currentSection === 'scene'}
+            title="Show scene videos"
+            aria-label="Show scene videos"
           >
-            <Layers className="w-4 h-4" />
+            <span className="sm:hidden">Scene ({sceneCount})</span>
+            <span className="hidden sm:inline">Scene Videos ({sceneCount})</span>
           </button>
           <button
             type="button"
-            onClick={handleRefresh}
-            disabled={presignedUrlsLoading}
-            className="flex items-center gap-2 px-3 py-1.5 text-sm text-[#B3B3B3] hover:text-white hover:bg-[#1A1A1A] rounded transition-colors disabled:opacity-50"
-            title="Refresh videos"
-            aria-label="Refresh videos"
+            onClick={() => setCurrentSection('standalone')}
+            className={cn(
+              'flex-1 sm:flex-none text-center px-3 py-2 sm:py-1.5 text-xs rounded transition-colors',
+              currentSection === 'standalone'
+                ? 'text-white bg-[#262626]'
+                : 'text-[#B3B3B3] hover:text-white hover:bg-[#1A1A1A]'
+            )}
+            aria-pressed={currentSection === 'standalone'}
+            title="Show standalone videos"
+            aria-label="Show standalone videos"
           >
-            <RefreshCw className={cn('w-4 h-4', presignedUrlsLoading && 'animate-spin')} />
-            Refresh
+            <span className="sm:hidden">Standalone ({standaloneCount})</span>
+            <span className="hidden sm:inline">Standalone Videos ({standaloneCount})</span>
           </button>
         </div>
+        <span className="order-3 sm:order-2 hidden sm:inline text-xs text-[#808080] whitespace-nowrap">
+          {totalCount} total video{totalCount !== 1 ? 's' : ''}
+        </span>
       </div>
 
       {/* Content */}
