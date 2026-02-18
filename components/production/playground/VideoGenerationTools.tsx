@@ -148,43 +148,6 @@ export function VideoGenerationTools({
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [videoModelDropdownOpen]);
 
-  // Keep dropdown inside viewport: open upward when near bottom and clamp menu height to available space.
-  useEffect(() => {
-    if (!videoModelDropdownOpen) return;
-
-    const updateDropdownPosition = () => {
-      const trigger = videoModelTriggerRef.current;
-      if (!trigger) return;
-
-      const rect = trigger.getBoundingClientRect();
-      const viewportHeight = window.innerHeight;
-      const edgePadding = 12;
-      const minUsableHeight = 120;
-      const targetHeight = 240;
-      const estimatedOptionHeight = 42;
-      const desiredHeight = Math.min(targetHeight, Math.max(minUsableHeight, displayModels.length * estimatedOptionHeight));
-      const spaceBelow = Math.max(0, viewportHeight - rect.bottom - edgePadding);
-      const spaceAbove = Math.max(0, rect.top - edgePadding);
-
-      const openUp =
-        (spaceBelow < desiredHeight && spaceAbove > spaceBelow) ||
-        (spaceBelow < minUsableHeight && spaceAbove >= minUsableHeight);
-      const availableSpace = openUp ? spaceAbove : spaceBelow;
-      const clampedHeight = Math.max(0, Math.min(targetHeight, desiredHeight, availableSpace || targetHeight));
-
-      setVideoModelDropdownDirection(openUp ? 'up' : 'down');
-      setVideoModelDropdownMaxHeight(clampedHeight);
-    };
-
-    updateDropdownPosition();
-    window.addEventListener('resize', updateDropdownPosition);
-    window.addEventListener('scroll', updateDropdownPosition, true);
-    return () => {
-      window.removeEventListener('resize', updateDropdownPosition);
-      window.removeEventListener('scroll', updateDropdownPosition, true);
-    };
-  }, [videoModelDropdownOpen, displayModels.length]);
-
   // Starting Frame mode: either uploaded (file + s3Key) or from prop (URL only)
   const [startImage, setStartImage] = useState<{ file: File; preview: string; s3Key?: string } | null>(null);
   const [startImageUrlFromProp, setStartImageUrlFromProp] = useState<string | null>(null);
@@ -300,6 +263,43 @@ export function VideoGenerationTools({
     }
     return list.filter((m) => m.capabilities?.imageInterpolation === true);
   }, [models, activeMode]);
+
+  // Keep dropdown inside viewport: open upward when near bottom and clamp menu height to available space.
+  useEffect(() => {
+    if (!videoModelDropdownOpen) return;
+
+    const updateDropdownPosition = () => {
+      const trigger = videoModelTriggerRef.current;
+      if (!trigger) return;
+
+      const rect = trigger.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      const edgePadding = 12;
+      const minUsableHeight = 120;
+      const targetHeight = 240;
+      const estimatedOptionHeight = 42;
+      const desiredHeight = Math.min(targetHeight, Math.max(minUsableHeight, displayModels.length * estimatedOptionHeight));
+      const spaceBelow = Math.max(0, viewportHeight - rect.bottom - edgePadding);
+      const spaceAbove = Math.max(0, rect.top - edgePadding);
+
+      const openUp =
+        (spaceBelow < desiredHeight && spaceAbove > spaceBelow) ||
+        (spaceBelow < minUsableHeight && spaceAbove >= minUsableHeight);
+      const availableSpace = openUp ? spaceAbove : spaceBelow;
+      const clampedHeight = Math.max(0, Math.min(targetHeight, desiredHeight, availableSpace || targetHeight));
+
+      setVideoModelDropdownDirection(openUp ? 'up' : 'down');
+      setVideoModelDropdownMaxHeight(clampedHeight);
+    };
+
+    updateDropdownPosition();
+    window.addEventListener('resize', updateDropdownPosition);
+    window.addEventListener('scroll', updateDropdownPosition, true);
+    return () => {
+      window.removeEventListener('resize', updateDropdownPosition);
+      window.removeEventListener('scroll', updateDropdownPosition, true);
+    };
+  }, [videoModelDropdownOpen, displayModels.length]);
 
   // Keep selection valid: if current model is not in the displayed list, reset to the newest alphabetical option.
   useEffect(() => {
