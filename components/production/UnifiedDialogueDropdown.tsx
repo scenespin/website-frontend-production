@@ -216,7 +216,7 @@ export function UnifiedDialogueDropdown({
       {
         quality: 'reliable' as DialogueQuality,
         workflowType: 'first-frame-lipsync' as DialogueWorkflowType,
-        label: 'Standard',
+        label: 'Dialogue',
         description: 'Most standard shots.',
       },
       {
@@ -234,8 +234,8 @@ export function UnifiedDialogueDropdown({
       {
         quality: 'premium' as DialogueQuality,
         workflowType: 'first-frame-lipsync' as DialogueWorkflowType,
-        label: 'Premium (Standard)',
-        description: 'Higher quality output. Some content may be restricted by content safety filters.',
+        label: 'Premium Dialogue',
+        description: 'Higher quality output. Some content may be restricted by content safety filters. Best with 4+ words.',
       },
       {
         quality: 'premium' as DialogueQuality,
@@ -303,11 +303,6 @@ export function UnifiedDialogueDropdown({
                       <span className="text-xs font-medium text-[#FFFFFF]">
                         {option.label}
                       </span>
-                      {option.quality === 'premium' && (
-                        <span className="text-[10px] px-1.5 py-0.5 bg-yellow-500/20 text-yellow-300 rounded">
-                          Best with 4+ words
-                        </span>
-                      )}
                       {option.isRecommended && (
                         <span className="text-[10px] px-1.5 py-0.5 bg-[#DC143C]/20 text-[#DC143C] rounded">
                           ⭐ Recommended
