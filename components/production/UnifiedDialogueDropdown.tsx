@@ -160,6 +160,34 @@ export function UnifiedDialogueDropdown({
   const isMultiCharacter = characterIds.length > 1;
   const currentWorkflow = selectedWorkflow || detectedWorkflow || 'first-frame-lipsync';
   const currentQuality = selectedQuality || (isMultiCharacter ? 'reliable' : 'reliable');
+  const dialogueText = (shot?.dialogueBlock?.dialogue || shot?.dialogueText || '').trim();
+  const dialogueWordCount = dialogueText ? dialogueText.split(/\s+/).filter(Boolean).length : 0;
+  const isPremiumSelected = currentQuality === 'premium';
+  const showPremiumShortLineWarning = isPremiumSelected && dialogueWordCount > 0 && dialogueWordCount < 4;
+  const warningEventSentRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!showPremiumShortLineWarning) return;
+    const eventKey = `${shot?.slot || 'unknown'}:${dialogueText}`;
+    if (warningEventSentRef.current.has(eventKey)) return;
+    warningEventSentRef.current.add(eventKey);
+
+    // Lightweight counter for short-line premium guardrail frequency.
+    fetch('/api/analytics/track', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        event: 'dialogue_premium_short_line_warning_shown',
+        timestamp: new Date().toISOString(),
+        shotSlot: shot?.slot,
+        workflowType: currentWorkflow,
+        quality: currentQuality,
+        wordCount: dialogueWordCount
+      })
+    }).catch(() => {
+      // Non-blocking analytics.
+    });
+  }, [showPremiumShortLineWarning, shot?.slot, dialogueText, currentWorkflow, currentQuality, dialogueWordCount]);
   
   // Generate available options based on single vs multi-character
   // Typed explicitly as UnifiedDialogueOption[] so option.isRecommended/costWarning are always valid (avoids build error)
@@ -275,6 +303,11 @@ export function UnifiedDialogueDropdown({
                       <span className="text-xs font-medium text-[#FFFFFF]">
                         {option.label}
                       </span>
+                      {option.quality === 'premium' && (
+                        <span className="text-[10px] px-1.5 py-0.5 bg-yellow-500/20 text-yellow-300 rounded">
+                          Best with 4+ words
+                        </span>
+                      )}
                       {option.isRecommended && (
                         <span className="text-[10px] px-1.5 py-0.5 bg-[#DC143C]/20 text-[#DC143C] rounded">
                           ⭐ Recommended
@@ -296,6 +329,12 @@ export function UnifiedDialogueDropdown({
           })}
         </div>
       </div>
+
+      {showPremiumShortLineWarning && (
+        <div className="text-[11px] px-2.5 py-2 rounded border border-yellow-500/40 bg-yellow-500/10 text-yellow-200">
+          Premium Dialogue may produce unstable speech with very short lines. For best results, use 4+ words or switch to Reliable for this shot.
+        </div>
+      )}
       
       {/* Divider - Only show if non-lip-sync options are visible */}
       {!showOnlyLipSync && <div className="border-t border-[#3F3F46] my-4"></div>}

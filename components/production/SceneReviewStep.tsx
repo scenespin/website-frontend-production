@@ -145,6 +145,7 @@ export function SceneReviewStep({
   const { getToken } = useAuth();
   const [pricing, setPricing] = useState<{ totalHdPrice: number; totalK4Price: number; totalFirstFramePrice: number } | null>(null);
   const [isLoadingPricing, setIsLoadingPricing] = useState(false);
+  const reviewWarningEventSentRef = useRef<Set<string>>(new Set());
 
   const resolveDialogueVideoAspectRatio = (
     firstFrameRatio: '16:9' | '9:16' | '1:1' | '21:9' | '9:21',
@@ -230,6 +231,47 @@ export function SceneReviewStep({
 
   const shots = sceneAnalysisResult.shotBreakdown?.shots || [];
   const selectedShots = shots.filter((s: any) => enabledShots.includes(s.slot));
+  const premiumShortDialogueShots = selectedShots
+    .filter((shot: any) => {
+      if (shot.type !== 'dialogue') return false;
+      if (!generateVideoForShot[shot.slot]) return false;
+      const quality = selectedDialogueQualities?.[shot.slot] || 'reliable';
+      if (quality !== 'premium') return false;
+      const dialogueText = (shot.dialogueBlock?.dialogue || '').trim();
+      if (!dialogueText) return false;
+      const wordCount = dialogueText.split(/\s+/).filter(Boolean).length;
+      return wordCount > 0 && wordCount < 4;
+    })
+    .map((shot: any) => ({
+      shotSlot: shot.slot as number,
+      dialogue: (shot.dialogueBlock?.dialogue || '').trim(),
+      wordCount: (shot.dialogueBlock?.dialogue || '').trim().split(/\s+/).filter(Boolean).length
+    }));
+  const hasPremiumShortLineRisk = premiumShortDialogueShots.length > 0;
+  const premiumShortLineShotList = premiumShortDialogueShots.map((s) => `#${s.shotSlot}`).join(', ');
+  const premiumShortLineSignature = premiumShortDialogueShots
+    .map((s) => `${s.shotSlot}:${s.wordCount}:${s.dialogue}`)
+    .join('|');
+
+  useEffect(() => {
+    if (!hasPremiumShortLineRisk || !premiumShortLineSignature) return;
+    if (reviewWarningEventSentRef.current.has(premiumShortLineSignature)) return;
+    reviewWarningEventSentRef.current.add(premiumShortLineSignature);
+
+    // Lightweight counter for how often this guardrail appears at submit-time.
+    fetch('/api/analytics/track', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        event: 'dialogue_premium_short_line_warning_review_shown',
+        timestamp: new Date().toISOString(),
+        shotCount: premiumShortDialogueShots.length,
+        shotSlots: premiumShortDialogueShots.map((s) => s.shotSlot)
+      })
+    }).catch(() => {
+      // Non-blocking analytics.
+    });
+  }, [hasPremiumShortLineRisk, premiumShortLineSignature, premiumShortDialogueShots]);
 
   // Use utility functions for character operations
   const characterSource = getCharacterSource(allCharacters, sceneAnalysisResult);
@@ -779,6 +821,12 @@ export function SceneReviewStep({
                   💡 Tip: Create style profiles in <strong>Direct → Style Profiles</strong> to match specific visual styles.
                 </p>
               )}
+            </div>
+          )}
+
+          {hasPremiumShortLineRisk && (
+            <div className="text-[11px] px-2.5 py-2 rounded border border-yellow-500/40 bg-yellow-500/10 text-yellow-200">
+              Premium Dialogue may produce unstable speech with very short lines ({premiumShortLineShotList}). For best results, use 4+ words or switch those shots to Reliable.
             </div>
           )}
 
