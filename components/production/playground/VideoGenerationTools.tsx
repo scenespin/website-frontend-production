@@ -132,6 +132,9 @@ export function VideoGenerationTools({
   const [selectedCameraAngle, setSelectedCameraAngle] = useState<string>('');
   const [videoModelDropdownOpen, setVideoModelDropdownOpen] = useState(false);
   const videoModelDropdownRef = useRef<HTMLDivElement>(null);
+  const videoModelTriggerRef = useRef<HTMLButtonElement>(null);
+  const [videoModelDropdownDirection, setVideoModelDropdownDirection] = useState<'up' | 'down'>('down');
+  const [videoModelDropdownMaxHeight, setVideoModelDropdownMaxHeight] = useState(240);
 
   // Close Video Model dropdown when clicking outside
   useEffect(() => {
@@ -144,6 +147,43 @@ export function VideoGenerationTools({
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [videoModelDropdownOpen]);
+
+  // Keep dropdown inside viewport: open upward when near bottom and clamp menu height to available space.
+  useEffect(() => {
+    if (!videoModelDropdownOpen) return;
+
+    const updateDropdownPosition = () => {
+      const trigger = videoModelTriggerRef.current;
+      if (!trigger) return;
+
+      const rect = trigger.getBoundingClientRect();
+      const viewportHeight = window.innerHeight;
+      const edgePadding = 12;
+      const minUsableHeight = 120;
+      const targetHeight = 240;
+      const estimatedOptionHeight = 42;
+      const desiredHeight = Math.min(targetHeight, Math.max(minUsableHeight, displayModels.length * estimatedOptionHeight));
+      const spaceBelow = Math.max(0, viewportHeight - rect.bottom - edgePadding);
+      const spaceAbove = Math.max(0, rect.top - edgePadding);
+
+      const openUp =
+        (spaceBelow < desiredHeight && spaceAbove > spaceBelow) ||
+        (spaceBelow < minUsableHeight && spaceAbove >= minUsableHeight);
+      const availableSpace = openUp ? spaceAbove : spaceBelow;
+      const clampedHeight = Math.max(0, Math.min(targetHeight, desiredHeight, availableSpace || targetHeight));
+
+      setVideoModelDropdownDirection(openUp ? 'up' : 'down');
+      setVideoModelDropdownMaxHeight(clampedHeight);
+    };
+
+    updateDropdownPosition();
+    window.addEventListener('resize', updateDropdownPosition);
+    window.addEventListener('scroll', updateDropdownPosition, true);
+    return () => {
+      window.removeEventListener('resize', updateDropdownPosition);
+      window.removeEventListener('scroll', updateDropdownPosition, true);
+    };
+  }, [videoModelDropdownOpen, displayModels.length]);
 
   // Starting Frame mode: either uploaded (file + s3Key) or from prop (URL only)
   const [startImage, setStartImage] = useState<{ file: File; preview: string; s3Key?: string } | null>(null);
@@ -232,7 +272,7 @@ export function VideoGenerationTools({
         if (sorted.length > 0) {
           setSelectedModel((prev) => {
             const stillValid = prev && sorted.some((m: VideoModel) => m.id === prev);
-            return stillValid ? prev : sorted[0].id;
+            return stillValid ? prev : sorted[sorted.length - 1].id;
           });
         } else {
           setSelectedModel('');
@@ -261,12 +301,12 @@ export function VideoGenerationTools({
     return list.filter((m) => m.capabilities?.imageInterpolation === true);
   }, [models, activeMode]);
 
-  // Keep selection valid: if current model is not in the displayed list (e.g. switched to Frame to Frame with Grok selected), reset to first valid.
+  // Keep selection valid: if current model is not in the displayed list, reset to the newest alphabetical option.
   useEffect(() => {
     if (displayModels.length === 0) return;
     const isCurrentInList = selectedModel && displayModels.some((m) => m.id === selectedModel);
     if (!isCurrentInList) {
-      setSelectedModel(displayModels[0].id);
+      setSelectedModel(displayModels[displayModels.length - 1].id);
     }
   }, [activeMode, displayModels, selectedModel]);
 
@@ -716,6 +756,7 @@ export function VideoGenerationTools({
                 type="button"
                 onClick={() => !isGenerating && setVideoModelDropdownOpen((o) => !o)}
                 disabled={isGenerating}
+                ref={videoModelTriggerRef}
                 className={cn(
                   "w-full px-4 py-2.5 bg-[#1F1F1F] border border-[#3F3F46] rounded-lg text-left text-white focus:outline-none focus:ring-2 focus:ring-cinema-red focus:border-transparent flex items-center justify-between",
                   videoModelDropdownOpen && "ring-2 ring-cinema-red border-transparent"
@@ -726,8 +767,14 @@ export function VideoGenerationTools({
               </button>
               {videoModelDropdownOpen && (
                 <div
-                  className="absolute z-50 mt-1 w-full max-h-60 overflow-y-auto rounded-lg border border-[#3F3F46] bg-[#1F1F1F] shadow-lg"
-                  style={{ minWidth: videoModelDropdownRef.current?.offsetWidth }}
+                  className={cn(
+                    "absolute z-50 w-full overflow-y-auto rounded-lg border border-[#3F3F46] bg-[#1F1F1F] shadow-lg",
+                    videoModelDropdownDirection === 'up' ? "bottom-full mb-1" : "top-full mt-1"
+                  )}
+                  style={{
+                    minWidth: videoModelDropdownRef.current?.offsetWidth,
+                    maxHeight: videoModelDropdownMaxHeight
+                  }}
                 >
                   {displayModels.map((m) => (
                     <button
