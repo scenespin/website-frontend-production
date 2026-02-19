@@ -1018,7 +1018,9 @@ export async function listScenes(
 
   if (!response.ok) {
     const error = await response.json();
-    throw new Error(error.message || 'Failed to list scenes');
+    const listError: any = new Error(error.message || 'Failed to list scenes');
+    listError.statusCode = response.status;
+    throw listError;
   }
 
   const data = await response.json();

@@ -935,35 +935,41 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     }, [screenplayId, getDeletedAssetIds]);
     
     // Feature 0119: Update screenplay_id when Clerk metadata changes
-    // Also listen to localStorage for backward compatibility (EditorContext still triggers storage events)
+    // Also listen to localStorage/custom events for same-tab sync with EditorContext.
     useEffect(() => {
+        const syncScreenplayId = (nextId: string | null, source: string) => {
+            setScreenplayId(prev => {
+                if (prev !== nextId) {
+                    console.log(`[ScreenplayContext] Screenplay ID updated from ${source}:`, nextId, '(was:', prev, ')');
+                    return nextId;
+                }
+                return prev;
+            });
+        };
+
         // Update from Clerk metadata (primary source)
         const idFromMetadata = getCurrentScreenplayId(user);
-        setScreenplayId(prev => {
-            if (prev !== idFromMetadata) {
-                console.log('[ScreenplayContext] Screenplay ID updated from Clerk metadata:', idFromMetadata, '(was:', prev, ')');
-                return idFromMetadata;
-            }
-            return prev;
-        });
+        syncScreenplayId(idFromMetadata, 'Clerk metadata');
         
         // Also listen to localStorage changes for backward compatibility
         // (EditorContext still triggers storage events when updating metadata)
         const handleStorageChange = () => {
             const id = localStorage.getItem('current_screenplay_id');
-            setScreenplayId(prev => {
-                if (prev !== id) {
-                    console.log('[ScreenplayContext] Screenplay ID updated from localStorage:', id, '(was:', prev, ')');
-                    return id;
-                }
-                return prev;
-            });
+            syncScreenplayId(id, 'localStorage');
+        };
+
+        const handleScreenplayIdUpdated = (event: Event) => {
+            const detail = (event as CustomEvent<{ screenplayId?: string | null }>).detail;
+            const id = detail?.screenplayId ?? null;
+            syncScreenplayId(id, 'screenplay-id-updated event');
         };
         
         window.addEventListener('storage', handleStorageChange);
+        window.addEventListener('screenplay-id-updated', handleScreenplayIdUpdated as EventListener);
         
         return () => {
             window.removeEventListener('storage', handleStorageChange);
+            window.removeEventListener('screenplay-id-updated', handleScreenplayIdUpdated as EventListener);
         };
     }, [user]); // Re-run when user object changes (e.g., after metadata update)
     
@@ -1178,6 +1184,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             try {
                 const scenesData = await listScenes(screenplayId, getToken);
                 const transformedScenes = transformScenesFromAPI(scenesData);
+                setError(null);
                 
                 // 🔥 FIX: Use startTransition to prevent React error #185 (updating during render)
                 startTransition(() => {
@@ -1195,6 +1202,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 console.log('[ScreenplayContext] ✅ Refreshed scenes from API:', transformedScenes.length, 'scenes');
             } catch (error) {
                 console.error('[ScreenplayContext] Failed to refresh scenes:', error);
+                const message = error instanceof Error ? error.message : 'Failed to refresh scenes';
+                setError(message);
             } finally {
                 isRefreshingScenesRef.current = false;
             }
@@ -1266,14 +1275,42 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         isInitializingRef.current = true;
         
         async function initializeData() {
+            setError(null);
             // Feature 0117: Load directly from DynamoDB API functions
             if (screenplayId) {
                 try {
                     console.log('[ScreenplayContext] 🔄 Loading structure from DynamoDB for:', screenplayId);
+
+                    const listScenesWithRetry = async () => {
+                        const maxRetries = 2;
+                        let attempt = 0;
+                        while (true) {
+                            try {
+                                return await listScenes(screenplayId, getToken);
+                            } catch (error: any) {
+                                const statusCode = error?.statusCode || error?.response?.status;
+                                const shouldRetry =
+                                    statusCode !== 403 &&
+                                    statusCode !== 404 &&
+                                    attempt < maxRetries;
+                                if (!shouldRetry) {
+                                    throw error;
+                                }
+                                const delayMs = 250 * Math.pow(2, attempt) + Math.floor(Math.random() * 120);
+                                console.warn('[ScreenplayContext] listScenes retry scheduled', {
+                                    screenplayId,
+                                    attempt: attempt + 1,
+                                    delayMs
+                                });
+                                await new Promise((resolve) => setTimeout(resolve, delayMs));
+                                attempt += 1;
+                            }
+                        }
+                    };
                     
                     // Load scenes, characters, locations, and assets in parallel
                     const [scenesData, charactersData, locationsData, assetsData] = await Promise.all([
-                        listScenes(screenplayId, getToken),
+                        listScenesWithRetry(),
                         listCharacters(screenplayId, getToken, 'creation'), // 🔥 FIX: Creation section should ONLY see Creation images (not Production Hub images)
                         listLocations(screenplayId, getToken, 'creation'), // 🔥 FIX: Creation section should ONLY see Creation images (not Production Hub images)
                         api.assetBank.list(screenplayId, 'creation').catch(() => ({ assets: [] })) // 🔥 FIX: Creation section should ONLY see Creation images (not Production Hub images)
@@ -1699,6 +1736,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     
                 } catch (err) {
                     console.error('[ScreenplayContext] Failed to load from DynamoDB:', err);
+                    const message = err instanceof Error ? err.message : 'Failed to load scenes';
+                    setError(message);
                     // On error, mark as initialized immediately (no scenes to wait for)
                     setHasInitializedFromDynamoDB(true);
                     setIsLoading(false);
@@ -1709,6 +1748,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 }
             } else {
                 console.log('[ScreenplayContext] No screenplay_id yet - waiting for EditorContext');
+                setError(null);
                 // Still mark as initialized so imports can work (for new screenplays)
                 setHasInitializedFromDynamoDB(true);
                 setIsLoading(false);

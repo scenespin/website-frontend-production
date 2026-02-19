@@ -36,6 +36,7 @@ export default function SceneNavigator({ currentLine, onSceneClick, className = 
     // 🔥 FIX: Check if initialization is complete before showing empty state
     // This prevents showing "No scenes yet" during initialization, which could trigger rescan duplicates
     const isInitializing = screenplay?.isLoading || !screenplay?.hasInitializedFromDynamoDB;
+    const hasSceneLoadError = Boolean(screenplay?.error);
     
     // 🔥 FIX: Add timeout fallback - if initialization takes more than 10 seconds, show empty state
     // This prevents infinite loading spinner if API calls hang
@@ -236,8 +237,28 @@ export default function SceneNavigator({ currentLine, onSceneClick, className = 
                     Loading taking longer than expected
                 </p>
                 <p className="text-xs text-[#808080] mb-2">
-                    Scenes may still be loading. Try refreshing or rescanning.
+                    Scenes may still be loading. Try refreshing the scene list.
                 </p>
+            </div>
+        );
+    }
+
+    if (hasSceneLoadError && (!allScenes || allScenes.length === 0)) {
+        return (
+            <div className={cn("w-full rounded-lg border border-[#3F3F46] bg-[#0A0A0A] p-4", className)}>
+                <p className="text-sm font-medium text-[#B3B3B3] mb-2">
+                    Could not load scenes
+                </p>
+                <p className="text-xs text-[#808080] mb-3">
+                    Try refreshing the scene list before using Scan.
+                </p>
+                <button
+                    type="button"
+                    className="btn btn-xs btn-outline"
+                    onClick={() => window.dispatchEvent(new CustomEvent('refreshScenes'))}
+                >
+                    Retry Scene Load
+                </button>
             </div>
         );
     }

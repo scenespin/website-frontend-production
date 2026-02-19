@@ -232,6 +232,13 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
         console.log('[EditorContext] 🗑️ Cleared localStorage for screenplay:', screenplayId);
     }, [getScreenplayStorageKey]);
 
+    const notifyScreenplayIdUpdated = useCallback((screenplayId: string | null) => {
+        if (typeof window === 'undefined') return;
+        window.dispatchEvent(new CustomEvent('screenplay-id-updated', {
+            detail: { screenplayId }
+        }));
+    }, []);
+
     // Get GitHub config from localStorage (optional export feature)
     const githubConfigStr = typeof window !== 'undefined' ? localStorage.getItem('screenplay_github_config') : null;
     const githubConfig = githubConfigStr ? JSON.parse(githubConfigStr) : null;
@@ -309,6 +316,7 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                     console.error('[EditorContext] ⚠️ Failed to save screenplay_id to Clerk metadata, using localStorage fallback:', error);
                     // setCurrentScreenplayId already saved to localStorage as fallback
                 }
+                notifyScreenplayIdUpdated(activeScreenplayId);
                 
                 // Trigger storage event manually for ScreenplayContext to pick it up
                 window.dispatchEvent(new StorageEvent('storage', {
@@ -1495,6 +1503,7 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                 } catch (clearError) {
                     console.error('[EditorContext] Failed to clear stale current_screenplay_id:', clearError);
                 }
+                notifyScreenplayIdUpdated(null);
                 screenplayIdRef.current = null;
                 hasInitializedRef.current = initKey;
                 if (typeof window !== 'undefined') {
@@ -1576,6 +1585,7 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                                 } catch (error) {
                                     console.error('[EditorContext] ⚠️ Failed to save screenplay_id to Clerk metadata:', error);
                                 }
+                                notifyScreenplayIdUpdated(projectId);
                                 
                                 // Feature 0132: Check per-screenplay localStorage for newer content (handles DynamoDB eventual consistency)
                                 const draftKey = getScreenplayStorageKey('screenplay_draft', projectId);
@@ -1833,6 +1843,7 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                                     if (screenplay) {
                                         // Save to Clerk metadata so it loads automatically next time
                                         await setCurrentScreenplayId(user, firstScreenplayId);
+                                        notifyScreenplayIdUpdated(firstScreenplayId);
                                         screenplayIdRef.current = firstScreenplayId;
                                         
                                         // Update URL to include the screenplay ID
@@ -1882,6 +1893,7 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                                         
                                         // Save to Clerk metadata
                                         await setCurrentScreenplayId(user, defaultProject.screenplay_id);
+                                        notifyScreenplayIdUpdated(defaultProject.screenplay_id);
                                         
                                         // Mark migration as completed in Clerk metadata (one-time only)
                                         const userWithUpdate = user as any;
