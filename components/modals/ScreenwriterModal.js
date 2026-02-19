@@ -11,8 +11,17 @@ import { buildScreenwriterPrompt } from '@/utils/promptBuilders';
 import { validateScreenwriterContent } from '@/utils/jsonValidator';
 import { getCharactersInScene, buildCharacterSummaries } from '@/utils/characterContextBuilder';
 import { getTimingMessage } from '@/utils/modelTiming';
+import { createClientLogger } from '@/utils/clientLogger';
 import toast from 'react-hot-toast';
 // ModelSelect removed - using DaisyUI select instead
+const ENABLE_EDITOR_AGENT_DEBUG_LOGS =
+  process.env.NODE_ENV !== 'production' &&
+  (process.env.NEXT_PUBLIC_ENABLE_EDITOR_AGENT_DEBUG === 'true' ||
+    process.env.NEXT_PUBLIC_ENABLE_REWRITE_DEBUG === 'true');
+const logger = createClientLogger('ScreenwriterModal', {
+  debugEnabled: ENABLE_EDITOR_AGENT_DEBUG_LOGS,
+  warnEnabled: ENABLE_EDITOR_AGENT_DEBUG_LOGS
+});
 
 // LLM Models - Same order and list as UnifiedChatPanel for consistency
 // Curated list: 8 models across 3 providers (latest flagship + fast option + premium option per provider)
@@ -280,19 +289,19 @@ CRITICAL SPACING RULES (Fountain.io spec):
             return;
           }
           
-          console.log('[ScreenwriterModal] 📝 RAW AI RESPONSE:', fullContent.substring(0, 500));
+          logger.debug('Raw AI response:', fullContent.substring(0, 500));
 
           // Validate JSON
           const validation = validateScreenwriterContent(fullContent, contextBefore);
 
           if (!validation.valid) {
-            console.error('[ScreenwriterModal] ❌ JSON validation failed:', validation.errors);
+            logger.error('JSON validation failed:', validation.errors);
             toast.error(`Invalid response: ${validation.errors[0] || 'Unknown error'}`);
             setIsLoading(false);
             return;
           }
 
-          console.log('[ScreenwriterModal] ✅ JSON validation passed');
+          logger.debug('JSON validation passed');
 
           if (!validation.content || validation.content.trim().length === 0) {
             toast.error('No valid content returned');
@@ -320,9 +329,9 @@ CRITICAL SPACING RULES (Fountain.io spec):
           
           let formattedLines = [];
           
-          console.log('[ScreenwriterModal] 📝 Content array (after expansion):', contentArray);
-          console.log('[ScreenwriterModal] 📝 Content array length:', contentArray.length);
-          console.log('[ScreenwriterModal] 📝 Content array items:', contentArray.map((item, idx) => `${idx}: "${item}"`));
+          logger.debug('Content array (after expansion):', contentArray);
+          logger.debug('Content array length:', contentArray.length);
+          logger.debug('Content array items:', contentArray.map((item, idx) => `${idx}: "${item}"`));
           
           for (let i = 0; i < contentArray.length; i++) {
             const line = contentArray[i].trim();
@@ -383,7 +392,7 @@ CRITICAL SPACING RULES (Fountain.io spec):
                                 !/^\(.+\)$/.test(prevLine) && // Not parenthetical
                                 !(/^[A-Z][A-Z\s#0-9']+$/.test(prevLine) && prevLine.length >= 2 && prevLine.length <= 50 && !/^(INT\.|EXT\.|I\/E\.)/i.test(prevLine)); // Not character
             
-            console.log(`[ScreenwriterModal] Line ${i}: "${line}" | isChar:${isCharacterName} isParen:${isParenthetical} isDial:${isDialogue} isAction:${isAction} | prevIsAction:${prevIsAction} nextIsChar:${nextIsCharacterName} nextIsParen:${nextIsParenthetical} nextIsDial:${nextIsDialogue}`);
+            logger.debug(`Line ${i}: "${line}" | isChar:${isCharacterName} isParen:${isParenthetical} isDial:${isDialogue} isAction:${isAction} | prevIsAction:${prevIsAction} nextIsChar:${nextIsCharacterName} nextIsParen:${nextIsParenthetical} nextIsDial:${nextIsDialogue}`);
             
             // FOUNTAIN SPEC: Character has blank line BEFORE, NO blank line AFTER
             // Add blank line BEFORE character name if previous was action (or any non-character, non-parenthetical line)
@@ -392,9 +401,9 @@ CRITICAL SPACING RULES (Fountain.io spec):
               // Only add if last line in formattedLines is not already empty
               if (formattedLines.length === 0 || formattedLines[formattedLines.length - 1] !== '') {
                 formattedLines.push('');
-                console.log(`[ScreenwriterModal] ✅ Added blank line BEFORE character name (prev was action/non-character)`);
+                logger.debug('Added blank line BEFORE character name (prev was action/non-character)');
               } else {
-                console.log(`[ScreenwriterModal] ℹ️ Skipped blank line BEFORE character (already exists)`);
+                logger.debug('Skipped blank line BEFORE character (already exists)');
               }
             }
             
@@ -405,19 +414,19 @@ CRITICAL SPACING RULES (Fountain.io spec):
             // Don't add blank line here - we add it BEFORE the character to avoid duplicates
             if (isAction && nextIsCharacterName) {
               // Don't add here - the character's "before" logic will handle it
-              console.log(`[ScreenwriterModal] ℹ️ Action before character - blank line will be added by character's "before" logic`);
+              logger.debug('Action before character - blank line will be added by character before-logic');
             }
             // FOUNTAIN SPEC: Character → NO blank line → Parenthetical/Dialogue
             // Character has "without an empty line after it" - dialogue/parenthetical follows immediately
             else if (isCharacterName && (nextIsParenthetical || nextIsDialogue)) {
               // No blank line - parenthetical/dialogue follows immediately on next line
-              console.log(`[ScreenwriterModal] ℹ️ Character name - NO blank line after (next is parenthetical/dialogue)`);
+              logger.debug('Character name - no blank line after (next is parenthetical/dialogue)');
             }
             // FOUNTAIN SPEC: Parenthetical → NO blank line → Dialogue
             // Parenthetical flows directly to dialogue
             else if (isParenthetical && nextIsDialogue) {
               // No blank line - dialogue follows immediately on next line
-              console.log(`[ScreenwriterModal] ℹ️ Parenthetical - NO blank line after (next is dialogue)`);
+              logger.debug('Parenthetical - no blank line after (next is dialogue)');
             }
             // FOUNTAIN SPEC: Dialogue → blank line → Action/Character
             // Add blank line AFTER dialogue if next is action or character
@@ -425,7 +434,7 @@ CRITICAL SPACING RULES (Fountain.io spec):
               // Only add if last line is not already empty
               if (formattedLines[formattedLines.length - 1] !== '') {
                 formattedLines.push('');
-                console.log(`[ScreenwriterModal] ✅ Added blank line AFTER dialogue (next is action/character)`);
+                logger.debug('Added blank line AFTER dialogue (next is action/character)');
               }
             }
           }
@@ -440,8 +449,8 @@ CRITICAL SPACING RULES (Fountain.io spec):
           // Normalize excessive blank lines: replace 3+ consecutive newlines with just 2 (one blank line)
           formattedContent = formattedContent.replace(/\n{3,}/g, '\n\n');
           
-          console.log('[ScreenwriterModal] 📝 Formatted content:', formattedContent);
-          console.log('[ScreenwriterModal] 📝 Formatted content (with newlines shown):', JSON.stringify(formattedContent.substring(0, 200)));
+          logger.debug('Formatted content:', formattedContent);
+          logger.debug('Formatted content (newlines shown):', JSON.stringify(formattedContent.substring(0, 200)));
           
           // Format content for insertion
           let contentToInsert = formattedContent.trim();
@@ -464,20 +473,20 @@ CRITICAL SPACING RULES (Fountain.io spec):
           // Add newline BEFORE if there's text on the current line
           if (hasTextOnCurrentLine) {
             contentToInsert = '\n\n' + contentToInsert; // Double newline for proper spacing
-            console.log('[ScreenwriterModal] ✅ Added double newline before content (text exists on current line)');
+            logger.debug('Added double newline before content (text exists on current line)');
           } else {
             // Even if at start of line, add single newline for spacing
             contentToInsert = '\n' + contentToInsert;
-            console.log('[ScreenwriterModal] ✅ Added single newline before content (at start of line)');
+            logger.debug('Added single newline before content (at start of line)');
           }
 
           // Add newline AFTER if there's text after cursor and it doesn't start with newline
           if (hasTextAfter && !textAfterStartsWithNewline) {
             contentToInsert = contentToInsert + '\n';
-            console.log('[ScreenwriterModal] ✅ Added newline after content (text exists after cursor)');
+            logger.debug('Added newline after content (text exists after cursor)');
           }
           
-          console.log('[ScreenwriterModal] 📝 Final content to insert - length:', contentToInsert.length, 'startsWith newline:', contentToInsert.startsWith('\n'), 'endsWith newline:', contentToInsert.endsWith('\n'));
+          logger.debug('Final content to insert length/newline flags:', contentToInsert.length, contentToInsert.startsWith('\n'), contentToInsert.endsWith('\n'));
 
           // Insert content
           onInsert(contentToInsert);
@@ -525,7 +534,7 @@ CRITICAL SPACING RULES (Fountain.io spec):
             setAbortController(null);
             return;
           }
-          console.error('[ScreenwriterModal] Error:', error);
+          logger.error('Error:', error);
           toast.error(error.message || 'Failed to generate content');
           setIsLoading(false);
           setLoadingStage(null);
@@ -541,7 +550,7 @@ CRITICAL SPACING RULES (Fountain.io spec):
         setAbortController(null);
         return;
       }
-      console.error('[ScreenwriterModal] Error:', error);
+      logger.error('Error:', error);
       toast.error(error.message || 'Failed to generate content');
       setIsLoading(false);
       setLoadingStage(null);

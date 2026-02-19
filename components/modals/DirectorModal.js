@@ -12,8 +12,17 @@ import { validateDirectorModalContent } from '@/utils/jsonValidator';
 import { formatFountainSpacing } from '@/utils/fountainSpacing';
 import { getCharactersInScene, buildCharacterSummaries } from '@/utils/characterContextBuilder';
 import { getTimingMessage } from '@/utils/modelTiming';
+import { createClientLogger } from '@/utils/clientLogger';
 import toast from 'react-hot-toast';
 // ModelSelect removed - using DaisyUI select instead
+const ENABLE_EDITOR_AGENT_DEBUG_LOGS =
+  process.env.NODE_ENV !== 'production' &&
+  (process.env.NEXT_PUBLIC_ENABLE_EDITOR_AGENT_DEBUG === 'true' ||
+    process.env.NEXT_PUBLIC_ENABLE_REWRITE_DEBUG === 'true');
+const logger = createClientLogger('DirectorModal', {
+  debugEnabled: ENABLE_EDITOR_AGENT_DEBUG_LOGS,
+  warnEnabled: ENABLE_EDITOR_AGENT_DEBUG_LOGS
+});
 
 // LLM Models - Same order and list as UnifiedChatPanel for consistency
 // Curated list: 8 models across 3 providers (latest flagship + fast option + premium option per provider)
@@ -295,13 +304,13 @@ Rules:
         },
         // onComplete
         async (fullContent) => {
-          console.log('[DirectorModal] 📝 RAW AI RESPONSE:', fullContent.substring(0, 500));
+          logger.debug('Raw AI response:', fullContent.substring(0, 500));
 
           // Validate JSON
           const validation = validateDirectorModalContent(fullContent, contextBefore, sceneCount);
 
           if (!validation.valid) {
-            console.error('[DirectorModal] ❌ JSON validation failed:', validation.errors);
+            logger.error('JSON validation failed:', validation.errors);
             
             // Filter out non-critical errors (like totalLines mismatch)
             const criticalErrors = validation.errors.filter(err => 
@@ -311,7 +320,7 @@ Rules:
             
             // Try to extract content anyway if we have rawJson with scenes
             if (validation.rawJson && validation.rawJson.scenes && Array.isArray(validation.rawJson.scenes) && validation.rawJson.scenes.length > 0) {
-              console.warn('[DirectorModal] ⚠️ Validation failed but attempting to use content anyway');
+              logger.warn('Validation failed but attempting to use content anyway');
               
               // Check if scenes are valid enough to use
               const hasValidScenes = validation.rawJson.scenes.every(scene => 
@@ -324,7 +333,7 @@ Rules:
               );
               
               if (hasValidScenes) {
-                console.log('[DirectorModal] ✅ Scenes appear valid, using content despite validation errors');
+                logger.debug('Scenes appear valid, using content despite validation errors');
                 // Show warning toast if there were critical errors, but continue
                 if (criticalErrors.length > 0) {
                   toast.warning(`Warning: ${criticalErrors[0]}. Using content anyway.`);
@@ -341,7 +350,7 @@ Rules:
               return;
             }
           } else {
-            console.log('[DirectorModal] ✅ JSON validation passed');
+            logger.debug('JSON validation passed');
           }
 
           // Extract scenes from validated JSON or rawJson
@@ -502,7 +511,7 @@ Rules:
             setAbortController(null);
             return;
           }
-          console.error('[DirectorModal] Error:', error);
+          logger.error('Error:', error);
           toast.error(error.message || 'Failed to generate content');
           setIsLoading(false);
           setLoadingStage(null);
@@ -518,7 +527,7 @@ Rules:
         setAbortController(null);
         return;
       }
-      console.error('[DirectorModal] Error:', error);
+      logger.error('Error:', error);
       toast.error(error.message || 'Failed to generate content');
       setIsLoading(false);
       setLoadingStage(null);

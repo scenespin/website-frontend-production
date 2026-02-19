@@ -12,8 +12,17 @@ import { buildCharacterSummaries } from '@/utils/characterContextBuilder';
 import { validateDialogueContent } from '@/utils/jsonValidator';
 import { formatFountainSpacing } from '@/utils/fountainSpacing';
 import { getTimingMessage } from '@/utils/modelTiming';
+import { createClientLogger } from '@/utils/clientLogger';
 import toast from 'react-hot-toast';
 // ModelSelect removed - using DaisyUI select instead
+const ENABLE_EDITOR_AGENT_DEBUG_LOGS =
+  process.env.NODE_ENV !== 'production' &&
+  (process.env.NEXT_PUBLIC_ENABLE_EDITOR_AGENT_DEBUG === 'true' ||
+    process.env.NEXT_PUBLIC_ENABLE_REWRITE_DEBUG === 'true');
+const logger = createClientLogger('DialogueModal', {
+  debugEnabled: ENABLE_EDITOR_AGENT_DEBUG_LOGS,
+  warnEnabled: ENABLE_EDITOR_AGENT_DEBUG_LOGS
+});
 
 // LLM Models - Same order and list as UnifiedChatPanel for consistency
 // Curated list: 8 models across 3 providers (latest flagship + fast option + premium option per provider)
@@ -314,19 +323,19 @@ Rules:
         },
         // onComplete
         async (fullContent) => {
-          console.log('[DialogueModal] 📝 RAW AI RESPONSE:', fullContent.substring(0, 500));
+          logger.debug('Raw AI response:', fullContent.substring(0, 500));
 
           // Validate JSON
           const validation = validateDialogueContent(fullContent);
 
           if (!validation.valid) {
-            console.error('[DialogueModal] ❌ JSON validation failed:', validation.errors);
+            logger.error('JSON validation failed:', validation.errors);
             toast.error(`Invalid response: ${validation.errors[0] || 'Unknown error'}`);
             setIsLoading(false);
             return;
           }
 
-          console.log('[DialogueModal] ✅ JSON validation passed');
+          logger.debug('JSON validation passed');
 
           if (!validation.content || validation.content.trim().length === 0) {
             toast.error('No valid content returned');
@@ -420,7 +429,7 @@ Rules:
         },
         // onError
         (error) => {
-          console.error('[DialogueModal] Error:', error);
+          logger.error('Error:', error);
           toast.error(error.message || 'Failed to generate dialogue');
           setIsLoading(false);
         }
@@ -434,7 +443,7 @@ Rules:
         setAbortController(null);
         return;
       }
-      console.error('[DialogueModal] Error:', error);
+      logger.error('Error:', error);
       toast.error(error.message || 'Failed to generate dialogue');
       setIsLoading(false);
       setLoadingStage(null);

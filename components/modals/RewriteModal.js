@@ -12,8 +12,18 @@ import { buildRewritePrompt } from '@/utils/promptBuilders';
 import { formatFountainSpacing } from '@/utils/fountainSpacing';
 import { buildCharacterSummaries } from '@/utils/characterContextBuilder';
 import { getModelTiming, getTimingMessage } from '@/utils/modelTiming';
+import { createClientLogger } from '@/utils/clientLogger';
 import toast from 'react-hot-toast';
 // ModelSelect removed - using DaisyUI select instead
+
+// Debug logs can freeze the browser console on large rewrites.
+const ENABLE_REWRITE_DEBUG_LOGS =
+  process.env.NODE_ENV !== 'production' &&
+  process.env.NEXT_PUBLIC_ENABLE_REWRITE_DEBUG === 'true';
+const logger = createClientLogger('RewriteModal', {
+  debugEnabled: ENABLE_REWRITE_DEBUG_LOGS,
+  warnEnabled: ENABLE_REWRITE_DEBUG_LOGS
+});
 
 // LLM Models - Same order and list as UnifiedChatPanel for consistency
 // Curated list: 8 models across 3 providers (latest flagship + fast option + premium option per provider)
@@ -146,8 +156,8 @@ function cleanFountainOutput(text) {
   cleaned = screenplayLines.join('\n');
   
   // 🔥 DEBUG: Log after line processing to catch sentence splitting
-  if (cleaned.includes('p. ') || cleaned.includes('p.\n') || cleaned.match(/^[a-z]\.\s/)) {
-    console.warn('[RewriteModal] ⚠️ POTENTIAL SENTENCE SPLITTING DETECTED:', cleaned);
+  if (ENABLE_REWRITE_DEBUG_LOGS && (cleaned.includes('p. ') || cleaned.includes('p.\n') || cleaned.match(/^[a-z]\.\s/))) {
+    logger.warn('Potential sentence splitting detected:', cleaned);
   }
   
   // Whitespace normalization
@@ -172,8 +182,8 @@ function cleanFountainOutput(text) {
   
   // Fix missing words at start of lines (like " the newsroom" should be "Through the newsroom")
   // This is harder to fix automatically, but we can at least log it
-  if (cleaned.match(/^\s+[a-z]/m)) {
-    console.warn('[RewriteModal] ⚠️ Potential missing word at line start detected');
+  if (ENABLE_REWRITE_DEBUG_LOGS && cleaned.match(/^\s+[a-z]/m)) {
+    logger.warn('Potential missing word at line start detected');
   }
   
   return cleaned;
@@ -436,11 +446,12 @@ export default function RewriteModal({
             return;
           }
           
-          // 🔥 DEBUG: Log raw AI response to diagnose sentence splitting issues
-          console.log('[RewriteModal] 📝 RAW AI RESPONSE (first 500 chars):', fullContent.substring(0, 500));
-          console.log('[RewriteModal] 📝 RAW AI RESPONSE (last 200 chars):', fullContent.substring(Math.max(0, fullContent.length - 200)));
-          console.log('[RewriteModal] 📝 RAW AI RESPONSE length:', fullContent.length);
-          console.log('[RewriteModal] 📝 RAW AI RESPONSE (full):', JSON.stringify(fullContent));
+          // Keep rewrite-path logging opt-in only to avoid console lockups on large payloads.
+          if (ENABLE_REWRITE_DEBUG_LOGS) {
+            logger.debug('Raw AI response (first 500 chars):', fullContent.substring(0, 500));
+            logger.debug('Raw AI response (last 200 chars):', fullContent.substring(Math.max(0, fullContent.length - 200)));
+            logger.debug('Raw AI response length:', fullContent.length);
+          }
           
           // 🔥 PHASE 4: Validate JSON for rewrite requests
           if (useJSONFormat) {
@@ -448,11 +459,11 @@ export default function RewriteModal({
             const validation = validateRewriteContent(fullContent);
             
             if (validation.valid) {
-              console.log('[RewriteModal] ✅ JSON validation passed');
+              logger.debug('JSON validation passed');
               // Use the validated rewritten text
               let cleaned = validation.rewrittenText;
               
-              console.log('[RewriteModal] 📝 After JSON validation - cleaned length:', cleaned.length, 'endsWith newline:', cleaned.endsWith('\n'));
+              logger.debug('After JSON validation, cleaned length/newline:', cleaned.length, cleaned.endsWith('\n'));
               
               if (!cleaned || cleaned.trim().length === 0) {
                 toast.error('No valid content returned from rewrite');
@@ -465,7 +476,7 @@ export default function RewriteModal({
               const lines = cleaned.split('\n').filter(l => l.trim() || l === '');
               cleaned = formatFountainSpacing(lines.filter(l => l.trim()));
               
-              console.log('[RewriteModal] 📝 After Fountain spacing formatting - cleaned length:', cleaned.length);
+              logger.debug('After Fountain spacing, cleaned length:', cleaned.length);
               
               // 🔥 FIX: Add newline BEFORE any processing if there's text after
               // This ensures the newline is part of the content being processed
@@ -479,10 +490,10 @@ export default function RewriteModal({
               // If there's text after, add exactly ONE newline
               if (hasTextAfter) {
                 cleaned = cleaned + '\n';
-                console.log('[RewriteModal] ✅ Added newline after formatting (normalized) - new length:', cleaned.length);
+                logger.debug('Added newline after formatting, new length:', cleaned.length);
               }
               
-              console.log('[RewriteModal] 📝 Final cleaned text before onReplace - length:', cleaned.length, 'endsWith newline:', cleaned.endsWith('\n'));
+              logger.debug('Final cleaned text before onReplace, length/newline:', cleaned.length, cleaned.endsWith('\n'));
               
               // Final safety check: if cancelled during processing, don't apply changes
               if (controller.signal.aborted || isCancelledRef.current) {
@@ -496,7 +507,7 @@ export default function RewriteModal({
               // Replace the selected text
               onReplace(cleaned);
             } else {
-              console.warn('[RewriteModal] ❌ JSON validation failed:', validation.errors);
+              logger.warn('JSON validation failed:', validation.errors);
               
               // 🔥 FIX: Add newline BEFORE cleaning if there's text after
               // This ensures the newline is preserved through the cleaning process
@@ -509,15 +520,17 @@ export default function RewriteModal({
                 (editorContent[selectionRange.end - 1] === '\n' || 
                  (selectionRange.end > 1 && editorContent.substring(selectionRange.end - 2, selectionRange.end) === '\r\n'));
               
-              console.log('[RewriteModal] 📝 Before cleaning - fullContent length:', fullContent.length, 'hasTextAfter:', hasTextAfter, 'textAfterStartsWithNewline:', textAfterStartsWithNewline, 'selectionEndsAtNewline:', selectionEndsAtNewline);
-              console.log('[RewriteModal] 📝 Selection range:', { start: selectionRange.start, end: selectionRange.end });
-              console.log('[RewriteModal] 📝 Text after selection (first 50 chars):', JSON.stringify(textAfter.substring(0, 50)));
+              if (ENABLE_REWRITE_DEBUG_LOGS) {
+                logger.debug('Before cleaning lengths/flags:', fullContent.length, hasTextAfter, textAfterStartsWithNewline, selectionEndsAtNewline);
+                logger.debug('Selection range:', { start: selectionRange.start, end: selectionRange.end });
+                logger.debug('Text after selection preview:', JSON.stringify(textAfter.substring(0, 50)));
+              }
               
               // 🔥 SIMPLIFIED: Add newline ONCE, AFTER cleaning
               // This prevents double newlines from multiple addition points
               let cleaned = cleanFountainOutput(fullContent);
               
-              console.log('[RewriteModal] 📝 After cleaning - cleaned length:', cleaned.length, 'endsWith newline:', cleaned.endsWith('\n'));
+              logger.debug('After cleaning, cleaned length/newline:', cleaned.length, cleaned.endsWith('\n'));
               
               if (!cleaned || cleaned.trim().length === 0) {
                 toast.error('No valid content returned from rewrite');
@@ -532,10 +545,10 @@ export default function RewriteModal({
               // If there's text after, add exactly ONE newline
               if (hasTextAfter) {
                 cleaned = cleaned + '\n';
-                console.log('[RewriteModal] ✅ Added newline AFTER cleaning (normalized) - new length:', cleaned.length);
+                logger.debug('Added newline after cleaning, new length:', cleaned.length);
               }
               
-              console.log('[RewriteModal] 📝 Final cleaned text before onReplace - length:', cleaned.length, 'endsWith newline:', cleaned.endsWith('\n'));
+              logger.debug('Final cleaned text before onReplace, length/newline:', cleaned.length, cleaned.endsWith('\n'));
               
               // Replace the selected text
               onReplace(cleaned);
@@ -552,15 +565,17 @@ export default function RewriteModal({
               (editorContent[selectionRange.end - 1] === '\n' || 
                (selectionRange.end > 1 && editorContent.substring(selectionRange.end - 2, selectionRange.end) === '\r\n'));
             
-            console.log('[RewriteModal] 📝 Original format - fullContent length:', fullContent.length, 'hasTextAfter:', hasTextAfter, 'selectionEndsAtNewline:', selectionEndsAtNewline);
-            console.log('[RewriteModal] 📝 Selection range:', { start: selectionRange.start, end: selectionRange.end });
-            console.log('[RewriteModal] 📝 Text after selection (first 50 chars):', JSON.stringify(textAfter.substring(0, 50)));
+            if (ENABLE_REWRITE_DEBUG_LOGS) {
+              logger.debug('Original format lengths/flags:', fullContent.length, hasTextAfter, selectionEndsAtNewline);
+              logger.debug('Selection range:', { start: selectionRange.start, end: selectionRange.end });
+              logger.debug('Text after selection preview:', JSON.stringify(textAfter.substring(0, 50)));
+            }
             
             // 🔥 SIMPLIFIED: Add newline ONCE, AFTER cleaning
             // This prevents double newlines from multiple addition points
             let cleaned = cleanFountainOutput(fullContent);
             
-            console.log('[RewriteModal] 📝 After cleaning (original format) - length:', cleaned.length, 'endsWith newline:', cleaned.endsWith('\n'));
+            logger.debug('After cleaning (original format), length/newline:', cleaned.length, cleaned.endsWith('\n'));
             
             if (!cleaned || cleaned.trim().length === 0) {
               toast.error('No valid content returned from rewrite');
@@ -575,10 +590,10 @@ export default function RewriteModal({
             // If there's text after, add exactly ONE newline
             if (hasTextAfter) {
               cleaned = cleaned + '\n';
-              console.log('[RewriteModal] ✅ Added newline AFTER cleaning (original format, normalized)');
+              logger.debug('Added newline after cleaning (original format)');
             }
             
-            console.log('[RewriteModal] 📝 Final text before onReplace (original format) - length:', cleaned.length, 'endsWith newline:', cleaned.endsWith('\n'));
+            logger.debug('Final text before onReplace (original format), length/newline:', cleaned.length, cleaned.endsWith('\n'));
             
             // Replace the selected text
             onReplace(cleaned);
@@ -631,7 +646,7 @@ export default function RewriteModal({
             setAbortController(null);
             return;
           }
-          console.error('[RewriteModal] Error:', error);
+          logger.error('Error:', error);
           toast.error(error.message || 'Failed to rewrite text');
           setIsLoading(false);
           setLoadingStage(null);
@@ -647,7 +662,7 @@ export default function RewriteModal({
         setAbortController(null);
         return;
       }
-      console.error('[RewriteModal] Error:', error);
+      logger.error('Error:', error);
       toast.error(error.message || 'Failed to rewrite text');
       setIsLoading(false);
       setLoadingStage(null);
