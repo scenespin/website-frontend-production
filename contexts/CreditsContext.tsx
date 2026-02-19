@@ -81,6 +81,26 @@ export function CreditsProvider({ children }: { children: React.ReactNode }) {
     };
   }, [refreshCredits]);
 
+  // Allow feature surfaces to immediately align displayed balance with
+  // canonical backend "current" values (e.g. 402 insufficient credits).
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleCreditsOverride = (event: Event) => {
+      const customEvent = event as CustomEvent<{ balance?: number }>;
+      const nextBalance = customEvent.detail?.balance;
+      if (typeof nextBalance === 'number' && Number.isFinite(nextBalance) && nextBalance >= 0) {
+        setCredits(nextBalance);
+        setLoading(false);
+      }
+    };
+
+    window.addEventListener('credits:override', handleCreditsOverride as EventListener);
+    return () => {
+      window.removeEventListener('credits:override', handleCreditsOverride as EventListener);
+    };
+  }, []);
+
   const value = useMemo(
     () => ({ credits, loading, refreshCredits }),
     [credits, loading, refreshCredits]
