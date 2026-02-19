@@ -4,7 +4,7 @@ import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useContextStore } from '@/lib/contextStore';
 import type { Scene } from '@/types/screenplay';
 import { MapPin, Users, Package } from 'lucide-react';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { cn } from '@/lib/utils';
 import { useAuth } from '@clerk/nextjs';
 import { getScreenplay } from '@/utils/screenplayStorage';
@@ -28,6 +28,9 @@ export default function SceneNavigator({ currentLine, onSceneClick, className = 
     const { getToken } = useAuth();
     const [sceneFirstLines, setSceneFirstLines] = useState<Record<string, string>>({});
     const [loadingTimeout, setLoadingTimeout] = useState(false);
+    const firstLineRequestKeyRef = useRef<string>('');
+    const firstLineRequestInFlightRef = useRef(false);
+    const firstLineRetryAfterRef = useRef(0);
     
     // 🔥 FIX: Check if initialization is complete before showing empty state
     // This prevents showing "No scenes yet" during initialization, which could trigger rescan duplicates
@@ -84,6 +87,13 @@ export default function SceneNavigator({ currentLine, onSceneClick, className = 
         }
         return (a.number || 0) - (b.number || 0);
     });
+    const scenesWithMissingSynopsis = useMemo(
+        () => allScenes.filter(scene => {
+            const hasValidSynopsis = scene.synopsis && scene.synopsis.trim() !== '' && scene.synopsis !== 'Imported from script';
+            return !hasValidSynopsis && scene.fountain?.startLine !== undefined && scene.fountain?.endLine !== undefined;
+        }),
+        [allScenes]
+    );
     
     if (allScenesRaw.length !== allScenes.length) {
         console.warn(`[SceneNavigator] 🔍 Deduplicated ${allScenesRaw.length - allScenes.length} duplicate scenes`);
@@ -117,15 +127,15 @@ export default function SceneNavigator({ currentLine, onSceneClick, className = 
         if (!screenplay?.screenplayId || !getToken) return;
         
         const fetchFirstLines = async () => {
-            const scenesToFetch = allScenes.filter(scene => {
-                // Fetch if no synopsis, or synopsis is the placeholder "Imported from script"
-                const hasValidSynopsis = scene.synopsis && scene.synopsis.trim() !== '' && scene.synopsis !== 'Imported from script';
-                // 🔥 FIX: Check for undefined instead of falsy - 0 is a valid line number (first line)
-                return !hasValidSynopsis && scene.fountain?.startLine !== undefined && scene.fountain?.endLine !== undefined;
-            });
+            const scenesToFetch = scenesWithMissingSynopsis;
             if (scenesToFetch.length === 0) return;
+
+            const fetchKey = `${screenplay.screenplayId}:${scenesToFetch.map(s => s.id).join(',')}`;
+            if (firstLineRequestInFlightRef.current || firstLineRequestKeyRef.current === fetchKey) return;
+            if (Date.now() < firstLineRetryAfterRef.current) return;
             
             try {
+                firstLineRequestInFlightRef.current = true;
                 const screenplayData = await getScreenplay(screenplay.screenplayId, getToken);
                 if (!screenplayData?.content) return;
                 
@@ -151,13 +161,18 @@ export default function SceneNavigator({ currentLine, onSceneClick, className = 
                 if (Object.keys(newFirstLines).length > 0) {
                     setSceneFirstLines(prev => ({ ...prev, ...newFirstLines }));
                 }
+                firstLineRequestKeyRef.current = fetchKey;
             } catch (error) {
                 console.error('[SceneNavigator] Failed to fetch first lines:', error);
+                // Avoid tight retry loops when screenplay endpoint is failing.
+                firstLineRetryAfterRef.current = Date.now() + 30000;
+            } finally {
+                firstLineRequestInFlightRef.current = false;
             }
         };
         
         fetchFirstLines();
-    }, [screenplay?.screenplayId, getToken, allScenes]);
+    }, [screenplay?.screenplayId, getToken, scenesWithMissingSynopsis]);
 
     // Get character names for a scene
     const getSceneCharacters = (scene: Scene): string[] => {

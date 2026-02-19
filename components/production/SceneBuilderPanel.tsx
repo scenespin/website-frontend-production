@@ -64,6 +64,7 @@ import { StorageDecisionModal } from '@/components/storage/StorageDecisionModal'
 import { MediaUploadSlot } from '@/components/production/MediaUploadSlot';
 import { useAuth } from '@clerk/nextjs';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
+import { useCredits } from '@/contexts/CreditsContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { extractS3Key } from '@/utils/s3';
 import { getScreenplay } from '@/utils/screenplayStorage';
@@ -115,6 +116,7 @@ import {
 import { api } from '@/lib/api';
 import { SceneAnalysisResult } from '@/types/screenplay';
 import { SceneBuilderService } from '@/services/SceneBuilderService';
+import { createClientLogger } from '@/utils/clientLogger';
 
 const MAX_IMAGE_SIZE_MB = 10;
 const MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024;
@@ -170,6 +172,14 @@ interface WorkflowStatus {
 
 // Internal component that uses the context
 function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = false, simplified = false }: SceneBuilderPanelProps) {
+  const ENABLE_SCENEBUILDER_DIAGNOSTICS =
+    process.env.NODE_ENV !== 'production' &&
+    process.env.NEXT_PUBLIC_ENABLE_SCENEBUILDER_DIAGNOSTICS === 'true';
+  const sceneBuilderLogger = createClientLogger('SceneBuilderPanel', {
+    debugEnabled: ENABLE_SCENEBUILDER_DIAGNOSTICS,
+    warnEnabled: true
+  });
+
   // 🔥 DIAGNOSTIC: Track component re-renders and performance
   const renderCountRef = useRef(0);
   const lastRenderTimeRef = useRef(Date.now());
@@ -181,6 +191,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   
   // Authentication
   const { getToken } = useAuth();
+  const { refreshCredits } = useCredits();
   const queryClient = useQueryClient();
   
   // Get context state and actions
@@ -197,6 +208,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   // 🔥 PERFORMANCE: Only log diagnostics when there are actual issues (throttled)
   const lastDiagnosticLogRef = useRef(0);
   useEffect(() => {
+    if (!ENABLE_SCENEBUILDER_DIAGNOSTICS) return;
     const renderTime = performance.now() - renderStartTime;
     if (renderCountRef.current > 1) {
       // Only log if there's a real performance issue (rapid re-renders or slow renders)
@@ -206,11 +218,15 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       
       if (shouldLogRapid || shouldLogSlow) {
         if (shouldLogRapid) {
-          console.warn(`[SceneBuilderPanel-DIAGNOSTIC] ⚠️ RAPID RE-RENDER #${renderCountRef.current} | Time since last: ${timeSinceLastRender}ms | Render time: ${renderTime.toFixed(2)}ms | Context changed: ${contextStateChanged}`);
+          sceneBuilderLogger.warnEvery(
+            'rapid-rerender',
+            1000,
+            `Rapid re-render #${renderCountRef.current} | Δ=${timeSinceLastRender}ms | render=${renderTime.toFixed(2)}ms | contextChanged=${contextStateChanged}`
+          );
           lastDiagnosticLogRef.current = renderCountRef.current;
         }
         if (shouldLogSlow) {
-          console.warn(`[SceneBuilderPanel-DIAGNOSTIC] ⚠️ SLOW RENDER #${renderCountRef.current} | Render time: ${renderTime.toFixed(2)}ms`);
+          sceneBuilderLogger.warn(`Slow render #${renderCountRef.current} | render=${renderTime.toFixed(2)}ms`);
         }
       }
     }
@@ -844,14 +860,16 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     const combinedSignature = `${selectedRefsMapSignature}|${selectedCharacterReferencesSignature}`;
     const depsChanged = combinedSignature !== runInfo.lastDeps;
     
-    console.log(`${DIAGNOSTIC_LOG_PREFIX} [${effectName}] Run #${runInfo.count} | Time since last: ${timeSinceLastRun}ms | Deps changed: ${depsChanged}`, {
-      selectedReferenceFullImageUrlsMapSize: selectedReferenceFullImageUrlsMap?.size || 0,
-      mapSignatureLength: selectedRefsMapSignature.length,
-      refsSignatureLength: selectedCharacterReferencesSignature.length
-    });
+    if (ENABLE_SCENEBUILDER_DIAGNOSTICS) {
+      sceneBuilderLogger.debug(`[${effectName}] Run #${runInfo.count} | Time since last: ${timeSinceLastRun}ms | Deps changed: ${depsChanged}`, {
+        selectedReferenceFullImageUrlsMapSize: selectedReferenceFullImageUrlsMap?.size || 0,
+        mapSignatureLength: selectedRefsMapSignature.length,
+        refsSignatureLength: selectedCharacterReferencesSignature.length
+      });
+    }
     
-    if (timeSinceLastRun < 100 && runInfo.count > 5) {
-      console.error(`${DIAGNOSTIC_LOG_PREFIX} ⚠️ [${effectName}] POTENTIAL INFINITE LOOP! Run ${runInfo.count} times in ${timeSinceLastRun}ms`);
+    if (ENABLE_SCENEBUILDER_DIAGNOSTICS && timeSinceLastRun < 100 && runInfo.count > 5) {
+      sceneBuilderLogger.warnEvery(`${effectName}-loop`, 1000, `[${effectName}] Potential infinite loop: run ${runInfo.count} in ${timeSinceLastRun}ms`);
     }
     
     runInfo.lastRun = now;
@@ -909,7 +927,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
             needsUpdate = true;
           } else if (!presignedUrl || presignedUrl.length === 0) {
             // 🔥 FIX: Presigned URL generation failed (expired/deleted file) - remove the reference
-            console.warn('[SceneBuilderPanel] Removing expired character reference:', {
+            sceneBuilderLogger.warn('Removing expired character reference:', {
               characterId: charId,
               shotSlot,
               s3Key: charRef.s3Key?.substring(0, 50) + '...',
@@ -994,7 +1012,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       const STALE_THRESHOLD = 30 * 1000; // 30 seconds - shorter threshold for Scene Builder freshness
       
       if (age > STALE_THRESHOLD) {
-        console.log('[SceneBuilderPanel] Resetting stale Media Library queries on remount', {
+        sceneBuilderLogger.debug('Resetting stale Media Library queries on remount', {
           age: `${Math.round(age / 1000)}s`,
           threshold: `${STALE_THRESHOLD / 1000}s`
         });
@@ -1004,12 +1022,12 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       }
     } else if (!mediaQueryState) {
       // No cached data - ensure fresh fetch on mount
-      console.log('[SceneBuilderPanel] No cached Media Library data - will fetch fresh on mount');
+      sceneBuilderLogger.debug('No cached Media Library data - will fetch fresh on mount');
     }
     
     // Cleanup function: Cancel pending queries on unmount
     return () => {
-      console.log('[SceneBuilderPanel] Cleaning up: Cancelling pending queries on unmount');
+      sceneBuilderLogger.debug('Cleaning up: canceling pending queries on unmount');
       // Cancel Scene Builder specific queries to prevent state updates after unmount
       // This prevents queries from completing after component unmounts, which causes loading state issues
       queryClient.cancelQueries({ queryKey: ['media', 'files', projectId || ''], exact: false });
@@ -1028,14 +1046,16 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     const timeSinceLastRun = now - runInfo.lastRun;
     const depsChanged = JSON.stringify([currentShotIndex, wizardStep, currentStep]) !== JSON.stringify(runInfo.lastDeps);
     
-    console.log(`${DIAGNOSTIC_LOG_PREFIX} [${effectName}] Run #${runInfo.count} | Time since last: ${timeSinceLastRun}ms | Deps changed: ${depsChanged}`, {
-      currentShotIndex,
-      wizardStep,
-      currentStep
-    });
+    if (ENABLE_SCENEBUILDER_DIAGNOSTICS) {
+      sceneBuilderLogger.debug(`[${effectName}] Run #${runInfo.count} | Time since last: ${timeSinceLastRun}ms | Deps changed: ${depsChanged}`, {
+        currentShotIndex,
+        wizardStep,
+        currentStep
+      });
+    }
     
-    if (timeSinceLastRun < 100 && runInfo.count > 5) {
-      console.error(`${DIAGNOSTIC_LOG_PREFIX} ⚠️ [${effectName}] POTENTIAL INFINITE LOOP! Run ${runInfo.count} times in ${timeSinceLastRun}ms`);
+    if (ENABLE_SCENEBUILDER_DIAGNOSTICS && timeSinceLastRun < 100 && runInfo.count > 5) {
+      sceneBuilderLogger.warnEvery(`${effectName}-loop`, 1000, `[${effectName}] Potential infinite loop: run ${runInfo.count} in ${timeSinceLastRun}ms`);
     }
     
     runInfo.lastRun = now;
@@ -1063,8 +1083,6 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   
   // 🔥 DIAGNOSTIC: Track useEffect run counts to identify infinite loops
   const useEffectRunCountsRef = useRef<Record<string, { count: number; lastRun: number; lastDeps: any }>>({});
-  const DIAGNOSTIC_LOG_PREFIX = '[SceneBuilderPanel-DIAGNOSTIC]';
-  
   // 🔥 NEW: Use custom hook for prop references
   // Pass baseProps instead of sceneProps to break the circular dependency
   // The hook will only recalculate when baseProps changes (when fetching new props), not when sceneProps changes
@@ -1115,7 +1133,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       // Use contextActions.setSceneProps directly to avoid circular dependency
       // The wrapper setSceneProps depends on contextState.sceneProps, which causes infinite loops
       // 🔥 FIX: Always use enriched props - they're the source of truth from Media Library
-      console.log('[SceneBuilderPanel] 🔥 CALLING setSceneProps with enriched props:', {
+      sceneBuilderLogger.debug('Calling setSceneProps with enriched props:', {
         count: enrichedPropsFromHook.length,
         props: enrichedPropsFromHook.map((p: any) => ({
           id: p.id,
@@ -1133,7 +1151,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     });
     
     // Log for debugging (only when actually syncing)
-    console.log('[SceneBuilderPanel] ✅ Syncing enriched props with Media Library data:', {
+    sceneBuilderLogger.debug('Syncing enriched props with Media Library data:', {
       count: enrichedPropsFromHook.length,
       signature: enrichedPropsSignature.substring(0, 100),
       enrichedProps: enrichedPropsFromHook.map((p: any) => ({
@@ -1181,7 +1199,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
           setStyleProfiles(data.profiles || []);
         }
       } catch (error) {
-        console.error('[SceneBuilderPanel] Failed to fetch style profiles:', error);
+        sceneBuilderLogger.error('Failed to fetch style profiles:', error);
       }
     };
 
@@ -1229,13 +1247,15 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     const timeSinceLastRun = now - runInfo.lastRun;
     const depsChanged = JSON.stringify([sceneAnalysisResult?.workflowRecommendations?.length]) !== JSON.stringify(runInfo.lastDeps);
     
-    console.log(`${DIAGNOSTIC_LOG_PREFIX} [${effectName}] Run #${runInfo.count} | Time since last: ${timeSinceLastRun}ms | Deps changed: ${depsChanged}`, {
-      hasWorkflowRecommendations: !!sceneAnalysisResult?.workflowRecommendations,
-      recommendationsCount: sceneAnalysisResult?.workflowRecommendations?.length || 0
-    });
+    if (ENABLE_SCENEBUILDER_DIAGNOSTICS) {
+      sceneBuilderLogger.debug(`[${effectName}] Run #${runInfo.count} | Time since last: ${timeSinceLastRun}ms | Deps changed: ${depsChanged}`, {
+        hasWorkflowRecommendations: !!sceneAnalysisResult?.workflowRecommendations,
+        recommendationsCount: sceneAnalysisResult?.workflowRecommendations?.length || 0
+      });
+    }
     
-    if (timeSinceLastRun < 100 && runInfo.count > 5) {
-      console.error(`${DIAGNOSTIC_LOG_PREFIX} ⚠️ [${effectName}] POTENTIAL INFINITE LOOP! Run ${runInfo.count} times in ${timeSinceLastRun}ms`);
+    if (ENABLE_SCENEBUILDER_DIAGNOSTICS && timeSinceLastRun < 100 && runInfo.count > 5) {
+      sceneBuilderLogger.warnEvery(`${effectName}-loop`, 1000, `[${effectName}] Potential infinite loop: run ${runInfo.count} in ${timeSinceLastRun}ms`);
     }
     
     runInfo.lastRun = now;
@@ -1260,13 +1280,15 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     const timeSinceLastRun = now - runInfo.lastRun;
     const depsChanged = JSON.stringify([!!sceneAnalysisResult, Object.keys(characterHeadshots).length]) !== JSON.stringify(runInfo.lastDeps);
     
-    console.log(`${DIAGNOSTIC_LOG_PREFIX} [${effectName}] Run #${runInfo.count} | Time since last: ${timeSinceLastRun}ms | Deps changed: ${depsChanged}`, {
-      hasSceneAnalysisResult: !!sceneAnalysisResult,
-      characterHeadshotsCount: Object.keys(characterHeadshots).length
-    });
+    if (ENABLE_SCENEBUILDER_DIAGNOSTICS) {
+      sceneBuilderLogger.debug(`[${effectName}] Run #${runInfo.count} | Time since last: ${timeSinceLastRun}ms | Deps changed: ${depsChanged}`, {
+        hasSceneAnalysisResult: !!sceneAnalysisResult,
+        characterHeadshotsCount: Object.keys(characterHeadshots).length
+      });
+    }
     
-    if (timeSinceLastRun < 100 && runInfo.count > 5) {
-      console.error(`${DIAGNOSTIC_LOG_PREFIX} ⚠️ [${effectName}] POTENTIAL INFINITE LOOP! Run ${runInfo.count} times in ${timeSinceLastRun}ms`);
+    if (ENABLE_SCENEBUILDER_DIAGNOSTICS && timeSinceLastRun < 100 && runInfo.count > 5) {
+      sceneBuilderLogger.warnEvery(`${effectName}-loop`, 1000, `[${effectName}] Potential infinite loop: run ${runInfo.count} in ${timeSinceLastRun}ms`);
     }
     
     runInfo.lastRun = now;
@@ -1513,15 +1535,17 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     const timeSinceLastRun = now - runInfo.lastRun;
     const depsChanged = JSON.stringify([selectedSceneId, projectId, currentPropIdsString]) !== JSON.stringify(runInfo.lastDeps);
     
-    console.log(`${DIAGNOSTIC_LOG_PREFIX} [${effectName}] Run #${runInfo.count} | Time since last: ${timeSinceLastRun}ms | Deps changed: ${depsChanged}`, {
-      selectedSceneId,
-      projectId: projectId?.substring(0, 20) + '...',
-      currentPropIdsString,
-      propIdsCount: currentPropIds.length
-    });
+    if (ENABLE_SCENEBUILDER_DIAGNOSTICS) {
+      sceneBuilderLogger.debug(`[${effectName}] Run #${runInfo.count} | Time since last: ${timeSinceLastRun}ms | Deps changed: ${depsChanged}`, {
+        selectedSceneId,
+        projectId: projectId?.substring(0, 20) + '...',
+        currentPropIdsString,
+        propIdsCount: currentPropIds.length
+      });
+    }
     
-    if (timeSinceLastRun < 100 && runInfo.count > 5) {
-      console.error(`${DIAGNOSTIC_LOG_PREFIX} ⚠️ [${effectName}] POTENTIAL INFINITE LOOP! Run ${runInfo.count} times in ${timeSinceLastRun}ms`);
+    if (ENABLE_SCENEBUILDER_DIAGNOSTICS && timeSinceLastRun < 100 && runInfo.count > 5) {
+      sceneBuilderLogger.warnEvery(`${effectName}-loop`, 1000, `[${effectName}] Potential infinite loop: run ${runInfo.count} in ${timeSinceLastRun}ms`);
     }
     
     runInfo.lastRun = now;
@@ -1564,9 +1588,9 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
         setPropIds(fetchedPropIds); // 🔥 NEW: Set propIds for Media Library query
         
         if (fetchedPropIds.length > 0) {
-          console.log('[SceneBuilderPanel] Fetching props for scene:', selectedSceneId, 'Prop IDs:', fetchedPropIds);
+          sceneBuilderLogger.debug('Fetching props for scene:', selectedSceneId, 'Prop IDs:', fetchedPropIds);
           const props = await SceneBuilderService.fetchSceneProps(fetchedPropIds, getToken);
-          console.log('[SceneBuilderPanel] Fetched props:', props);
+          sceneBuilderLogger.debug('Fetched props:', props);
           // 🔥 FIX: Store base props in state to break circular dependency
           // The enrichment hook will use these, and we'll sync enriched props separately
           setBaseProps(props); // This triggers usePropReferences to recalculate
@@ -1575,13 +1599,13 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
           // Setting base props here would overwrite enriched props if they exist
           lastEnrichedPropsRef.current = ''; // Reset to allow new enrichment
         } else {
-          console.log('[SceneBuilderPanel] No props found for scene:', selectedSceneId);
+          sceneBuilderLogger.debug('No props found for scene:', selectedSceneId);
           setBaseProps([]);
           contextActions.setSceneProps([]);
           lastEnrichedPropsRef.current = '';
         }
       } catch (error) {
-        console.error('[SceneBuilderPanel] Failed to fetch props:', error);
+        sceneBuilderLogger.error('Failed to fetch props:', error);
         setBaseProps([]);
         contextActions.setSceneProps([]);
         setPropIds([]);
@@ -1609,14 +1633,16 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     const timeSinceLastRun = now - runInfo.lastRun;
     const depsChanged = JSON.stringify([selectedSceneId, projectId]) !== JSON.stringify(runInfo.lastDeps);
     
-    console.log(`${DIAGNOSTIC_LOG_PREFIX} [${effectName}] Run #${runInfo.count} | Time since last: ${timeSinceLastRun}ms | Deps changed: ${depsChanged}`, {
-      selectedSceneId,
-      projectId: projectId?.substring(0, 20) + '...',
-      alreadyLoaded: !!fullSceneContent[selectedSceneId || '']
-    });
+    if (ENABLE_SCENEBUILDER_DIAGNOSTICS) {
+      sceneBuilderLogger.debug(`[${effectName}] Run #${runInfo.count} | Time since last: ${timeSinceLastRun}ms | Deps changed: ${depsChanged}`, {
+        selectedSceneId,
+        projectId: projectId?.substring(0, 20) + '...',
+        alreadyLoaded: !!fullSceneContent[selectedSceneId || '']
+      });
+    }
     
-    if (timeSinceLastRun < 100 && runInfo.count > 5) {
-      console.error(`${DIAGNOSTIC_LOG_PREFIX} ⚠️ [${effectName}] POTENTIAL INFINITE LOOP! Run ${runInfo.count} times in ${timeSinceLastRun}ms`);
+    if (ENABLE_SCENEBUILDER_DIAGNOSTICS && timeSinceLastRun < 100 && runInfo.count > 5) {
+      sceneBuilderLogger.warnEvery(`${effectName}-loop`, 1000, `[${effectName}] Potential infinite loop: run ${runInfo.count} in ${timeSinceLastRun}ms`);
     }
     
     runInfo.lastRun = now;
@@ -3274,6 +3300,87 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
           confidence: selectedProfile.confidence
         };
       }
+
+      const estimateRequiredCredits = async (): Promise<number | null> => {
+        const shotBreakdown = sceneAnalysisResult?.shotBreakdown;
+        if (!shotBreakdown?.shots?.length) return null;
+
+        const shots = shotBreakdown.shots.filter((s: any) => enabledShots.includes(s.slot));
+        if (shots.length === 0) return null;
+
+        try {
+          const referenceShotModels: Record<number, 'nano-banana-pro' | 'nano-banana-pro-2k' | 'flux2-max-4k-16:9' | 'flux2-max-2k' | 'flux2-pro-4k' | 'flux2-pro-2k'> = {};
+          shots.forEach((s: any) => {
+            referenceShotModels[s.slot] = selectedReferenceShotModels[s.slot] || DEFAULT_REFERENCE_SHOT_MODEL;
+          });
+
+          const videoTypes: Record<number, VideoType> = {};
+          shots.forEach((s: any) => {
+            if (s.type === 'dialogue' && generateVideoForShot[s.slot] && selectedVideoTypes[s.slot]) {
+              videoTypes[s.slot] = selectedVideoTypes[s.slot];
+            }
+          });
+
+          const pricingResult = await SceneBuilderService.calculatePricing(
+            shots.map((s: any) => ({
+              slot: s.slot,
+              credits: s.credits || 0,
+              type: s.type,
+              dialogueText: s.type === 'dialogue' ? s.dialogueBlock?.dialogue : undefined
+            })),
+            shotDurations,
+            getToken,
+            referenceShotModels,
+            Object.keys(videoTypes).length > 0 ? videoTypes : undefined,
+            selectedDialogueQualities,
+            selectedDialogueWorkflows,
+            voiceoverBaseWorkflows,
+            generateVideoForShot,
+            contextState.useElementsForVideo,
+            contextState.elementsVideoDurations
+          );
+
+          const shotBySlot = Object.fromEntries(shots.map((s: any) => [s.slot, s]));
+          const total = (pricingResult.shots || []).reduce((sum: number, p: { shotSlot: number; firstFramePrice: number; hdPrice: number }) => {
+            const shot = shotBySlot[p.shotSlot];
+            if (!shot) return sum;
+            if (shot.type === 'dialogue' && generateVideoForShot[p.shotSlot]) {
+              return sum + p.firstFramePrice + p.hdPrice;
+            }
+            if (shot.type === 'dialogue') {
+              return sum + p.firstFramePrice;
+            }
+            return sum + (shot.credits || 0);
+          }, 0);
+
+          return Number.isFinite(total) && total > 0 ? total : null;
+        } catch (pricingError) {
+          console.warn('[SceneBuilderPanel] Client-side credit estimate failed, using fallback', pricingError);
+          const fallbackTotal = shots.reduce((sum: number, shot: any) => {
+            return sum + (shotDisplayCredits?.[shot.slot] ?? shot.credits ?? 0);
+          }, 0);
+          return fallbackTotal > 0 ? fallbackTotal : null;
+        }
+      };
+
+      // Production guardrail: refresh canonical balance right before submission,
+      // then block locally if we already know the run cannot be paid for.
+      const [refreshedBalance, estimatedRequiredCredits] = await Promise.all([
+        SceneBuilderService.getFreshCreditBalance(getToken),
+        estimateRequiredCredits()
+      ]);
+
+      if (typeof estimatedRequiredCredits === 'number' && refreshedBalance < estimatedRequiredCredits) {
+        window.dispatchEvent(new CustomEvent('credits:override', {
+          detail: { balance: refreshedBalance }
+        }));
+        toast.error('Insufficient credits', {
+          description: `You need ${estimatedRequiredCredits} credits but currently have ${refreshedBalance}. Please top up before starting this run.`,
+          duration: 7000
+        });
+        setIsGenerating(false);
+        return;
+      }
       
       const { executionId } = await SceneBuilderService.executeWorkflow(workflowRequest, getToken);
       
@@ -3309,6 +3416,28 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       });
     } catch (error) {
       console.error('[SceneBuilderPanel] Generation failed:', error);
+      if (SceneBuilderService.isInsufficientCreditsError(error)) {
+        const current = typeof error.current === 'number' ? error.current : null;
+        const required = typeof error.required === 'number' ? error.required : null;
+
+        if (current !== null) {
+          window.dispatchEvent(new CustomEvent('credits:override', {
+            detail: { balance: current }
+          }));
+        }
+        refreshCredits(true).catch((refreshError) => {
+          console.warn('[SceneBuilderPanel] Failed to refresh credits after insufficient balance error', refreshError);
+        });
+
+        toast.error('Insufficient credits', {
+          description: required !== null && current !== null
+            ? `You need ${required} credits but currently have ${current}.`
+            : (error instanceof Error ? error.message : 'Please add more credits and try again.'),
+          duration: 7000
+        });
+        setIsGenerating(false);
+        return;
+      }
       toast.error('Failed to start generation', {
         description: error instanceof Error ? error.message : 'Unknown error'
       });

@@ -61,7 +61,47 @@ export interface ScenePricingResult {
   totalFirstFramePrice: number;
 }
 
+export interface WorkflowExecutionError extends Error {
+  code?: string;
+  required?: number;
+  current?: number;
+  status?: number;
+  details?: unknown;
+}
+
 export class SceneBuilderService {
+  /**
+   * Fetch canonical spendable credit balance (cache bypass).
+   */
+  static async getFreshCreditBalance(
+    getTokenFn: (options: { template: string }) => Promise<string | null>
+  ): Promise<number> {
+    const token = await this.getToken(getTokenFn);
+    const response = await fetch('/api/credits/balance?refresh=true', {
+      headers: { 'Authorization': `Bearer ${token}` }
+    });
+
+    if (!response.ok) {
+      throw new Error(`Failed to refresh credit balance: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    const balance = data?.data?.balance;
+    return typeof balance === 'number' && Number.isFinite(balance) ? balance : 0;
+  }
+
+  /**
+   * Type guard for structured insufficient credits errors.
+   */
+  static isInsufficientCreditsError(error: unknown): error is WorkflowExecutionError {
+    if (!error || typeof error !== 'object') return false;
+    const candidate = error as WorkflowExecutionError;
+    return (
+      candidate.code === 'INSUFFICIENT_CREDITS' ||
+      (typeof candidate.message === 'string' && candidate.message.includes('INSUFFICIENT_CREDITS'))
+    );
+  }
+
   /**
    * Get authentication token
    */
@@ -459,8 +499,10 @@ export class SceneBuilderService {
     
     if (!response.ok) {
       let errorMessage = `Failed to execute workflow: ${response.statusText}`;
+      let parsedErrorData: any = null;
       try {
         const errorData = await response.json();
+        parsedErrorData = errorData;
         // Handle standard API error response format: { success: false, error: { message, code, details } }
         if (errorData.error) {
           if (typeof errorData.error === 'string') {
@@ -486,7 +528,26 @@ export class SceneBuilderService {
         statusText: response.statusText,
         errorMessage
       });
-      throw new Error(errorMessage);
+      const workflowError = new Error(errorMessage) as WorkflowExecutionError;
+      workflowError.status = response.status;
+
+      const errorCode = parsedErrorData?.error?.code || parsedErrorData?.code || parsedErrorData?.error;
+      if (typeof errorCode === 'string') {
+        workflowError.code = errorCode;
+      }
+
+      const required = parsedErrorData?.required ?? parsedErrorData?.requiredCredits;
+      const current = parsedErrorData?.current ?? parsedErrorData?.availableCredits;
+      if (typeof required === 'number') workflowError.required = required;
+      if (typeof current === 'number') workflowError.current = current;
+      if (parsedErrorData?.details !== undefined) workflowError.details = parsedErrorData.details;
+
+      // Backend uses HTTP 402 + INSUFFICIENT_CREDITS payload on workflow credit validation.
+      if (response.status === 402 && !workflowError.code) {
+        workflowError.code = 'INSUFFICIENT_CREDITS';
+      }
+
+      throw workflowError;
     }
     
     const data = await response.json();

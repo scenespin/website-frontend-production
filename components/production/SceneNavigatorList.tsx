@@ -7,7 +7,7 @@
  * Shows scenes in a scrollable list that stacks on mobile.
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useAuth } from '@clerk/nextjs';
 import { MapPin, Users, Package } from 'lucide-react';
@@ -33,6 +33,16 @@ export function SceneNavigatorList({
   const screenplay = useScreenplay();
   const { getToken } = useAuth();
   const [sceneFirstLines, setSceneFirstLines] = useState<Record<string, string>>({});
+  const firstLineRequestKeyRef = useRef<string>('');
+  const firstLineRequestInFlightRef = useRef(false);
+  const firstLineRetryAfterRef = useRef(0);
+  const scenesWithMissingSynopsis = useMemo(() => {
+    const scenes = screenplay.scenes || [];
+    return scenes.filter(scene => {
+      const hasValidSynopsis = scene.synopsis && scene.synopsis.trim() !== '' && scene.synopsis !== 'Imported from script';
+      return !hasValidSynopsis && scene.fountain?.startLine !== undefined && scene.fountain?.endLine !== undefined;
+    });
+  }, [screenplay.scenes]);
 
   // Get character names for a scene - Match editor pattern with fallback
   const getSceneCharacters = (scene: Scene): string[] => {
@@ -90,16 +100,15 @@ export function SceneNavigatorList({
     if (!projectId || !getToken) return;
     
     const fetchFirstLines = async () => {
-      const scenes = screenplay.scenes || [];
-      const scenesToFetch = scenes.filter(scene => {
-        // Fetch if no synopsis, or synopsis is the placeholder "Imported from script"
-        const hasValidSynopsis = scene.synopsis && scene.synopsis.trim() !== '' && scene.synopsis !== 'Imported from script';
-        // 🔥 FIX: Check for undefined instead of falsy - 0 is a valid line number (first line)
-        return !hasValidSynopsis && scene.fountain?.startLine !== undefined && scene.fountain?.endLine !== undefined;
-      });
+      const scenesToFetch = scenesWithMissingSynopsis;
       if (scenesToFetch.length === 0) return;
+
+      const fetchKey = `${projectId}:${scenesToFetch.map(s => s.id).join(',')}`;
+      if (firstLineRequestInFlightRef.current || firstLineRequestKeyRef.current === fetchKey) return;
+      if (Date.now() < firstLineRetryAfterRef.current) return;
       
       try {
+        firstLineRequestInFlightRef.current = true;
         const screenplayData = await getScreenplay(projectId, getToken);
         if (!screenplayData?.content) return;
         
@@ -125,13 +134,18 @@ export function SceneNavigatorList({
         if (Object.keys(newFirstLines).length > 0) {
           setSceneFirstLines(prev => ({ ...prev, ...newFirstLines }));
         }
+        firstLineRequestKeyRef.current = fetchKey;
       } catch (error) {
         console.error('[SceneNavigatorList] Failed to fetch first lines:', error);
+        // Avoid hammering screenplay endpoint on repeated failures.
+        firstLineRetryAfterRef.current = Date.now() + 30000;
+      } finally {
+        firstLineRequestInFlightRef.current = false;
       }
     };
     
     fetchFirstLines();
-  }, [projectId, getToken, screenplay.scenes]);
+  }, [projectId, getToken, scenesWithMissingSynopsis]);
 
   // Get state values - Match editor pattern
   const scenes = screenplay.scenes || [];
