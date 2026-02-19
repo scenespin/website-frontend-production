@@ -1,5 +1,4 @@
 import config from "@/config";
-import ButtonCheckout from "./ButtonCheckout";
 
 // <Pricing/> displays the pricing plans
 // Uses wrapper-safe language: Professional/Premium/Ultra quality tiers
