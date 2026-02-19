@@ -157,6 +157,91 @@ export interface UpdateScreenplayParams {
 // HELPER FUNCTIONS
 // ============================================================================
 
+interface ScreenplayReadCircuitState {
+  consecutiveFailures: number;
+  openedUntil: number;
+  suppressedCount: number;
+}
+
+const screenplayReadCircuit = new Map<string, ScreenplayReadCircuitState>();
+const screenplayReadInFlight = new Map<string, Promise<Screenplay | null>>();
+const SCREENPLAY_READ_FAILURE_THRESHOLD = 3;
+const SCREENPLAY_READ_OPEN_MS = 30000;
+const SCREENPLAY_READ_RETRY_ATTEMPTS = 2;
+const SCREENPLAY_READ_RETRY_BASE_MS = 250;
+
+function shouldRetryStatus(status: number): boolean {
+  return status === 429 || status === 500 || status === 502 || status === 503 || status === 504;
+}
+
+function computeJitterDelayMs(attempt: number, baseMs: number = SCREENPLAY_READ_RETRY_BASE_MS): number {
+  const exponential = baseMs * Math.pow(2, attempt);
+  const jitter = Math.floor(Math.random() * 150);
+  return exponential + jitter;
+}
+
+async function fetchWithBoundedRetry(
+  url: string,
+  init: RequestInit,
+  maxRetries: number
+): Promise<Response> {
+  let lastError: Error | null = null;
+
+  for (let attempt = 0; attempt <= maxRetries; attempt += 1) {
+    try {
+      const response = await fetch(url, init);
+      if (!shouldRetryStatus(response.status) || attempt === maxRetries) {
+        return response;
+      }
+      const delayMs = computeJitterDelayMs(attempt);
+      console.warn('[Observability] screenplay_read_retry_scheduled', {
+        url,
+        status: response.status,
+        attempt: attempt + 1,
+        maxAttempts: maxRetries + 1,
+        delayMs
+      });
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    } catch (error: any) {
+      lastError = error instanceof Error ? error : new Error(String(error));
+      if (attempt === maxRetries) {
+        break;
+      }
+      const delayMs = computeJitterDelayMs(attempt);
+      console.warn('[Observability] screenplay_read_retry_network_error', {
+        url,
+        attempt: attempt + 1,
+        maxAttempts: maxRetries + 1,
+        delayMs,
+        message: lastError.message
+      });
+      await new Promise((resolve) => setTimeout(resolve, delayMs));
+    }
+  }
+
+  throw lastError || new Error('Screenplay request failed after retries');
+}
+
+function getOrCreateCircuit(screenplayId: string): ScreenplayReadCircuitState {
+  const existing = screenplayReadCircuit.get(screenplayId);
+  if (existing) return existing;
+  const state: ScreenplayReadCircuitState = { consecutiveFailures: 0, openedUntil: 0, suppressedCount: 0 };
+  screenplayReadCircuit.set(screenplayId, state);
+  return state;
+}
+
+function resetScreenplayReadCircuit(screenplayId: string): void {
+  screenplayReadCircuit.delete(screenplayId);
+}
+
+export const __screenplayReadInternals = {
+  resetAll: () => {
+    screenplayReadCircuit.clear();
+    screenplayReadInFlight.clear();
+  },
+  getState: (screenplayId: string) => screenplayReadCircuit.get(screenplayId),
+  getInFlightSize: () => screenplayReadInFlight.size
+};
 
 // ============================================================================
 // API CLIENT FUNCTIONS
@@ -230,45 +315,89 @@ export async function getScreenplay(
   }
   
   console.log('[screenplayStorage] GET /api/screenplays/' + screenplayId);
-  
-  // Note: Next.js API route handles auth server-side, so we don't need to send token
-  // 🔥 CRITICAL: Disable browser caching to ensure fresh data is always fetched
-  // Add cache-busting query parameter to force fresh request
-  const cacheBuster = `?t=${Date.now()}`;
-  const response = await fetch(`/api/screenplays/${screenplayId}${cacheBuster}`, {
-    cache: 'no-store', // Prevent browser from caching the response
-    headers: {
-      'Cache-Control': 'no-store, no-cache, must-revalidate',
-      'Pragma': 'no-cache'
-    }
-  });
 
-  if (!response.ok) {
-    const errorText = await response.text().catch(() => 'Unknown error');
-    let errorMessage = 'Failed to get screenplay';
-    
-    try {
-      const error = JSON.parse(errorText);
-      errorMessage = error.message || error.error || errorMessage;
-    } catch {
-      errorMessage = `${errorMessage}: ${response.status} ${errorText}`;
-    }
-    
-    // 🔥 FIX: Provide user-friendly error messages
-    if (response.status === 403) {
-      errorMessage = 'You don\'t have access to this screenplay. Please contact the owner.';
-    } else if (response.status === 404) {
-      errorMessage = 'Screenplay not found. It may have been deleted.';
-    }
-    
-    const error = new Error(errorMessage);
-    (error as any).response = response; // Attach response for better error handling
-    throw error;
+  const existingInFlight = screenplayReadInFlight.get(screenplayId);
+  if (existingInFlight) {
+    return existingInFlight;
   }
 
-  const data = await response.json();
-  // Handle different response structures: { data: {...} } or { success: true, data: {...} }
-  return data.data || data;
+  const now = Date.now();
+  const circuit = screenplayReadCircuit.get(screenplayId);
+  if (circuit && circuit.openedUntil > now) {
+    circuit.suppressedCount += 1;
+    const retryAfterMs = circuit.openedUntil - now;
+    console.warn('[Observability] screenplay_read_suppressed_by_circuit', {
+      screenplayId,
+      retryAfterMs,
+      suppressedCount: circuit.suppressedCount
+    });
+    const circuitError = new Error('Screenplay temporarily unavailable. Please retry shortly.');
+    (circuitError as any).retryAfterMs = retryAfterMs;
+    throw circuitError;
+  }
+
+  const requestPromise = (async (): Promise<Screenplay | null> => {
+    // Note: Next.js API route handles auth server-side, so we don't need to send token
+    // Disable caching and include a cache-buster to guarantee fresh reads.
+    const cacheBuster = `?t=${Date.now()}`;
+    const response = await fetchWithBoundedRetry(
+      `/api/screenplays/${screenplayId}${cacheBuster}`,
+      {
+        cache: 'no-store',
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate',
+          'Pragma': 'no-cache'
+        }
+      },
+      SCREENPLAY_READ_RETRY_ATTEMPTS
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Unknown error');
+      let errorMessage = 'Failed to get screenplay';
+      
+      try {
+        const error = JSON.parse(errorText);
+        errorMessage = error.message || error.error || errorMessage;
+      } catch {
+        errorMessage = `${errorMessage}: ${response.status} ${errorText}`;
+      }
+      
+      if (response.status === 403) {
+        errorMessage = 'You don\'t have access to this screenplay. Please contact the owner.';
+      } else if (response.status === 404) {
+        errorMessage = 'Screenplay not found. It may have been deleted.';
+      }
+
+      if (response.status >= 500) {
+        const failureState = getOrCreateCircuit(screenplayId);
+        failureState.consecutiveFailures += 1;
+        if (failureState.consecutiveFailures >= SCREENPLAY_READ_FAILURE_THRESHOLD) {
+          failureState.openedUntil = Date.now() + SCREENPLAY_READ_OPEN_MS;
+          console.error('[Observability] screenplay_read_circuit_opened', {
+            screenplayId,
+            consecutiveFailures: failureState.consecutiveFailures,
+            openForMs: SCREENPLAY_READ_OPEN_MS
+          });
+        }
+      }
+      
+      const error = new Error(errorMessage);
+      (error as any).response = response;
+      throw error;
+    }
+
+    resetScreenplayReadCircuit(screenplayId);
+    const data = await response.json();
+    return data.data || data;
+  })();
+
+  screenplayReadInFlight.set(screenplayId, requestPromise);
+  try {
+    return await requestPromise;
+  } finally {
+    screenplayReadInFlight.delete(screenplayId);
+  }
 }
 
 /**
