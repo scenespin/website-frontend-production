@@ -36,6 +36,7 @@ export function SceneNavigatorList({
   const firstLineRequestKeyRef = useRef<string>('');
   const firstLineRequestInFlightRef = useRef(false);
   const firstLineRetryAfterRef = useRef(0);
+  const firstLineNotFoundScreenplayIdRef = useRef<string | null>(null);
   const scenesWithMissingSynopsis = useMemo(() => {
     const scenes = screenplay.scenes || [];
     return scenes.filter(scene => {
@@ -98,6 +99,7 @@ export function SceneNavigatorList({
   // Fetch first line of scene text when no synopsis is available
   useEffect(() => {
     if (!projectId || !getToken) return;
+    if (firstLineNotFoundScreenplayIdRef.current === projectId) return;
     
     const fetchFirstLines = async () => {
       const scenesToFetch = scenesWithMissingSynopsis;
@@ -111,6 +113,7 @@ export function SceneNavigatorList({
         firstLineRequestInFlightRef.current = true;
         const screenplayData = await getScreenplay(projectId, getToken);
         if (!screenplayData?.content) return;
+        firstLineNotFoundScreenplayIdRef.current = null;
         
         const fountainLines = screenplayData.content.split('\n');
         const newFirstLines: Record<string, string> = {};
@@ -137,6 +140,13 @@ export function SceneNavigatorList({
         firstLineRequestKeyRef.current = fetchKey;
       } catch (error) {
         console.error('[SceneNavigatorList] Failed to fetch first lines:', error);
+        const statusCode = (error as any)?.statusCode || (error as any)?.response?.status;
+        const message = error instanceof Error ? error.message : String(error);
+        const isNotFound = statusCode === 404 || /not found/i.test(message);
+        if (isNotFound && projectId) {
+          firstLineNotFoundScreenplayIdRef.current = projectId;
+          firstLineRequestKeyRef.current = fetchKey;
+        }
         // Avoid hammering screenplay endpoint on repeated failures.
         firstLineRetryAfterRef.current = Date.now() + 30000;
       } finally {

@@ -161,12 +161,14 @@ interface ScreenplayReadCircuitState {
   consecutiveFailures: number;
   openedUntil: number;
   suppressedCount: number;
+  terminalStatus?: number;
 }
 
 const screenplayReadCircuit = new Map<string, ScreenplayReadCircuitState>();
 const screenplayReadInFlight = new Map<string, Promise<Screenplay | null>>();
 const SCREENPLAY_READ_FAILURE_THRESHOLD = 3;
 const SCREENPLAY_READ_OPEN_MS = 30000;
+const SCREENPLAY_READ_NOT_FOUND_OPEN_MS = 60000;
 const SCREENPLAY_READ_RETRY_ATTEMPTS = 2;
 const SCREENPLAY_READ_RETRY_BASE_MS = 250;
 
@@ -314,8 +316,6 @@ export async function getScreenplay(
     throw new Error(`Invalid screenplay ID format. Expected screenplay_* but got: ${screenplayId}`);
   }
   
-  console.log('[screenplayStorage] GET /api/screenplays/' + screenplayId);
-
   const existingInFlight = screenplayReadInFlight.get(screenplayId);
   if (existingInFlight) {
     return existingInFlight;
@@ -328,13 +328,20 @@ export async function getScreenplay(
     const retryAfterMs = circuit.openedUntil - now;
     console.warn('[Observability] screenplay_read_suppressed_by_circuit', {
       screenplayId,
+      status: circuit.terminalStatus || 'transient',
       retryAfterMs,
       suppressedCount: circuit.suppressedCount
     });
-    const circuitError = new Error('Screenplay temporarily unavailable. Please retry shortly.');
+    const errorMessage = circuit.terminalStatus === 404
+      ? 'Screenplay not found. It may have been deleted.'
+      : 'Screenplay temporarily unavailable. Please retry shortly.';
+    const circuitError = new Error(errorMessage);
     (circuitError as any).retryAfterMs = retryAfterMs;
+    (circuitError as any).statusCode = circuit.terminalStatus;
     throw circuitError;
   }
+  
+  console.log('[screenplayStorage] GET /api/screenplays/' + screenplayId);
 
   const requestPromise = (async (): Promise<Screenplay | null> => {
     // Note: Next.js API route handles auth server-side, so we don't need to send token
@@ -372,6 +379,7 @@ export async function getScreenplay(
       if (response.status >= 500) {
         const failureState = getOrCreateCircuit(screenplayId);
         failureState.consecutiveFailures += 1;
+        failureState.terminalStatus = undefined;
         if (failureState.consecutiveFailures >= SCREENPLAY_READ_FAILURE_THRESHOLD) {
           failureState.openedUntil = Date.now() + SCREENPLAY_READ_OPEN_MS;
           console.error('[Observability] screenplay_read_circuit_opened', {
@@ -380,10 +388,20 @@ export async function getScreenplay(
             openForMs: SCREENPLAY_READ_OPEN_MS
           });
         }
+      } else if (response.status === 404) {
+        const failureState = getOrCreateCircuit(screenplayId);
+        failureState.consecutiveFailures = 1;
+        failureState.terminalStatus = 404;
+        failureState.openedUntil = Date.now() + SCREENPLAY_READ_NOT_FOUND_OPEN_MS;
+        console.warn('[Observability] screenplay_read_not_found_cached', {
+          screenplayId,
+          openForMs: SCREENPLAY_READ_NOT_FOUND_OPEN_MS
+        });
       }
       
       const error = new Error(errorMessage);
       (error as any).response = response;
+      (error as any).statusCode = response.status;
       throw error;
     }
 

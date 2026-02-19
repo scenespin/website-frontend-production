@@ -108,6 +108,37 @@ export async function setCurrentScreenplayId(
 }
 
 /**
+ * Clear current screenplay ID from Clerk metadata and localStorage.
+ * Use this when a stale/invalid screenplay ID is detected.
+ */
+export async function clearCurrentScreenplayId(
+  user: UserResource | null | undefined
+): Promise<void> {
+  if (!user) {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('current_screenplay_id');
+    }
+    return;
+  }
+
+  try {
+    const userWithUpdate = user as unknown as UserResourceWithUpdate;
+    await userWithUpdate.update({
+      unsafeMetadata: {
+        ...user.unsafeMetadata,
+        current_screenplay_id: null
+      }
+    });
+  } catch (error) {
+    console.error('[ClerkMetadata] ❌ Failed to clear current_screenplay_id in Clerk metadata:', error);
+  } finally {
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('current_screenplay_id');
+    }
+  }
+}
+
+/**
  * Migrate screenplay ID from localStorage to Clerk metadata
  * One-time migration helper (can be called on app mount)
  * 

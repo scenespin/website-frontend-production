@@ -8,7 +8,7 @@ import { parseContentForImport } from '@/utils/fountainAutoImport';
 import { saveToGitHub } from '@/utils/github';
 import { useAuth, useUser, useSession } from '@clerk/nextjs';
 import { createScreenplay, updateScreenplay, getScreenplay } from '@/utils/screenplayStorage';
-import { getCurrentScreenplayId, setCurrentScreenplayId, migrateFromLocalStorage } from '@/utils/clerkMetadata';
+import { getCurrentScreenplayId, setCurrentScreenplayId, clearCurrentScreenplayId, migrateFromLocalStorage } from '@/utils/clerkMetadata';
 import { toast } from 'sonner';
 import { broadcastCursorPosition, clearCursorPosition, getCursorPositions } from '@/utils/cursorPositionStorage';
 import { CursorPosition } from '@/types/collaboration';
@@ -1489,6 +1489,19 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
         hasInitializedRef.current = initKey;
         
         async function loadContent() {
+            const recoverFromStaleUrlScreenplay = async (staleScreenplayId: string): Promise<void> => {
+                try {
+                    await clearCurrentScreenplayId(user);
+                } catch (clearError) {
+                    console.error('[EditorContext] Failed to clear stale current_screenplay_id:', clearError);
+                }
+                screenplayIdRef.current = null;
+                hasInitializedRef.current = initKey;
+                if (typeof window !== 'undefined') {
+                    window.location.href = '/dashboard';
+                }
+            };
+
             try {
                 // Feature 0130: If a screenplay ID is specified in URL, load it directly
                 if (projectId) {
@@ -1514,10 +1527,8 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                             // 🔥 FIX: Check if screenplay is deleted before loading
                             if (screenplay && screenplay.status === 'deleted') {
                                 console.error('[EditorContext] ⚠️ Attempted to load deleted screenplay:', projectId);
-                                // Redirect to dashboard
-                                if (typeof window !== 'undefined') {
-                                    window.location.href = '/dashboard';
-                                }
+                                toast.error('Screenplay is unavailable. Redirecting to dashboard.');
+                                await recoverFromStaleUrlScreenplay(projectId);
                                 return;
                             }
                             
@@ -1613,9 +1624,8 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                             } else {
                                 // 🔥 FIX: getScreenplay returned null (404) - treat as error and prevent fallback
                                 console.error('[EditorContext] ❌ Screenplay not found (404):', projectId);
-                                toast.error('Screenplay not found. It may have been deleted.');
-                                // Don't load anything - show empty editor
-                                hasInitializedRef.current = initKey;
+                                toast.error('Screenplay not found. Redirecting to dashboard.');
+                                await recoverFromStaleUrlScreenplay(projectId);
                                 return; // Exit early - don't fall back to Clerk metadata
                             }
                         } else {
@@ -1651,10 +1661,9 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                                                 errorMessage.includes('not found');
                         
                         if (isNotFoundError) {
-                            toast.error('Screenplay not found. It may have been deleted.');
+                            toast.error('Screenplay not found. Redirecting to dashboard.');
                             console.error('[EditorContext] ❌ Screenplay not found:', projectId);
-                            // Don't load anything - show empty editor
-                            hasInitializedRef.current = initKey;
+                            await recoverFromStaleUrlScreenplay(projectId);
                             return; // Exit early - don't fall back to Clerk metadata
                         }
                         

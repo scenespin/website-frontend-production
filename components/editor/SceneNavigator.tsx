@@ -31,6 +31,7 @@ export default function SceneNavigator({ currentLine, onSceneClick, className = 
     const firstLineRequestKeyRef = useRef<string>('');
     const firstLineRequestInFlightRef = useRef(false);
     const firstLineRetryAfterRef = useRef(0);
+    const firstLineNotFoundScreenplayIdRef = useRef<string | null>(null);
     
     // 🔥 FIX: Check if initialization is complete before showing empty state
     // This prevents showing "No scenes yet" during initialization, which could trigger rescan duplicates
@@ -125,6 +126,7 @@ export default function SceneNavigator({ currentLine, onSceneClick, className = 
     // Fetch first line of scene text when no synopsis is available (or synopsis is "Imported from script")
     useEffect(() => {
         if (!screenplay?.screenplayId || !getToken) return;
+        if (firstLineNotFoundScreenplayIdRef.current === screenplay.screenplayId) return;
         
         const fetchFirstLines = async () => {
             const scenesToFetch = scenesWithMissingSynopsis;
@@ -138,6 +140,7 @@ export default function SceneNavigator({ currentLine, onSceneClick, className = 
                 firstLineRequestInFlightRef.current = true;
                 const screenplayData = await getScreenplay(screenplay.screenplayId, getToken);
                 if (!screenplayData?.content) return;
+                firstLineNotFoundScreenplayIdRef.current = null;
                 
                 const fountainLines = screenplayData.content.split('\n');
                 const newFirstLines: Record<string, string> = {};
@@ -164,6 +167,13 @@ export default function SceneNavigator({ currentLine, onSceneClick, className = 
                 firstLineRequestKeyRef.current = fetchKey;
             } catch (error) {
                 console.error('[SceneNavigator] Failed to fetch first lines:', error);
+                const statusCode = (error as any)?.statusCode || (error as any)?.response?.status;
+                const message = error instanceof Error ? error.message : String(error);
+                const isNotFound = statusCode === 404 || /not found/i.test(message);
+                if (isNotFound && screenplay?.screenplayId) {
+                    firstLineNotFoundScreenplayIdRef.current = screenplay.screenplayId;
+                    firstLineRequestKeyRef.current = fetchKey;
+                }
                 // Avoid tight retry loops when screenplay endpoint is failing.
                 firstLineRetryAfterRef.current = Date.now() + 30000;
             } finally {
