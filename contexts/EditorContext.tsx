@@ -470,6 +470,55 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
     useEffect(() => {
         saveNowRef.current = saveNow;
     }, [saveNow]);
+
+    const scheduleDebouncedBackendSave = useCallback((content: string, reason: string) => {
+        if (content.trim().length === 0) return;
+
+        const activeId = projectId || screenplayIdRef.current;
+        if (!activeId || !activeId.startsWith('screenplay_')) {
+            console.log('[EditorContext] ⏸️ Save skipped - no valid screenplay ID yet', { reason, activeId });
+            return;
+        }
+
+        // Save to localStorage immediately (synchronous, guaranteed - like Google Docs local cache)
+        const draftKey = getScreenplayStorageKey('screenplay_draft', activeId);
+        const titleKey = getScreenplayStorageKey('screenplay_title', activeId);
+        const authorKey = getScreenplayStorageKey('screenplay_author', activeId);
+        try {
+            localStorage.setItem(draftKey, content);
+            localStorage.setItem(titleKey, stateRef.current.title);
+            localStorage.setItem(authorKey, stateRef.current.author);
+        } catch (err) {
+            console.error('[EditorContext] localStorage save failed:', err);
+        }
+
+        // Clear existing debounce timer
+        if (saveDebounceRef.current) {
+            clearTimeout(saveDebounceRef.current);
+            saveDebounceRef.current = null;
+        }
+
+        const contentToSave = content;
+        saveDebounceRef.current = setTimeout(async () => {
+            const currentState = stateRef.current;
+            const latestActiveId = projectId || screenplayIdRef.current;
+            const contentChanged = currentState.content !== contentToSave;
+
+            if (latestActiveId && latestActiveId.startsWith('screenplay_') && !contentChanged && contentToSave.trim().length > 0) {
+                try {
+                    if (saveNowRef.current) {
+                        await saveNowRef.current();
+                        console.log('[EditorContext] ✅ Debounced save complete', { reason });
+                    } else {
+                        console.error('[EditorContext] ⚠️ saveNowRef.current is null - cannot save');
+                    }
+                } catch (err) {
+                    console.error('[EditorContext] ⚠️ Debounced save failed:', err);
+                }
+            }
+            saveDebounceRef.current = null;
+        }, 3000);
+    }, [projectId, getScreenplayStorageKey]);
     
     // 🔥 UNDO/REDO TRACKING: Industry-standard debounced undo tracking (500ms)
     // Groups continuous typing into single undo steps, breaks on cursor movement
@@ -584,98 +633,16 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
             };
         });
         
-        // 🔥 BEST PRACTICE: Save to localStorage immediately, debounce database saves (3 seconds)
-        // This matches Google Docs/VS Code pattern: immediate local cache, debounced cloud save
-        if (markDirty && content.trim().length > 0) {
-            const activeId = projectId || screenplayIdRef.current;
-            if (activeId && activeId.startsWith('screenplay_')) {
-                // Save to localStorage immediately (synchronous, guaranteed - like Google Docs local cache)
-                const draftKey = getScreenplayStorageKey('screenplay_draft', activeId);
-                const titleKey = getScreenplayStorageKey('screenplay_title', activeId);
-                const authorKey = getScreenplayStorageKey('screenplay_author', activeId);
-                try {
-                    localStorage.setItem(draftKey, content);
-                    localStorage.setItem(titleKey, stateRef.current.title);
-                    localStorage.setItem(authorKey, stateRef.current.author);
-                } catch (err) {
-                    console.error('[EditorContext] localStorage save failed:', err);
-                }
-                
-                // Clear existing debounce timer
-                if (saveDebounceRef.current) {
-                    console.log('[EditorContext] 🧹 Clearing existing debounce timer');
-                    clearTimeout(saveDebounceRef.current);
-                    saveDebounceRef.current = null;
-                }
-                
-                // Debounce database save (3 seconds - best practice, balances API calls vs responsiveness)
-                // This matches Google Docs/VS Code: debounce cloud saves, immediate local cache
-                // Use saveNow() for normal saves (has proper error handling and state updates)
-                console.log('[EditorContext] ⏱️ Setting debounce timer (3 seconds) for screenplay:', activeId);
-                // 🔥 FIX: Capture content and timestamp when timer is set, not when it fires
-                // This ensures we save the content that triggered the debounce, even if isDirty is cleared
-                const contentToSave = content;
-                const titleToSave = stateRef.current.title;
-                const authorToSave = stateRef.current.author;
-                
-                saveDebounceRef.current = setTimeout(async () => {
-                    console.log('[EditorContext] ⏰ Debounce timer fired! Checking if save is needed...');
-                    const currentState = stateRef.current;
-                    const activeId = projectId || screenplayIdRef.current;
-                    
-                    // 🔥 FIX: Check if content has changed since timer was set
-                    // If content is different, user kept typing - don't save old content
-                    // If content matches, save it (even if isDirty was cleared by something else)
-                    const contentChanged = currentState.content !== contentToSave;
-                    
-                    console.log('[EditorContext] 🔍 Debounce check:', {
-                        activeId,
-                        isDirty: currentState.isDirty,
-                        contentLength: currentState.content.trim().length,
-                        capturedContentLength: contentToSave.trim().length,
-                        contentChanged,
-                        isValidId: activeId && activeId.startsWith('screenplay_'),
-                        saveNowRefExists: !!saveNowRef.current
-                    });
-                    
-                    // Save if:
-                    // 1. Valid screenplay ID
-                    // 2. Content hasn't changed (user stopped typing)
-                    // 3. Content is not empty
-                    if (activeId && activeId.startsWith('screenplay_') && !contentChanged && contentToSave.trim().length > 0) {
-                        console.log('[EditorContext] 💾 Debounced save triggered (3-second interval)');
-                        try {
-                            // 🔥 FIX: Use saveNowRef.current instead of saveNow directly
-                            // This ensures we use the latest version without triggering useEffect re-runs
-                            if (saveNowRef.current) {
-                                await saveNowRef.current();
-                                console.log('[EditorContext] ✅ Debounced save complete');
-                            } else {
-                                console.error('[EditorContext] ⚠️ saveNowRef.current is null - cannot save');
-                            }
-                        } catch (err) {
-                            console.error('[EditorContext] ⚠️ Debounced save failed:', err);
-                            // localStorage already saved, so data is preserved
-                            // Unmount handler will retry with fetch keepalive if needed
-                        }
-                    } else {
-                        console.log('[EditorContext] ⏭️ Debounce save skipped:', {
-                            reason: !activeId ? 'no activeId' : 
-                                   !activeId.startsWith('screenplay_') ? 'invalid ID format' :
-                                   contentChanged ? 'content changed (user kept typing)' :
-                                   contentToSave.trim().length === 0 ? 'empty content' : 'unknown'
-                        });
-                    }
-                    saveDebounceRef.current = null; // Clear ref after timer fires
-                }, 3000); // 3-second debounce (best practice: balances API calls vs responsiveness)
-                console.log('[EditorContext] ✅ Debounce timer set, ID:', saveDebounceRef.current);
-            } else {
-                console.log('[EditorContext] ⏸️ Save skipped - no screenplay ID yet');
-            }
+        if (markDirty) {
+            scheduleDebouncedBackendSave(content, 'setContent');
         }
-    }, [projectId, getScreenplayStorageKey]); // 🔥 FIX: Removed saveNow from dependencies - using saveNowRef instead
+    }, [scheduleDebouncedBackendSave]);
     
     const insertText = useCallback((text: string, position?: number) => {
+        if (isLocked) {
+            console.warn('[EditorContext] ⚠️ Insert blocked - editor is locked by another tab');
+            return;
+        }
         // 🔥 UNDO/REDO TRACKING: Clear pending undo snapshot when explicitly inserting
         // This prevents double-pushing when AI or programmatic insertions happen
         if (undoDebounceRef.current) {
@@ -684,6 +651,7 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
         }
         pendingUndoSnapshotRef.current = null;
         
+        let newContentSnapshot = '';
         setState(prev => {
             // CRITICAL: Push current state to undo stack BEFORE making changes
             const currentSnapshot = {
@@ -703,6 +671,7 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
             const before = prev.content.substring(0, pos);
             const after = prev.content.substring(pos);
             const newContent = before + text + after;
+            newContentSnapshot = newContent;
             
             console.log('[EditorContext] insertText - pushed to undo stack, setting highlightRange:', { start: pos, end: pos + text.length });
             
@@ -718,9 +687,16 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                 canRedo: false
             };
         });
-    }, []);
+        if (newContentSnapshot) {
+            scheduleDebouncedBackendSave(newContentSnapshot, 'insertText');
+        }
+    }, [isLocked, scheduleDebouncedBackendSave]);
     
     const replaceSelection = useCallback((text: string, start: number, end: number) => {
+        if (isLocked) {
+            console.warn('[EditorContext] ⚠️ Replace blocked - editor is locked by another tab');
+            return;
+        }
         console.log('[EditorContext] 📝 replaceSelection called - text length:', text.length, 'endsWith newline:', text.endsWith('\n'));
         console.log('[EditorContext] 📝 Text preview (last 20 chars):', JSON.stringify(text.slice(-20)));
         
@@ -732,6 +708,7 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
         }
         pendingUndoSnapshotRef.current = null;
         
+        let newContentSnapshot = '';
         setState(prev => {
             // CRITICAL: Push current state to undo stack BEFORE making changes
             const currentSnapshot = {
@@ -750,6 +727,7 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
             const before = prev.content.substring(0, start);
             const after = prev.content.substring(end);
             const newContent = before + text + after;
+            newContentSnapshot = newContent;
             
             console.log('[EditorContext] 📝 New content length:', newContent.length);
             console.log('[EditorContext] 📝 New content preview (around insertion):', JSON.stringify(newContent.substring(Math.max(0, start - 10), start + text.length + 10)));
@@ -767,7 +745,10 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                 canRedo: false
             };
         });
-    }, []);
+        if (newContentSnapshot) {
+            scheduleDebouncedBackendSave(newContentSnapshot, 'replaceSelection');
+        }
+    }, [isLocked, scheduleDebouncedBackendSave]);
     
     // Undo operations
     const pushToUndoStack = useCallback((snapshot?: { content: string; cursorPosition: number }) => {
@@ -804,6 +785,11 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
     }, []);
     
     const undo = useCallback(() => {
+        if (isLocked) {
+            console.warn('[EditorContext] ⚠️ Undo blocked - editor is locked by another tab');
+            return;
+        }
+        let undoneContentSnapshot = '';
         setState(prev => {
             if (prev.undoStack.length === 0) {
                 console.warn('[EditorContext] No undo history available');
@@ -837,6 +823,7 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
             // Update refs to match new state
             previousContentForUndoRef.current = previousState.content;
             previousCursorForUndoRef.current = previousState.cursorPosition ?? 0;
+            undoneContentSnapshot = previousState.content;
             
             console.log('[EditorContext] Undoing. Undo stack:', newUndoStack.length, 'Redo stack:', newRedoStack.length);
             
@@ -888,9 +875,17 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                 isDirty: true
             };
         });
-    }, [screenplay, getToken]);
+        if (undoneContentSnapshot) {
+            scheduleDebouncedBackendSave(undoneContentSnapshot, 'undo');
+        }
+    }, [isLocked, screenplay, getToken, scheduleDebouncedBackendSave]);
     
     const redo = useCallback(() => {
+        if (isLocked) {
+            console.warn('[EditorContext] ⚠️ Redo blocked - editor is locked by another tab');
+            return;
+        }
+        let redoneContentSnapshot = '';
         setState(prev => {
             if (prev.redoStack.length === 0) {
                 console.warn('[EditorContext] No redo history available');
@@ -923,6 +918,7 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
             // Update refs to match new state
             previousContentForUndoRef.current = nextState.content;
             previousCursorForUndoRef.current = nextState.cursorPosition ?? 0;
+            redoneContentSnapshot = nextState.content;
             
             console.log('[EditorContext] Redoing. Undo stack:', newUndoStack.length, 'Redo stack:', newRedoStack.length);
             
@@ -937,7 +933,10 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                 isDirty: true
             };
         });
-    }, []);
+        if (redoneContentSnapshot) {
+            scheduleDebouncedBackendSave(redoneContentSnapshot, 'redo');
+        }
+    }, [isLocked, scheduleDebouncedBackendSave]);
     
     // Cursor and selection operations
     const setCursorPosition = useCallback((position: number) => {

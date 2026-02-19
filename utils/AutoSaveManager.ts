@@ -172,8 +172,9 @@ export class AutoSaveManager {
             this.lastSavedContent = content;
             this.lastScheduledContent = content;
             
-            // Mark as saved
-            markSaved();
+            // Do NOT mark editor as saved here.
+            // Backend persistence is owned by EditorContext debounced save flow.
+            // Marking saved here can incorrectly clear dirty state before backend save succeeds.
             
             // Callback to parent
             this.config.onSave();
