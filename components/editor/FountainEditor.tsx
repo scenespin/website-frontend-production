@@ -761,7 +761,6 @@ export default function FountainEditor({
                     }}
                     onSelect={handleSelectionChange}
                     onClick={handleSelectionChange}
-                    onMouseUp={selection.handlers.onMouseUp}
                     onPointerUp={selection.handlers.onPointerUp}
                     placeholder={placeholder}
                             readOnly={readonly}

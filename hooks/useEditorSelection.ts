@@ -51,6 +51,7 @@ export function useEditorSelection(
     
     // Solution 6: Ref storage for immediate access (no React state delay)
     const selectionRef = useRef<{ start: number; end: number; text: string } | null>(null);
+    const lastCaptureRef = useRef<{ start: number; end: number; at: number } | null>(null);
     
     // Toolbar state
     const [showSelectionToolbar, setShowSelectionToolbar] = useState(false);
@@ -65,6 +66,18 @@ export function useEditorSelection(
         
         const start = textareaRef.current.selectionStart;
         const end = textareaRef.current.selectionEnd;
+        const now = Date.now();
+
+        // Guard against duplicate pointer/mouse up cascades for the same range.
+        if (
+            lastCaptureRef.current &&
+            lastCaptureRef.current.start === start &&
+            lastCaptureRef.current.end === end &&
+            now - lastCaptureRef.current.at < 120
+        ) {
+            return;
+        }
+        lastCaptureRef.current = { start, end, at: now };
         
         console.log('[useEditorSelection] Selection captured - selection:', { start, end, length: end - start });
         

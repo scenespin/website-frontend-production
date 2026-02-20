@@ -123,6 +123,31 @@ export default function EditorWorkspace() {
         setSelectedText(selectedText);
         setSelectionRange(selectionRange);
     };
+
+    const clearEditorDomSelection = useCallback(() => {
+        if (typeof document === 'undefined') return;
+        const textarea = document.querySelector('textarea.fountain-editor-textarea') as HTMLTextAreaElement ||
+                        document.querySelector('textarea[data-fountain-editor]') as HTMLTextAreaElement ||
+                        document.querySelector('textarea') as HTMLTextAreaElement;
+        if (!textarea) return;
+
+        // Collapse selection to caret to prevent stale highlighted-range interactions.
+        const caret = textarea.selectionEnd ?? textarea.selectionStart ?? 0;
+        textarea.selectionStart = caret;
+        textarea.selectionEnd = caret;
+        textarea.focus({ preventScroll: true });
+    }, []);
+
+    const clearSelectionStateAndFocus = useCallback(() => {
+        setHasSelection(false);
+        setSelectedText(null);
+        setSelectionRange(null);
+
+        // Let modal unmount complete before touching textarea selection/focus.
+        requestAnimationFrame(() => {
+            setTimeout(() => clearEditorDomSelection(), 0);
+        });
+    }, [clearEditorDomSelection]);
     
     /**
      * Manual Save Handler
@@ -928,7 +953,10 @@ Tip:
             {isRewriteModalOpen && (
                 <RewriteModal
                     isOpen={isRewriteModalOpen}
-                    onClose={() => setIsRewriteModalOpen(false)}
+                    onClose={() => {
+                        setIsRewriteModalOpen(false);
+                        clearSelectionStateAndFocus();
+                    }}
                     selectedText={selectedText || ''}
                     selectionRange={selectionRange || { start: 0, end: 0 }}
                     editorContent={state.content}
@@ -940,7 +968,10 @@ Tip:
             {isScreenwriterModalOpen && (
                 <ScreenwriterModal
                     isOpen={isScreenwriterModalOpen}
-                    onClose={() => setIsScreenwriterModalOpen(false)}
+                    onClose={() => {
+                        setIsScreenwriterModalOpen(false);
+                        clearSelectionStateAndFocus();
+                    }}
                     editorContent={state.content}
                     cursorPosition={state.cursorPosition || 0}
                     selectionRange={selectionRange}
@@ -952,7 +983,10 @@ Tip:
             {isDirectorModalOpen && (
                 <DirectorModal
                     isOpen={isDirectorModalOpen}
-                    onClose={() => setIsDirectorModalOpen(false)}
+                    onClose={() => {
+                        setIsDirectorModalOpen(false);
+                        clearSelectionStateAndFocus();
+                    }}
                     editorContent={state.content}
                     cursorPosition={state.cursorPosition || 0}
                     selectionRange={selectionRange}
@@ -964,7 +998,10 @@ Tip:
             {isDialogueModalOpen && (
                 <DialogueModal
                     isOpen={isDialogueModalOpen}
-                    onClose={() => setIsDialogueModalOpen(false)}
+                    onClose={() => {
+                        setIsDialogueModalOpen(false);
+                        clearSelectionStateAndFocus();
+                    }}
                     editorContent={state.content}
                     cursorPosition={state.cursorPosition || 0}
                     selectionRange={selectionRange}
