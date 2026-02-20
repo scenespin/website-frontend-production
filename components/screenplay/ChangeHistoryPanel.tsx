@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { X, History, ChevronDown, ChevronUp, Clock, User, FileText, Loader2, Maximize2 } from 'lucide-react';
+import { X, History, Clock, User, FileText, Loader2 } from 'lucide-react';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useAuth } from '@clerk/nextjs';
 import { toast } from 'sonner';
@@ -13,6 +13,23 @@ interface ChangeHistoryPanelProps {
   onClose: () => void;
 }
 
+type SortOrder = 'newest' | 'oldest';
+
+interface ActivitySession {
+  id: string;
+  editedBy: string;
+  editedByName?: string;
+  editedByEmail?: string;
+  startAt: Date;
+  endAt: Date;
+  editCount: number;
+  summaries: string[];
+  changedFields: string[];
+  wordDelta: number;
+}
+
+const SESSION_GAP_MINUTES = 15;
+
 /**
  * ChangeHistoryPanel - UI for viewing screenplay change history
  * Visible to all collaborators (anyone with access to screenplay)
@@ -22,9 +39,8 @@ export default function ChangeHistoryPanel({ isOpen, onClose }: ChangeHistoryPan
   const { screenplayId } = useScreenplay();
   const [history, setHistory] = useState<AuditLogEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [expandedEntries, setExpandedEntries] = useState<Set<string>>(new Set());
-  const [expandedTexts, setExpandedTexts] = useState<Set<string>>(new Set()); // Track which text fields are expanded
   const [limit, setLimit] = useState(50);
+  const [sortOrder, setSortOrder] = useState<SortOrder>('newest');
 
   // Load change history when panel opens
   useEffect(() => {
@@ -52,52 +68,92 @@ export default function ChangeHistoryPanel({ isOpen, onClose }: ChangeHistoryPan
     return entry.edited_by_name || entry.edited_by_email || entry.edited_by;
   };
 
-  const toggleExpand = (changeId: string) => {
-    const newExpanded = new Set(expandedEntries);
-    if (newExpanded.has(changeId)) {
-      newExpanded.delete(changeId);
-    } else {
-      newExpanded.add(changeId);
-    }
-    setExpandedEntries(newExpanded);
+  const parseWordDelta = (summary: string): number => {
+    const added = summary.match(/(\d+)\s+words?\s+added/i);
+    if (added) return parseInt(added[1], 10);
+    const removed = summary.match(/(\d+)\s+words?\s+removed/i);
+    if (removed) return -parseInt(removed[1], 10);
+    return 0;
   };
 
-  const toggleTextExpand = (textId: string) => {
-    const newExpanded = new Set(expandedTexts);
-    if (newExpanded.has(textId)) {
-      newExpanded.delete(textId);
-    } else {
-      newExpanded.add(textId);
-    }
-    setExpandedTexts(newExpanded);
+  const formatFieldLabel = (field: string): string => {
+    const map: Record<string, string> = {
+      content: 'Content edited',
+      title: 'Title changed',
+      author: 'Author changed',
+      collaborators: 'Collaborators updated',
+      metadata: 'Metadata updated',
+      status: 'Status changed',
+      relationships: 'Relationships updated',
+      github_config: 'GitHub config updated',
+      delete: 'Deleted'
+    };
+    return map[field] || field;
   };
 
-  // Filter out entries with no significant field changes
-  const filteredHistory = useMemo(() => {
-    return history.filter(entry => {
-      // Keep entries with field changes
-      if (entry.field_changes && entry.field_changes.length > 0) {
-        return true;
+  const sessions = useMemo(() => {
+    const relevant = history.filter(entry =>
+      (entry.field_changes && entry.field_changes.length > 0) || entry.change_type === 'delete'
+    );
+
+    const sorted = [...relevant].sort((a, b) =>
+      new Date(b.edited_at).getTime() - new Date(a.edited_at).getTime()
+    );
+
+    const grouped: ActivitySession[] = [];
+    let activeSession: ActivitySession | null = null;
+    let previousEntryTime: Date | null = null;
+
+    for (const entry of sorted) {
+      const entryTime = new Date(entry.edited_at);
+      const fields = new Set<string>([
+        ...(entry.field_changes?.map(change => change.field) || []),
+        entry.change_type
+      ]);
+      const summary = entry.summary?.trim() ? entry.summary : 'Updated screenplay';
+
+      const sameEditor = activeSession && activeSession.editedBy === entry.edited_by;
+      const gapMinutes = previousEntryTime
+        ? (previousEntryTime.getTime() - entryTime.getTime()) / (1000 * 60)
+        : 0;
+      const withinSessionGap = gapMinutes <= SESSION_GAP_MINUTES;
+
+      if (!activeSession || !sameEditor || !withinSessionGap) {
+        activeSession = {
+          id: `session-${entry.change_id}`,
+          editedBy: entry.edited_by,
+          editedByName: entry.edited_by_name,
+          editedByEmail: entry.edited_by_email,
+          startAt: entryTime,
+          endAt: entryTime,
+          editCount: 1,
+          summaries: [summary],
+          changedFields: Array.from(fields),
+          wordDelta: parseWordDelta(summary)
+        };
+        grouped.push(activeSession);
+      } else {
+        activeSession.startAt = entryTime;
+        activeSession.editCount += 1;
+        if (!activeSession.summaries.includes(summary)) {
+          activeSession.summaries.push(summary);
+        }
+        const mergedFields = new Set<string>([...activeSession.changedFields, ...fields]);
+        activeSession.changedFields = Array.from(mergedFields);
+        activeSession.wordDelta += parseWordDelta(summary);
       }
-      // Keep delete operations
-      if (entry.change_type === 'delete') {
-        return true;
-      }
-      // Filter out entries with no meaningful changes
-      return false;
-    });
-  }, [history]);
 
-  const getChangeTypeColor = (changeType: string) => {
-    switch (changeType) {
-      case 'content': return 'bg-blue-500/10 text-blue-600 dark:text-blue-400';
-      case 'title': return 'bg-purple-500/10 text-purple-600 dark:text-purple-400';
-      case 'author': return 'bg-green-500/10 text-green-600 dark:text-green-400';
-      case 'collaborators': return 'bg-orange-500/10 text-orange-600 dark:text-orange-400';
-      case 'delete': return 'bg-red-500/10 text-red-600 dark:text-red-400';
-      default: return 'bg-base-300 text-base-content';
+      previousEntryTime = entryTime;
     }
-  };
+
+    if (sortOrder === 'oldest') {
+      return [...grouped].reverse();
+    }
+
+    return grouped;
+  }, [history, sortOrder]);
+
+  const hiddenEntriesCount = history.length - sessions.reduce((sum, session) => sum + session.editCount, 0);
 
   const formatDate = (dateString: string) => {
     try {
@@ -118,9 +174,9 @@ export default function ChangeHistoryPanel({ isOpen, onClose }: ChangeHistoryPan
           <div className="flex items-center gap-3">
             <History className="w-6 h-6 text-primary" />
             <div>
-              <h2 className="text-xl font-bold">Change History</h2>
+              <h2 className="text-xl font-bold">Editing Activity</h2>
               <p className="text-sm text-base-content/70">
-                View all changes made to this screenplay
+                See who edited this screenplay and when
               </p>
             </div>
           </div>
@@ -142,151 +198,110 @@ export default function ChangeHistoryPanel({ isOpen, onClose }: ChangeHistoryPan
           ) : history.length === 0 ? (
             <div className="text-center py-12">
               <FileText className="w-12 h-12 text-base-content/30 mx-auto mb-4" />
-              <p className="text-base-content/70">No change history found</p>
+              <p className="text-base-content/70">No activity found</p>
               <p className="text-sm text-base-content/50 mt-2">
-                Changes will appear here as you edit the screenplay
+                Activity sessions will appear as collaborators edit the screenplay
               </p>
             </div>
-          ) : filteredHistory.length === 0 ? (
+          ) : sessions.length === 0 ? (
             <div className="text-center py-12">
               <FileText className="w-12 h-12 text-base-content/30 mx-auto mb-4" />
-              <p className="text-base-content/70">No significant changes found</p>
+              <p className="text-base-content/70">No trackable activity found</p>
               <p className="text-sm text-base-content/50 mt-2">
-                Only changes with field modifications are shown
+                Edit activity will appear here after updates are saved
               </p>
             </div>
           ) : (
             <div className="space-y-3">
-              {filteredHistory.map((entry) => {
-                const isExpanded = expandedEntries.has(entry.change_id);
-                const hasFieldChanges = entry.field_changes && entry.field_changes.length > 0;
-                return (
-                  <div
-                    key={entry.change_id}
-                    className="border border-base-300 rounded-lg p-4 hover:bg-base-200/50 transition-colors"
+              <div className="flex items-center justify-between">
+                <p className="text-xs text-base-content/60">
+                  Sessions are grouped by editor with a {SESSION_GAP_MINUTES}-minute inactivity window.
+                </p>
+                <div className="inline-flex rounded-md border border-base-300 overflow-hidden">
+                  <button
+                    onClick={() => setSortOrder('newest')}
+                    className={`px-3 py-1.5 text-xs ${sortOrder === 'newest' ? 'bg-primary text-primary-content' : 'bg-base-100 text-base-content/70 hover:bg-base-200'}`}
                   >
-                    {/* Entry Header */}
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1">
-                        <div className="flex items-center gap-2 mb-2">
-                          <span className={`px-2 py-1 rounded text-xs font-medium ${getChangeTypeColor(entry.change_type)}`}>
-                            {entry.change_type}
-                          </span>
-                          {entry.version && (
-                            <span className="text-xs text-base-content/50">
-                              v{entry.version}
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-sm font-medium text-base-content mb-1">
-                          {entry.summary}
-                        </p>
-                        <div className="flex items-center gap-4 text-xs text-base-content/60">
-                          <div className="flex items-center gap-1">
-                            <User className="w-3 h-3" />
-                            <span>{getUserDisplay(entry)}</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <Clock className="w-3 h-3" />
-                            <span>{formatDate(entry.edited_at)}</span>
-                          </div>
-                        </div>
-                      </div>
-                      {hasFieldChanges && (
-                        <button
-                          onClick={() => toggleExpand(entry.change_id)}
-                          className="p-1 hover:bg-base-300 rounded transition-colors"
-                          title={isExpanded ? 'Hide details' : 'Show details'}
-                        >
-                          {isExpanded ? (
-                            <ChevronUp className="w-4 h-4" />
-                          ) : (
-                            <ChevronDown className="w-4 h-4" />
-                          )}
-                        </button>
-                      )}
-                    </div>
+                    Newest first
+                  </button>
+                  <button
+                    onClick={() => setSortOrder('oldest')}
+                    className={`px-3 py-1.5 text-xs ${sortOrder === 'oldest' ? 'bg-primary text-primary-content' : 'bg-base-100 text-base-content/70 hover:bg-base-200'}`}
+                  >
+                    Oldest first
+                  </button>
+                </div>
+              </div>
 
-                    {/* Expanded Details */}
-                    {isExpanded && hasFieldChanges && (
-                      <div className="mt-4 pt-4 border-t border-base-300 space-y-3">
-                        <h4 className="text-sm font-semibold text-base-content/70">Field Changes:</h4>
-                        {entry.field_changes!.map((change, idx) => {
-                          const textId = `${entry.change_id}-${idx}`;
-                          const isTextExpanded = expandedTexts.has(textId);
-                          const TEXT_PREVIEW_LENGTH = 200;
-                          
-                          const renderValue = (value: any, isOld: boolean) => {
-                            if (value === undefined) return null;
-                            
-                            const isString = typeof value === 'string';
-                            const displayValue = isString ? value : JSON.stringify(value);
-                            const isLong = displayValue.length > TEXT_PREVIEW_LENGTH;
-                            const preview = isLong ? displayValue.substring(0, TEXT_PREVIEW_LENGTH) : displayValue;
-                            const shouldShowExpand = isLong && !isTextExpanded;
-                            
-                            return (
-                              <div>
-                                <div className="text-base-content/50 mb-1">{isOld ? 'Old Value:' : 'New Value:'}</div>
-                                <div className={`${isOld ? 'bg-red-500/10 text-red-600 dark:text-red-400' : 'bg-green-500/10 text-green-600 dark:text-green-400'} p-2 rounded break-words ${isTextExpanded ? 'max-h-96 overflow-y-auto' : ''}`}>
-                                  {shouldShowExpand ? (
-                                    <>
-                                      <div className="mb-2">{preview}...</div>
-                                      <button
-                                        onClick={() => toggleTextExpand(textId)}
-                                        className="text-xs underline hover:no-underline flex items-center gap-1"
-                                      >
-                                        <Maximize2 className="w-3 h-3" />
-                                        View full text ({displayValue.length.toLocaleString()} characters)
-                                      </button>
-                                    </>
-                                  ) : isTextExpanded ? (
-                                    <>
-                                      <div className="mb-2 whitespace-pre-wrap">{displayValue}</div>
-                                      <button
-                                        onClick={() => toggleTextExpand(textId)}
-                                        className="text-xs underline hover:no-underline"
-                                      >
-                                        Show less
-                                      </button>
-                                    </>
-                                  ) : (
-                                    <div>{displayValue}</div>
-                                  )}
-                                </div>
-                              </div>
-                            );
-                          };
-                          
-                          return (
-                            <div key={idx} className="bg-base-200 rounded p-3">
-                              <div className="text-sm font-medium text-base-content mb-2">
-                                {change.field}
-                              </div>
-                              <div className="grid grid-cols-2 gap-3 text-xs">
-                                {renderValue(change.old_value, true)}
-                                {renderValue(change.new_value, false)}
-                              </div>
-                            </div>
-                          );
-                        })}
+              {sessions.map((session) => (
+                <div
+                  key={session.id}
+                  className="border border-base-300 rounded-lg p-4 hover:bg-base-200/50 transition-colors"
+                >
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className="px-2 py-1 rounded text-xs font-medium bg-base-300 text-base-content">
+                          {session.editCount} edit{session.editCount !== 1 ? 's' : ''}
+                        </span>
+                        {session.wordDelta !== 0 && (
+                          <span className={`px-2 py-1 rounded text-xs font-medium ${session.wordDelta > 0 ? 'border border-cinema-blue/20 text-cinema-blue' : 'border border-cinema-red/30 text-cinema-red'}`}>
+                            {session.wordDelta > 0 ? `+${session.wordDelta}` : session.wordDelta} words
+                          </span>
+                        )}
                       </div>
-                    )}
+
+                      <p className="text-sm font-medium text-base-content mb-2">
+                        {session.summaries[0]}
+                        {session.summaries.length > 1 && (
+                          <span className="text-base-content/60"> + {session.summaries.length - 1} more update{session.summaries.length - 1 !== 1 ? 's' : ''}</span>
+                        )}
+                      </p>
+
+                      <div className="flex flex-wrap gap-2 mb-2">
+                        {session.changedFields.slice(0, 5).map((field) => (
+                          <span key={field} className="text-xs px-2 py-0.5 rounded border border-base-300 text-base-content/70 bg-base-200">
+                            {formatFieldLabel(field)}
+                          </span>
+                        ))}
+                        {session.changedFields.length > 5 && (
+                          <span className="text-xs px-2 py-0.5 rounded border border-base-300 text-base-content/60">
+                            +{session.changedFields.length - 5} more
+                          </span>
+                        )}
+                      </div>
+
+                      <div className="flex items-center gap-4 text-xs text-base-content/60">
+                        <div className="flex items-center gap-1">
+                          <User className="w-3 h-3" />
+                          <span>{session.editedByName || session.editedByEmail || session.editedBy}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Clock className="w-3 h-3" />
+                          <span>
+                            {formatDate(session.endAt.toISOString())}
+                            {session.startAt.getTime() !== session.endAt.getTime() && (
+                              <> · {session.startAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {session.endAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</>
+                            )}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
                   </div>
-                );
-              })}
+                </div>
+              ))}
             </div>
           )}
         </div>
 
         {/* Footer */}
-        {filteredHistory.length > 0 && (
+        {sessions.length > 0 && (
           <div className="border-t border-base-300 p-4 flex items-center justify-between">
             <div className="text-sm text-base-content/70">
-              Showing {filteredHistory.length} change{filteredHistory.length !== 1 ? 's' : ''}
-              {history.length > filteredHistory.length && (
+              Showing {sessions.length} session{sessions.length !== 1 ? 's' : ''}
+              {hiddenEntriesCount > 0 && (
                 <span className="text-xs text-base-content/50 ml-2">
-                  ({history.length - filteredHistory.length} entries with no changes hidden)
+                  ({hiddenEntriesCount} entries with no changes hidden)
                 </span>
               )}
             </div>

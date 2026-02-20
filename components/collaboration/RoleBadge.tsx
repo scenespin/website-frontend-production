@@ -16,30 +16,30 @@ const roleConfig = {
   director: {
     label: 'Director',
     icon: Crown,
-    color: 'bg-purple-500',
-    textColor: 'text-purple-100',
-    borderColor: 'border-purple-400'
+    color: 'bg-base-300',
+    textColor: 'text-cinema-red',
+    borderColor: 'border-cinema-red/30'
   },
   writer: {
     label: 'Writer',
     icon: PenTool,
-    color: 'bg-blue-500',
-    textColor: 'text-blue-100',
-    borderColor: 'border-blue-400'
+    color: 'bg-base-300',
+    textColor: 'text-cinema-blue',
+    borderColor: 'border-cinema-blue/20'
   },
   producer: {
     label: 'Producer',
     icon: Package,
-    color: 'bg-green-500',
-    textColor: 'text-green-100',
-    borderColor: 'border-green-400'
+    color: 'bg-base-300',
+    textColor: 'text-cinema-gold',
+    borderColor: 'border-cinema-gold/50'
   },
   viewer: {
     label: 'Viewer',
     icon: Eye,
-    color: 'bg-gray-500',
-    textColor: 'text-gray-100',
-    borderColor: 'border-gray-400'
+    color: 'bg-base-300',
+    textColor: 'text-base-content/80',
+    borderColor: 'border-base-content/20'
   }
 };
 
