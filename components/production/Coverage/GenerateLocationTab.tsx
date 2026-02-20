@@ -23,6 +23,7 @@ import { hasLocationReference, showReferenceRequired } from '@/utils/referenceIm
 import LocationAnglePackageSelector from '../LocationAnglePackageSelector';
 import LocationBackgroundPackageSelector from '../LocationBackgroundPackageSelector';
 import { THUMBNAIL_ASPECT_RATIO } from '../utils/imageConstants';
+import { extractCreditError, getCreditErrorDisplayMessage, syncCreditsFromError } from '@/utils/creditGuard';
 
 /** Human-readable labels for background types (shared with LocationDetailModal pattern) */
 const BACKGROUND_TYPE_LABELS: Record<string, string> = {
@@ -540,7 +541,10 @@ export function GenerateLocationTab({
         });
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({ error: 'Failed to start ECU generation' }));
-          throw new Error(errorData.error?.message || errorData.error || 'Failed to start ECU generation');
+          throw {
+            response: { status: response.status, data: errorData },
+            message: errorData.error?.message || errorData.error || errorData.message || 'Failed to start ECU generation',
+          };
         }
         const result = await response.json();
         if (result.jobId) {
@@ -605,7 +609,10 @@ export function GenerateLocationTab({
             errorData,
             requestBody: { ...requestBody, locationProfile: { ...locationProfile, baseReference: '...' } } // Log without full baseReference
           });
-          throw new Error(errorMessage);
+          throw {
+            response: { status: response.status, data: errorData },
+            message: errorMessage,
+          };
         }
         
         const result = await response.json();
@@ -667,7 +674,10 @@ export function GenerateLocationTab({
         
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({ error: 'Failed to start generation' }));
-          throw new Error(errorData.error?.message || errorData.error || 'Failed to start background generation');
+          throw {
+            response: { status: response.status, data: errorData },
+            message: errorData.error?.message || errorData.error || errorData.message || 'Failed to start background generation',
+          };
         }
         
         const result = await response.json();
@@ -700,9 +710,16 @@ export function GenerateLocationTab({
       
     } catch (err: any) {
       console.error('[GenerateLocationTab] Error:', err);
-      setError(err.message || 'An error occurred during generation');
+      const creditError = extractCreditError(err);
+      const displayMessage = creditError.isInsufficientCredits
+        ? getCreditErrorDisplayMessage(creditError)
+        : (err?.message || 'An error occurred during generation');
+      if (creditError.isInsufficientCredits) {
+        syncCreditsFromError(creditError);
+      }
+      setError(displayMessage);
       toast.error(`Failed to start ${packageType} generation!`, {
-        description: err.message || 'Please try again.',
+        description: displayMessage,
         duration: 5000
       });
       setIsGenerating(false);

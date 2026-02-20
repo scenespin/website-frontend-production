@@ -20,6 +20,7 @@ import { useAuth } from '@clerk/nextjs';
 import { hasCharacterReference, showReferenceRequired } from '@/utils/referenceImageValidation';
 import PosePackageSelector from '../../character-bank/PosePackageSelector';
 import { useIsMobile } from '@/hooks/use-mobile';
+import { extractCreditError, getCreditErrorDisplayMessage, syncCreditsFromError } from '@/utils/creditGuard';
 
 interface GenerateWardrobeTabProps {
   characterId: string;
@@ -313,8 +314,11 @@ export function GenerateWardrobeTab({
       });
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || 'Failed to generate wardrobe');
+        const errorData = await response.json().catch(() => ({}));
+        throw {
+          response: { status: response.status, data: errorData },
+          message: errorData?.message || errorData?.error || 'Failed to generate wardrobe',
+        };
       }
 
       const result = await response.json();
@@ -349,10 +353,17 @@ export function GenerateWardrobeTab({
 
     } catch (err: any) {
       console.error('[GenerateWardrobeTab] Generation error:', err);
-      setError(err.message || 'An error occurred during generation');
+      const creditError = extractCreditError(err);
+      const displayMessage = creditError.isInsufficientCredits
+        ? getCreditErrorDisplayMessage(creditError)
+        : (err?.message || 'An error occurred during generation');
+      if (creditError.isInsufficientCredits) {
+        syncCreditsFromError(creditError);
+      }
+      setError(displayMessage);
       toast.dismiss('wardrobe-gen-start');
       toast.error('Wardrobe generation failed!', {
-        description: err.message || 'Please try again.',
+        description: displayMessage,
         duration: Infinity
       });
     } finally {

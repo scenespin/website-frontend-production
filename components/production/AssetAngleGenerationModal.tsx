@@ -13,6 +13,7 @@ import AssetAnglePackageSelector from './AssetAnglePackageSelector';
 import { useAuth } from '@clerk/nextjs';
 import { toast } from 'sonner';
 import { hasAssetReference, showReferenceRequired } from '@/utils/referenceImageValidation';
+import { extractCreditError, getCreditErrorDisplayMessage, syncCreditsFromError } from '@/utils/creditGuard';
 // Safety errors are handled in job result monitoring (async pattern)
 
 // Feature 0226: Vehicle/aircraft interior package definitions for UI (angleIds match backend)
@@ -293,7 +294,10 @@ export default function AssetAngleGenerationModal({
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Failed to start generation' }));
-        throw new Error(errorData.error?.message || errorData.error || 'Failed to start angle generation');
+        throw {
+          response: { status: response.status, data: errorData },
+          message: errorData.error?.message || errorData.error || errorData.message || 'Failed to start angle generation',
+        };
       }
       
       const result = await response.json();
@@ -318,11 +322,18 @@ export default function AssetAngleGenerationModal({
       
     } catch (err: any) {
       console.error('[AssetAngleGeneration] Error:', err);
-      setError(err.message || 'An error occurred during generation');
+      const creditError = extractCreditError(err);
+      const displayMessage = creditError.isInsufficientCredits
+        ? getCreditErrorDisplayMessage(creditError)
+        : (err?.message || 'An error occurred during generation');
+      if (creditError.isInsufficientCredits) {
+        syncCreditsFromError(creditError);
+      }
+      setError(displayMessage);
       setStep('error');
       
       toast.error('Failed to start angle generation!', {
-        description: err.message || 'Please try again.',
+        description: displayMessage,
         duration: 5000
       });
       setIsGenerating(false);

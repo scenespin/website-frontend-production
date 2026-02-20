@@ -17,6 +17,7 @@ import { toast } from 'sonner';
 import { useAuth } from '@clerk/nextjs';
 import { hasAssetReference, showReferenceRequired } from '@/utils/referenceImageValidation';
 import AssetAnglePackageSelector from '../AssetAnglePackageSelector';
+import { extractCreditError, getCreditErrorDisplayMessage, syncCreditsFromError } from '@/utils/creditGuard';
 
 // Feature 0226: Vehicle/aircraft interior package definitions (match backend angleIds)
 const VEHICLE_INTERIOR_PACKAGES_UI: Record<string, { id: string; name: string; angleIds: string[]; angleLabels: string[] }> = {
@@ -368,7 +369,10 @@ export function GenerateAssetTab({
           errorData,
           requestBody: { ...requestBody }
         });
-        throw new Error(errorMessage);
+        throw {
+          response: { status: response.status, data: errorData },
+          message: errorMessage,
+        };
       }
       
       const result = await response.json();
@@ -397,9 +401,16 @@ export function GenerateAssetTab({
       
     } catch (err: any) {
       console.error('[GenerateAssetTab] Error:', err);
-      setError(err.message || 'An error occurred during generation');
+      const creditError = extractCreditError(err);
+      const displayMessage = creditError.isInsufficientCredits
+        ? getCreditErrorDisplayMessage(creditError)
+        : (err?.message || 'An error occurred during generation');
+      if (creditError.isInsufficientCredits) {
+        syncCreditsFromError(creditError);
+      }
+      setError(displayMessage);
       toast.error(`Failed to start angle generation!`, {
-        description: err.message || 'Please try again.',
+        description: displayMessage,
         duration: 5000
       });
       setIsGenerating(false);

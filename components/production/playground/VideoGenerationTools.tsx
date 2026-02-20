@@ -16,6 +16,7 @@ import { getEstimatedDuration } from '@/utils/jobTimeEstimates';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useAuth } from '@clerk/nextjs';
 import { GenerationPreview } from './GenerationPreview';
+import { extractCreditError, getCreditErrorDisplayMessage, syncCreditsFromError } from '@/utils/creditGuard';
 
 /** Capabilities from GET /api/video/models (used for mode-based model filtering). */
 interface VideoModelCapabilities {
@@ -579,7 +580,14 @@ export function VideoGenerationTools({
       }
     } catch (error: any) {
       console.error('Video generation failed:', error);
-      toast.error(error.message || 'Failed to generate video');
+      const creditError = extractCreditError(error);
+      const displayMessage = creditError.isInsufficientCredits
+        ? getCreditErrorDisplayMessage(creditError)
+        : (error?.message || 'Failed to generate video');
+      if (creditError.isInsufficientCredits) {
+        syncCreditsFromError(creditError);
+      }
+      toast.error(displayMessage);
       if (typeof window !== 'undefined' && window.refreshCredits) {
         window.refreshCredits();
       }

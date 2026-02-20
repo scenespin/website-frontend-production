@@ -20,6 +20,7 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import { toast } from 'sonner';
+import { extractCreditError, getCreditErrorDisplayMessage, syncCreditsFromError } from '@/utils/creditGuard';
 
 export interface VideoJobResult {
   videoUrl: string;
@@ -262,8 +263,11 @@ export function useVideoGeneration() {
       );
 
       if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.message || `Failed to start video generation: ${response.statusText}`);
+        const errorData = await response.json().catch(() => ({}));
+        throw {
+          response: { status: response.status, data: errorData },
+          message: errorData?.message || `Failed to start video generation: ${response.statusText}`,
+        };
       }
 
       const data = await response.json();
@@ -300,15 +304,22 @@ export function useVideoGeneration() {
       return jobId;
     } catch (error: any) {
       console.error('[useVideoGeneration] Start error:', error);
+      const creditError = extractCreditError(error);
+      const displayMessage = creditError.isInsufficientCredits
+        ? getCreditErrorDisplayMessage(creditError)
+        : (error?.message || 'Failed to start video generation');
+      if (creditError.isInsufficientCredits) {
+        syncCreditsFromError(creditError);
+      }
 
       setState(prev => ({
         ...prev,
         status: 'failed',
-        error: error.message || 'Failed to start video generation',
+        error: displayMessage,
       }));
 
       toast.error('❌ Failed to start video generation', {
-        description: error.message,
+        description: displayMessage,
       });
 
       // Force a refresh in error cases (especially insufficient credits)

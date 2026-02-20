@@ -12,6 +12,7 @@ import { X, Loader2, CheckCircle2, AlertCircle, Image } from 'lucide-react';
 import LocationBackgroundPackageSelector from './LocationBackgroundPackageSelector';
 import { useAuth } from '@clerk/nextjs';
 import { toast } from 'sonner';
+import { extractCreditError, getCreditErrorDisplayMessage, syncCreditsFromError } from '@/utils/creditGuard';
 
 interface LocationBackgroundGenerationModalProps {
   isOpen: boolean;
@@ -188,7 +189,10 @@ export default function LocationBackgroundGenerationModal({
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Failed to start generation' }));
-        throw new Error(errorData.error?.message || errorData.error || 'Failed to start background generation');
+        throw {
+          response: { status: response.status, data: errorData },
+          message: errorData.error?.message || errorData.error || errorData.message || 'Failed to start background generation',
+        };
       }
       
       const result = await response.json();
@@ -223,11 +227,18 @@ export default function LocationBackgroundGenerationModal({
       
     } catch (err: any) {
       console.error('[LocationBackgroundGeneration] Error:', err);
-      setError(err.message || 'An error occurred during generation');
+      const creditError = extractCreditError(err);
+      const displayMessage = creditError.isInsufficientCredits
+        ? getCreditErrorDisplayMessage(creditError)
+        : (err?.message || 'An error occurred during generation');
+      if (creditError.isInsufficientCredits) {
+        syncCreditsFromError(creditError);
+      }
+      setError(displayMessage);
       setStep('error');
       
       toast.error('Failed to start background generation!', {
-        description: err.message || 'Please try again.',
+        description: displayMessage,
         duration: 5000
       });
       setIsGenerating(false);
