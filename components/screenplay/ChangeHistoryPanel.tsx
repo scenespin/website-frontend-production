@@ -172,7 +172,7 @@ export default function ChangeHistoryPanel({ isOpen, onClose }: ChangeHistoryPan
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-[#3F3F46] bg-[#141414]">
           <div className="flex items-center gap-3">
-            <History className="w-7 h-7 text-primary" />
+            <History className="w-7 h-7 text-[#DC143C]" />
             <div>
               <h2 className="text-2xl font-bold text-white">Editing Activity</h2>
               <p className="text-base text-gray-400">
@@ -192,7 +192,7 @@ export default function ChangeHistoryPanel({ isOpen, onClose }: ChangeHistoryPan
         <div className="flex-1 overflow-y-auto p-6">
           {isLoading ? (
             <div className="flex items-center justify-center py-12">
-              <Loader2 className="w-6 h-6 animate-spin text-primary" />
+              <Loader2 className="w-6 h-6 animate-spin text-[#DC143C]" />
               <span className="ml-2 text-gray-300">Loading change history...</span>
             </div>
           ) : history.length === 0 ? (
@@ -220,13 +220,13 @@ export default function ChangeHistoryPanel({ isOpen, onClose }: ChangeHistoryPan
                 <div className="inline-flex rounded-lg border border-[#3F3F46] overflow-hidden">
                   <button
                     onClick={() => setSortOrder('newest')}
-                    className={`px-3 py-2 text-xs font-medium ${sortOrder === 'newest' ? 'bg-primary text-primary-content' : 'bg-[#141414] text-gray-300 hover:bg-[#1F1F1F]'}`}
+                    className={`px-3 py-2 text-xs font-medium ${sortOrder === 'newest' ? 'bg-[#DC143C] text-white' : 'bg-[#141414] text-gray-300 hover:bg-[#1F1F1F]'}`}
                   >
                     Newest first
                   </button>
                   <button
                     onClick={() => setSortOrder('oldest')}
-                    className={`px-3 py-2 text-xs font-medium ${sortOrder === 'oldest' ? 'bg-primary text-primary-content' : 'bg-[#141414] text-gray-300 hover:bg-[#1F1F1F]'}`}
+                    className={`px-3 py-2 text-xs font-medium ${sortOrder === 'oldest' ? 'bg-[#DC143C] text-white' : 'bg-[#141414] text-gray-300 hover:bg-[#1F1F1F]'}`}
                   >
                     Oldest first
                   </button>
@@ -245,7 +245,7 @@ export default function ChangeHistoryPanel({ isOpen, onClose }: ChangeHistoryPan
                           {session.editCount} edit{session.editCount !== 1 ? 's' : ''}
                         </span>
                         {session.wordDelta !== 0 && (
-                          <span className={`px-2 py-1 rounded-md text-xs font-medium ${session.wordDelta > 0 ? 'border border-cinema-blue/20 text-cinema-blue' : 'border border-cinema-red/30 text-cinema-red'}`}>
+                          <span className={`px-2 py-1 rounded-md text-xs font-medium ${session.wordDelta > 0 ? 'border border-[#DC143C]/30 text-[#DC143C]' : 'border border-cinema-red/30 text-cinema-red'}`}>
                             {session.wordDelta > 0 ? `+${session.wordDelta}` : session.wordDelta} words
                           </span>
                         )}
