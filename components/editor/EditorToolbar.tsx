@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useEditor } from '@/contexts/EditorContext';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { FountainElementType, formatElement, detectElementType } from '@/utils/fountain';
-import { saveToGitHub } from '@/utils/github';
+import { saveToGitHub, getScreenplayFilePath } from '@/utils/github';
 import { toast } from 'sonner';
 import ScriptImportModal from './ScriptImportModal';
 import SceneTypeDropdown from './SceneTypeDropdown';
@@ -33,6 +33,7 @@ interface EditorToolbarProps {
  */
 function GitHubSaveButton() {
     const { state } = useEditor();
+    const { screenplayId } = useScreenplay();
     const [saving, setSaving] = useState(false);
     const [showModal, setShowModal] = useState(false);
     const [showSetup, setShowSetup] = useState(false);
@@ -70,7 +71,7 @@ function GitHubSaveButton() {
             const message = commitMessage.trim() || `Backup: ${state.title || 'Untitled Screenplay'}`;
 
             await saveToGitHub(config, {
-                path: 'screenplay.fountain',
+                path: getScreenplayFilePath(screenplayId),
                 content: state.content,
                 message: message,
                 branch: 'main'
@@ -132,7 +133,7 @@ function GitHubSaveButton() {
                 <button
                     onClick={handleSaveClick}
                     disabled={saving}
-                    className="px-2 py-2 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-w-[40px] min-h-[40px] flex flex-col items-center justify-center transition-colors"
+                    className="px-2 py-2 bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:text-[#DC143C] rounded text-xs font-semibold min-w-[40px] min-h-[40px] flex flex-col items-center justify-center transition-colors"
                 >
                     {saving ? (
                         <>
@@ -150,30 +151,30 @@ function GitHubSaveButton() {
 
             {/* Commit Message Modal - User-friendly for writers */}
             {showModal && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-                    <div className="bg-base-100 rounded-2xl p-6 max-w-md mx-4 shadow-xl w-full">
-                        <h3 className="text-lg font-bold mb-2 flex items-center gap-2">
-                            <svg className="w-5 h-5 text-success" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm">
+                    <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-2xl p-6 max-w-md mx-4 shadow-xl w-full">
+                        <h3 className="text-2xl font-bold text-white mb-2 flex items-center gap-2">
+                            <svg className="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
                             </svg>
                             Save a Backup
                         </h3>
                         
-                        <p className="text-sm text-base-content/70 mb-4">
+                        <p className="text-base text-gray-300 mb-4">
                             This saves your current screenplay so you can come back to it later. 
                             Give it a short description to help you remember what changed.
                         </p>
                         
                         <div className="mb-4">
                             <label className="label">
-                                <span className="label-text font-medium">What did you work on?</span>
+                                <span className="label-text font-medium text-gray-200">What did you work on?</span>
                             </label>
                             <input
                                 type="text"
                                 placeholder="e.g., Finished Act 1, Fixed dialogue, Before big changes..."
                                 value={commitMessage}
                                 onChange={(e) => setCommitMessage(e.target.value)}
-                                className="input input-bordered w-full"
+                                className="w-full h-12 px-4 bg-[#141414] border border-[#3F3F46] rounded-lg text-base text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/50"
                                 autoFocus
                                 onKeyDown={(e) => {
                                     if (e.key === 'Enter' && !saving) {
@@ -182,15 +183,15 @@ function GitHubSaveButton() {
                                 }}
                             />
                             <label className="label">
-                                <span className="label-text-alt text-base-content/50">
+                                <span className="label-text-alt text-gray-500">
                                     Leave blank for a default description
                                 </span>
                             </label>
                         </div>
                         
-                        <div className="bg-base-200 rounded-lg p-3 mb-4 text-sm text-base-content/70">
+                        <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-3 mb-4 text-sm text-gray-300">
                             <p className="flex items-start gap-2">
-                                <svg className="w-4 h-4 mt-0.5 text-info shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <svg className="w-4 h-4 mt-0.5 text-cinema-blue shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                                 </svg>
                                 <span>
@@ -223,7 +224,7 @@ function GitHubSaveButton() {
                             <button
                                 onClick={() => setShowModal(false)}
                                 disabled={saving}
-                                className="btn btn-ghost"
+                                className="btn bg-[#141414] text-gray-200 border border-[#3F3F46] hover:bg-[#1F1F1F]"
                             >
                                 Cancel
                 </button>
@@ -234,16 +235,16 @@ function GitHubSaveButton() {
 
             {/* GitHub Setup Modal - For first-time connection */}
             {showSetup && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-                    <div className="bg-base-100 rounded-2xl p-6 max-w-md mx-4 shadow-xl w-full">
-                        <h3 className="text-lg font-bold mb-2 flex items-center gap-2">
-                            <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm">
+                    <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-2xl p-6 max-w-md mx-4 shadow-xl w-full">
+                        <h3 className="text-2xl font-bold text-white mb-2 flex items-center gap-2">
+                            <svg className="w-5 h-5 text-primary" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
                             </svg>
                             Connect GitHub
                         </h3>
                         
-                        <div className="space-y-3 text-sm text-base-content/80 mb-4">
+                        <div className="space-y-3 text-sm text-gray-300 mb-4">
                             <p>
                                 <strong>What is GitHub?</strong> Think of it as a super-powered "save" feature. 
                                 It keeps every version of your screenplay safe in the cloud.
@@ -252,7 +253,7 @@ function GitHubSaveButton() {
                                 <strong>Why use it?</strong> You can go back to any saved version at any time. 
                                 Made a mistake? Just restore an older backup!
                             </p>
-                            <p className="text-base-content/60">
+                            <p className="text-gray-400">
                                 Your screenplay also auto-saves locally, so GitHub is optional but recommended for extra safety.
                         </p>
                         </div>
@@ -266,7 +267,7 @@ function GitHubSaveButton() {
                             </button>
                             <button
                                 onClick={() => setShowSetup(false)}
-                                className="btn btn-ghost"
+                                className="btn bg-[#141414] text-gray-200 border border-[#3F3F46] hover:bg-[#1F1F1F]"
                             >
                                 Maybe Later
                             </button>

@@ -11,6 +11,21 @@ export interface GitHubConfig {
     repo: string;
 }
 
+export const LEGACY_SCREENPLAY_FILE_PATH = 'screenplay.fountain';
+
+/**
+ * Build the GitHub path for screenplay content.
+ * Keeps a legacy fallback path when screenplayId is unavailable.
+ */
+export function getScreenplayFilePath(screenplayId?: string | null): string {
+    if (!screenplayId) {
+        return LEGACY_SCREENPLAY_FILE_PATH;
+    }
+
+    const safeId = screenplayId.replace(/[^a-zA-Z0-9_-]/g, '_');
+    return `screenplays/${safeId}.fountain`;
+}
+
 interface SaveFileOptions {
     path: string;
     content: string;

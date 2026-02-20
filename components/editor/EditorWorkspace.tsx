@@ -20,7 +20,7 @@ import DirectorModal from '../modals/DirectorModal';
 import DialogueModal from '../modals/DialogueModal';
 import FindReplaceModal from './FindReplaceModal';
 import VersionHistoryModal from './VersionHistoryModal';
-import { saveToGitHub } from '@/utils/github';
+import { saveToGitHub, getScreenplayFilePath } from '@/utils/github';
 import { extractEditorContext } from '@/utils/editorContext';
 import { detectCurrentScene } from '@/utils/sceneDetection';
 import { detectElementType } from '@/utils/fountain';
@@ -140,9 +140,15 @@ export default function EditorWorkspace() {
                 
                 if (githubConfig.accessToken && githubConfig.owner && githubConfig.repo) {
                     toast.info('Saving to GitHub...');
-                    
-                    await saveToGitHub(githubConfig, {
-                        path: 'screenplay.fountain',
+
+                    const normalizedConfig = {
+                        token: githubConfig.accessToken || githubConfig.token,
+                        owner: githubConfig.owner,
+                        repo: githubConfig.repo
+                    };
+
+                    await saveToGitHub(normalizedConfig, {
+                        path: getScreenplayFilePath(screenplayId),
                         content: state.content,
                         message: `Manual save: ${state.title}`,
                         branch: 'main'

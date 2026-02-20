@@ -5,7 +5,8 @@ import { Dialog, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
 import { X, GitBranch, ExternalLink, RotateCcw, Loader2, HelpCircle, Save, Undo2, Info, ChevronDown, ChevronUp } from 'lucide-react';
 import { useEditor } from '@/contexts/EditorContext';
-import { getFileCommits, getFileFromCommit, getDefaultBranch, type GitHubConfig } from '@/utils/github';
+import { useScreenplay } from '@/contexts/ScreenplayContext';
+import { getFileCommits, getFileFromCommit, getDefaultBranch, getScreenplayFilePath, type GitHubConfig } from '@/utils/github';
 import { toast } from 'sonner';
 
 interface VersionHistoryModalProps {
@@ -26,6 +27,7 @@ interface Commit {
 
 export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryModalProps) {
     const { state, setContent } = useEditor();
+    const { screenplayId } = useScreenplay();
     const [commits, setCommits] = useState<Commit[]>([]);
     const [loading, setLoading] = useState(false);
     const [restoring, setRestoring] = useState<string | null>(null);
@@ -37,6 +39,7 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
     const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
     const [commitToRestore, setCommitToRestore] = useState<Commit | null>(null);
     const [confirmText, setConfirmText] = useState('');
+    const screenplayGitHubPath = getScreenplayFilePath(screenplayId);
     
     // Load GitHub config on mount
     useEffect(() => {
@@ -96,7 +99,7 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
             setBranch(defaultBranch);
             
             // Fetch commits
-            const fileCommits = await getFileCommits(githubConfig, 'screenplay.fountain', defaultBranch, 10);
+            const fileCommits = await getFileCommits(githubConfig, screenplayGitHubPath, defaultBranch, 10);
             setCommits(fileCommits);
         } catch (error: any) {
             console.error('[VersionHistory] Failed to fetch commits:', error);
@@ -129,7 +132,7 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
         setShowRestoreConfirm(false);
         
         try {
-            const content = await getFileFromCommit(githubConfig, 'screenplay.fountain', commitToRestore.sha);
+            const content = await getFileFromCommit(githubConfig, screenplayGitHubPath, commitToRestore.sha);
             setContent(content, true);
             toast.success(
                 `Restored! Your screenplay is now at: "${commitToRestore.message.split('\n')[0]}"\n\nPress Ctrl+Z to undo if needed.`,
@@ -271,7 +274,7 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
                                                 Version History
                                             </Dialog.Title>
                                             <p className="text-xs text-gray-400">
-                                                Your saved backups • {commits.length} version{commits.length !== 1 ? 's' : ''} found
+                                                Backups for this screenplay • {commits.length} version{commits.length !== 1 ? 's' : ''} found
                                             </p>
                                         </div>
                                     </div>
@@ -420,7 +423,7 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
                                                 <p className="text-white font-medium">No backups yet</p>
                                                 <p className="text-sm text-gray-400 mt-1 max-w-sm mx-auto">
                                                     Click the <strong className="text-white">BACKUP button</strong> in your toolbar to save your first backup. 
-                                                    It's like hitting "save" — but you can go back to any saved version later!
+                                                    This history is scoped to the screenplay you currently have open.
                                                 </p>
                                             </div>
                                         </div>
