@@ -430,6 +430,12 @@ Rules:
         },
         // onError
         (error) => {
+          if (controller.signal.aborted || isCancelledRef.current) {
+            setIsLoading(false);
+            setLoadingStage(null);
+            setAbortController(null);
+            return;
+          }
           logger.error('Error:', error);
           const creditError = extractCreditError(error);
           if (creditError.isInsufficientCredits) {
@@ -439,7 +445,11 @@ Rules:
             toast.error(error.message || 'Failed to generate dialogue');
           }
           setIsLoading(false);
+          setLoadingStage(null);
+          setAbortController(null);
         }
+        ,
+        { signal: controller.signal }
       );
 
     } catch (error) {

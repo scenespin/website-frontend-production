@@ -547,6 +547,8 @@ CRITICAL SPACING RULES (Fountain.io spec):
           setLoadingStage(null);
           setAbortController(null);
         }
+        ,
+        { signal: controller.signal }
       );
 
     } catch (error) {

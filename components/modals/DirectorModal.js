@@ -524,6 +524,8 @@ Rules:
           setLoadingStage(null);
           setAbortController(null);
         }
+        ,
+        { signal: controller.signal }
       );
 
     } catch (error) {

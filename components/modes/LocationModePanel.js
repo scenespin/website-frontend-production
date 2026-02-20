@@ -36,6 +36,16 @@ export function LocationModePanel({ onInsert, editorContent, cursorPosition }) {
   const selectedModel = state.selectedModel || 'claude-sonnet-4-5-20250929';
   const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef(null);
+  const activeStreamControllerRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (activeStreamControllerRef.current) {
+        activeStreamControllerRef.current.abort();
+        activeStreamControllerRef.current = null;
+      }
+    };
+  }, []);
   
   // Auto-scroll to bottom when messages or streaming text changes
   useEffect(() => {
@@ -161,6 +171,8 @@ REQUIRED OUTPUT FORMAT:
         let finalResponse = '';
         let finalStreamingComplete = false;
         let finalAccumulatedText = '';
+        const streamController = new AbortController();
+        activeStreamControllerRef.current = streamController;
         
         await api.chat.generateStream(
           {
@@ -180,13 +192,23 @@ REQUIRED OUTPUT FORMAT:
             setStreaming(false, '');
           },
           (error) => {
+            if (streamController.signal.aborted) {
+              setStreaming(false, '');
+              setIsSending(false);
+              finalStreamingComplete = true;
+              return;
+            }
             console.error('Error generating final profile:', error);
             toast.error(error.message || 'Failed to generate profile');
             setStreaming(false, '');
             setIsSending(false);
             finalStreamingComplete = true;
-          }
+          },
+          { signal: streamController.signal }
         );
+        if (activeStreamControllerRef.current === streamController) {
+          activeStreamControllerRef.current = null;
+        }
         
         // Wait for final response
         let waitCount = 0;
@@ -234,6 +256,10 @@ REQUIRED OUTPUT FORMAT:
       setInput('');
       
     } catch (error) {
+      if (activeStreamControllerRef.current?.signal?.aborted) {
+        setStreaming(false, '');
+        return;
+      }
       console.error('Error sending message:', error);
       toast.error(error.response?.data?.message || 'Failed to get AI response');
       
@@ -243,6 +269,7 @@ REQUIRED OUTPUT FORMAT:
         mode: 'location'
       });
     } finally {
+      activeStreamControllerRef.current = null;
       setIsSending(false);
     }
   };

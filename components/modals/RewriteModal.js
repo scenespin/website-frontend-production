@@ -659,6 +659,8 @@ export default function RewriteModal({
           setLoadingStage(null);
           setAbortController(null);
         }
+        ,
+        { signal: controller.signal }
       );
       
     } catch (error) {

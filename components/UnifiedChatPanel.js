@@ -430,6 +430,7 @@ function UnifiedChatPanelInner({
   const { canUseAI, screenplayId } = useScreenplay();
   const pathname = usePathname(); // Get current page path for default mode
   const messagesEndRef = useRef(null);
+  const activeStreamControllerRef = useRef(null);
   const fileInputRef = useRef(null);
   const { closeDrawer, isDrawerOpen } = useDrawer();
   
@@ -485,6 +486,15 @@ function UnifiedChatPanelInner({
     return () => {
       if (recognitionRef.current) {
         recognitionRef.current.stop();
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (activeStreamControllerRef.current) {
+        activeStreamControllerRef.current.abort();
+        activeStreamControllerRef.current = null;
       }
     };
   }, []);
@@ -1021,6 +1031,8 @@ function UnifiedChatPanelInner({
       // AI Agents use chat API with streaming
       setStreaming(true, '');
       let accumulatedText = '';
+      const streamController = new AbortController();
+      activeStreamControllerRef.current = streamController;
       
       try {
         // Build conversation history (last 10 messages for this mode)
@@ -1271,6 +1283,10 @@ function UnifiedChatPanelInner({
           },
           // onError - handle error
           (error) => {
+            if (streamController.signal.aborted) {
+              setStreaming(false, '');
+              return;
+            }
             console.error('Chat streaming error:', error);
             setStreaming(false, '');
             
@@ -1320,10 +1336,18 @@ function UnifiedChatPanelInner({
               content: userMessage,
               mode: state.activeMode
             });
-          }
+          },
+          { signal: streamController.signal }
         );
+        if (activeStreamControllerRef.current === streamController) {
+          activeStreamControllerRef.current = null;
+        }
         
       } catch (error) {
+        if (streamController.signal.aborted) {
+          setStreaming(false, '');
+          return;
+        }
         console.error('Chat error:', error);
         setStreaming(false, '');
         
@@ -1373,6 +1397,10 @@ function UnifiedChatPanelInner({
           content: userMessage,
           mode: state.activeMode
         });
+      } finally {
+        if (activeStreamControllerRef.current === streamController) {
+          activeStreamControllerRef.current = null;
+        }
       }
     } else {
       // Generation features should be handled by their own panels

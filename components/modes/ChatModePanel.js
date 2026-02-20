@@ -29,6 +29,7 @@ function ChatModePanelInner({ onInsert, onWorkflowComplete, editorContent, curso
   const selectedModel = state.selectedModel || 'claude-sonnet-4-5-20250929';
   const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef(null);
+  const activeStreamControllerRef = useRef(null);
   
   // 🔥 CRITICAL: Memoize filtered messages to prevent new array reference on every render
   // This prevents library components from seeing "changed" arrays and triggering loops
@@ -47,6 +48,15 @@ function ChatModePanelInner({ onInsert, onWorkflowComplete, editorContent, curso
   const previousMessageCountRef = useRef(0);
   const previousStreamingStateRef = useRef(false);
   const lastScrollTimeRef = useRef(0);
+
+  useEffect(() => {
+    return () => {
+      if (activeStreamControllerRef.current) {
+        activeStreamControllerRef.current.abort();
+        activeStreamControllerRef.current = null;
+      }
+    };
+  }, []);
   
   // Helper to scroll to bottom (unified scroll function)
   const scrollToBottom = useCallback((immediate = false) => {
@@ -381,6 +391,8 @@ function ChatModePanelInner({ onInsert, onWorkflowComplete, editorContent, curso
       setStreaming(true, '');
       let accumulatedText = '';
       const maxRetries = 1; // Only retry once
+      const streamController = new AbortController();
+      activeStreamControllerRef.current = streamController;
       
       // Story Advisor: Simple streaming API call (no JSON, no content parsing)
       await api.chat.generateStream(
@@ -409,6 +421,10 @@ function ChatModePanelInner({ onInsert, onWorkflowComplete, editorContent, curso
         },
         // onError
         (error) => {
+          if (streamController.signal.aborted) {
+            setStreaming(false, '');
+            return;
+          }
           console.error('Error in streaming:', error);
           setStreaming(false, '');
           
@@ -445,13 +461,21 @@ function ChatModePanelInner({ onInsert, onWorkflowComplete, editorContent, curso
             content: userFriendlyMessage,
             mode: 'chat'
           });
-        }
+        },
+        { signal: streamController.signal }
       );
+      if (activeStreamControllerRef.current === streamController) {
+        activeStreamControllerRef.current = null;
+      }
       
       // Clear input
       setInput('');
       
     } catch (error) {
+      if (activeStreamControllerRef.current?.signal?.aborted) {
+        setStreaming(false, '');
+        return;
+      }
       console.error('Error sending message:', error);
       setStreaming(false, '');
       
@@ -496,6 +520,7 @@ function ChatModePanelInner({ onInsert, onWorkflowComplete, editorContent, curso
         mode: 'chat'
       });
     } finally {
+      activeStreamControllerRef.current = null;
       setIsSending(false);
     }
   };
