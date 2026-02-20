@@ -1,4 +1,5 @@
 import { Suspense } from 'react';
+import { notFound } from 'next/navigation';
 import PlaygroundPageClient from './PlaygroundPageClient';
 
 // Route segment config - must be in server component
@@ -18,6 +19,11 @@ export const dynamic = 'force-dynamic';
  */
 
 export default function PlaygroundPage() {
+  const isPlaygroundEnabled = process.env.NEXT_PUBLIC_ENABLE_PLAYGROUND !== 'false';
+  if (!isPlaygroundEnabled) {
+    notFound();
+  }
+
   return (
     <Suspense fallback={
       <div className="min-h-screen bg-gray-950 flex items-center justify-center">

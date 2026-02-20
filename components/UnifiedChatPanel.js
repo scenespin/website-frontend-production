@@ -58,8 +58,9 @@ function getAvailableModesForPage(pathname) {
   }
   
   // /produce page - Production agents ONLY (workflows first as default)
+  // quick-video is intentionally excluded from production surface area.
   if (pathname.includes('/produce')) {
-    return ['workflows', 'image', 'quick-video', 'audio', 'try-on', 'character', 'location'];
+    return ['workflows', 'image', 'audio', 'try-on', 'character', 'location'];
   }
   
   // /composition and /timeline pages - Audio agent ONLY
