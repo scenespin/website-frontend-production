@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { X, History, Clock, User, FileText, Loader2 } from 'lucide-react';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useAuth } from '@clerk/nextjs';
@@ -29,6 +29,7 @@ interface ActivitySession {
 }
 
 const SESSION_GAP_MINUTES = 15;
+const REFRESH_INTERVAL_MS = 20000;
 
 /**
  * ChangeHistoryPanel - UI for viewing screenplay change history
@@ -41,24 +42,68 @@ export default function ChangeHistoryPanel({ isOpen, onClose }: ChangeHistoryPan
   const [isLoading, setIsLoading] = useState(false);
   const [limit, setLimit] = useState(50);
   const [sortOrder, setSortOrder] = useState<SortOrder>('newest');
+  const [showSystemSaves, setShowSystemSaves] = useState(false);
 
-  // Load change history when panel opens
-  useEffect(() => {
-    if (isOpen && screenplayId && getToken) {
+  const fetchHistory = useCallback(async (showLoader: boolean) => {
+    if (!isOpen || !screenplayId || !getToken) {
+      return;
+    }
+
+    if (showLoader) {
       setIsLoading(true);
-      getScreenplayChangeHistory(screenplayId, getToken, limit)
-        .then((data) => {
-          setHistory(data);
-        })
-        .catch(err => {
-          console.error('[ChangeHistoryPanel] Error loading change history:', err);
-          toast.error('Failed to load change history');
-        })
-        .finally(() => {
-          setIsLoading(false);
-        });
+    }
+
+    try {
+      const data = await getScreenplayChangeHistory(screenplayId, getToken, limit);
+      setHistory(data);
+    } catch (err) {
+      console.error('[ChangeHistoryPanel] Error loading change history:', err);
+      if (showLoader) {
+        toast.error('Failed to load change history');
+      }
+    } finally {
+      if (showLoader) {
+        setIsLoading(false);
+      }
     }
   }, [isOpen, screenplayId, getToken, limit]);
+
+  // Load change history when panel opens or page size changes
+  useEffect(() => {
+    fetchHistory(true);
+  }, [fetchHistory]);
+
+  // Keep activity current while the modal is open.
+  useEffect(() => {
+    if (!isOpen || !screenplayId) {
+      return;
+    }
+
+    const interval = setInterval(() => {
+      fetchHistory(false);
+    }, REFRESH_INTERVAL_MS);
+
+    return () => clearInterval(interval);
+  }, [isOpen, screenplayId, fetchHistory]);
+
+  // Refresh quickly when the window regains focus or network.
+  useEffect(() => {
+    if (!isOpen || !screenplayId) {
+      return;
+    }
+
+    const refresh = () => {
+      fetchHistory(false);
+    };
+
+    window.addEventListener('focus', refresh);
+    window.addEventListener('online', refresh);
+
+    return () => {
+      window.removeEventListener('focus', refresh);
+      window.removeEventListener('online', refresh);
+    };
+  }, [isOpen, screenplayId, fetchHistory]);
 
   // Get display name/email for a user (from enriched audit log entry)
   // Matches cursor position behavior: prefer name over email
@@ -91,10 +136,20 @@ export default function ChangeHistoryPanel({ isOpen, onClose }: ChangeHistoryPan
     return map[field] || field;
   };
 
-  const sessions = useMemo(() => {
-    const relevant = history.filter(entry =>
+  const meaningfulEntries = useMemo(() => {
+    return history.filter(entry =>
       (entry.field_changes && entry.field_changes.length > 0) || entry.change_type === 'delete'
     );
+  }, [history]);
+
+  const noChangeEntries = useMemo(() => {
+    return history.filter(entry =>
+      !((entry.field_changes && entry.field_changes.length > 0) || entry.change_type === 'delete')
+    );
+  }, [history]);
+
+  const sessions = useMemo(() => {
+    const relevant = [...meaningfulEntries];
 
     const sorted = [...relevant].sort((a, b) =>
       new Date(b.edited_at).getTime() - new Date(a.edited_at).getTime()
@@ -151,9 +206,26 @@ export default function ChangeHistoryPanel({ isOpen, onClose }: ChangeHistoryPan
     }
 
     return grouped;
+  }, [meaningfulEntries, sortOrder]);
+
+  const sortedAllEntries = useMemo(() => {
+    const sorted = [...history].sort((a, b) =>
+      new Date(b.edited_at).getTime() - new Date(a.edited_at).getTime()
+    );
+    return sortOrder === 'oldest' ? sorted.reverse() : sorted;
   }, [history, sortOrder]);
 
-  const hiddenEntriesCount = history.length - sessions.reduce((sum, session) => sum + session.editCount, 0);
+  const sortedNoChangeEntries = useMemo(() => {
+    const sorted = [...noChangeEntries].sort((a, b) =>
+      new Date(b.edited_at).getTime() - new Date(a.edited_at).getTime()
+    );
+    return sortOrder === 'oldest' ? sorted.reverse() : sorted;
+  }, [noChangeEntries, sortOrder]);
+
+  const lastSavedAt = sortedAllEntries[0]?.edited_at;
+  const lastMeaningfulAt = meaningfulEntries
+    .slice()
+    .sort((a, b) => new Date(b.edited_at).getTime() - new Date(a.edited_at).getTime())[0]?.edited_at;
 
   const formatDate = (dateString: string) => {
     try {
@@ -203,7 +275,7 @@ export default function ChangeHistoryPanel({ isOpen, onClose }: ChangeHistoryPan
                 Activity sessions will appear as collaborators edit the screenplay
               </p>
             </div>
-          ) : sessions.length === 0 ? (
+          ) : sessions.length === 0 && noChangeEntries.length === 0 ? (
             <div className="text-center py-12">
               <FileText className="w-12 h-12 text-gray-600 mx-auto mb-4" />
               <p className="text-gray-300">No trackable activity found</p>
@@ -213,6 +285,17 @@ export default function ChangeHistoryPanel({ isOpen, onClose }: ChangeHistoryPan
             </div>
           ) : (
             <div className="space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                <div className="px-3 py-2 rounded-lg border border-[#3F3F46] bg-[#141414] text-sm text-gray-300">
+                  <span className="text-gray-400">Last saved:</span>{' '}
+                  {lastSavedAt ? formatDate(lastSavedAt) : 'No saves yet'}
+                </div>
+                <div className="px-3 py-2 rounded-lg border border-[#3F3F46] bg-[#141414] text-sm text-gray-300">
+                  <span className="text-gray-400">Last meaningful edit:</span>{' '}
+                  {lastMeaningfulAt ? formatDate(lastMeaningfulAt) : 'No meaningful edits yet'}
+                </div>
+              </div>
+
               <div className="flex items-center justify-between">
                 <p className="text-xs text-gray-400">
                   Sessions are grouped by editor with a {SESSION_GAP_MINUTES}-minute inactivity window.
@@ -233,63 +316,112 @@ export default function ChangeHistoryPanel({ isOpen, onClose }: ChangeHistoryPan
                 </div>
               </div>
 
-              {sessions.map((session) => (
-                <div
-                  key={session.id}
-                  className="border border-[#3F3F46] rounded-xl p-4 bg-[#141414] hover:bg-[#1F1F1F] transition-colors"
-                >
-                  <div className="flex items-start justify-between gap-4">
-                    <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-2">
-                        <span className="px-2 py-1 rounded-md text-xs font-medium bg-[#1F1F1F] text-gray-200 border border-[#3F3F46]">
-                          {session.editCount} edit{session.editCount !== 1 ? 's' : ''}
-                        </span>
-                        {session.wordDelta !== 0 && (
-                          <span className={`px-2 py-1 rounded-md text-xs font-medium ${session.wordDelta > 0 ? 'border border-[#DC143C]/30 text-[#DC143C]' : 'border border-cinema-red/30 text-cinema-red'}`}>
-                            {session.wordDelta > 0 ? `+${session.wordDelta}` : session.wordDelta} words
+              {sessions.length > 0 ? (
+                sessions.map((session) => (
+                  <div
+                    key={session.id}
+                    className="border border-[#3F3F46] rounded-xl p-4 bg-[#141414] hover:bg-[#1F1F1F] transition-colors"
+                  >
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1">
+                        <div className="flex items-center gap-2 mb-2">
+                          <span className="px-2 py-1 rounded-md text-xs font-medium bg-[#1F1F1F] text-gray-200 border border-[#3F3F46]">
+                            {session.editCount} edit{session.editCount !== 1 ? 's' : ''}
                           </span>
-                        )}
-                      </div>
-
-                      <p className="text-base font-semibold text-white mb-2">
-                        {session.summaries[0]}
-                        {session.summaries.length > 1 && (
-                          <span className="text-gray-400"> + {session.summaries.length - 1} more update{session.summaries.length - 1 !== 1 ? 's' : ''}</span>
-                        )}
-                      </p>
-
-                      <div className="flex flex-wrap gap-2 mb-2">
-                        {session.changedFields.slice(0, 5).map((field) => (
-                          <span key={field} className="text-xs px-2 py-1 rounded-md border border-[#3F3F46] text-gray-300 bg-[#0A0A0A]">
-                            {formatFieldLabel(field)}
-                          </span>
-                        ))}
-                        {session.changedFields.length > 5 && (
-                          <span className="text-xs px-2 py-1 rounded-md border border-[#3F3F46] text-gray-400">
-                            +{session.changedFields.length - 5} more
-                          </span>
-                        )}
-                      </div>
-
-                      <div className="flex items-center gap-4 text-xs text-gray-400">
-                        <div className="flex items-center gap-1">
-                          <User className="w-3 h-3" />
-                          <span>{session.editedByName || session.editedByEmail || session.editedBy}</span>
+                          {session.wordDelta !== 0 && (
+                            <span className={`px-2 py-1 rounded-md text-xs font-medium ${session.wordDelta > 0 ? 'border border-[#DC143C]/30 text-[#DC143C]' : 'border border-cinema-red/30 text-cinema-red'}`}>
+                              {session.wordDelta > 0 ? `+${session.wordDelta}` : session.wordDelta} words
+                            </span>
+                          )}
                         </div>
-                        <div className="flex items-center gap-1">
-                          <Clock className="w-3 h-3" />
-                          <span>
-                            {formatDate(session.endAt.toISOString())}
-                            {session.startAt.getTime() !== session.endAt.getTime() && (
-                              <> · {session.startAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {session.endAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</>
-                            )}
-                          </span>
+
+                        <p className="text-base font-semibold text-white mb-2">
+                          {session.summaries[0]}
+                          {session.summaries.length > 1 && (
+                            <span className="text-gray-400"> + {session.summaries.length - 1} more update{session.summaries.length - 1 !== 1 ? 's' : ''}</span>
+                          )}
+                        </p>
+
+                        <div className="flex flex-wrap gap-2 mb-2">
+                          {session.changedFields.slice(0, 5).map((field) => (
+                            <span key={field} className="text-xs px-2 py-1 rounded-md border border-[#3F3F46] text-gray-300 bg-[#0A0A0A]">
+                              {formatFieldLabel(field)}
+                            </span>
+                          ))}
+                          {session.changedFields.length > 5 && (
+                            <span className="text-xs px-2 py-1 rounded-md border border-[#3F3F46] text-gray-400">
+                              +{session.changedFields.length - 5} more
+                            </span>
+                          )}
+                        </div>
+
+                        <div className="flex items-center gap-4 text-xs text-gray-400">
+                          <div className="flex items-center gap-1">
+                            <User className="w-3 h-3" />
+                            <span>{session.editedByName || session.editedByEmail || session.editedBy}</span>
+                          </div>
+                          <div className="flex items-center gap-1">
+                            <Clock className="w-3 h-3" />
+                            <span>
+                              {formatDate(session.endAt.toISOString())}
+                              {session.startAt.getTime() !== session.endAt.getTime() && (
+                                <> · {session.startAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })} - {session.endAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</>
+                              )}
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </div>
                   </div>
+                ))
+              ) : (
+                <div className="border border-[#3F3F46] rounded-xl p-4 bg-[#141414] text-sm text-gray-300">
+                  No meaningful edit sessions yet.
                 </div>
-              ))}
+              )}
+
+              {noChangeEntries.length > 0 && (
+                <div className="border border-[#3F3F46] rounded-xl bg-[#141414] overflow-hidden">
+                  <button
+                    onClick={() => setShowSystemSaves(prev => !prev)}
+                    className="w-full flex items-center justify-between gap-3 px-4 py-3 text-sm text-gray-200 hover:bg-[#1F1F1F] transition-colors"
+                  >
+                    <span className="font-medium">
+                      {showSystemSaves ? 'Hide' : 'Show'} system saves (no field changes)
+                    </span>
+                    <span className="text-xs px-2 py-0.5 rounded-md border border-[#3F3F46] bg-[#0A0A0A] text-gray-300">
+                      {noChangeEntries.length}
+                    </span>
+                  </button>
+                  {showSystemSaves && (
+                    <div className="border-t border-[#3F3F46] px-4 py-3 space-y-2 bg-[#0F0F0F]">
+                      {sortedNoChangeEntries.map((entry) => (
+                        <div
+                          key={entry.change_id}
+                          className="rounded-lg border border-[#3F3F46] bg-[#0A0A0A] px-3 py-3"
+                        >
+                          <div className="flex items-start justify-between gap-4">
+                            <span className="truncate text-sm text-gray-200">
+                              {entry.summary?.trim() || 'Saved (no tracked field changes)'}
+                            </span>
+                            <span className="text-xs text-gray-400 whitespace-nowrap">
+                              {formatDate(entry.edited_at)}
+                            </span>
+                          </div>
+                          <div className="mt-2 flex items-center gap-2">
+                            <span className="text-[11px] px-2 py-0.5 rounded-md border border-[#DC143C]/25 text-[#DC143C]">
+                              System save
+                            </span>
+                            <span className="text-xs text-gray-500 truncate">
+                              {getUserDisplay(entry)}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -299,9 +431,9 @@ export default function ChangeHistoryPanel({ isOpen, onClose }: ChangeHistoryPan
           <div className="border-t border-[#3F3F46] p-4 flex items-center justify-between bg-[#141414]">
             <div className="text-sm text-gray-300">
               Showing {sessions.length} session{sessions.length !== 1 ? 's' : ''}
-              {hiddenEntriesCount > 0 && (
+              {noChangeEntries.length > 0 && (
                 <span className="text-xs text-gray-500 ml-2">
-                  ({hiddenEntriesCount} entries with no changes hidden)
+                  ({noChangeEntries.length} system save{noChangeEntries.length !== 1 ? 's' : ''})
                 </span>
               )}
             </div>

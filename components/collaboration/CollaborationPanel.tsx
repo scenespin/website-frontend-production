@@ -167,7 +167,7 @@ export default function CollaborationPanel({ isOpen, onClose }: CollaborationPan
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-[#3F3F46] bg-[#141414]">
           <div className="flex items-center gap-3">
-            <Users className="w-6 h-6 text-primary" />
+            <Users className="w-6 h-6 text-[#DC143C]" />
             <div>
               <h2 className="text-2xl font-bold text-white">Collaboration</h2>
               <p className="text-base text-gray-400">
@@ -216,7 +216,7 @@ export default function CollaborationPanel({ isOpen, onClose }: CollaborationPan
                   value={newCollaboratorEmail}
                   onChange={(e) => setNewCollaboratorEmail(e.target.value)}
                   placeholder="collaborator@example.com"
-                  className="w-full h-12 px-4 bg-[#0A0A0A] border border-[#3F3F46] rounded-lg text-base text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-primary/50"
+                  className="w-full h-12 px-4 bg-[#0A0A0A] border border-[#3F3F46] rounded-lg text-base text-white placeholder:text-gray-500 focus:outline-none focus:ring-2 focus:ring-[#DC143C]/40 focus:border-[#DC143C]"
                   disabled={isAdding}
                 />
               </div>
@@ -234,7 +234,7 @@ export default function CollaborationPanel({ isOpen, onClose }: CollaborationPan
                     <select
                       value={newCollaboratorRole}
                       onChange={(e) => setNewCollaboratorRole(e.target.value as ScreenplayRole)}
-                      className="w-full h-12 px-4 bg-[#0A0A0A] border border-[#3F3F46] rounded-lg text-base text-white focus:outline-none focus:ring-2 focus:ring-primary/50"
+                      className="w-full h-12 px-4 bg-[#0A0A0A] border border-[#3F3F46] rounded-lg text-base text-white focus:outline-none focus:ring-2 focus:ring-[#DC143C]/40 focus:border-[#DC143C]"
                       disabled={isAdding}
                     >
                       {availableRoles.map(role => (
@@ -254,7 +254,7 @@ export default function CollaborationPanel({ isOpen, onClose }: CollaborationPan
               <button
                 onClick={handleAddCollaborator}
                 disabled={isAdding || !newCollaboratorEmail.trim()}
-                className="w-full h-12 px-4 bg-primary text-primary-content text-base font-semibold rounded-lg hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full h-12 px-4 bg-[#DC143C] text-white text-base font-semibold rounded-lg hover:bg-[#DC143C]/80 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {isAdding ? (
                   <>
@@ -297,14 +297,14 @@ export default function CollaborationPanel({ isOpen, onClose }: CollaborationPan
                       className="flex items-center justify-between p-3 bg-[#141414] border border-[#3F3F46] rounded-xl hover:bg-[#1F1F1F] transition-colors"
                     >
                       <div className="flex items-center gap-3 flex-1">
-                        <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                          <Mail className="w-5 h-5 text-primary" />
+                        <div className="w-10 h-10 rounded-full bg-[#DC143C]/15 flex items-center justify-center">
+                          <Mail className="w-5 h-5 text-[#DC143C]" />
                         </div>
                         <div className="flex-1 min-w-0">
                           <div className="flex items-center gap-2">
                             <p className="font-medium truncate">{collaborator.email}</p>
                             {isOwnerCollaborator && (
-                              <span className="text-xs px-2 py-0.5 bg-primary/20 text-primary rounded">
+                              <span className="text-xs px-2 py-0.5 bg-[#DC143C]/20 text-[#DC143C] rounded">
                                 Owner
                               </span>
                             )}
@@ -319,7 +319,7 @@ export default function CollaborationPanel({ isOpen, onClose }: CollaborationPan
                               <select
                                 value={editingRoleValue}
                                 onChange={(e) => setEditingRoleValue(e.target.value as ScreenplayRole)}
-                                className="px-2 py-1 bg-[#0A0A0A] border border-[#3F3F46] rounded text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary"
+                                className="px-2 py-1 bg-[#0A0A0A] border border-[#3F3F46] rounded text-sm text-white focus:outline-none focus:ring-2 focus:ring-[#DC143C]/40 focus:border-[#DC143C]"
                                 disabled={isOwnerCollaborator}
                               >
                                 {availableRoles.map(role => (
@@ -347,7 +347,7 @@ export default function CollaborationPanel({ isOpen, onClose }: CollaborationPan
                           ) : (
                             <div className="mt-1">
                               {isOwnerCollaborator ? (
-                                <span className="text-xs px-2 py-0.5 bg-primary/20 text-primary rounded">
+                                <span className="text-xs px-2 py-0.5 bg-[#DC143C]/20 text-[#DC143C] rounded">
                                   Owner (Director)
                                 </span>
                               ) : (
