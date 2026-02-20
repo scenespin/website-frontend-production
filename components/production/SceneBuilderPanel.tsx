@@ -566,6 +566,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   const offFrameGroupCharacterIds = contextState.offFrameGroupCharacterIds;
   const offFrameSceneContextPrompt = contextState.offFrameSceneContextPrompt;
   const offFrameVideoPromptAdditive = contextState.offFrameVideoPromptAdditive;
+  const lipSyncVideoPromptAdditive = contextState.lipSyncVideoPromptAdditive;
   const voiceoverBaseWorkflows = contextState.voiceoverBaseWorkflows;
   const shotWorkflowOverrides = contextState.shotWorkflowOverrides;
   const dialogueWorkflowPrompts = contextState.dialogueWorkflowPrompts;
@@ -3238,6 +3239,27 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
             }
           : {}),
         offFrameVideoPromptAdditive: Object.keys(contextState.offFrameVideoPromptAdditive).length > 0 ? contextState.offFrameVideoPromptAdditive : undefined, // Feature 0218: Per-shot additive video prompt for Hidden Mouth (add to default motion prompt)
+        ...(enabledShots.some((slot) =>
+          selectedDialogueWorkflows[slot] === 'first-frame-lipsync' ||
+          selectedDialogueWorkflows[slot] === 'extreme-closeup' ||
+          selectedDialogueWorkflows[slot] === 'extreme-closeup-mouth'
+        )
+          ? {
+              lipSyncVideoPromptAdditive: enabledShots.reduce<Record<number, string>>((acc, slot) => {
+                const workflow = selectedDialogueWorkflows[slot];
+                if (
+                  workflow === 'first-frame-lipsync' ||
+                  workflow === 'extreme-closeup' ||
+                  workflow === 'extreme-closeup-mouth'
+                ) {
+                  const raw = lipSyncVideoPromptAdditive[slot] ?? '';
+                  const normalized = raw.replace(/\s+/g, ' ').trim().slice(0, 160);
+                  if (normalized) acc[slot] = normalized;
+                }
+                return acc;
+              }, {}),
+            }
+          : {}),
         pronounExtrasPrompts: Object.keys(contextState.pronounExtrasPrompts).length > 0 ? contextState.pronounExtrasPrompts : undefined, // Per-shot, per-pronoun extras prompts: { shotSlot: { pronoun: prompt } }
         firstFramePromptOverrides: Object.keys(contextState.firstFramePromptOverrides).length > 0 ? contextState.firstFramePromptOverrides : undefined, // 🔥 NEW: Per-shot first frame prompt overrides: { shotSlot: "custom prompt" }
         videoPromptOverrides: Object.keys(contextState.videoPromptOverrides).length > 0 ? contextState.videoPromptOverrides : undefined, // 🔥 NEW: Per-shot video prompt overrides: { shotSlot: "custom prompt" }

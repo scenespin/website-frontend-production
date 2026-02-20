@@ -345,6 +345,7 @@ export function ShotConfigurationStep({
   const finalOffFrameGroupCharacterIds = state.offFrameGroupCharacterIds[shotSlot] ?? [];
   const finalOffFrameSceneContextPrompt = state.offFrameSceneContextPrompt[shotSlot] ?? '';
   const finalOffFrameVideoPromptAdditive = state.offFrameVideoPromptAdditive[shotSlot] ?? '';
+  const finalLipSyncVideoPromptAdditive = state.lipSyncVideoPromptAdditive[shotSlot] ?? '';
   const finalShotWorkflowOverride = state.shotWorkflowOverrides[shotSlot];
   const finalFirstFramePromptOverride = state.firstFramePromptOverrides[shotSlot];
   const finalVideoPromptOverride = state.videoPromptOverrides[shotSlot];
@@ -1380,6 +1381,8 @@ export function ShotConfigurationStep({
                   onOffFrameSceneContextPromptChange={(_, prompt) => actions.updateOffFrameSceneContextPrompt(shotSlot, prompt)}
                   offFrameVideoPromptAdditive={finalOffFrameVideoPromptAdditive}
                   onOffFrameVideoPromptAdditiveChange={(_, prompt) => actions.updateOffFrameVideoPromptAdditive(shotSlot, prompt)}
+                  lipSyncVideoPromptAdditive={finalLipSyncVideoPromptAdditive}
+                  onLipSyncVideoPromptAdditiveChange={(_, prompt) => actions.updateLipSyncVideoPromptAdditive(shotSlot, prompt)}
                   onOffFrameShotTypeChange={(_, shotType) => actions.updateOffFrameShotType(shotSlot, shotType)}
                   onOffFrameListenerCharacterIdChange={(_, id) => actions.updateOffFrameListenerCharacterId(shotSlot, id)}
                   onOffFrameGroupCharacterIdsChange={(_, ids) => actions.updateOffFrameGroupCharacterIds(shotSlot, ids)}
@@ -1533,6 +1536,8 @@ export function ShotConfigurationStep({
                   onOffFrameSceneContextPromptChange={(_, prompt) => actions.updateOffFrameSceneContextPrompt(shotSlot, prompt)}
                   offFrameVideoPromptAdditive={finalOffFrameVideoPromptAdditive}
                   onOffFrameVideoPromptAdditiveChange={(_, prompt) => actions.updateOffFrameVideoPromptAdditive(shotSlot, prompt)}
+                  lipSyncVideoPromptAdditive={finalLipSyncVideoPromptAdditive}
+                  onLipSyncVideoPromptAdditiveChange={(_, prompt) => actions.updateLipSyncVideoPromptAdditive(shotSlot, prompt)}
                   onOffFrameShotTypeChange={(_, shotType) => actions.updateOffFrameShotType(shotSlot, shotType)}
                   onOffFrameListenerCharacterIdChange={(_, id) => actions.updateOffFrameListenerCharacterId(shotSlot, id)}
                   onOffFrameGroupCharacterIdsChange={(_, ids) => actions.updateOffFrameGroupCharacterIds(shotSlot, ids)}

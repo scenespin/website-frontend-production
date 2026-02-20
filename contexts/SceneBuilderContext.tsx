@@ -120,6 +120,8 @@ export interface SceneBuilderState {
   offFrameSceneContextPrompt: Record<number, string>;
   /** Feature 0218: Additive video prompt for Hidden Mouth (add to default motion prompt). Not an override. */
   offFrameVideoPromptAdditive: Record<number, string>;
+  /** Feature 0277: Additive video prompt for lip-sync dialogue workflows only. */
+  lipSyncVideoPromptAdditive: Record<number, string>;
   
   // Prompt Override State
   firstFramePromptOverrides: Record<number, string>;
@@ -231,6 +233,8 @@ export interface SceneBuilderActions {
   updateOffFrameSceneContextPrompt: (shotSlot: number, prompt: string) => void;
   setOffFrameVideoPromptAdditive: (byShot: Record<number, string>) => void;
   updateOffFrameVideoPromptAdditive: (shotSlot: number, prompt: string) => void;
+  setLipSyncVideoPromptAdditive: (byShot: Record<number, string>) => void;
+  updateLipSyncVideoPromptAdditive: (shotSlot: number, prompt: string) => void;
   
   // Prompt Override Actions
   setFirstFramePromptOverrides: (overrides: Record<number, string>) => void;
@@ -361,6 +365,7 @@ function getInitialSceneBuilderState(): SceneBuilderState {
     offFrameGroupCharacterIds: {},
     offFrameSceneContextPrompt: {},
     offFrameVideoPromptAdditive: {},
+    lipSyncVideoPromptAdditive: {},
     firstFramePromptOverrides: {},
     videoPromptOverrides: {},
     promptOverrideEnabled: {},
@@ -1071,6 +1076,18 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
         ...prev,
         offFrameVideoPromptAdditive: {
           ...prev.offFrameVideoPromptAdditive,
+          [shotSlot]: prompt
+        }
+      }));
+    }, []),
+    setLipSyncVideoPromptAdditive: useCallback((byShot) => {
+      setState(prev => ({ ...prev, lipSyncVideoPromptAdditive: byShot }));
+    }, []),
+    updateLipSyncVideoPromptAdditive: useCallback((shotSlot, prompt) => {
+      setState(prev => ({
+        ...prev,
+        lipSyncVideoPromptAdditive: {
+          ...prev.lipSyncVideoPromptAdditive,
           [shotSlot]: prompt
         }
       }));

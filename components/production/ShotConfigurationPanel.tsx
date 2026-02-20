@@ -117,6 +117,9 @@ interface ShotConfigurationPanelProps {
   /** Feature 0218: Additive video prompt for Hidden Mouth (add to default motion prompt). Not an override. */
   offFrameVideoPromptAdditive?: string;
   onOffFrameVideoPromptAdditiveChange?: (shotSlot: number, prompt: string) => void;
+  /** Feature 0277: Additive video prompt for lip-sync dialogue workflows only. */
+  lipSyncVideoPromptAdditive?: string;
+  onLipSyncVideoPromptAdditiveChange?: (shotSlot: number, prompt: string) => void;
   onOffFrameShotTypeChange?: (shotSlot: number, shotType: OffFrameShotType) => void;
   onOffFrameListenerCharacterIdChange?: (shotSlot: number, characterId: string | null) => void;
   onOffFrameGroupCharacterIdsChange?: (shotSlot: number, characterIds: string[]) => void;
@@ -226,6 +229,8 @@ export function ShotConfigurationPanel({
   onOffFrameSceneContextPromptChange,
   offFrameVideoPromptAdditive,
   onOffFrameVideoPromptAdditiveChange,
+  lipSyncVideoPromptAdditive = '',
+  onLipSyncVideoPromptAdditiveChange,
   onOffFrameShotTypeChange,
   onOffFrameListenerCharacterIdChange,
   onOffFrameGroupCharacterIdsChange,
@@ -706,6 +711,11 @@ export function ShotConfigurationPanel({
   
   // For dialogue shots, get the speaking character ID
   const speakingCharacterId = shot.type === 'dialogue' ? shot.characterId : undefined;
+  const isLipSyncWorkflow =
+    currentWorkflow === 'first-frame-lipsync' ||
+    currentWorkflow === 'extreme-closeup' ||
+    currentWorkflow === 'extreme-closeup-mouth';
+  const lipSyncVideoPromptMaxChars = 160;
 
   // Feature 0182: Conditional rendering based on active tab
   // For dialogue shots: Basic = LIP SYNC, Advanced = NON-LIP SYNC
@@ -1952,6 +1962,28 @@ export function ShotConfigurationPanel({
             workflowReasoning={workflowReasoning}
             showOnlyLipSync={true}
           />
+                  {isLipSyncWorkflow && onLipSyncVideoPromptAdditiveChange && (
+                    <div className="pt-2">
+                      <label className="block text-[10px] font-medium text-[#808080] mb-1.5">
+                        Video additive prompt (optional)
+                      </label>
+                      <textarea
+                        value={lipSyncVideoPromptAdditive}
+                        onChange={(e) => onLipSyncVideoPromptAdditiveChange(
+                          shot.slot,
+                          e.target.value.slice(0, lipSyncVideoPromptMaxChars)
+                        )}
+                        placeholder="Adds performance/motion direction to the dialogue video prompt. Does not replace defaults."
+                        rows={2}
+                        maxLength={lipSyncVideoPromptMaxChars}
+                        className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none"
+                      />
+                      <div className="mt-1 flex items-center justify-between text-[10px] text-[#808080]">
+                        <span>Adds to video prompt only; first-frame prompt is unchanged.</span>
+                        <span>{lipSyncVideoPromptAdditive.length}/{lipSyncVideoPromptMaxChars}</span>
+                      </div>
+                    </div>
+                  )}
         </div>
               )}
             </>
