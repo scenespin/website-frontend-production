@@ -14,7 +14,7 @@ import EditorLockBanner from './EditorLockBanner';
 import SceneNavigator from './SceneNavigator';
 import AgentFABGroup from './AgentFABGroup';
 import { ExportPDFModal } from '../screenplay/ExportPDFModal';
-import { CollaborationPanel } from '../CollaborationPanel';
+import ScreenplayCollaborationPanel from '@/components/collaboration/CollaborationPanel';
 import RewriteModal from '../modals/RewriteModal';
 import ScreenwriterModal from '../modals/ScreenwriterModal';
 import DirectorModal from '../modals/DirectorModal';
@@ -43,6 +43,7 @@ export default function EditorWorkspace() {
     const { setSelectedTextContext, setInput, setSceneContext, clearMessagesForMode, setMode } = useChatContext();
     const [showExportModal, setShowExportModal] = useState(false);
     const [showCollaborationModal, setShowCollaborationModal] = useState(false);
+    const [isScreenplayCollaborationPanelOpen, setIsScreenplayCollaborationPanelOpen] = useState(false);
     // Scene Navigator: closed by default on mobile, open by default on desktop
     const [isSceneNavVisible, setIsSceneNavVisible] = useState(() => {
         if (typeof window !== 'undefined') {
@@ -871,17 +872,49 @@ Tip:
                                 </div>
                             </div>
 
-                            {/* Collaboration Management */}
+                            {/* Collaboration Management (unified panel) */}
                             {screenplayId && screenplayId.startsWith('screenplay_') && (
-                                <CollaborationPanel
-                                    projectId={screenplayId}
-                                    isOwner={true}
-                                />
+                                <div className="card bg-base-100 border border-base-300">
+                                    <div className="card-body">
+                                        <div className="flex items-start justify-between gap-3">
+                                            <div>
+                                                <h3 className="card-title text-lg">Screenplay Collaboration</h3>
+                                                <p className="text-sm text-base-content/60">
+                                                    Manage collaborator access and roles from one unified panel.
+                                                </p>
+                                            </div>
+                                            <span className="badge badge-outline border-cinema-red/30 text-cinema-red">
+                                                {(screenplay.collaborators?.length ?? 0)} collaborator{(screenplay.collaborators?.length ?? 0) !== 1 ? 's' : ''}
+                                            </span>
+                                        </div>
+                                        <div className="card-actions justify-end mt-2">
+                                            <button
+                                                onClick={() => setIsScreenplayCollaborationPanelOpen(true)}
+                                                className="btn btn-primary btn-sm gap-2"
+                                            >
+                                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 20h5V4H2v16h5m10 0v-2a4 4 0 00-4-4H9a4 4 0 00-4 4v2m12 0H7m6-12a4 4 0 11-8 0 4 4 0 018 0z" />
+                                                </svg>
+                                                Manage Collaborators
+                                                {(screenplay.collaborators?.length ?? 0) > 0 && (
+                                                    <span className="ml-1 px-1.5 py-0.5 text-xs bg-primary-content/20 text-primary-content rounded-full">
+                                                        {screenplay.collaborators?.length ?? 0}
+                                                    </span>
+                                                )}
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
                             )}
                         </div>
                     </div>
                 </div>
             )}
+
+            <ScreenplayCollaborationPanel
+                isOpen={isScreenplayCollaborationPanelOpen}
+                onClose={() => setIsScreenplayCollaborationPanelOpen(false)}
+            />
             
             {/* Show scene navigator button when hidden */}
             {!isSceneNavVisible && (

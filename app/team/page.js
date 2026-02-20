@@ -1,7 +1,6 @@
 'use client';
 
-import { CollaborationPanel } from '@/components/CollaborationPanel';
-import { Users, ArrowLeft, GitBranch, Cloud, AlertCircle } from 'lucide-react';
+import { Users, ArrowLeft, AlertCircle } from 'lucide-react';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { useUser } from '@clerk/nextjs';
