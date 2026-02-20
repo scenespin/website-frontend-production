@@ -5,6 +5,7 @@ import { useEditor } from '@/contexts/EditorContext';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { FountainElementType, formatElement, detectElementType } from '@/utils/fountain';
 import { saveToGitHub, getScreenplayFilePath } from '@/utils/github';
+import { markPeriodicGitHubBackupCheckpoint } from '@/utils/githubPeriodicBackup';
 import { toast } from 'sonner';
 import ScriptImportModal from './ScriptImportModal';
 import SceneTypeDropdown from './SceneTypeDropdown';
@@ -76,6 +77,9 @@ function GitHubSaveButton() {
                 message: message,
                 branch: 'main'
             });
+            if (screenplayId?.startsWith('screenplay_')) {
+                markPeriodicGitHubBackupCheckpoint(screenplayId, state.content);
+            }
 
             toast.success(
                 `Backup saved! "${message}"\n\nYou can restore this version anytime from Version History.`,

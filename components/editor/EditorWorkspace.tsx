@@ -21,6 +21,7 @@ import DialogueModal from '../modals/DialogueModal';
 import FindReplaceModal from './FindReplaceModal';
 import VersionHistoryModal from './VersionHistoryModal';
 import { saveToGitHub, getScreenplayFilePath } from '@/utils/github';
+import { markPeriodicGitHubBackupCheckpoint } from '@/utils/githubPeriodicBackup';
 import { extractEditorContext } from '@/utils/editorContext';
 import { detectCurrentScene } from '@/utils/sceneDetection';
 import { detectElementType } from '@/utils/fountain';
@@ -153,6 +154,9 @@ export default function EditorWorkspace() {
                         message: `Manual save: ${state.title}`,
                         branch: 'main'
                     });
+                    if (screenplayId?.startsWith('screenplay_')) {
+                        markPeriodicGitHubBackupCheckpoint(screenplayId, state.content);
+                    }
                     
                     toast.success('✅ Saved to GitHub!');
                 } else {

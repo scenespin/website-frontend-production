@@ -6,6 +6,12 @@ import { FountainElementType } from '@/utils/fountain';
 import { useScreenplay } from './ScreenplayContext';
 import { parseContentForImport } from '@/utils/fountainAutoImport';
 import { saveToGitHub } from '@/utils/github';
+import {
+    isGitHubPeriodicBackupEnabled,
+    maybeRunPeriodicGitHubBackup,
+    PERIODIC_EVALUATION_INTERVAL_MS,
+    retryPendingPeriodicGitHubBackup
+} from '@/utils/githubPeriodicBackup';
 import { useAuth, useUser, useSession } from '@clerk/nextjs';
 import { createScreenplay, updateScreenplay, getScreenplay } from '@/utils/screenplayStorage';
 import { getCurrentScreenplayId, setCurrentScreenplayId, clearCurrentScreenplayId, migrateFromLocalStorage } from '@/utils/clerkMetadata';
@@ -207,6 +213,16 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
     useEffect(() => {
         stateRef.current = state;
     }, [state]);
+
+    const getActiveScreenplayId = useCallback((): string | null => {
+        if (projectId && projectId.startsWith('screenplay_')) {
+            return projectId;
+        }
+        if (screenplayIdRef.current && screenplayIdRef.current.startsWith('screenplay_')) {
+            return screenplayIdRef.current;
+        }
+        return null;
+    }, [projectId]);
     
     // Feature 0132: Per-screenplay localStorage helper functions
     // Generate per-screenplay localStorage key (e.g., 'screenplay_draft_${screenplayId}')
@@ -1153,6 +1169,75 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
         
         return () => clearInterval(autoSaveInterval);
     }, [state.isDirty, saveNow]);
+
+    // Feature 0281 Phase 2: Additive periodic GitHub checkpoints (manual-first, optional).
+    // This does NOT replace existing save flows. It only creates optional periodic GitHub commits
+    // when enabled and when guard checks pass.
+    useEffect(() => {
+        if (!isGitHubPeriodicBackupEnabled()) {
+            return;
+        }
+
+        if (githubSyncTimerRef.current) {
+            clearInterval(githubSyncTimerRef.current);
+            githubSyncTimerRef.current = null;
+        }
+
+        githubSyncTimerRef.current = setInterval(async () => {
+            const activeScreenplayId = getActiveScreenplayId();
+            if (!activeScreenplayId) {
+                return;
+            }
+
+            const current = stateRef.current;
+            await maybeRunPeriodicGitHubBackup({
+                screenplayId: activeScreenplayId,
+                title: current.title,
+                content: current.content,
+                isDirty: current.isDirty
+            });
+        }, PERIODIC_EVALUATION_INTERVAL_MS);
+
+        return () => {
+            if (githubSyncTimerRef.current) {
+                clearInterval(githubSyncTimerRef.current);
+                githubSyncTimerRef.current = null;
+            }
+        };
+    }, [getActiveScreenplayId]);
+
+    // Retry a queued periodic checkpoint when the app regains focus or network.
+    useEffect(() => {
+        if (!isGitHubPeriodicBackupEnabled()) {
+            return;
+        }
+
+        const runRetry = async () => {
+            const activeScreenplayId = getActiveScreenplayId();
+            if (!activeScreenplayId) return;
+            await retryPendingPeriodicGitHubBackup(activeScreenplayId, stateRef.current.isDirty);
+        };
+
+        const handleFocus = () => {
+            runRetry().catch((error) => {
+                console.debug('[EditorContext] Periodic GitHub retry on focus failed (non-blocking):', error);
+            });
+        };
+
+        const handleOnline = () => {
+            runRetry().catch((error) => {
+                console.debug('[EditorContext] Periodic GitHub retry on reconnect failed (non-blocking):', error);
+            });
+        };
+
+        window.addEventListener('focus', handleFocus);
+        window.addEventListener('online', handleOnline);
+
+        return () => {
+            window.removeEventListener('focus', handleFocus);
+            window.removeEventListener('online', handleOnline);
+        };
+    }, [getActiveScreenplayId]);
     
     // Feature 0132: Save on unmount/navigation to ensure changes persist before logout
     // Uses localStorage (guaranteed) + async save (best effort) + beforeunload warning
