@@ -12,6 +12,7 @@ import { validateScreenwriterContent } from '@/utils/jsonValidator';
 import { getCharactersInScene, buildCharacterSummaries } from '@/utils/characterContextBuilder';
 import { getTimingMessage } from '@/utils/modelTiming';
 import { createClientLogger } from '@/utils/clientLogger';
+import { extractCreditError, getCreditErrorDisplayMessage, syncCreditsFromError } from '@/utils/creditGuard';
 import toast from 'react-hot-toast';
 // ModelSelect removed - using DaisyUI select instead
 const ENABLE_EDITOR_AGENT_DEBUG_LOGS =
@@ -535,7 +536,13 @@ CRITICAL SPACING RULES (Fountain.io spec):
             return;
           }
           logger.error('Error:', error);
-          toast.error(error.message || 'Failed to generate content');
+          const creditError = extractCreditError(error);
+          if (creditError.isInsufficientCredits) {
+            syncCreditsFromError(creditError);
+            toast.error(getCreditErrorDisplayMessage(creditError));
+          } else {
+            toast.error(error.message || 'Failed to generate content');
+          }
           setIsLoading(false);
           setLoadingStage(null);
           setAbortController(null);
@@ -551,7 +558,13 @@ CRITICAL SPACING RULES (Fountain.io spec):
         return;
       }
       logger.error('Error:', error);
-      toast.error(error.message || 'Failed to generate content');
+      const creditError = extractCreditError(error);
+      if (creditError.isInsufficientCredits) {
+        syncCreditsFromError(creditError);
+        toast.error(getCreditErrorDisplayMessage(creditError));
+      } else {
+        toast.error(error.message || 'Failed to generate content');
+      }
       setIsLoading(false);
       setLoadingStage(null);
       setAbortController(null);

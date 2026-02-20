@@ -13,6 +13,7 @@ import { formatFountainSpacing } from '@/utils/fountainSpacing';
 import { buildCharacterSummaries } from '@/utils/characterContextBuilder';
 import { getModelTiming, getTimingMessage } from '@/utils/modelTiming';
 import { createClientLogger } from '@/utils/clientLogger';
+import { extractCreditError, getCreditErrorDisplayMessage, syncCreditsFromError } from '@/utils/creditGuard';
 import toast from 'react-hot-toast';
 // ModelSelect removed - using DaisyUI select instead
 
@@ -647,7 +648,13 @@ export default function RewriteModal({
             return;
           }
           logger.error('Error:', error);
-          toast.error(error.message || 'Failed to rewrite text');
+          const creditError = extractCreditError(error);
+          if (creditError.isInsufficientCredits) {
+            syncCreditsFromError(creditError);
+            toast.error(getCreditErrorDisplayMessage(creditError));
+          } else {
+            toast.error(error.message || 'Failed to rewrite text');
+          }
           setIsLoading(false);
           setLoadingStage(null);
           setAbortController(null);
@@ -663,7 +670,13 @@ export default function RewriteModal({
         return;
       }
       logger.error('Error:', error);
-      toast.error(error.message || 'Failed to rewrite text');
+      const creditError = extractCreditError(error);
+      if (creditError.isInsufficientCredits) {
+        syncCreditsFromError(creditError);
+        toast.error(getCreditErrorDisplayMessage(creditError));
+      } else {
+        toast.error(error.message || 'Failed to rewrite text');
+      }
       setIsLoading(false);
       setLoadingStage(null);
       setAbortController(null);

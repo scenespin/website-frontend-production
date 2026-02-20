@@ -13,6 +13,7 @@ import { validateDialogueContent } from '@/utils/jsonValidator';
 import { formatFountainSpacing } from '@/utils/fountainSpacing';
 import { getTimingMessage } from '@/utils/modelTiming';
 import { createClientLogger } from '@/utils/clientLogger';
+import { extractCreditError, getCreditErrorDisplayMessage, syncCreditsFromError } from '@/utils/creditGuard';
 import toast from 'react-hot-toast';
 // ModelSelect removed - using DaisyUI select instead
 const ENABLE_EDITOR_AGENT_DEBUG_LOGS =
@@ -430,7 +431,13 @@ Rules:
         // onError
         (error) => {
           logger.error('Error:', error);
-          toast.error(error.message || 'Failed to generate dialogue');
+          const creditError = extractCreditError(error);
+          if (creditError.isInsufficientCredits) {
+            syncCreditsFromError(creditError);
+            toast.error(getCreditErrorDisplayMessage(creditError));
+          } else {
+            toast.error(error.message || 'Failed to generate dialogue');
+          }
           setIsLoading(false);
         }
       );
@@ -444,7 +451,13 @@ Rules:
         return;
       }
       logger.error('Error:', error);
-      toast.error(error.message || 'Failed to generate dialogue');
+      const creditError = extractCreditError(error);
+      if (creditError.isInsufficientCredits) {
+        syncCreditsFromError(creditError);
+        toast.error(getCreditErrorDisplayMessage(creditError));
+      } else {
+        toast.error(error.message || 'Failed to generate dialogue');
+      }
       setIsLoading(false);
       setLoadingStage(null);
       setAbortController(null);

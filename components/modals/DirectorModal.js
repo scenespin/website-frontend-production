@@ -13,6 +13,7 @@ import { formatFountainSpacing } from '@/utils/fountainSpacing';
 import { getCharactersInScene, buildCharacterSummaries } from '@/utils/characterContextBuilder';
 import { getTimingMessage } from '@/utils/modelTiming';
 import { createClientLogger } from '@/utils/clientLogger';
+import { extractCreditError, getCreditErrorDisplayMessage, syncCreditsFromError } from '@/utils/creditGuard';
 import toast from 'react-hot-toast';
 // ModelSelect removed - using DaisyUI select instead
 const ENABLE_EDITOR_AGENT_DEBUG_LOGS =
@@ -512,7 +513,13 @@ Rules:
             return;
           }
           logger.error('Error:', error);
-          toast.error(error.message || 'Failed to generate content');
+          const creditError = extractCreditError(error);
+          if (creditError.isInsufficientCredits) {
+            syncCreditsFromError(creditError);
+            toast.error(getCreditErrorDisplayMessage(creditError));
+          } else {
+            toast.error(error.message || 'Failed to generate content');
+          }
           setIsLoading(false);
           setLoadingStage(null);
           setAbortController(null);
@@ -528,7 +535,13 @@ Rules:
         return;
       }
       logger.error('Error:', error);
-      toast.error(error.message || 'Failed to generate content');
+      const creditError = extractCreditError(error);
+      if (creditError.isInsufficientCredits) {
+        syncCreditsFromError(creditError);
+        toast.error(getCreditErrorDisplayMessage(creditError));
+      } else {
+        toast.error(error.message || 'Failed to generate content');
+      }
       setIsLoading(false);
       setLoadingStage(null);
       setAbortController(null);

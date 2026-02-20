@@ -23,6 +23,7 @@ import { cn } from '@/lib/utils';
 import { detectCurrentScene, extractSelectionContext } from '@/utils/sceneDetection';
 import { buildRewritePrompt } from '@/utils/promptBuilders';
 import { buildStoryAdvisorContext, buildContextPromptString } from '@/utils/screenplayContextBuilder';
+import { extractCreditError, getCreditErrorDisplayMessage, syncCreditsFromError } from '@/utils/creditGuard';
 import { api } from '@/lib/api';
 import { useAuth } from '@clerk/nextjs';
 
@@ -1276,21 +1277,17 @@ function UnifiedChatPanelInner({
             // Check for specific error types and show user-friendly messages
             const errorString = error.message || error.toString() || '';
             const errorResponse = error.response?.data || error.response || {};
-            const errorStatus = error.response?.status || error.status;
-            
-            const isInsufficientCredits = errorStatus === 402 || 
-                                          errorString.includes('INSUFFICIENT_CREDITS') ||
-                                          errorString.toLowerCase().includes('insufficient credits') ||
-                                          errorString.toLowerCase().includes('payment required');
+            const creditError = extractCreditError(error);
+            const isInsufficientCredits = creditError.isInsufficientCredits;
             
             let errorMessage = errorResponse?.message || error.message || 'Failed to get AI response';
             let userMessage = '❌ Sorry, I encountered an error. Please try again.';
             let shouldFallbackModel = false;
             
             if (isInsufficientCredits) {
-              // Friendly, encouraging message with CTA
-              errorMessage = 'You\'re out of credits! Add more to continue chatting.';
-              userMessage = '💡 **You\'re all out of credits!**\n\nNo worries — you can easily add more credits to keep getting help with your screenplay. [Add Credits →](/dashboard)\n\nOnce you\'ve topped up, just send your message again and I\'ll be ready to help!';
+              syncCreditsFromError(creditError);
+              errorMessage = getCreditErrorDisplayMessage(creditError);
+              userMessage = `💡 ${errorMessage}`;
               toast.error(errorMessage, { duration: 6000 });
             } else if (errorMessage.includes('overloaded') || errorMessage.includes('temporarily overloaded')) {
               errorMessage = 'The AI service is temporarily overloaded. Please try again in a moment.';
@@ -1333,21 +1330,17 @@ function UnifiedChatPanelInner({
         // Check for specific error types and show user-friendly messages
         const errorString = error.message || error.toString() || '';
         const errorResponse = error.response?.data || error.response || {};
-        const errorStatus = error.response?.status || error.status;
-        
-        const isInsufficientCredits = errorStatus === 402 || 
-                                      errorString.includes('INSUFFICIENT_CREDITS') ||
-                                      errorString.toLowerCase().includes('insufficient credits') ||
-                                      errorString.toLowerCase().includes('payment required');
+        const creditError = extractCreditError(error);
+        const isInsufficientCredits = creditError.isInsufficientCredits;
         
         let errorMessage = errorResponse?.message || error.message || 'Failed to get AI response';
         let userMessage = '❌ Sorry, I encountered an error. Please try again.';
         let shouldFallbackModel = false;
         
         if (isInsufficientCredits) {
-          // Friendly, encouraging message with CTA
-          errorMessage = 'You\'re out of credits! Add more to continue chatting.';
-          userMessage = '💡 **You\'re all out of credits!**\n\nNo worries — you can easily add more credits to keep getting help with your screenplay. [Add Credits →](/dashboard)\n\nOnce you\'ve topped up, just send your message again and I\'ll be ready to help! ✨';
+          syncCreditsFromError(creditError);
+          errorMessage = getCreditErrorDisplayMessage(creditError);
+          userMessage = `💡 ${errorMessage}`;
           toast.error(errorMessage, { duration: 6000 });
         } else if (errorMessage.includes('overloaded') || errorMessage.includes('temporarily overloaded')) {
           errorMessage = 'The AI service is temporarily overloaded. Please try again in a moment.';

@@ -11,6 +11,7 @@
     "postinstall": "npm_config_platform=linux npm_config_arch=x64 npm rebuild sharp",
     "test:payload-first-0256": "next build",
     "test:elements-0259": "npx tsx tests/elements-workflow-0259.test.ts",
+    "test:credit-guard-0276": "npx tsx tests/credit-guard-0276.test.ts",
     "test:screenplay-read-resilience": "npx tsx tests/screenplay-read-resilience.test.ts",
     "test:newsletter": "node tests/newsletter-test.js",
     "test:newsletter:api": "node scripts/newsletter-api-test.js",

@@ -10,6 +10,7 @@ import { api } from '@/lib/api';
 import { detectCurrentScene } from '@/utils/sceneDetection';
 import { calculateMaxContentChars, includeContentUpToLimit } from '@/utils/tokenCalculator';
 import { buildStoryAdvisorContext, buildContextPromptString } from '@/utils/screenplayContextBuilder';
+import { extractCreditError, getCreditErrorDisplayMessage, syncCreditsFromError } from '@/utils/creditGuard';
 import toast from 'react-hot-toast';
 
 // Story Advisor: No Fountain parsing needed (consultation only, no content generation)
@@ -457,12 +458,8 @@ function ChatModePanelInner({ onInsert, onWorkflowComplete, editorContent, curso
       // 🔥 PHASE 4: Better error handling for API overload/rate limits
       const errorString = error.message || error.toString() || '';
       const errorResponse = error.response?.data || error.response || {};
-      const errorStatus = error.response?.status || error.status;
-      
-      const isInsufficientCredits = errorStatus === 402 || 
-                                    errorString.includes('INSUFFICIENT_CREDITS') ||
-                                    errorString.toLowerCase().includes('insufficient credits') ||
-                                    errorString.toLowerCase().includes('payment required');
+      const creditError = extractCreditError(error);
+      const isInsufficientCredits = creditError.isInsufficientCredits;
       const isOverloaded = errorString.includes('overloaded') || 
                            errorString.includes('overloaded_error') ||
                            (error.error && error.error.type === 'overloaded_error');
@@ -477,9 +474,9 @@ function ChatModePanelInner({ onInsert, onWorkflowComplete, editorContent, curso
       let userFriendlyMessage = '❌ Sorry, I encountered an error. Please try again.';
       
       if (isInsufficientCredits) {
-        // Friendly, encouraging message with CTA
-        errorMessage = 'You\'re out of credits! Add more to continue chatting.';
-        userFriendlyMessage = '💡 **You\'re all out of credits!**\n\nNo worries — you can easily add more credits to keep getting help with your screenplay. [Add Credits →](/dashboard)\n\nOnce you\'ve topped up, just send your message again and I\'ll be ready to help!';
+        syncCreditsFromError(creditError);
+        errorMessage = getCreditErrorDisplayMessage(creditError);
+        userFriendlyMessage = `💡 ${errorMessage}`;
         toast.error(errorMessage, { duration: 6000 });
       } else if (isOverloaded || isRateLimit) {
         errorMessage = 'AI service is temporarily overloaded. Please try again in a moment.';
