@@ -25,6 +25,36 @@ interface GetFileOptions {
 }
 
 /**
+ * Encode/decode UTF-8 content for GitHub's base64 API fields.
+ * Native btoa/atob only support Latin1 and will throw on Unicode screenplay text.
+ */
+function encodeBase64Utf8(value: string): string {
+    const bytes = new TextEncoder().encode(value);
+    const chunkSize = 0x8000;
+    let binary = '';
+
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+        const chunk = bytes.subarray(i, i + chunkSize);
+        binary += String.fromCharCode(...chunk);
+    }
+
+    return btoa(binary);
+}
+
+function decodeBase64Utf8(base64Value: string): string {
+    // GitHub content payloads may include line breaks in base64 output.
+    const normalized = base64Value.replace(/\s/g, '');
+    const binary = atob(normalized);
+    const bytes = new Uint8Array(binary.length);
+
+    for (let i = 0; i < binary.length; i++) {
+        bytes[i] = binary.charCodeAt(i);
+    }
+
+    return new TextDecoder().decode(bytes);
+}
+
+/**
  * Initialize GitHub client with user token
  * Token should be stored securely in user's account
  */
@@ -79,7 +109,7 @@ export async function saveToGitHub(
         // Create or update the file
         const body: any = {
             message,
-            content: btoa(content), // Base64 encode
+            content: encodeBase64Utf8(content),
             branch
         };
         
@@ -156,7 +186,7 @@ export async function getFromGitHub(
         const data = await response.json();
         
         // Decode base64 content
-        const content = atob(data.content);
+        const content = decodeBase64Utf8(data.content);
         
         console.log('[GitHub] File retrieved successfully');
         return { content, sha: data.sha };
@@ -678,7 +708,7 @@ export async function getFileFromCommit(
         const data = await response.json();
         
         // Decode base64 content
-        const content = atob(data.content);
+        const content = decodeBase64Utf8(data.content);
         
         console.log(`[GitHub] Retrieved file from commit ${commitSha.substring(0, 7)}`);
         return content;
