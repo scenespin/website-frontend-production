@@ -57,6 +57,7 @@ export default function EditorWorkspace() {
     const [hasSelection, setHasSelection] = useState(false);
     const [selectedText, setSelectedText] = useState<string | null>(null);
     const [selectionRange, setSelectionRange] = useState<{ start: number; end: number } | null>(null);
+    const [selectionResetSignal, setSelectionResetSignal] = useState(0);
     
     // Rewrite modal state
     const [isRewriteModalOpen, setIsRewriteModalOpen] = useState(false);
@@ -135,15 +136,15 @@ export default function EditorWorkspace() {
         const caret = textarea.selectionEnd ?? textarea.selectionStart ?? 0;
         textarea.selectionStart = caret;
         textarea.selectionEnd = caret;
-        textarea.focus({ preventScroll: true });
     }, []);
 
     const clearSelectionStateAndFocus = useCallback(() => {
         setHasSelection(false);
         setSelectedText(null);
         setSelectionRange(null);
+        setSelectionResetSignal(prev => prev + 1);
 
-        // Let modal unmount complete before touching textarea selection/focus.
+        // Let modal unmount complete before touching textarea selection.
         requestAnimationFrame(() => {
             setTimeout(() => clearEditorDomSelection(), 0);
         });
@@ -835,6 +836,7 @@ Tip:
 - Select text and tap FAB button for 'Rewrite with AI'"
                             onOpenChatWithContext={handleOpenChatWithContext}
                             onSelectionStateChange={handleSelectionStateChange}
+                            selectionResetSignal={selectionResetSignal}
                         />
                     </div>
                 </div>

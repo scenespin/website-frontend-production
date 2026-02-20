@@ -37,6 +37,7 @@ interface FountainEditorProps {
     onUseRewrite?: () => void;
     onSelectionChangeProp?: (start: number, end: number) => void;
     onSelectionStateChange?: (hasSelection: boolean, selectedText: string | null, selectionRange: { start: number; end: number } | null) => void;
+    selectionResetSignal?: number;
     onToggleSceneNav?: () => void; // Optional: for mobile scene navigator button
 }
 
@@ -51,6 +52,7 @@ export default function FountainEditor({
     onUseRewrite,
     onSelectionChangeProp,
     onSelectionStateChange,
+    selectionResetSignal,
     onToggleSceneNav
 }: FountainEditorProps) {
     // Context hooks
@@ -244,7 +246,7 @@ export default function FountainEditor({
     );
     
     // Custom hooks - All editor functionality extracted
-    const selection = useEditorSelection(textareaRef, displayContent, onSelectionChangeProp);
+    const selection = useEditorSelection(textareaRef, displayContent, onSelectionChangeProp, selectionResetSignal);
     const navigation = useEditorNavigation(textareaRef, displayContent);
     const autocomplete = useEntityAutocomplete(textareaRef);
     const formatting = useFountainFormatting(textareaRef);

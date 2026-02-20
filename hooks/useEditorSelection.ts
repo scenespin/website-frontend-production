@@ -40,7 +40,8 @@ interface UseEditorSelectionReturn {
 export function useEditorSelection(
     textareaRef: RefObject<HTMLTextAreaElement>,
     content: string,
-    onSelectionChange?: (start: number, end: number) => void
+    onSelectionChange?: (start: number, end: number) => void,
+    resetSignal?: number
 ): UseEditorSelectionReturn {
     const { setSelection } = useEditor();
     
@@ -157,6 +158,17 @@ export function useEditorSelection(
      * Require at least 1 character difference to ensure it's a real selection
      */
     const hasSelection = selectionEnd - selectionStart > 0 && selectedText.trim().length > 0;
+
+    useEffect(() => {
+        if (resetSignal === undefined) return;
+
+        selectionRef.current = null;
+        lastCaptureRef.current = null;
+        setSelectedText('');
+        setSelectionStart(0);
+        setSelectionEnd(0);
+        setShowSelectionToolbar(false);
+    }, [resetSignal]);
     
     return {
         selection: {
