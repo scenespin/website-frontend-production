@@ -200,6 +200,10 @@ function GitHubSaveButton() {
                                 </span>
                             </p>
                         </div>
+
+                        <p className="text-xs text-gray-400 mb-4">
+                            When GitHub is connected, background session backups can also save automatically. Manual backups still work the same.
+                        </p>
                         
                         <div className="flex gap-2">
                             <button
@@ -255,7 +259,10 @@ function GitHubSaveButton() {
                             </p>
                             <p className="text-gray-400">
                                 Your screenplay also auto-saves locally, so GitHub is optional but recommended for extra safety.
-                        </p>
+                            </p>
+                            <p className="text-gray-400">
+                                When connected, background session backups can save automatically in addition to manual backups.
+                            </p>
                         </div>
                         
                         <div className="flex gap-2">
