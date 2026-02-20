@@ -5,11 +5,7 @@ import { useSearchParams, usePathname } from 'next/navigation';
 import { FountainElementType } from '@/utils/fountain';
 import { useScreenplay } from './ScreenplayContext';
 import { parseContentForImport } from '@/utils/fountainAutoImport';
-import {
-    commitScreenplaySessionToGitHub,
-    isGitHubSessionCommitEnabled,
-    retryPendingScreenplaySessionCommit
-} from '@/utils/githubSessionCommit';
+import { saveToGitHub } from '@/utils/github';
 import { useAuth, useUser, useSession } from '@clerk/nextjs';
 import { createScreenplay, updateScreenplay, getScreenplay } from '@/utils/screenplayStorage';
 import { getCurrentScreenplayId, setCurrentScreenplayId, clearCurrentScreenplayId, migrateFromLocalStorage } from '@/utils/clerkMetadata';
@@ -143,18 +139,11 @@ export const EditorContext = createContext<EditorContextType | undefined>(undefi
 
 // Inner component that uses useSearchParams (must be wrapped in Suspense)
 function EditorProviderInner({ children, projectId }: { children: ReactNode; projectId: string | null }) {
-    const GITHUB_SESSION_INACTIVITY_MS = 15 * 60 * 1000;
-    const GITHUB_SESSION_HIDDEN_GRACE_MS = 3000;
     const [state, setState] = useState<EditorState>(defaultState);
     const [isEditorFullscreen, setIsEditorFullscreen] = useState(false);
     const [isPreviewMode, setIsPreviewMode] = useState(false);
     const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
-    const githubSessionTimerRef = useRef<NodeJS.Timeout | null>(null);
-    const hiddenCommitTimerRef = useRef<NodeJS.Timeout | null>(null);
-    const sessionScreenplayIdRef = useRef<string | null>(null);
-    const sessionStartAtRef = useRef<number>(Date.now());
-    const sessionStartWordCountRef = useRef<number>(0);
-    const sessionHadLocalEditsRef = useRef<boolean>(false);
+    const githubSyncTimerRef = useRef<NodeJS.Timeout | null>(null);
     const isInitialLoadRef = useRef(true); // Prevent auto-clear during initial import
 
     // Need screenplay id early so editor lock runs even when URL has no ?project= (e.g. second browser/tab)
@@ -218,71 +207,6 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
     useEffect(() => {
         stateRef.current = state;
     }, [state]);
-
-    const countWords = useCallback((value: string): number => {
-        return value.trim().split(/\s+/).filter(Boolean).length;
-    }, []);
-
-    const getActiveScreenplayId = useCallback((): string | null => {
-        if (projectId && projectId.startsWith('screenplay_')) {
-            return projectId;
-        }
-
-        if (screenplayIdRef.current && screenplayIdRef.current.startsWith('screenplay_')) {
-            return screenplayIdRef.current;
-        }
-
-        return null;
-    }, [projectId]);
-
-    const resetGitHubSessionBaseline = useCallback((content?: string) => {
-        const nextContent = content ?? stateRef.current.content;
-        sessionStartAtRef.current = Date.now();
-        sessionStartWordCountRef.current = countWords(nextContent);
-        sessionHadLocalEditsRef.current = false;
-    }, [countWords]);
-
-    const commitGitHubSessionBoundary = useCallback(async (explicitScreenplayId?: string) => {
-        if (!isGitHubSessionCommitEnabled()) {
-            return;
-        }
-
-        if (!sessionHadLocalEditsRef.current) {
-            return;
-        }
-
-        const screenplayId = explicitScreenplayId || getActiveScreenplayId();
-        if (!screenplayId) {
-            return;
-        }
-
-        const current = stateRef.current;
-        const result = await commitScreenplaySessionToGitHub({
-            screenplayId,
-            title: current.title,
-            content: current.content,
-            sessionStartedAt: sessionStartAtRef.current,
-            sessionStartWordCount: sessionStartWordCountRef.current,
-            sessionEndedAt: Date.now()
-        });
-
-        if (result.status === 'committed' || result.status === 'queued' || result.status === 'skipped_unchanged') {
-            resetGitHubSessionBaseline(current.content);
-        }
-    }, [getActiveScreenplayId, resetGitHubSessionBaseline]);
-
-    const retryPendingGitHubSessionCommit = useCallback(async () => {
-        if (!isGitHubSessionCommitEnabled()) {
-            return;
-        }
-
-        const screenplayId = getActiveScreenplayId();
-        if (!screenplayId) {
-            return;
-        }
-
-        await retryPendingScreenplaySessionCommit(screenplayId);
-    }, [getActiveScreenplayId]);
     
     // Feature 0132: Per-screenplay localStorage helper functions
     // Generate per-screenplay localStorage key (e.g., 'screenplay_draft_${screenplayId}')
@@ -315,6 +239,10 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
         }));
     }, []);
 
+    // Get GitHub config from localStorage (optional export feature)
+    const githubConfigStr = typeof window !== 'undefined' ? localStorage.getItem('screenplay_github_config') : null;
+    const githubConfig = githubConfigStr ? JSON.parse(githubConfigStr) : null;
+    
     // Manual save function - defined before setContent so it can be used in dependencies
     const saveNow = useCallback(async () => {
         // Feature 0187: Check if editor is locked before saving
@@ -1225,138 +1153,6 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
         
         return () => clearInterval(autoSaveInterval);
     }, [state.isDirty, saveNow]);
-
-    // Additive GitHub session commit: track screenplay boundaries and baseline state.
-    useEffect(() => {
-        if (!isGitHubSessionCommitEnabled()) {
-            return;
-        }
-
-        const activeScreenplayId = getActiveScreenplayId();
-        const previousScreenplayId = sessionScreenplayIdRef.current;
-
-        if (previousScreenplayId && previousScreenplayId !== activeScreenplayId) {
-            commitGitHubSessionBoundary(previousScreenplayId).catch((error) => {
-                console.debug('[EditorContext] GitHub session commit on screenplay switch failed (non-blocking):', error);
-            });
-        }
-
-        sessionScreenplayIdRef.current = activeScreenplayId;
-        resetGitHubSessionBaseline(stateRef.current.content);
-
-        if (githubSessionTimerRef.current) {
-            clearTimeout(githubSessionTimerRef.current);
-            githubSessionTimerRef.current = null;
-        }
-    }, [getActiveScreenplayId, commitGitHubSessionBoundary, resetGitHubSessionBaseline]);
-
-    // Additive GitHub session commit: inactivity timer reset on local edits only.
-    useEffect(() => {
-        if (!isGitHubSessionCommitEnabled()) {
-            return;
-        }
-
-        const activeScreenplayId = getActiveScreenplayId();
-        if (!activeScreenplayId) {
-            return;
-        }
-
-        if (state.isDirty) {
-            sessionHadLocalEditsRef.current = true;
-        }
-
-        if (githubSessionTimerRef.current) {
-            clearTimeout(githubSessionTimerRef.current);
-            githubSessionTimerRef.current = null;
-        }
-
-        if (!sessionHadLocalEditsRef.current) {
-            return;
-        }
-
-        githubSessionTimerRef.current = setTimeout(() => {
-            commitGitHubSessionBoundary(activeScreenplayId).catch((error) => {
-                console.debug('[EditorContext] GitHub session commit on inactivity failed (non-blocking):', error);
-            });
-        }, GITHUB_SESSION_INACTIVITY_MS);
-
-        return () => {
-            if (githubSessionTimerRef.current) {
-                clearTimeout(githubSessionTimerRef.current);
-                githubSessionTimerRef.current = null;
-            }
-        };
-    }, [state.content, state.isDirty, getActiveScreenplayId, commitGitHubSessionBoundary, GITHUB_SESSION_INACTIVITY_MS]);
-
-    // Additive GitHub session commit: best-effort hidden-tab boundary + retry on focus/online.
-    useEffect(() => {
-        if (!isGitHubSessionCommitEnabled()) {
-            return;
-        }
-
-        const handleVisibilityChange = () => {
-            if (document.visibilityState === 'hidden') {
-                if (hiddenCommitTimerRef.current) {
-                    clearTimeout(hiddenCommitTimerRef.current);
-                }
-                const activeScreenplayId = getActiveScreenplayId();
-                if (!activeScreenplayId) return;
-
-                hiddenCommitTimerRef.current = setTimeout(() => {
-                    commitGitHubSessionBoundary(activeScreenplayId).catch((error) => {
-                        console.debug('[EditorContext] GitHub session commit on hidden tab failed (non-blocking):', error);
-                    });
-                }, GITHUB_SESSION_HIDDEN_GRACE_MS);
-                return;
-            }
-
-            if (hiddenCommitTimerRef.current) {
-                clearTimeout(hiddenCommitTimerRef.current);
-                hiddenCommitTimerRef.current = null;
-            }
-            retryPendingGitHubSessionCommit().catch((error) => {
-                console.debug('[EditorContext] Pending GitHub session retry on visible tab failed (non-blocking):', error);
-            });
-        };
-
-        const handleFocus = () => {
-            retryPendingGitHubSessionCommit().catch((error) => {
-                console.debug('[EditorContext] Pending GitHub session retry on focus failed (non-blocking):', error);
-            });
-        };
-
-        const handleOnline = () => {
-            retryPendingGitHubSessionCommit().catch((error) => {
-                console.debug('[EditorContext] Pending GitHub session retry on reconnect failed (non-blocking):', error);
-            });
-        };
-
-        document.addEventListener('visibilitychange', handleVisibilityChange);
-        window.addEventListener('focus', handleFocus);
-        window.addEventListener('online', handleOnline);
-
-        return () => {
-            document.removeEventListener('visibilitychange', handleVisibilityChange);
-            window.removeEventListener('focus', handleFocus);
-            window.removeEventListener('online', handleOnline);
-            if (hiddenCommitTimerRef.current) {
-                clearTimeout(hiddenCommitTimerRef.current);
-                hiddenCommitTimerRef.current = null;
-            }
-        };
-    }, [commitGitHubSessionBoundary, retryPendingGitHubSessionCommit, getActiveScreenplayId, GITHUB_SESSION_HIDDEN_GRACE_MS]);
-
-    // Additive GitHub session commit: best-effort unmount boundary.
-    useEffect(() => {
-        return () => {
-            if (!isGitHubSessionCommitEnabled()) {
-                return;
-            }
-            commitGitHubSessionBoundary().catch((error) => {
-                console.debug('[EditorContext] GitHub session commit on unmount failed (non-blocking):', error);
-            });
-        };
-    }, [commitGitHubSessionBoundary]);
     
     // Feature 0132: Save on unmount/navigation to ensure changes persist before logout
     // Uses localStorage (guaranteed) + async save (best effort) + beforeunload warning
