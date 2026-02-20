@@ -3,6 +3,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { X, History, Clock, User, FileText, Loader2 } from 'lucide-react';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
+import { useEditor } from '@/contexts/EditorContext';
 import { useAuth } from '@clerk/nextjs';
 import { toast } from 'sonner';
 import { getScreenplayChangeHistory, type AuditLogEntry } from '@/utils/auditLogStorage';
@@ -38,6 +39,7 @@ const REFRESH_INTERVAL_MS = 20000;
 export default function ChangeHistoryPanel({ isOpen, onClose }: ChangeHistoryPanelProps) {
   const { getToken } = useAuth();
   const { screenplayId } = useScreenplay();
+  const { state: editorState } = useEditor();
   const [history, setHistory] = useState<AuditLogEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const [limit, setLimit] = useState(50);
@@ -226,6 +228,10 @@ export default function ChangeHistoryPanel({ isOpen, onClose }: ChangeHistoryPan
   const lastMeaningfulAt = meaningfulEntries
     .slice()
     .sort((a, b) => new Date(b.edited_at).getTime() - new Date(a.edited_at).getTime())[0]?.edited_at;
+  const localLastSavedAt = editorState.lastSaved ? new Date(editorState.lastSaved) : null;
+  const displayLastSavedAt = localLastSavedAt && !Number.isNaN(localLastSavedAt.getTime())
+    ? localLastSavedAt.toISOString()
+    : lastSavedAt;
 
   const formatDate = (dateString: string) => {
     try {
@@ -287,8 +293,8 @@ export default function ChangeHistoryPanel({ isOpen, onClose }: ChangeHistoryPan
             <div className="space-y-3">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                 <div className="px-3 py-2 rounded-lg border border-[#3F3F46] bg-[#141414] text-sm text-gray-300">
-                  <span className="text-gray-400">Last saved:</span>{' '}
-                  {lastSavedAt ? formatDate(lastSavedAt) : 'No saves yet'}
+                  <span className="text-gray-400">Last saved (this editor):</span>{' '}
+                  {displayLastSavedAt ? formatDate(displayLastSavedAt) : 'No saves yet'}
                 </div>
                 <div className="px-3 py-2 rounded-lg border border-[#3F3F46] bg-[#141414] text-sm text-gray-300">
                   <span className="text-gray-400">Last meaningful edit:</span>{' '}

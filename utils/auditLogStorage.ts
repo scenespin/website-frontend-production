@@ -69,11 +69,13 @@ export async function getScreenplayChangeHistory(
     params.append('limit', limit.toString());
     if (fromDate) params.append('from_date', fromDate);
     if (toDate) params.append('to_date', toDate);
+    params.append('_t', Date.now().toString());
 
     const response = await fetch(
       `${BACKEND_API_URL}/api/screenplays/${screenplayId}/change-history?${params.toString()}`,
       {
         method: 'GET',
+        cache: 'no-store',
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json'
