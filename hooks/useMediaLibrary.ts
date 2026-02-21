@@ -581,7 +581,16 @@ export function useMediaCloudSyncStatuses(screenplayId: string, enabled: boolean
         nextToken = typeof data.nextToken === 'string' ? data.nextToken : undefined;
       } while (nextToken);
 
-      return allFiles;
+      // Deduplicate by fileId because backend can include overlapping rows
+      // when traversing primary + fallback status sources.
+      const dedupedByFileId = new Map<string, MediaCloudSyncStatus>();
+      allFiles.forEach((item) => {
+        if (item.fileId) {
+          dedupedByFileId.set(item.fileId, item);
+        }
+      });
+
+      return Array.from(dedupedByFileId.values());
     },
     enabled: enabled && !!screenplayId,
     staleTime: 10 * 1000,

@@ -323,7 +323,7 @@ export default function ScreenplaySettingsModal({ isOpen, onClose, screenplayId:
                         : 'Dropbox is not connected. Connect it in the Media Library to enable auto-sync.'}
                     </p>
                     <Link
-                      href={`/production?tab=media&screenplayId=${screenplayId}`}
+                      href={`/storage?project=${screenplayId}`}
                       onClick={() => onClose()}
                       className="inline-flex items-center gap-1.5 text-xs text-amber-300 hover:text-amber-200 font-medium transition-colors"
                     >
