@@ -554,18 +554,34 @@ export function useMediaCloudSyncStatuses(screenplayId: string, enabled: boolean
         throw new Error('Not authenticated');
       }
 
-      const response = await fetch(`/api/media/cloud-sync-status?screenplayId=${encodeURIComponent(screenplayId)}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
+      const allFiles: MediaCloudSyncStatus[] = [];
+      let nextToken: string | undefined;
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch cloud sync status: ${response.status} ${response.statusText}`);
-      }
+      do {
+        const params = new URLSearchParams({
+          screenplayId,
+          limit: '200',
+        });
+        if (nextToken) {
+          params.set('nextToken', nextToken);
+        }
 
-      const data = await response.json();
-      return (data.files || []) as MediaCloudSyncStatus[];
+        const response = await fetch(`/api/media/cloud-sync-status?${params.toString()}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+
+        if (!response.ok) {
+          throw new Error(`Failed to fetch cloud sync status: ${response.status} ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        allFiles.push(...((data.files || []) as MediaCloudSyncStatus[]));
+        nextToken = typeof data.nextToken === 'string' ? data.nextToken : undefined;
+      } while (nextToken);
+
+      return allFiles;
     },
     enabled: enabled && !!screenplayId,
     staleTime: 10 * 1000,
