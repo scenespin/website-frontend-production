@@ -1708,9 +1708,24 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
         const screenplayData = await getScreenplay(projectId, getToken);
         if (screenplayData?.content) {
           const fountainLines = screenplayData.content.split('\n');
-          // 🔥 FIX: endLine is inclusive (0-based), but slice() is exclusive, so add 1
-          // This matches the backend's extractSceneContent logic and ScreenplayContext's scene extraction
-          const rawContent = fountainLines.slice(scene.fountain.startLine, scene.fountain.endLine + 1);
+          const startLine = Math.max(0, scene.fountain.startLine);
+
+          // Prefer next scene start as boundary when available.
+          // This avoids truncation when endLine metadata is stale.
+          const currentSceneIndex = sortedScenes.findIndex(s => s.id === selectedSceneId);
+          const nextScene = currentSceneIndex >= 0 ? sortedScenes[currentSceneIndex + 1] : undefined;
+          const nextSceneStartLine = nextScene?.fountain?.startLine;
+          const hasValidNextBoundary = typeof nextSceneStartLine === 'number' && nextSceneStartLine > startLine;
+
+          const fallbackEndExclusive = Math.min(
+            fountainLines.length,
+            Math.max(startLine + 1, scene.fountain.endLine + 1)
+          );
+          const endExclusive = hasValidNextBoundary
+            ? Math.min(fountainLines.length, nextSceneStartLine as number)
+            : fallbackEndExclusive;
+
+          const rawContent = fountainLines.slice(startLine, endExclusive);
           // Filter out sections (#), synopses (=), and notes ([[ note ]]) per Fountain spec
           const filteredContent = rawContent.filter(line => {
             const trimmed = line.trim();
@@ -1742,7 +1757,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     };
     
     fetchSceneContent();
-  }, [selectedSceneId, projectId, getToken, currentScene, currentSceneContentBoundaryKey]);
+  }, [selectedSceneId, projectId, getToken, currentScene, currentSceneContentBoundaryKey, sortedScenes]);
 
   // Phase 2.2: Auto-analyze scene when selectedSceneId changes (Feature 0136)
   // BUT: Only auto-analyze if user has explicitly confirmed (not on initial selection)
