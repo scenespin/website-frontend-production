@@ -94,8 +94,9 @@ export function LocationBankPanel({
 
   const getLocationImageDisplayUrl = useCallback((s3Key: string) => {
     const file = locationMediaFileMap.get(s3Key);
+    if (!file) return null;
     return getMediaFileDisplayUrl(
-      file ?? { id: s3Key, storageType: 'local', s3Key } as any,
+      file,
       presignedMapsForDisplay,
       dropboxUrlMap
     );
