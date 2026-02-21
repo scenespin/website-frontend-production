@@ -335,17 +335,15 @@ export default function ScreenplaySettingsModal({ isOpen, onClose, screenplayId:
                 <p className="text-xs text-slate-400 mt-2">
                   When enabled, files will automatically upload to your cloud storage using the screenplay folder structure
                 </p>
-                {cloudSyncSummary.total > 0 && (
-                  <div className="mt-3 p-3 rounded-lg border border-slate-600 bg-slate-700/40">
-                    <div className="text-xs font-medium text-slate-200 mb-1">Cloud Sync Summary</div>
-                    <div className="text-xs text-slate-300">
-                      Synced: {cloudSyncSummary.synced} / {cloudSyncSummary.total}
-                      {' • '}Syncing: {cloudSyncSummary.syncing}
-                      {' • '}Pending: {cloudSyncSummary.pending}
-                      {' • '}Failed: {cloudSyncSummary.failed}
-                    </div>
+                <div className="mt-3 p-3 rounded-lg border border-slate-600 bg-slate-700/40">
+                  <div className="text-xs font-medium text-slate-200 mb-1">Cloud Sync Summary</div>
+                  <div className="text-xs text-slate-300">
+                    Synced: {cloudSyncSummary.synced} / {cloudSyncSummary.total}
+                    {' • '}Syncing: {cloudSyncSummary.syncing}
+                    {' • '}Pending: {cloudSyncSummary.pending}
+                    {' • '}Failed: {cloudSyncSummary.failed}
                   </div>
-                )}
+                </div>
               </div>
             </>
           )}
