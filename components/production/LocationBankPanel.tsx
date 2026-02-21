@@ -223,8 +223,10 @@ export function LocationBankPanel({
                 const allReferences: CinemaCardImage[] = [];
                 const addedS3Keys = new Set<string>();
 
-                const urlFor = (s3Key: string, payloadUrl?: string) =>
-                  payloadUrl || getLocationImageDisplayUrl(s3Key);
+                const urlFor = (s3Key: string, payloadUrl?: string) => {
+                  // Prefer stable proxy/display URL; payload imageUrl may be an expired presigned URL.
+                  return getLocationImageDisplayUrl(s3Key) || payloadUrl;
+                };
 
                 // 1) Creation: baseReference then creation images from location.images
                 if (location.baseReference?.s3Key && !addedS3Keys.has(location.baseReference.s3Key)) {
