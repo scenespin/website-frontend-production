@@ -303,8 +303,8 @@ export function usePresignedUrl(s3Key: string | null, enabled: boolean = false) 
 export function useBulkPresignedUrls(s3Keys: string[], enabled: boolean = true) {
   const { getToken } = useAuth();
   
-  // TEMPORARILY DISABLED: Set to false to use legacy presigned URLs (for testing/debugging)
-  const USE_PROXY_URLS = false; // Temporarily disabled - using presigned URLs for testing
+  // Feature 0252 Phase 3: Re-enable stable proxy URLs for cached media display.
+  const USE_PROXY_URLS = true;
 
   return useQuery<Map<string, string>, Error>({
     queryKey: ['media', 'presigned-urls', [...s3Keys].sort().join(','), USE_PROXY_URLS ? 'proxy' : 'presigned'],
@@ -525,6 +525,94 @@ export function useStorageQuota(enabled: boolean = true) {
     staleTime: 60 * 1000, // 1 minute
     gcTime: 5 * 60 * 1000, // 5 minutes
     retry: 2,
+  });
+}
+
+export type CloudSyncStatusValue = 'pending' | 'syncing' | 'synced' | 'failed' | 'skipped';
+
+export interface MediaCloudSyncStatus {
+  fileId: string;
+  fileName: string;
+  s3Key: string;
+  cloudSyncStatus: CloudSyncStatusValue;
+  cloudSyncAttempts: number;
+  cloudSyncLastError: string | null;
+  cloudSyncUpdatedAt: string | null;
+  cloudStorageLocation: string | null;
+  cloudFileId: string | null;
+  updatedAt: string | null;
+}
+
+export function useMediaCloudSyncStatuses(screenplayId: string, enabled: boolean = true) {
+  const { getToken } = useAuth();
+
+  return useQuery<MediaCloudSyncStatus[], Error>({
+    queryKey: ['media', 'cloud-sync-status', screenplayId],
+    queryFn: async () => {
+      const token = await getAuthToken(getToken);
+      if (!token) {
+        throw new Error('Not authenticated');
+      }
+
+      const response = await fetch(`/api/media/cloud-sync-status?screenplayId=${encodeURIComponent(screenplayId)}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to fetch cloud sync status: ${response.status} ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      return (data.files || []) as MediaCloudSyncStatus[];
+    },
+    enabled: enabled && !!screenplayId,
+    staleTime: 10 * 1000,
+    gcTime: 5 * 60 * 1000,
+    retry: 2,
+  });
+}
+
+export function useRetryMediaCloudSync(screenplayId: string) {
+  const queryClient = useQueryClient();
+  const { getToken } = useAuth();
+
+  return useMutation<
+    { success: boolean; fileId: string; cloudSyncStatus: CloudSyncStatusValue; cloudSyncAttempts: number; skipped: boolean; error: string | null },
+    Error,
+    { fileId?: string; s3Key?: string }
+  >({
+    mutationFn: async ({ fileId, s3Key }) => {
+      const token = await getAuthToken(getToken);
+      if (!token) {
+        throw new Error('Not authenticated');
+      }
+
+      const response = await fetch('/api/media/retry-cloud-sync', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          screenplayId,
+          fileId,
+          s3Key,
+        }),
+      });
+
+      const payload = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error(payload.error || `Failed to retry cloud sync: ${response.status} ${response.statusText}`);
+      }
+
+      return payload;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+      queryClient.invalidateQueries({ queryKey: ['media', 'cloud-sync-status', screenplayId] });
+    },
   });
 }
 

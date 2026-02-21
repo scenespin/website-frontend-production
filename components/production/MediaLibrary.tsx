@@ -25,7 +25,8 @@ import {
   Eye,
   FileAudio,
   CheckSquare,
-  Square
+  Square,
+  RefreshCw
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -51,7 +52,9 @@ import {
   usePresignedUrl,
   useBulkPresignedUrls,
   useMediaFolderTree,
-  useDeleteFolder
+  useDeleteFolder,
+  useMediaCloudSyncStatuses,
+  useRetryMediaCloudSync
 } from '@/hooks/useMediaLibrary';
 import { ImageViewer, type ImageItem } from './ImageViewer';
 import { useQueryClient } from '@tanstack/react-query';
@@ -297,11 +300,14 @@ export default function MediaLibrary({
     data: storageQuota,
     isLoading: quotaLoading 
   } = useStorageQuota();
+  const isScreenplayProject = !!projectId && projectId.startsWith('screenplay_');
+  const { data: mediaCloudSyncStatuses = [] } = useMediaCloudSyncStatuses(projectId, isScreenplayProject);
 
   // Mutations
   const uploadMediaMutation = useUploadMedia(projectId);
   const deleteMediaMutation = useDeleteMedia(projectId);
   const deleteFolderMutation = useDeleteFolder(projectId);
+  const retryCloudSyncMutation = useRetryMediaCloudSync(projectId);
   
   // Query client for on-demand presigned URL fetching
   const queryClient = useQueryClient();
@@ -1524,6 +1530,30 @@ export default function MediaLibrary({
     }
   };
 
+  const handleRetryCloudSync = async (file: MediaFile) => {
+    if (!projectId) {
+      toast.error('Project ID required');
+      return;
+    }
+
+    try {
+      const result = await retryCloudSyncMutation.mutateAsync({
+        fileId: file.id,
+        s3Key: file.s3Key,
+      });
+
+      if (result.cloudSyncStatus === 'synced') {
+        toast.success('Cloud sync retry succeeded');
+      } else if (result.cloudSyncStatus === 'syncing') {
+        toast.success('Cloud sync retry started');
+      } else {
+        toast.error(result.error || `Retry completed with status: ${result.cloudSyncStatus}`);
+      }
+    } catch (error: any) {
+      toast.error(`Cloud sync retry failed: ${error.message}`);
+    }
+  };
+
   /**
    * 🔥 NEW: Sync folder to cloud storage
    */
@@ -1780,6 +1810,60 @@ export default function MediaLibrary({
     return true;
   });
 
+  const cloudSyncStatusByFileId = useMemo(() => {
+    const statusMap = new Map<string, (typeof mediaCloudSyncStatuses)[number]>();
+    mediaCloudSyncStatuses.forEach((item) => {
+      if (item.fileId) {
+        statusMap.set(item.fileId, item);
+      }
+    });
+    return statusMap;
+  }, [mediaCloudSyncStatuses]);
+
+  const cloudSyncSummary = useMemo(() => {
+    return mediaCloudSyncStatuses.reduce(
+      (acc, item) => {
+        acc.total += 1;
+        if (item.cloudSyncStatus === 'synced') acc.synced += 1;
+        if (item.cloudSyncStatus === 'failed') acc.failed += 1;
+        if (item.cloudSyncStatus === 'syncing') acc.syncing += 1;
+        if (item.cloudSyncStatus === 'pending' || item.cloudSyncStatus === 'skipped') acc.pending += 1;
+        return acc;
+      },
+      { total: 0, synced: 0, failed: 0, syncing: 0, pending: 0 }
+    );
+  }, [mediaCloudSyncStatuses]);
+
+  const getCloudSyncPillClass = (status?: string) => {
+    switch (status) {
+      case 'synced':
+        return 'border-emerald-600/40 bg-emerald-700/20 text-emerald-300';
+      case 'failed':
+        return 'border-red-600/40 bg-red-700/20 text-red-300';
+      case 'syncing':
+        return 'border-sky-600/40 bg-sky-700/20 text-sky-300';
+      case 'skipped':
+      case 'pending':
+      default:
+        return 'border-amber-600/40 bg-amber-700/20 text-amber-300';
+    }
+  };
+
+  const getCloudSyncLabel = (status?: string) => {
+    switch (status) {
+      case 'synced':
+        return 'Synced';
+      case 'failed':
+        return 'Failed';
+      case 'syncing':
+        return 'Syncing';
+      case 'skipped':
+        return 'Skipped';
+      default:
+        return 'Pending';
+    }
+  };
+
   const formatFileSize = (bytes: number): string => {
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -1984,6 +2068,14 @@ export default function MediaLibrary({
                 <div className="text-xs mt-1 opacity-80">
                   Files automatically save to: <span className="font-mono">/Wryda Screenplays/{screenplayData.title || 'Screenplay'}/...</span>
                 </div>
+                {cloudSyncSummary.total > 0 && (
+                  <div className="text-xs mt-2 opacity-90">
+                    Synced {cloudSyncSummary.synced}/{cloudSyncSummary.total}
+                    {' • '}Syncing {cloudSyncSummary.syncing}
+                    {' • '}Pending {cloudSyncSummary.pending}
+                    {' • '}Failed {cloudSyncSummary.failed}
+                  </div>
+                )}
               </div>
               <button
                 onClick={() => setShowSettingsModal(true)}
@@ -2537,6 +2629,15 @@ export default function MediaLibrary({
                             <span>{formatTimeRemaining(file.expiresAt)}</span>
                           </div>
                         )}
+                        {(() => {
+                          const statusItem = cloudSyncStatusByFileId.get(file.id);
+                          if (!statusItem) return null;
+                          return (
+                            <div className={`hidden md:inline-flex items-center mt-1 text-[11px] px-2 py-0.5 rounded-full border ${getCloudSyncPillClass(statusItem.cloudSyncStatus)}`}>
+                              {getCloudSyncLabel(statusItem.cloudSyncStatus)}
+                            </div>
+                          );
+                        })()}
                       </div>
 
                       {/* Actions Menu - Hidden on mobile (use long-press instead), shown on tablet+ */}
@@ -2582,6 +2683,19 @@ export default function MediaLibrary({
                               <Download className="w-4 h-4 mr-2 text-[#808080]" />
                               Download
                             </DropdownMenuItem>
+                            {(() => {
+                              const statusItem = cloudSyncStatusByFileId.get(file.id);
+                              if (!statusItem) return null;
+                              return (
+                                <DropdownMenuItem
+                                  onClick={(e) => e.stopPropagation()}
+                                  className={`cursor-default focus:bg-transparent ${getCloudSyncPillClass(statusItem.cloudSyncStatus)}`}
+                                >
+                                  <Cloud className="w-4 h-4 mr-2" />
+                                  Cloud Sync: {getCloudSyncLabel(statusItem.cloudSyncStatus)}
+                                </DropdownMenuItem>
+                              );
+                            })()}
                             {/* 🔥 NEW: Sync to Cloud option - only show for local files */}
                             {(file.storageType === 'local' || file.storageType === 'wryda-temp') && file.s3Key && hasConnectedProviders && (
                               <DropdownMenuItem 
@@ -2596,6 +2710,24 @@ export default function MediaLibrary({
                                 Sync to Cloud
                               </DropdownMenuItem>
                             )}
+                            {(() => {
+                              const statusItem = cloudSyncStatusByFileId.get(file.id);
+                              if (!statusItem || (statusItem.cloudSyncStatus !== 'failed' && statusItem.cloudSyncStatus !== 'skipped')) {
+                                return null;
+                              }
+                              return (
+                                <DropdownMenuItem
+                                  onClick={async (e) => {
+                                    e.stopPropagation();
+                                    await handleRetryCloudSync(file);
+                                  }}
+                                  className="text-amber-300 hover:bg-amber-500/10 hover:text-amber-200 cursor-pointer focus:bg-amber-500/10 focus:text-amber-200"
+                                >
+                                  <RefreshCw className={`w-4 h-4 mr-2 ${retryCloudSyncMutation.isPending ? 'animate-spin' : ''}`} />
+                                  Retry Cloud Sync
+                                </DropdownMenuItem>
+                              );
+                            })()}
                             <DropdownMenuItem 
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -2740,6 +2872,27 @@ export default function MediaLibrary({
                     <span>Sync to Cloud</span>
                   </button>
                 )}
+                {(() => {
+                  if (!longPressMenuFile) return null;
+                  const statusItem = cloudSyncStatusByFileId.get(longPressMenuFile.id);
+                  if (!statusItem || (statusItem.cloudSyncStatus !== 'failed' && statusItem.cloudSyncStatus !== 'skipped')) {
+                    return null;
+                  }
+                  return (
+                    <button
+                      onClick={async () => {
+                        if (longPressMenuFile) {
+                          await handleRetryCloudSync(longPressMenuFile);
+                          closeLongPressMenu();
+                        }
+                      }}
+                      className="w-full flex items-center gap-3 p-4 bg-[#141414] hover:bg-amber-500/10 rounded-lg text-amber-300 transition-colors"
+                    >
+                      <RefreshCw className={`w-5 h-5 ${retryCloudSyncMutation.isPending ? 'animate-spin' : ''}`} />
+                      <span>Retry Cloud Sync</span>
+                    </button>
+                  );
+                })()}
                 <button
                   onClick={async () => {
                     if (longPressMenuFile && confirm('Are you sure you want to delete this file?')) {

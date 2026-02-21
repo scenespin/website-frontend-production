@@ -5,6 +5,7 @@ import { useAuth } from '@clerk/nextjs';
 import { getScreenplay, updateScreenplay } from '@/utils/screenplayStorage';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useStorageConnections } from '@/hooks/useStorageConnections';
+import { useMediaCloudSyncStatuses } from '@/hooks/useMediaLibrary';
 import { X, Settings, Loader2, Cloud, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
@@ -35,6 +36,18 @@ export default function ScreenplaySettingsModal({ isOpen, onClose, screenplayId:
   
   // Check storage connections
   const { googleDrive, dropbox, isLoading: connectionsLoading } = useStorageConnections();
+  const { data: cloudSyncStatuses = [] } = useMediaCloudSyncStatuses(screenplayId || '', isOpen && !!screenplayId);
+  const cloudSyncSummary = cloudSyncStatuses.reduce(
+    (acc, item) => {
+      acc.total += 1;
+      if (item.cloudSyncStatus === 'synced') acc.synced += 1;
+      if (item.cloudSyncStatus === 'failed') acc.failed += 1;
+      if (item.cloudSyncStatus === 'syncing') acc.syncing += 1;
+      if (item.cloudSyncStatus === 'pending' || item.cloudSyncStatus === 'skipped') acc.pending += 1;
+      return acc;
+    },
+    { total: 0, synced: 0, failed: 0, syncing: 0, pending: 0 }
+  );
 
   useEffect(() => {
     if (isOpen && screenplayId) {
@@ -242,7 +255,7 @@ export default function ScreenplaySettingsModal({ isOpen, onClose, screenplayId:
                     />
                     <div className="flex-1">
                       <div className="text-sm font-medium text-slate-200">None (Manual Sync)</div>
-                      <div className="text-xs text-slate-400">You'll choose storage location each time</div>
+                      <div className="text-xs text-slate-400">You&apos;ll choose storage location each time</div>
                     </div>
                   </label>
                   
@@ -322,6 +335,17 @@ export default function ScreenplaySettingsModal({ isOpen, onClose, screenplayId:
                 <p className="text-xs text-slate-400 mt-2">
                   When enabled, files will automatically upload to your cloud storage using the screenplay folder structure
                 </p>
+                {cloudSyncSummary.total > 0 && (
+                  <div className="mt-3 p-3 rounded-lg border border-slate-600 bg-slate-700/40">
+                    <div className="text-xs font-medium text-slate-200 mb-1">Cloud Sync Summary</div>
+                    <div className="text-xs text-slate-300">
+                      Synced: {cloudSyncSummary.synced} / {cloudSyncSummary.total}
+                      {' • '}Syncing: {cloudSyncSummary.syncing}
+                      {' • '}Pending: {cloudSyncSummary.pending}
+                      {' • '}Failed: {cloudSyncSummary.failed}
+                    </div>
+                  </div>
+                )}
               </div>
             </>
           )}
