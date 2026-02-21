@@ -37,6 +37,11 @@ export interface MediaFile {
   entityId?: string;
   isArchived?: boolean; // Feature: Archive instead of delete - preserves history and metadata
   archivedAt?: string; // Timestamp when file was archived
+  // Feature 0252: Optional cloud-sync status snapshot from media row
+  cloudSyncStatus?: 'pending' | 'syncing' | 'synced' | 'failed' | 'skipped';
+  cloudSyncAttempts?: number;
+  cloudSyncLastError?: string | null;
+  cloudSyncUpdatedAt?: string | null;
 }
 
 /**
@@ -122,6 +127,10 @@ export interface MediaFileListResponse {
     updatedAt: string;
     folderId?: string; // Feature 0128: Optional folder ID
     folderPath?: string[]; // Feature 0128: Optional breadcrumb path array
+    cloudSyncStatus?: 'pending' | 'syncing' | 'synced' | 'failed' | 'skipped';
+    cloudSyncAttempts?: number;
+    cloudSyncLastError?: string | null;
+    cloudSyncUpdatedAt?: string | null;
   }>;
   count: number;
   /** Present when more pages exist (Feature 0254) */

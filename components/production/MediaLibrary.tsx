@@ -1864,6 +1864,20 @@ export default function MediaLibrary({
     }
   };
 
+  const getCloudStatusForFile = (file: MediaFile) => {
+    const fromStatusQuery = cloudSyncStatusByFileId.get(file.id);
+    if (fromStatusQuery) return fromStatusQuery;
+    if (file.cloudSyncStatus) {
+      return {
+        fileId: file.id,
+        fileName: file.fileName,
+        s3Key: file.s3Key || '',
+        cloudSyncStatus: file.cloudSyncStatus,
+      };
+    }
+    return null;
+  };
+
   const formatFileSize = (bytes: number): string => {
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -2630,7 +2644,7 @@ export default function MediaLibrary({
                           </div>
                         )}
                         {(() => {
-                          const statusItem = cloudSyncStatusByFileId.get(file.id);
+                          const statusItem = getCloudStatusForFile(file);
                           if (!statusItem) return null;
                           return (
                             <div className={`hidden md:inline-flex items-center mt-1 text-[11px] px-2 py-0.5 rounded-full border ${getCloudSyncPillClass(statusItem.cloudSyncStatus)}`}>
@@ -2684,7 +2698,7 @@ export default function MediaLibrary({
                               Download
                             </DropdownMenuItem>
                             {(() => {
-                              const statusItem = cloudSyncStatusByFileId.get(file.id);
+                              const statusItem = getCloudStatusForFile(file);
                               if (!statusItem) return null;
                               return (
                                 <DropdownMenuItem
@@ -2711,7 +2725,7 @@ export default function MediaLibrary({
                               </DropdownMenuItem>
                             )}
                             {(() => {
-                              const statusItem = cloudSyncStatusByFileId.get(file.id);
+                              const statusItem = getCloudStatusForFile(file);
                               if (!statusItem || (statusItem.cloudSyncStatus !== 'failed' && statusItem.cloudSyncStatus !== 'skipped')) {
                                 return null;
                               }

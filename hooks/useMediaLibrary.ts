@@ -71,6 +71,10 @@ function mapBackendFileToMediaFile(file: any): MediaFile {
     thumbnailS3Key: file.metadata?.thumbnailS3Key || file.thumbnailS3Key,
     entityType: file.entityType,
     entityId: file.entityId,
+    cloudSyncStatus: file.cloudSyncStatus,
+    cloudSyncAttempts: file.cloudSyncAttempts,
+    cloudSyncLastError: file.cloudSyncLastError ?? null,
+    cloudSyncUpdatedAt: file.cloudSyncUpdatedAt ?? null,
   };
 }
 
@@ -233,6 +237,10 @@ export function useStandaloneVideosPaginated(screenplayId: string, enabled: bool
         thumbnailS3Key: file.metadata?.thumbnailS3Key || file.thumbnailS3Key,
         entityType: file.entityType,
         entityId: file.entityId,
+        cloudSyncStatus: file.cloudSyncStatus,
+        cloudSyncAttempts: file.cloudSyncAttempts,
+        cloudSyncLastError: file.cloudSyncLastError ?? null,
+        cloudSyncUpdatedAt: file.cloudSyncUpdatedAt ?? null,
       }));
 
       return { files, nextToken: data.nextToken };
