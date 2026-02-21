@@ -1725,7 +1725,16 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
             : (typeof data?.sceneContent === 'string' ? data.sceneContent : '');
 
         if (canonicalSceneText && canonicalSceneText.trim().length > 0) {
-          setFullSceneContent(prev => ({ ...prev, [selectedSceneId]: canonicalSceneText }));
+          // Preview-only cleanup: hide Fountain organizational metadata
+          const filteredPreviewText = canonicalSceneText
+            .split('\n')
+            .filter(line => {
+              const trimmed = line.trim();
+              return !trimmed.startsWith('#') && !trimmed.startsWith('=') && !(/^\[\[.*\]\]$/.test(trimmed));
+            })
+            .join('\n');
+
+          setFullSceneContent(prev => ({ ...prev, [selectedSceneId]: filteredPreviewText }));
           loadedSceneContentKeyBySceneRef.current[selectedSceneId] = sceneContentKey;
         } else {
           // Fallback
