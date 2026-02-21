@@ -67,7 +67,6 @@ import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useCredits } from '@/contexts/CreditsContext';
 import { useQueryClient } from '@tanstack/react-query';
 import { extractS3Key } from '@/utils/s3';
-import { getScreenplay } from '@/utils/screenplayStorage';
 import { useBulkPresignedUrls, useMediaFiles } from '@/hooks/useMediaLibrary';
 // useCharacterReferences is now called in SceneBuilderProvider - no import needed here
 import type { CharacterHeadshot } from './hooks/useCharacterReferences';
@@ -1705,33 +1704,28 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       
       setIsLoadingSceneContent(prev => ({ ...prev, [selectedSceneId]: true }));
       try {
-        const screenplayData = await getScreenplay(projectId, getToken);
-        if (screenplayData?.content) {
-          const fountainLines = screenplayData.content.split('\n');
-          const startLine = Math.max(0, scene.fountain.startLine);
+        const token = await getToken({ template: 'wryda-backend' });
+        if (!token) throw new Error('Missing auth token');
 
-          // Prefer next scene start as boundary when available.
-          // This avoids truncation when endLine metadata is stale.
-          const currentSceneIndex = sortedScenes.findIndex(s => s.id === selectedSceneId);
-          const nextScene = currentSceneIndex >= 0 ? sortedScenes[currentSceneIndex + 1] : undefined;
-          const nextSceneStartLine = nextScene?.fountain?.startLine;
-          const hasValidNextBoundary = typeof nextSceneStartLine === 'number' && nextSceneStartLine > startLine;
+        const response = await fetch(
+          `/api/screenplays/${projectId}/scenes/${selectedSceneId}/content?includeRaw=true`,
+          {
+            headers: { Authorization: `Bearer ${token}` }
+          }
+        );
 
-          const fallbackEndExclusive = Math.min(
-            fountainLines.length,
-            Math.max(startLine + 1, scene.fountain.endLine + 1)
-          );
-          const endExclusive = hasValidNextBoundary
-            ? Math.min(fountainLines.length, nextSceneStartLine as number)
-            : fallbackEndExclusive;
+        if (!response.ok) {
+          throw new Error(`Failed to fetch scene content (${response.status})`);
+        }
 
-          const rawContent = fountainLines.slice(startLine, endExclusive);
-          // Filter out sections (#), synopses (=), and notes ([[ note ]]) per Fountain spec
-          const filteredContent = rawContent.filter(line => {
-            const trimmed = line.trim();
-            return !trimmed.startsWith('#') && !trimmed.startsWith('=') && !(/^\[\[.*\]\]$/.test(trimmed));
-          });
-          setFullSceneContent(prev => ({ ...prev, [selectedSceneId]: filteredContent.join('\n') }));
+        const data = await response.json();
+        const canonicalSceneText =
+          typeof data?.sceneTextRaw === 'string'
+            ? data.sceneTextRaw
+            : (typeof data?.sceneContent === 'string' ? data.sceneContent : '');
+
+        if (canonicalSceneText && canonicalSceneText.trim().length > 0) {
+          setFullSceneContent(prev => ({ ...prev, [selectedSceneId]: canonicalSceneText }));
           loadedSceneContentKeyBySceneRef.current[selectedSceneId] = sceneContentKey;
         } else {
           // Fallback
@@ -1757,7 +1751,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     };
     
     fetchSceneContent();
-  }, [selectedSceneId, projectId, getToken, currentScene, currentSceneContentBoundaryKey, sortedScenes]);
+  }, [selectedSceneId, projectId, getToken, currentScene, currentSceneContentBoundaryKey]);
 
   // Phase 2.2: Auto-analyze scene when selectedSceneId changes (Feature 0136)
   // BUT: Only auto-analyze if user has explicitly confirmed (not on initial selection)
