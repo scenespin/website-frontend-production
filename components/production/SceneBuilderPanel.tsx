@@ -1176,6 +1176,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   
   // Phase 2: Scene selection state
   const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null);
+  const pendingAutoSelectedSceneIdRef = useRef<string | null>(null);
   
   // Style matching state (Feature 0109)
   const [selectedStyleProfile, setSelectedStyleProfile] = useState<string | null>(null);
@@ -1518,10 +1519,28 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   // Removed: Auto-select scene from editor context
   // Users can now freely select any scene in Production Hub without being forced into editor context
 
+  const sortedScenes = useMemo(() => {
+    const scenes = screenplay.scenes || [];
+    return [...scenes].sort((a, b) => {
+      if (a.order !== undefined && b.order !== undefined) {
+        return a.order - b.order;
+      }
+      return (a.number || 0) - (b.number || 0);
+    });
+  }, [screenplay.scenes]);
+
+  const sceneDisplayNumberById = useMemo(() => {
+    const map = new Map<string, number>();
+    sortedScenes.forEach((scene, index) => {
+      map.set(scene.id, index + 1);
+    });
+    return map;
+  }, [sortedScenes]);
+
   // 🔥 FIX: Read prop IDs from context in render phase (matches SceneNavigatorList pattern)
   // This makes the component reactive to prop changes without needing memoization
   // String comparison is by value, so React will only re-run effect when prop IDs actually change
-  const currentScene = selectedSceneId ? screenplay.scenes?.find(s => s.id === selectedSceneId) : null;
+  const currentScene = selectedSceneId ? sortedScenes.find(s => s.id === selectedSceneId) : null;
   const currentPropIds = currentScene?.fountain?.tags?.props || [];
   const currentPropIdsString = [...currentPropIds].sort().join(',');
 
@@ -1717,6 +1736,35 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   // Phase 2.2: Auto-analyze scene when selectedSceneId changes (Feature 0136)
   // BUT: Only auto-analyze if user has explicitly confirmed (not on initial selection)
   const [hasConfirmedSceneSelection, setHasConfirmedSceneSelection] = useState(false);
+
+  // Keep Scene Builder populated: auto-select a scene whenever none is selected.
+  // Uses pending preferred scene (next scene after generation) when available.
+  useEffect(() => {
+    if (selectedSceneId || sortedScenes.length === 0) return;
+
+    const preferredSceneId = pendingAutoSelectedSceneIdRef.current;
+    const preferredSceneExists = preferredSceneId
+      ? sortedScenes.some(scene => scene.id === preferredSceneId)
+      : false;
+
+    const targetSceneId = preferredSceneExists
+      ? preferredSceneId!
+      : sortedScenes[0].id;
+
+    const scene = sortedScenes.find(s => s.id === targetSceneId);
+    if (!scene) return;
+
+    setSelectedSceneId(targetSceneId);
+    setHasConfirmedSceneSelection(false);
+    setSceneAnalysisResult(null);
+    setAnalysisError(null);
+
+    const sceneText = scene.synopsis ||
+      `${scene.heading || ''}\n\n${scene.synopsis || ''}`.trim();
+    setSceneDescription(sceneText);
+
+    pendingAutoSelectedSceneIdRef.current = null;
+  }, [selectedSceneId, sortedScenes, setSceneAnalysisResult]);
 
     // Auto-analyze the selected scene
   const analyzeScene = useCallback(async () => {
@@ -3467,6 +3515,13 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       return; // Exit early on error
     }
         
+    const sortedSceneIds = sortedScenes.map(scene => scene.id);
+    const currentSceneIndex = selectedSceneId ? sortedSceneIds.indexOf(selectedSceneId) : -1;
+    const nextSceneIdAfterCurrent =
+      currentSceneIndex >= 0 && currentSceneIndex < sortedSceneIds.length - 1
+        ? sortedSceneIds[currentSceneIndex + 1]
+        : (sortedSceneIds[0] || null);
+
     // Reset wizard after short delay so user can start another job immediately (concurrent jobs).
     // Job keeps running in backend (workflowRequest.screenplayId was set); Jobs panel loads from
     // /api/workflows/executions?screenplayId=... so the job appears there with progress. We open
@@ -3476,6 +3531,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       contextActions.resetToInitialState();
       // Clear props fetch cache so re-selecting the same scene triggers a fresh fetch (props were empty after reset)
       lastFetchedSceneRef.current = { sceneId: null, propIds: '' };
+      pendingAutoSelectedSceneIdRef.current = nextSceneIdAfterCurrent;
       setSelectedSceneId(null);
       setHasConfirmedSceneSelection(false);
       setIsGenerating(false);
@@ -4056,11 +4112,9 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                           <div className="flex items-start justify-between">
                             <CardTitle className="text-xs text-[#FFFFFF]">Scene Preview</CardTitle>
                             <div className="flex items-center gap-2">
-                              {(scene.order !== undefined && scene.order !== null) || (scene.number !== undefined && scene.number !== null) ? (
-                                <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4">
-                                  Scene {scene.order ?? scene.number ?? '?'}
-                                </Badge>
-                              ) : null}
+                              <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4">
+                                Scene {sceneDisplayNumberById.get(scene.id) ?? '?'}
+                              </Badge>
                               <Button
                                 onClick={() => {
                                   // Use context store to set scene, then navigate to editor
@@ -4214,11 +4268,9 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                               <div className="flex items-start justify-between">
                                 <CardTitle className="text-xs text-[#FFFFFF]">Scene Preview</CardTitle>
                                 <div className="flex items-center gap-2">
-                                  {(scene.order !== undefined && scene.order !== null) || (scene.number !== undefined && scene.number !== null) ? (
-                                    <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4">
-                                      Scene {scene.order ?? scene.number ?? '?'}
-                                    </Badge>
-                                  ) : null}
+                                  <Badge variant="secondary" className="text-[9px] px-1.5 py-0 h-4">
+                                    Scene {sceneDisplayNumberById.get(scene.id) ?? '?'}
+                                  </Badge>
                                   <Button
                                     onClick={() => {
                                       // Use context store to set scene, then navigate to editor
