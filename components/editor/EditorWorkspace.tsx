@@ -916,7 +916,7 @@ Tip:
             {!isSceneNavVisible && (
                 <button
                     onClick={() => setIsSceneNavVisible(true)}
-                    className="btn btn-primary btn-sm fixed bottom-20 left-4 z-10 shadow-lg hidden lg:flex"
+                    className="btn btn-sm fixed bottom-20 left-4 z-10 hidden lg:flex border border-[#DC143C]/60 bg-[#141414] text-[#DC143C] shadow-lg hover:bg-[#8B0A22] hover:text-white hover:border-[#DC143C] active:bg-[#DC143C] active:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#DC143C]/50"
                     title="Show scene navigator (Cmd+E)"
                 >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
