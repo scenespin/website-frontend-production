@@ -1177,6 +1177,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   // Phase 2: Scene selection state
   const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null);
   const pendingAutoSelectedSceneIdRef = useRef<string | null>(null);
+  const loadedSceneContentKeyBySceneRef = useRef<Record<string, string>>({});
   
   // Style matching state (Feature 0109)
   const [selectedStyleProfile, setSelectedStyleProfile] = useState<string | null>(null);
@@ -1543,6 +1544,14 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   const currentScene = selectedSceneId ? sortedScenes.find(s => s.id === selectedSceneId) : null;
   const currentPropIds = currentScene?.fountain?.tags?.props || [];
   const currentPropIdsString = [...currentPropIds].sort().join(',');
+  const currentSceneContentBoundaryKey = currentScene
+    ? `${currentScene.id}:${currentScene.fountain?.startLine ?? 'na'}:${currentScene.fountain?.endLine ?? 'na'}`
+    : '';
+  const isScreenplayReadyForAutoSelection = Boolean(
+    screenplay.hasInitializedFromDynamoDB &&
+    !screenplay.isLoading &&
+    screenplay.relationships?.scenes
+  );
 
   // Fetch props when scene is selected or prop IDs change
   // NOTE: Props are stored in scene.fountain.tags.props (manually linked via UI)
@@ -1651,7 +1660,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     const runInfo = useEffectRunCountsRef.current[effectName] || { count: 0, lastRun: 0, lastDeps: null };
     runInfo.count++;
     const timeSinceLastRun = now - runInfo.lastRun;
-    const depsChanged = JSON.stringify([selectedSceneId, projectId]) !== JSON.stringify(runInfo.lastDeps);
+    const depsChanged = JSON.stringify([selectedSceneId, projectId, currentSceneContentBoundaryKey]) !== JSON.stringify(runInfo.lastDeps);
     
     if (ENABLE_SCENEBUILDER_DIAGNOSTICS) {
       sceneBuilderLogger.debug(`[${effectName}] Run #${runInfo.count} | Time since last: ${timeSinceLastRun}ms | Deps changed: ${depsChanged}`, {
@@ -1666,13 +1675,13 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     }
     
     runInfo.lastRun = now;
-    runInfo.lastDeps = [selectedSceneId, projectId];
+    runInfo.lastDeps = [selectedSceneId, projectId, currentSceneContentBoundaryKey];
     useEffectRunCountsRef.current[effectName] = runInfo;
     
     const fetchSceneContent = async () => {
       if (!selectedSceneId || !projectId) return;
       
-      const scene = screenplay.scenes?.find(s => s.id === selectedSceneId);
+      const scene = currentScene;
       // 🔥 FIX: Check for undefined instead of falsy - 0 is a valid line number (first line)
       if (!scene || scene.fountain?.startLine === undefined || scene.fountain?.endLine === undefined) {
         // Fallback to heading + synopsis
@@ -1687,8 +1696,12 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
         return;
       }
       
-      // Check if already loaded
-      if (fullSceneContent[selectedSceneId]) return;
+      const sceneContentKey = `${selectedSceneId}:${scene.fountain.startLine}:${scene.fountain.endLine}`;
+      // Check if already loaded for this exact boundary window.
+      if (
+        fullSceneContent[selectedSceneId] &&
+        loadedSceneContentKeyBySceneRef.current[selectedSceneId] === sceneContentKey
+      ) return;
       
       setIsLoadingSceneContent(prev => ({ ...prev, [selectedSceneId]: true }));
       try {
@@ -1704,6 +1717,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
             return !trimmed.startsWith('#') && !trimmed.startsWith('=') && !(/^\[\[.*\]\]$/.test(trimmed));
           });
           setFullSceneContent(prev => ({ ...prev, [selectedSceneId]: filteredContent.join('\n') }));
+          loadedSceneContentKeyBySceneRef.current[selectedSceneId] = sceneContentKey;
         } else {
           // Fallback
           let fallback = '';
@@ -1728,10 +1742,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     };
     
     fetchSceneContent();
-    // 🔥 FIX: Removed screenplay.scenes from dependencies to prevent infinite loop
-    // We read the scene inside the effect, so we don't need it in dependencies
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [selectedSceneId, projectId, getToken]);
+  }, [selectedSceneId, projectId, getToken, currentScene, currentSceneContentBoundaryKey]);
 
   // Phase 2.2: Auto-analyze scene when selectedSceneId changes (Feature 0136)
   // BUT: Only auto-analyze if user has explicitly confirmed (not on initial selection)
@@ -1740,7 +1751,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   // Keep Scene Builder populated: auto-select a scene whenever none is selected.
   // Uses pending preferred scene (next scene after generation) when available.
   useEffect(() => {
-    if (selectedSceneId || sortedScenes.length === 0) return;
+    if (selectedSceneId || sortedScenes.length === 0 || !isScreenplayReadyForAutoSelection) return;
 
     const preferredSceneId = pendingAutoSelectedSceneIdRef.current;
     const preferredSceneExists = preferredSceneId
@@ -1764,7 +1775,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     setSceneDescription(sceneText);
 
     pendingAutoSelectedSceneIdRef.current = null;
-  }, [selectedSceneId, sortedScenes, setSceneAnalysisResult]);
+  }, [selectedSceneId, sortedScenes, isScreenplayReadyForAutoSelection, setSceneAnalysisResult]);
 
     // Auto-analyze the selected scene
   const analyzeScene = useCallback(async () => {
