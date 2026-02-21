@@ -135,27 +135,27 @@ export default function ScreenplaySettingsModal({ isOpen, onClose, screenplayId:
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden">
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/90">
+      <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-xl shadow-2xl max-w-2xl w-full overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-slate-700">
+        <div className="flex items-center justify-between p-4 md:p-5 border-b border-[#3F3F46] bg-[#141414]">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-[#DC143C]/10 rounded-lg">
+            <div className="p-2 rounded-lg bg-[#1F1F1F] border border-[#3F3F46]">
               <Settings className="w-6 h-6 text-[#DC143C]" />
             </div>
-            <h2 className="text-2xl font-bold text-white">Screenplay Settings</h2>
+            <h2 className="text-xl md:text-2xl font-bold text-[#FFFFFF]">Screenplay Settings</h2>
           </div>
           <button
             onClick={() => onClose()}
-            className="p-2 hover:bg-slate-700 rounded-lg transition-colors"
+            className="p-2 rounded-lg hover:bg-[#1F1F1F] transition-colors"
             disabled={isSaving}
           >
-            <X className="w-5 h-5 text-slate-400" />
+            <X className="w-5 h-5 text-[#808080] hover:text-[#FFFFFF]" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6 max-h-[60vh] overflow-y-auto">
+        <div className="p-4 md:p-5 space-y-5 max-h-[65vh] overflow-y-auto">
           {isLoading ? (
             <div className="flex items-center justify-center py-8">
               <Loader2 className="w-6 h-6 animate-spin text-[#DC143C]" />
@@ -164,7 +164,7 @@ export default function ScreenplaySettingsModal({ isOpen, onClose, screenplayId:
             <>
               {/* Title */}
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
+                <label className="block text-sm font-medium text-[#E4E4E7] mb-2">
                   Title <span className="text-[#DC143C]">*</span>
                 </label>
                 <input
@@ -172,14 +172,14 @@ export default function ScreenplaySettingsModal({ isOpen, onClose, screenplayId:
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="My Amazing Screenplay"
-                  className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
+                  className="w-full px-3 py-2.5 bg-[#141414] border border-[#3F3F46] rounded-lg text-[#FFFFFF] placeholder-[#808080] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
                   disabled={isSaving}
                 />
               </div>
 
               {/* Author */}
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
+                <label className="block text-sm font-medium text-[#E4E4E7] mb-2">
                   Author (Optional)
                 </label>
                 <input
@@ -187,14 +187,14 @@ export default function ScreenplaySettingsModal({ isOpen, onClose, screenplayId:
                   value={author}
                   onChange={(e) => setAuthor(e.target.value)}
                   placeholder="Your Name"
-                  className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
+                  className="w-full px-3 py-2.5 bg-[#141414] border border-[#3F3F46] rounded-lg text-[#FFFFFF] placeholder-[#808080] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
                   disabled={isSaving}
                 />
               </div>
 
               {/* Description */}
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
+                <label className="block text-sm font-medium text-[#E4E4E7] mb-2">
                   Description (Optional)
                 </label>
                 <textarea
@@ -202,20 +202,20 @@ export default function ScreenplaySettingsModal({ isOpen, onClose, screenplayId:
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="A brief description of your screenplay..."
                   rows={3}
-                  className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent resize-none"
+                  className="w-full px-3 py-2.5 bg-[#141414] border border-[#3F3F46] rounded-lg text-[#FFFFFF] placeholder-[#808080] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent resize-none"
                   disabled={isSaving}
                 />
               </div>
 
               {/* Genre */}
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
+                <label className="block text-sm font-medium text-[#E4E4E7] mb-2">
                   Genre (Optional)
                 </label>
                 <select
                   value={genre}
                   onChange={(e) => setGenre(e.target.value)}
-                  className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
+                  className="w-full px-3 py-2.5 bg-[#141414] border border-[#3F3F46] rounded-lg text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
                   disabled={isSaving}
                 >
                   <option value="">Select a genre...</option>
@@ -235,15 +235,15 @@ export default function ScreenplaySettingsModal({ isOpen, onClose, screenplayId:
 
               {/* Cloud Storage Provider */}
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
+                <label className="block text-sm font-medium text-[#E4E4E7] mb-2">
                   <Cloud className="w-4 h-4 inline mr-2" />
                   Cloud Storage Auto-Sync (Optional)
                 </label>
-                <p className="text-xs text-slate-400 mb-3">
+                <p className="text-xs text-[#A1A1AA] mb-3">
                   Choose one provider per screenplay. Each screenplay can use a different provider, but all files in this screenplay will use the same provider.
                 </p>
                 <div className="space-y-2">
-                  <label className="flex items-center gap-3 p-3 rounded-lg border border-slate-600 bg-slate-700/50 hover:bg-slate-700 cursor-pointer transition-colors">
+                  <label className="flex items-center gap-3 p-3 rounded-lg border border-[#3F3F46] bg-[#141414] hover:bg-[#1F1F1F] cursor-pointer transition-colors">
                     <input
                       type="radio"
                       name="cloudProvider"
@@ -254,15 +254,15 @@ export default function ScreenplaySettingsModal({ isOpen, onClose, screenplayId:
                       disabled={isSaving}
                     />
                     <div className="flex-1">
-                      <div className="text-sm font-medium text-slate-200">None (Manual Sync)</div>
-                      <div className="text-xs text-slate-400">You&apos;ll choose storage location each time</div>
+                      <div className="text-sm font-medium text-[#FFFFFF]">None (Manual Sync)</div>
+                      <div className="text-xs text-[#808080]">You&apos;ll choose storage location each time</div>
                     </div>
                   </label>
                   
                   <label className={`flex items-center gap-3 p-3 rounded-lg border ${
                     cloudStorageProvider === 'google-drive' 
                       ? 'border-[#DC143C] bg-[#DC143C]/10' 
-                      : 'border-slate-600 bg-slate-700/50 hover:bg-slate-700'
+                      : 'border-[#3F3F46] bg-[#141414] hover:bg-[#1F1F1F]'
                   } cursor-pointer transition-colors ${!googleDrive ? 'opacity-50' : ''}`}>
                     <input
                       type="radio"
@@ -274,13 +274,13 @@ export default function ScreenplaySettingsModal({ isOpen, onClose, screenplayId:
                       disabled={isSaving || !googleDrive}
                     />
                     <div className="flex-1">
-                      <div className="text-sm font-medium text-slate-200 flex items-center gap-2">
+                      <div className="text-sm font-medium text-[#FFFFFF] flex items-center gap-2">
                         Google Drive
                         {!googleDrive && (
-                          <span className="text-xs text-yellow-500 font-normal">(Not connected)</span>
+                          <span className="text-xs text-amber-400 font-normal">(Not connected)</span>
                         )}
                       </div>
-                      <div className="text-xs text-slate-400">
+                      <div className="text-xs text-[#808080]">
                         Files automatically sync to Google Drive
                       </div>
                     </div>
@@ -289,7 +289,7 @@ export default function ScreenplaySettingsModal({ isOpen, onClose, screenplayId:
                   <label className={`flex items-center gap-3 p-3 rounded-lg border ${
                     cloudStorageProvider === 'dropbox' 
                       ? 'border-[#DC143C] bg-[#DC143C]/10' 
-                      : 'border-slate-600 bg-slate-700/50 hover:bg-slate-700'
+                      : 'border-[#3F3F46] bg-[#141414] hover:bg-[#1F1F1F]'
                   } cursor-pointer transition-colors ${!dropbox ? 'opacity-50' : ''}`}>
                     <input
                       type="radio"
@@ -301,21 +301,21 @@ export default function ScreenplaySettingsModal({ isOpen, onClose, screenplayId:
                       disabled={isSaving || !dropbox}
                     />
                     <div className="flex-1">
-                      <div className="text-sm font-medium text-slate-200 flex items-center gap-2">
+                      <div className="text-sm font-medium text-[#FFFFFF] flex items-center gap-2">
                         Dropbox
                         {!dropbox && (
-                          <span className="text-xs text-yellow-500 font-normal">(Not connected)</span>
+                          <span className="text-xs text-amber-400 font-normal">(Not connected)</span>
                         )}
                       </div>
-                      <div className="text-xs text-slate-400">
+                      <div className="text-xs text-[#808080]">
                         Files automatically sync to Dropbox
                       </div>
                     </div>
                   </label>
                 </div>
                 {(!googleDrive || !dropbox) && (
-                  <div className="mt-3 p-3 bg-yellow-500/10 border border-yellow-500/20 rounded-lg">
-                    <p className="text-xs text-yellow-400 mb-2">
+                  <div className="mt-3 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
+                    <p className="text-xs text-amber-300 mb-2">
                       {!googleDrive && !dropbox 
                         ? 'No cloud storage providers connected. Connect a provider in the Media Library to enable auto-sync.'
                         : !googleDrive 
@@ -325,19 +325,19 @@ export default function ScreenplaySettingsModal({ isOpen, onClose, screenplayId:
                     <Link
                       href={`/production?tab=media&screenplayId=${screenplayId}`}
                       onClick={() => onClose()}
-                      className="inline-flex items-center gap-1.5 text-xs text-yellow-400 hover:text-yellow-300 font-medium transition-colors"
+                      className="inline-flex items-center gap-1.5 text-xs text-amber-300 hover:text-amber-200 font-medium transition-colors"
                     >
                       Go to Media Library
                       <ExternalLink className="w-3 h-3" />
                     </Link>
                   </div>
                 )}
-                <p className="text-xs text-slate-400 mt-2">
+                <p className="text-xs text-[#808080] mt-2">
                   When enabled, files will automatically upload to your cloud storage using the screenplay folder structure
                 </p>
-                <div className="mt-3 p-3 rounded-lg border border-slate-600 bg-slate-700/40">
-                  <div className="text-xs font-medium text-slate-200 mb-1">Cloud Sync Summary</div>
-                  <div className="text-xs text-slate-300">
+                <div className="mt-3 p-3 rounded-lg border border-[#3F3F46] bg-[#141414]">
+                  <div className="text-xs font-semibold text-[#E4E4E7] mb-1">Cloud Sync Summary</div>
+                  <div className="text-xs text-[#B3B3B3]">
                     Synced: {cloudSyncSummary.synced} / {cloudSyncSummary.total}
                     {' • '}Syncing: {cloudSyncSummary.syncing}
                     {' • '}Pending: {cloudSyncSummary.pending}
@@ -350,10 +350,10 @@ export default function ScreenplaySettingsModal({ isOpen, onClose, screenplayId:
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 p-6 border-t border-slate-700 bg-slate-900/50">
+        <div className="flex items-center justify-end gap-3 p-4 md:p-5 border-t border-[#3F3F46] bg-[#141414]">
           <button
             onClick={() => onClose()}
-            className="px-5 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium transition-colors"
+            className="px-4 py-2.5 bg-[#1F1F1F] hover:bg-[#2A2A2A] text-[#FFFFFF] rounded-lg text-sm font-medium transition-colors"
             disabled={isSaving || isLoading}
           >
             Cancel
@@ -361,7 +361,7 @@ export default function ScreenplaySettingsModal({ isOpen, onClose, screenplayId:
           <button
             onClick={handleSave}
             disabled={isSaving || isLoading || !title.trim()}
-            className="px-5 py-2.5 bg-[#DC143C] hover:bg-[#B91238] text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="px-4 py-2.5 bg-[#DC143C] hover:bg-[#B91238] text-[#FFFFFF] rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             {isSaving ? (
               <>
