@@ -36,7 +36,7 @@ import {
 } from 'lucide-react';
 import { toast } from 'sonner';
 import StyleAnalyzer from './StyleAnalyzer';
-import { useCreateFolder, useUploadMedia } from '@/hooks/useMediaLibrary';
+import { useCreateFolder, useMediaFolders, useUploadMedia } from '@/hooks/useMediaLibrary';
 import { useQuery } from '@tanstack/react-query';
 
 // ============================================================================
@@ -114,6 +114,7 @@ export function StyleProfilesPanel({
   // Hooks
   const createFolderMutation = useCreateFolder(projectId);
   const uploadMediaMutation = useUploadMedia(projectId);
+  const { data: rootFolders = [] } = useMediaFolders(projectId, undefined, !!projectId);
 
   // Fetch style profiles
   const { data: styleProfiles = { profiles: [] }, isLoading: isLoadingProfiles, refetch: refetchProfiles } = useQuery<{ profiles: StyleProfile[] }>({
@@ -143,6 +144,16 @@ export function StyleProfilesPanel({
   const getOrCreateStyleProfilesFolder = async (): Promise<string | null> => {
     if (styleProfilesFolderId) return styleProfilesFolderId;
 
+    const existingStyleProfilesFolder = rootFolders.find(folder => {
+      const normalizedName = folder.folderName.toLowerCase().replace(/[\s_]+/g, '');
+      return normalizedName === 'styleprofiles';
+    });
+
+    if (existingStyleProfilesFolder) {
+      setStyleProfilesFolderId(existingStyleProfilesFolder.folderId);
+      return existingStyleProfilesFolder.folderId;
+    }
+
     try {
       // Create folder in root (no parentFolderId)
       const folder = await createFolderMutation.mutateAsync({
@@ -154,10 +165,16 @@ export function StyleProfilesPanel({
       setStyleProfilesFolderId(folder.folderId);
       return folder.folderId;
     } catch (error: any) {
-      // Folder might already exist - try to find it
+      // Folder may have been created concurrently - attempt to recover from root list.
       console.warn('[StyleProfilesPanel] Folder creation error:', error.message);
-      // For now, return null and upload will still work (just won't be in folder)
-      // TODO: Query existing folders to find "Style Profiles" folder
+      const fallbackStyleProfilesFolder = rootFolders.find(folder => {
+        const normalizedName = folder.folderName.toLowerCase().replace(/[\s_]+/g, '');
+        return normalizedName === 'styleprofiles';
+      });
+      if (fallbackStyleProfilesFolder) {
+        setStyleProfilesFolderId(fallbackStyleProfilesFolder.folderId);
+        return fallbackStyleProfilesFolder.folderId;
+      }
       return null;
     }
   };

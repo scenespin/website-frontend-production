@@ -13,6 +13,17 @@ import { useCreateFolder, useMediaFolders } from '@/hooks/useMediaLibrary';
 import { MediaFolder } from '@/types/media';
 import { toast } from 'sonner';
 
+const getFolderCreateErrorMessage = (message: string): string => {
+  const normalized = message.toLowerCase();
+  if (normalized.includes('reserved folder name')) {
+    return 'That folder name is reserved for system organization. Please choose a different name.';
+  }
+  if (normalized.includes('system-managed folder')) {
+    return 'That location is system-managed and cannot be modified manually.';
+  }
+  return message;
+};
+
 interface CreateFolderModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -73,8 +84,8 @@ export function CreateFolderModal({
       onSuccess?.(folder);
       onClose();
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to create folder';
-      toast.error(errorMessage);
+      const rawMessage = error instanceof Error ? error.message : 'Failed to create folder';
+      toast.error(getFolderCreateErrorMessage(rawMessage));
       console.error('[CreateFolderModal] Create folder error:', error);
     }
   };

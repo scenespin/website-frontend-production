@@ -20,6 +20,7 @@ import { GripVertical } from 'lucide-react';
 interface VideoPlayerProps {
   src: string;
   className?: string;
+  fit?: 'contain' | 'cover';
   autoPlay?: boolean;
   loop?: boolean;
   muted?: boolean;
@@ -41,6 +42,7 @@ export interface VideoPlayerRef {
 export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
   src,
   className = '',
+  fit = 'cover',
   autoPlay = false,
   loop = false,
   muted = false,
@@ -372,7 +374,7 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
       <video
         ref={videoRef}
         src={src}
-        className="plyr__video"
+        className={`plyr__video ${fit === 'contain' ? 'object-contain' : 'object-cover'}`}
         playsInline
         preload="metadata"
       />

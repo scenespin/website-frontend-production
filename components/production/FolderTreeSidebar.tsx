@@ -62,6 +62,13 @@ export function FolderTreeSidebar({
   onFolderSelect,
   selectedFolderId
 }: FolderTreeSidebarProps) {
+  const RETIRED_SYSTEM_FOLDER_PATHS = new Set([
+    'audio/music',
+    'audio/sfx',
+    'audio/dialogue',
+    'audio/voiceovers',
+  ]);
+
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(['root']));
   const [cloudFolderStructure, setCloudFolderStructure] = useState<ScreenplayFolderStructure | null>(null);
   const [cloudLoading, setCloudLoading] = useState(true);
@@ -117,6 +124,9 @@ export function FolderTreeSidebar({
     if (folderName === 'Assets') {
       return 'Props';
     }
+    if (folderName === 'Style_Profiles') {
+      return 'Style Profiles';
+    }
     return folderName;
   };
 
@@ -124,15 +134,22 @@ export function FolderTreeSidebar({
    * Convert S3 folder tree to FolderNode format
    */
   const convertS3TreeToNodes = (tree: FolderTreeNode[], level: number = 0): FolderNode[] => {
-    return tree.map(folder => ({
-      id: folder.folderId,
-      name: getDisplayName(folder.folderName), // Use display name mapping
-      path: folder.folderPath,
-      folderId: folder.folderId,
-      storageType: 's3' as const,
-      children: folder.children ? convertS3TreeToNodes(folder.children, level + 1) : undefined,
-      fileCount: folder.fileCount,
-    }));
+    return tree
+      .filter(folder => {
+        const normalizedPath = (folder.folderPath || []).join('/').toLowerCase();
+        const isRetiredEmptySystemFolder =
+          RETIRED_SYSTEM_FOLDER_PATHS.has(normalizedPath) && folder.fileCount === 0;
+        return !isRetiredEmptySystemFolder;
+      })
+      .map(folder => ({
+        id: folder.folderId,
+        name: getDisplayName(folder.folderName), // Use display name mapping
+        path: folder.folderPath,
+        folderId: folder.folderId,
+        storageType: 's3' as const,
+        children: folder.children ? convertS3TreeToNodes(folder.children, level + 1) : undefined,
+        fileCount: folder.fileCount,
+      }));
   };
 
   /**

@@ -1690,6 +1690,33 @@ export default function MediaLibrary({
   // RENDER HELPERS
   // ============================================================================
 
+  const RETIRED_SYSTEM_FOLDER_PATHS = new Set([
+    'audio/music',
+    'audio/sfx',
+    'audio/dialogue',
+    'audio/voiceovers',
+  ]);
+
+  const getFolderDisplayName = (folderName: string): string => {
+    if (folderName === 'Style_Profiles') {
+      return 'Style Profiles';
+    }
+    return folderName;
+  };
+
+  const shouldHideRetiredSystemFolder = (folder: { path: string[]; fileCount?: number; storageType?: 's3' | 'cloud' }): boolean => {
+    if (folder.storageType && folder.storageType !== 's3') {
+      return false;
+    }
+
+    if (folder.fileCount !== 0) {
+      return false;
+    }
+
+    const normalizedPath = folder.path.join('/').toLowerCase();
+    return RETIRED_SYSTEM_FOLDER_PATHS.has(normalizedPath);
+  };
+
   /**
    * 🔥 NEW: Get child folders of currently selected folder
    * Returns folders that are direct children of the selected folder (or root if none selected)
@@ -1718,7 +1745,7 @@ export default function MediaLibrary({
           .filter(node => node.folderPath && node.folderPath.length === 1)
           .map(node => ({
             id: node.folderId,
-            name: node.folderName,
+            name: getFolderDisplayName(node.folderName),
             fileCount: node.fileCount,
             path: node.folderPath || [],
             storageType: 's3' as const
@@ -1730,7 +1757,7 @@ export default function MediaLibrary({
         if (selectedFolder && selectedFolder.children) {
           const s3Children = selectedFolder.children.map(node => ({
             id: node.folderId,
-            name: node.folderName,
+            name: getFolderDisplayName(node.folderName),
             fileCount: node.fileCount,
             path: node.folderPath || [],
             storageType: 's3' as const
@@ -1804,6 +1831,10 @@ export default function MediaLibrary({
   
   // 🔥 NEW: Filter folders by search query
   const filteredFolders = childFolders.filter(folder => {
+    if (shouldHideRetiredSystemFolder(folder)) {
+      return false;
+    }
+
     if (searchQuery && !folder.name.toLowerCase().includes(searchQuery.toLowerCase())) {
       return false;
     }
@@ -3010,10 +3041,11 @@ export default function MediaLibrary({
                 </div>
               )}
               {previewFile.fileType === 'video' && (
-                <div className="relative max-h-[70vh] overflow-hidden rounded-lg">
+                <div className="relative max-h-[70vh] rounded-lg bg-[#0A0A0A]">
                   <VideoPlayer
                     src={getFileUrl(previewFile, false) || previewFile.fileUrl || ''}
-                    className="w-full h-auto"
+                    className="w-full max-h-[70vh] mx-auto"
+                    fit="contain"
                     autoPlay={false}
                     onError={(error) => {
                       console.error('[MediaLibrary] Video failed to load:', previewFile.fileUrl, error);

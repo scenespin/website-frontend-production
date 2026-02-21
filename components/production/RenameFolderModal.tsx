@@ -13,6 +13,17 @@ import { useRenameFolder } from '@/hooks/useMediaLibrary';
 import { MediaFolder } from '@/types/media';
 import { toast } from 'sonner';
 
+const getFolderRenameErrorMessage = (message: string): string => {
+  const normalized = message.toLowerCase();
+  if (normalized.includes('reserved folder name')) {
+    return 'That folder name is reserved for system organization. Please choose a different name.';
+  }
+  if (normalized.includes('system-managed folder')) {
+    return 'This folder is system-managed and cannot be renamed manually.';
+  }
+  return message;
+};
+
 interface RenameFolderModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -63,8 +74,8 @@ export function RenameFolderModal({
       onSuccess?.(updatedFolder);
       onClose();
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'Failed to rename folder';
-      toast.error(errorMessage);
+      const rawMessage = error instanceof Error ? error.message : 'Failed to rename folder';
+      toast.error(getFolderRenameErrorMessage(rawMessage));
       console.error('[RenameFolderModal] Rename folder error:', error);
     }
   };
