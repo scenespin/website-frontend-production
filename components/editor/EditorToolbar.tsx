@@ -293,7 +293,7 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
     // Use prop if provided, otherwise use context
     const effectivePreviewMode = isPreviewMode !== undefined ? isPreviewMode : contextPreviewMode;
     const handleTogglePreview = onTogglePreview || (() => setIsPreviewMode(!contextPreviewMode));
-    const { canEditScript, rescanScript, currentUserRole, permissionsLoading, isOwner, isLoading, hasInitializedFromDynamoDB } = useScreenplay();
+    const { canEditScript, rescanScript, currentUserRole, permissionsLoading, isOwner, isLoading, hasInitializedFromDynamoDB, loadPhase } = useScreenplay();
     
     // Feature 0133: Fix writer role save buttons - ensure canEditScript is true for writer role
     // Logic:
@@ -318,6 +318,7 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
     const savedCursorPositionRef = useRef<number | null>(null);
     const [isRescanning, setIsRescanning] = useState(false); // 🔥 NEW: Re-scan state
     const [rescanCooldown, setRescanCooldown] = useState(false); // Cooldown to prevent rapid re-clicks
+    const isSceneStructureReady = loadPhase ? loadPhase === 'ready' : (!isLoading && hasInitializedFromDynamoDB);
     
     // 🔥 NEW: Sync fullscreen state with browser fullscreen events
     useEffect(() => {
@@ -360,8 +361,7 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
         }
         
         // 🔥 FIX: Prevent rescan during initialization to avoid race condition with empty state
-        const isInitializing = isLoading || !hasInitializedFromDynamoDB;
-        if (isInitializing) {
+        if (!isSceneStructureReady) {
             toast.info('Please wait for scenes to load before rescanning');
             return;
         }
@@ -869,10 +869,10 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                 {/* 🔥 FEATURE 0117: Re-Scan Script Button - Emoji */}
                 {/* Feature 0187: Disable rescan button when editor is locked */}
                 {effectiveCanEditScript && (
-                    <div className="tooltip tooltip-bottom" data-tip={isEditorLocked ? 'Editor is locked by another tab' : isRescanning ? 'Scanning... Please wait' : rescanCooldown ? 'Please wait a moment before scanning again' : (isLoading || !hasInitializedFromDynamoDB) ? 'Please wait for scenes to load' : 'Scan script for new characters/locations (keeps existing data)'}>
+                    <div className="tooltip tooltip-bottom" data-tip={isEditorLocked ? 'Editor is locked by another tab' : isRescanning ? 'Scanning... Please wait' : rescanCooldown ? 'Please wait a moment before scanning again' : !isSceneStructureReady ? 'Please wait for scenes to load' : 'Scan script for new characters/locations (keeps existing data)'}>
                         <button
                             onClick={handleRescan}
-                            disabled={isEditorLocked || isRescanning || rescanCooldown || !state.content.trim() || isLoading || !hasInitializedFromDynamoDB}
+                            disabled={isEditorLocked || isRescanning || rescanCooldown || !state.content.trim() || !isSceneStructureReady}
                             className="px-2 py-2 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-w-[40px] min-h-[40px] flex flex-col items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                         >
                             {isRescanning ? (
@@ -1260,10 +1260,10 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                     {/* Rescan */}
                     {/* Feature 0187: Disable rescan button when editor is locked */}
                     {effectiveCanEditScript && (
-                        <div className="tooltip tooltip-bottom" data-tip={isEditorLocked ? 'Editor is locked by another tab' : isRescanning ? 'Scanning... Please wait' : rescanCooldown ? 'Please wait a moment' : (isLoading || !hasInitializedFromDynamoDB) ? 'Please wait for scenes to load' : 'Scan script for new characters/locations'}>
+                        <div className="tooltip tooltip-bottom" data-tip={isEditorLocked ? 'Editor is locked by another tab' : isRescanning ? 'Scanning... Please wait' : rescanCooldown ? 'Please wait a moment' : !isSceneStructureReady ? 'Please wait for scenes to load' : 'Scan script for new characters/locations'}>
                         <button
                                 onClick={handleRescan}
-                                disabled={isEditorLocked || isRescanning || rescanCooldown || !state.content.trim() || isLoading || !hasInitializedFromDynamoDB}
+                                disabled={isEditorLocked || isRescanning || rescanCooldown || !state.content.trim() || !isSceneStructureReady}
                                 className="w-full px-1 py-1.5 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                         >
                                 {isRescanning ? (

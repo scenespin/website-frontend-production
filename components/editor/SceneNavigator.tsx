@@ -33,10 +33,14 @@ export default function SceneNavigator({ currentLine, onSceneClick, className = 
     const firstLineRetryAfterRef = useRef(0);
     const firstLineNotFoundScreenplayIdRef = useRef<string | null>(null);
     
-    // 🔥 FIX: Check if initialization is complete before showing empty state
-    // This prevents showing "No scenes yet" during initialization, which could trigger rescan duplicates
-    const isInitializing = screenplay?.isLoading || !screenplay?.hasInitializedFromDynamoDB;
-    const hasSceneLoadError = Boolean(screenplay?.error);
+    // Use explicit load phase when available; keep backward-compatible fallback.
+    const loadPhase = screenplay?.loadPhase ?? (
+        screenplay?.isLoading || !screenplay?.hasInitializedFromDynamoDB
+            ? 'loading-structure'
+            : 'ready'
+    );
+    const isInitializing = loadPhase === 'resolving-id' || loadPhase === 'loading-structure';
+    const hasSceneLoadError = loadPhase === 'error' || Boolean(screenplay?.error);
     
     // 🔥 FIX: Add timeout fallback - if initialization takes more than 10 seconds, show empty state
     // This prevents infinite loading spinner if API calls hang
@@ -239,6 +243,13 @@ export default function SceneNavigator({ currentLine, onSceneClick, className = 
                 <p className="text-xs text-[#808080] mb-2">
                     Scenes may still be loading. Try refreshing the scene list.
                 </p>
+                <button
+                    type="button"
+                    className="btn btn-xs btn-outline"
+                    onClick={() => window.dispatchEvent(new CustomEvent('refreshScenes'))}
+                >
+                    Refresh Scene Load
+                </button>
             </div>
         );
     }
@@ -264,7 +275,7 @@ export default function SceneNavigator({ currentLine, onSceneClick, className = 
     }
     
     // Show empty state only after initialization is complete
-    if (!allScenes || allScenes.length === 0) {
+    if (loadPhase === 'ready' && (!allScenes || allScenes.length === 0)) {
         return (
             <div className={cn("w-full rounded-lg border border-[#3F3F46] bg-[#0A0A0A] p-4", className)}>
                 <p className="text-sm font-medium text-[#B3B3B3] mb-2">

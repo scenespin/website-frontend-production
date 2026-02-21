@@ -61,6 +61,8 @@ import { parseContentForImport } from '@/utils/fountainAutoImport';
 // Context Type Definition
 // ============================================================================
 
+type ScreenplayLoadPhase = 'resolving-id' | 'loading-structure' | 'ready' | 'error';
+
 interface ScreenplayContextType {
     // State
     beats: StoryBeat[]; // Frontend-only UI templates (not persisted)
@@ -68,6 +70,7 @@ interface ScreenplayContextType {
     characters: Character[];
     locations: Location[];
     relationships: Relationships;
+    loadPhase: ScreenplayLoadPhase;
     isLoading: boolean;
     hasInitializedFromDynamoDB: boolean; // NEW: Track if initial load is complete
     error: string | null;
@@ -292,6 +295,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     } | null>(null);
     // 🔥 FIX: Track if refresh is in progress to prevent multiple simultaneous refreshes
     const isRefreshingScenesRef = useRef<boolean>(false);
+    const loadSessionRef = useRef<number>(0);
+    const previousScreenplayIdRef = useRef<string | null>(null);
     // 🔥 FIX: Track deleted asset IDs to prevent them from reappearing due to eventual consistency
     // Will be initialized after screenplayId is declared
     const deletedAssetIdsRef = useRef<Set<string>>(new Set());
@@ -338,6 +343,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     }, [relationships]);
 
     const [isLoading, setIsLoading] = useState(true); // Start true until DynamoDB loads
+    const [loadPhase, setLoadPhase] = useState<ScreenplayLoadPhase>('resolving-id');
     const [error, setError] = useState<string | null>(null);
     
     // Feature 0122: Role-Based Collaboration System - Phase 3B
@@ -933,6 +939,44 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             deletedAssetIdsRef.current = new Set();
         }
     }, [screenplayId, getDeletedAssetIds]);
+
+    useEffect(() => {
+        const previousScreenplayId = previousScreenplayIdRef.current;
+        if (previousScreenplayId === screenplayId) {
+            return;
+        }
+
+        previousScreenplayIdRef.current = screenplayId;
+        loadSessionRef.current += 1;
+        isInitializingRef.current = false;
+
+        setError(null);
+        setHasInitializedFromDynamoDB(false);
+        setIsLoading(true);
+        setLoadPhase(screenplayId ? 'loading-structure' : 'resolving-id');
+
+        if (previousScreenplayId !== null && previousScreenplayId !== screenplayId) {
+            const emptyRelationships: Relationships = {
+                beats: {},
+                scenes: {},
+                characters: {},
+                locations: {},
+                props: {}
+            };
+
+            scenesRef.current = [];
+            charactersRef.current = [];
+            locationsRef.current = [];
+            assetsRef.current = [];
+            relationshipsRef.current = emptyRelationships;
+
+            setScenes([]);
+            setCharacters([]);
+            setLocations([]);
+            setAssets([]);
+            setRelationships(emptyRelationships);
+        }
+    }, [screenplayId]);
     
     // Feature 0119: Update screenplay_id when Clerk metadata changes
     // Also listen to localStorage/custom events for same-tab sync with EditorContext.
@@ -1180,10 +1224,18 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             }
             
             isRefreshingScenesRef.current = true;
+            const refreshSessionId = loadSessionRef.current;
+            setLoadPhase('loading-structure');
+            setIsLoading(true);
+            setHasInitializedFromDynamoDB(false);
             console.log('[ScreenplayContext] Refreshing scenes due to refreshScenes event');
             try {
                 const scenesData = await listScenes(screenplayId, getToken);
                 const transformedScenes = transformScenesFromAPI(scenesData);
+                if (refreshSessionId !== loadSessionRef.current) {
+                    console.log('[ScreenplayContext] ⏭️ Ignoring stale refreshScenes response');
+                    return;
+                }
                 setError(null);
                 
                 // 🔥 FIX: Use startTransition to prevent React error #185 (updating during render)
@@ -1198,12 +1250,22 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     const currentBeats = beatsRef.current;
                     buildRelationshipsFromScenes(transformedScenes, currentBeats, currentCharacters, currentLocations);
                 });
+                setLoadPhase('ready');
+                setHasInitializedFromDynamoDB(true);
+                setIsLoading(false);
                 
                 console.log('[ScreenplayContext] ✅ Refreshed scenes from API:', transformedScenes.length, 'scenes');
             } catch (error) {
+                if (refreshSessionId !== loadSessionRef.current) {
+                    console.log('[ScreenplayContext] ⏭️ Ignoring stale refreshScenes error');
+                    return;
+                }
                 console.error('[ScreenplayContext] Failed to refresh scenes:', error);
                 const message = error instanceof Error ? error.message : 'Failed to refresh scenes';
                 setError(message);
+                setLoadPhase('error');
+                setHasInitializedFromDynamoDB(true);
+                setIsLoading(false);
             } finally {
                 isRefreshingScenesRef.current = false;
             }
@@ -1273,9 +1335,13 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         console.log('[ScreenplayContext] 🚀 Starting initialization for:', initKey);
         hasInitializedRef.current = initKey;
         isInitializingRef.current = true;
+        const initSessionId = ++loadSessionRef.current;
+        setError(null);
+        setHasInitializedFromDynamoDB(false);
+        setIsLoading(true);
+        setLoadPhase(screenplayId ? 'loading-structure' : 'resolving-id');
         
         async function initializeData() {
-            setError(null);
             // Feature 0117: Load directly from DynamoDB API functions
             if (screenplayId) {
                 try {
@@ -1322,6 +1388,11 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         locations: locationsData.length,
                         assets: assetsData.assets?.length || 0
                     });
+
+                    if (initSessionId !== loadSessionRef.current) {
+                        console.log('[ScreenplayContext] ⏭️ Stale initialization result ignored');
+                        return;
+                    }
                     
                     // Transform API data to frontend format
                     const transformedScenes = transformScenesFromAPI(scenesData);
@@ -1427,6 +1498,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     // Mark initialization as complete AFTER relationships are built
                     setHasInitializedFromDynamoDB(true);
                     setIsLoading(false);
+                    setLoadPhase('ready');
                     
                     // Mark that we loaded scenes from DB to prevent auto-creation
                     if (transformedScenes.length > 0) {
@@ -1735,23 +1807,33 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     }
                     
                 } catch (err) {
+                    if (initSessionId !== loadSessionRef.current) {
+                        console.log('[ScreenplayContext] ⏭️ Stale initialization error ignored');
+                        return;
+                    }
                     console.error('[ScreenplayContext] Failed to load from DynamoDB:', err);
                     const message = err instanceof Error ? err.message : 'Failed to load scenes';
                     setError(message);
                     // On error, mark as initialized immediately (no scenes to wait for)
                     setHasInitializedFromDynamoDB(true);
                     setIsLoading(false);
+                    setLoadPhase('error');
                 } finally {
                     // Only reset flag here - initialization state is set in startTransition or catch block
                     isInitializingRef.current = false; // 🔥 FIX: Reset initialization flag
                     console.log('[ScreenplayContext] ✅ Initialization complete - ready for imports');
                 }
             } else {
+                if (initSessionId !== loadSessionRef.current) {
+                    console.log('[ScreenplayContext] ⏭️ Stale no-id initialization ignored');
+                    return;
+                }
                 console.log('[ScreenplayContext] No screenplay_id yet - waiting for EditorContext');
                 setError(null);
                 // Still mark as initialized so imports can work (for new screenplays)
                 setHasInitializedFromDynamoDB(true);
                 setIsLoading(false);
+                setLoadPhase('ready');
                 isInitializingRef.current = false; // 🔥 FIX: Reset initialization flag
                 
                 // Feature 0117: For new screenplays (no ID yet), create default beats immediately
@@ -5974,6 +6056,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         characters,
         locations,
         relationships,
+        loadPhase,
         isLoading,
         hasInitializedFromDynamoDB,
         error,

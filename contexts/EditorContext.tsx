@@ -248,8 +248,13 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
         console.log('[EditorContext] 🗑️ Cleared localStorage for screenplay:', screenplayId);
     }, [getScreenplayStorageKey]);
 
+    const lastNotifiedScreenplayIdRef = useRef<string | null | undefined>(undefined);
     const notifyScreenplayIdUpdated = useCallback((screenplayId: string | null) => {
         if (typeof window === 'undefined') return;
+        if (lastNotifiedScreenplayIdRef.current === screenplayId) {
+            return;
+        }
+        lastNotifiedScreenplayIdRef.current = screenplayId;
         window.dispatchEvent(new CustomEvent('screenplay-id-updated', {
             detail: { screenplayId }
         }));
