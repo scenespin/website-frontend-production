@@ -137,9 +137,10 @@ export function FolderTreeSidebar({
     return tree
       .filter(folder => {
         const normalizedPath = (folder.folderPath || []).join('/').toLowerCase();
+        const isEmptyCompositionsRoot = normalizedPath === 'compositions' && folder.fileCount === 0;
         const isRetiredEmptySystemFolder =
           RETIRED_SYSTEM_FOLDER_PATHS.has(normalizedPath) && folder.fileCount === 0;
-        return !isRetiredEmptySystemFolder;
+        return !isRetiredEmptySystemFolder && !isEmptyCompositionsRoot;
       })
       .map(folder => ({
         id: folder.folderId,

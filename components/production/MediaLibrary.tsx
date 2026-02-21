@@ -1704,7 +1704,7 @@ export default function MediaLibrary({
     return folderName;
   };
 
-  const shouldHideRetiredSystemFolder = (folder: { path: string[]; fileCount?: number; storageType?: 's3' | 'cloud' }): boolean => {
+  const shouldHideSystemFolder = (folder: { path: string[]; fileCount?: number; storageType?: 's3' | 'cloud' }): boolean => {
     if (folder.storageType && folder.storageType !== 's3') {
       return false;
     }
@@ -1714,6 +1714,10 @@ export default function MediaLibrary({
     }
 
     const normalizedPath = folder.path.join('/').toLowerCase();
+    if (normalizedPath === 'compositions') {
+      return true;
+    }
+
     return RETIRED_SYSTEM_FOLDER_PATHS.has(normalizedPath);
   };
 
@@ -1831,7 +1835,7 @@ export default function MediaLibrary({
   
   // 🔥 NEW: Filter folders by search query
   const filteredFolders = childFolders.filter(folder => {
-    if (shouldHideRetiredSystemFolder(folder)) {
+    if (shouldHideSystemFolder(folder)) {
       return false;
     }
 
