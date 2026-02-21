@@ -14,6 +14,7 @@ import { EditorProvider } from "@/contexts/EditorContext";
 import { DrawerProvider } from "@/contexts/DrawerContext";
 import { ChatProvider } from "@/contexts/ChatContext";
 import { CreditsProvider } from "@/contexts/CreditsContext";
+import { ProjectCreationModalProvider } from "@/contexts/ProjectCreationModalContext";
 import { QueryClientProvider } from "@/providers/QueryClientProvider";
 import { fixCorruptedBeatsInLocalStorage } from "@/utils/fixCorruptedBeats";
 // Temporarily disabled - Mobile Debug Panel (bug drawer on mobile)
@@ -299,7 +300,9 @@ const ClientLayout = ({ children }) => {
           {/* <MobileDebugPanel /> */}
 
           {/* Content inside app/page.js files  */}
-          {children}
+          <ProjectCreationModalProvider>
+            {children}
+          </ProjectCreationModalProvider>
 
           {/* Show Success/Error messages anywhere from the app with toast() */}
           {/* Styled with black on black theme in globals.css */}

@@ -3,13 +3,12 @@
 import { useState } from 'react';
 import { X, Film, FileText, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import { useAuth } from '@clerk/nextjs';
-import { createScreenplay, updateScreenplay } from '@/utils/screenplayStorage';
+import { useCreateScreenplayFlow, type CreatedProjectPayload } from '@/hooks/useCreateScreenplayFlow';
 
 interface ProjectCreationModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSuccess: (project: any) => void;
+  onSuccess: (_project: CreatedProjectPayload) => void | boolean | Promise<void | boolean>;
 }
 
 export function ProjectCreationModal({ isOpen, onClose, onSuccess }: ProjectCreationModalProps) {
@@ -17,78 +16,20 @@ export function ProjectCreationModal({ isOpen, onClose, onSuccess }: ProjectCrea
   const [description, setDescription] = useState('');
   const [genre, setGenre] = useState('');
   const [isCreating, setIsCreating] = useState(false);
-  const { getToken } = useAuth();
+  const { createProject } = useCreateScreenplayFlow();
 
   const handleCreate = async () => {
-    if (!projectName.trim()) {
-      toast.error('Please enter a project name');
-      return;
-    }
-
     setIsCreating(true);
 
     try {
-      // Feature 0130 Phase 0: Create screenplay instead of project
-      // This ensures new "projects" get screenplay_ IDs from the start
-      console.log('[ProjectCreationModal] Creating screenplay via /api/screenplays...');
-      
-      // Feature 0130 Phase 0: Create screenplay instead of project
-      // This ensures new "projects" get screenplay_ IDs from the start
-      console.log('[ProjectCreationModal] Creating screenplay via /api/screenplays...');
-      
-      const screenplay = await createScreenplay({
-        title: projectName.trim(),
-        author: 'Anonymous', // Default author (user can change later)
-        content: '', // Start with empty content
-      }, getToken);
-      
-      console.log('[ProjectCreationModal] Screenplay created:', screenplay);
-      console.log('[ProjectCreationModal] Screenplay ID:', screenplay?.screenplay_id);
-      console.log('[ProjectCreationModal] Full screenplay object keys:', Object.keys(screenplay || {}));
-      
-      // CRITICAL: Validate that screenplay_id exists
-      if (!screenplay?.screenplay_id) {
-        console.error('[ProjectCreationModal] ❌ Screenplay created but screenplay_id is missing!', screenplay);
-        throw new Error('Failed to create screenplay - missing screenplay ID in response');
-      }
-      
-      // If description or genre were provided, update the screenplay with metadata
-      if (description.trim() || genre) {
-        try {
-          await updateScreenplay({
-            screenplay_id: screenplay.screenplay_id,
-            description: description.trim() || undefined,
-            metadata: genre ? { genre } : undefined,
-          }, getToken);
-          console.log('[ProjectCreationModal] Updated screenplay with description/genre');
-        } catch (updateError) {
-          console.warn('[ProjectCreationModal] Failed to update description/genre (non-critical):', updateError);
-          // Don't fail the whole flow - screenplay was created successfully
-        }
-      }
-      
-      // Transform screenplay response to match expected project format for onSuccess callback
-      // This maintains compatibility with dashboard's handleProjectCreated function
-      const transformedProject = {
-        id: screenplay.screenplay_id,
-        screenplay_id: screenplay.screenplay_id,
-        project_id: screenplay.screenplay_id, // For backward compatibility during transition
-        project_name: screenplay.title,
-        name: screenplay.title,
-        title: screenplay.title,
-        description: description.trim() || undefined,
-        metadata: genre ? { genre } : undefined,
-        created_at: screenplay.created_at,
-        updated_at: screenplay.updated_at,
-        status: screenplay.status || 'active'
-      };
-      
-      console.log('[ProjectCreationModal] Transformed project for onSuccess:', transformedProject);
-      console.log('[ProjectCreationModal] Will navigate to:', `/write?project=${transformedProject.screenplay_id}`);
-      
-      toast.success(`Screenplay "${projectName}" created!`);
-      onSuccess(transformedProject);
-      handleClose();
+      const createdProject = await createProject({
+        projectName,
+        description,
+        genre,
+      });
+
+      toast.success(`Screenplay "${createdProject.title}" created!`);
+      await onSuccess(createdProject);
     } catch (error: any) {
       console.error('[ProjectCreationModal] Failed to create screenplay:', error);
       toast.error(error.message || 'Failed to create screenplay. Please try again.');
@@ -107,29 +48,30 @@ export function ProjectCreationModal({ isOpen, onClose, onSuccess }: ProjectCrea
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-      <div className="bg-slate-800 border border-slate-700 rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden">
+    <div className="fixed inset-0 z-[120] flex items-center justify-center p-4 bg-black/85 backdrop-blur-sm">
+      <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-xl shadow-2xl max-w-lg w-full overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-slate-700">
+        <div className="flex items-center justify-between p-4 md:p-5 border-b border-[#3F3F46] bg-[#141414]">
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-[#DC143C]/10 rounded-lg">
+            <div className="p-2 rounded-lg bg-[#1F1F1F] border border-[#3F3F46]">
               <Film className="w-6 h-6 text-[#DC143C]" />
             </div>
-            <h2 className="text-2xl font-bold text-white">Create New Project</h2>
+            <h2 className="text-xl md:text-2xl font-bold text-[#FFFFFF]">Create New Project</h2>
           </div>
           <button
             onClick={handleClose}
-            className="p-2 hover:bg-slate-700 rounded-lg transition-colors"
+            className="p-2 rounded-lg hover:bg-[#1F1F1F] transition-colors"
+            disabled={isCreating}
           >
-            <X className="w-5 h-5 text-slate-400" />
+            <X className="w-5 h-5 text-[#808080] hover:text-[#FFFFFF]" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-6">
+        <div className="p-4 md:p-5 space-y-5 max-h-[65vh] overflow-y-auto">
           {/* Project Name */}
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-[#E4E4E7] mb-2">
               Project Title <span className="text-[#DC143C]">*</span>
             </label>
             <input
@@ -137,7 +79,7 @@ export function ProjectCreationModal({ isOpen, onClose, onSuccess }: ProjectCrea
               value={projectName}
               onChange={(e) => setProjectName(e.target.value)}
               placeholder="My Amazing Project"
-              className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
+              className="w-full px-3 py-2.5 bg-[#141414] border border-[#3F3F46] rounded-lg text-[#FFFFFF] placeholder-[#808080] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
               disabled={isCreating}
               autoFocus
             />
@@ -145,7 +87,7 @@ export function ProjectCreationModal({ isOpen, onClose, onSuccess }: ProjectCrea
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-[#E4E4E7] mb-2">
               Description (Optional)
             </label>
             <textarea
@@ -153,20 +95,20 @@ export function ProjectCreationModal({ isOpen, onClose, onSuccess }: ProjectCrea
               onChange={(e) => setDescription(e.target.value)}
               placeholder="A brief description of your project..."
               rows={3}
-              className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent resize-none"
+              className="w-full px-3 py-2.5 bg-[#141414] border border-[#3F3F46] rounded-lg text-[#FFFFFF] placeholder-[#808080] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent resize-none"
               disabled={isCreating}
             />
           </div>
 
           {/* Genre */}
           <div>
-            <label className="block text-sm font-medium text-slate-300 mb-2">
+            <label className="block text-sm font-medium text-[#E4E4E7] mb-2">
               Genre (Optional)
             </label>
             <select
               value={genre}
               onChange={(e) => setGenre(e.target.value)}
-              className="w-full px-4 py-3 bg-slate-700 border border-slate-600 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
+              className="w-full px-3 py-2.5 bg-[#141414] border border-[#3F3F46] rounded-lg text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
               disabled={isCreating}
             >
               <option value="">Select a genre...</option>
@@ -186,10 +128,10 @@ export function ProjectCreationModal({ isOpen, onClose, onSuccess }: ProjectCrea
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-end gap-3 p-6 border-t border-slate-700 bg-slate-900/50">
+        <div className="flex items-center justify-end gap-3 p-4 md:p-5 border-t border-[#3F3F46] bg-[#141414]">
           <button
             onClick={handleClose}
-            className="px-5 py-2.5 bg-slate-700 hover:bg-slate-600 text-white rounded-lg font-medium transition-colors"
+            className="px-4 py-2.5 bg-[#1F1F1F] hover:bg-[#27272A] text-[#FFFFFF] border border-[#3F3F46] rounded-lg text-sm font-medium transition-colors"
             disabled={isCreating}
           >
             Cancel
@@ -197,7 +139,7 @@ export function ProjectCreationModal({ isOpen, onClose, onSuccess }: ProjectCrea
           <button
             onClick={handleCreate}
             disabled={isCreating || !projectName.trim()}
-            className="px-5 py-2.5 bg-[#DC143C] hover:bg-[#B91238] text-white rounded-lg font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+            className="px-4 py-2.5 bg-[#DC143C] hover:bg-[#B01030] text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
           >
             {isCreating ? (
               <>

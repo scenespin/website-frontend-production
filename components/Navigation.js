@@ -35,7 +35,7 @@ import {
 import { useState, useEffect } from 'react';
 import { useDrawer } from '@/contexts/DrawerContext';
 import { useCredits } from '@/contexts/CreditsContext';
-import { ProjectCreationModal } from '@/components/project/ProjectCreationModal';
+import { useProjectCreationModal } from '@/contexts/ProjectCreationModalContext';
 import { useRouter } from 'next/navigation';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { getCurrentScreenplayId } from '@/utils/clerkMetadata';
@@ -50,7 +50,7 @@ export default function Navigation() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState(null); // Track which mobile accordion is open
   const { openDrawer } = useDrawer();
-  const [showCreateModal, setShowCreateModal] = useState(false);
+  const { openProjectCreationModal } = useProjectCreationModal();
   const { screenplayId: contextScreenplayId } = useScreenplay();
   
   // Current screenplay state
@@ -63,16 +63,6 @@ export default function Navigation() {
   const clerkScreenplayId = getCurrentScreenplayId(user);
   const currentScreenplayId = urlScreenplayId || contextScreenplayId || clerkScreenplayId;
 
-  const handleProjectCreated = (project) => {
-    // Feature 0130: Use screenplay_id (not project_id)
-    const screenplayId = project.screenplay_id || project.id;
-    if (screenplayId && screenplayId.startsWith('screenplay_')) {
-      router.push(`/write?project=${screenplayId}`);
-    } else {
-      console.error('[Navigation] Invalid screenplay ID:', screenplayId);
-    }
-  };
-  
   // Fetch current screenplay name
   useEffect(() => {
     if (currentScreenplayId && user) {
@@ -411,7 +401,7 @@ export default function Navigation() {
               ) : (
                 <button
                   onClick={() => {
-                    setShowCreateModal(true);
+                    openProjectCreationModal();
                     setMobileMenuOpen(false);
                   }}
                   className="w-full flex items-center gap-3 px-4 py-3 bg-cinema-red hover:bg-cinema-red/90 rounded-lg border border-cinema-red/30 transition-colors min-h-[44px]"
@@ -517,13 +507,6 @@ export default function Navigation() {
           </div>
         )}
       </div>
-
-      {/* Project Creation Modal */}
-      <ProjectCreationModal
-        isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        onSuccess={handleProjectCreated}
-      />
     </>
   );
 }

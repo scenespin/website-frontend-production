@@ -5,10 +5,10 @@ import { useUser, useAuth } from '@clerk/nextjs';
 import { api } from '@/lib/api';
 import Link from 'next/link';
 import { useRouter, usePathname, useSearchParams } from 'next/navigation';
-import { ProjectCreationModal } from '@/components/project/ProjectCreationModal';
 import ScreenplaySettingsModal from '@/components/editor/ScreenplaySettingsModal';
 import { getCurrentScreenplayId } from '@/utils/clerkMetadata';
 import { toast } from 'sonner';
+import { useProjectCreationModal } from '@/contexts/ProjectCreationModalContext';
 import RoleBadge from '@/components/collaboration/RoleBadge';
 // ResponsiveHeader removed - Navigation.js comes from dashboard/layout.js
 import { 
@@ -50,8 +50,8 @@ export default function Dashboard() {
   const [ownedScreenplays, setOwnedScreenplays] = useState([]);
   const [collaboratedScreenplays, setCollaboratedScreenplays] = useState([]);
   const [recentVideos, setRecentVideos] = useState([]);
-  const [showCreateModal, setShowCreateModal] = useState(false);
   const [currentScreenplayId, setCurrentScreenplayId] = useState(null);
+  const { openProjectCreationModal } = useProjectCreationModal();
   // Entity counts for current screenplay
   const [entityCounts, setEntityCounts] = useState({
     characters: 0,
@@ -836,13 +836,6 @@ export default function Dashboard() {
         />
       )}
 
-      {/* Project Creation Modal */}
-      <ProjectCreationModal
-        isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        onSuccess={handleProjectCreated}
-      />
-
       <div className="max-w-7xl mx-auto p-4 md:p-8 space-y-6 md:space-y-8">
         {/* Low Credit Banner */}
         <LowCreditBanner />
@@ -924,7 +917,7 @@ export default function Dashboard() {
               <p className="text-sm text-base-content/60 mt-1">Manage your screenplays and continue your work</p>
             </div>
             <button
-              onClick={() => setShowCreateModal(true)}
+              onClick={() => openProjectCreationModal({ onSuccess: handleProjectCreated })}
               className="inline-flex items-center gap-2 px-4 py-2 bg-cinema-red hover:bg-cinema-red/90 text-base-content rounded-lg transition-all duration-300 font-medium text-sm shadow-sm hover:shadow-md min-h-[40px]"
             >
               <Plus className="w-4 h-4" />
@@ -1179,7 +1172,7 @@ export default function Dashboard() {
                 Write a screenplay, generate videos, or compose clips. Your creative journey begins here.
               </p>
               <button
-                onClick={() => setShowCreateModal(true)}
+                onClick={() => openProjectCreationModal({ onSuccess: handleProjectCreated })}
                 className="inline-flex items-center gap-2 px-4 py-2 bg-cinema-red hover:bg-cinema-red/90 text-base-content rounded-lg transition-all duration-300 font-medium text-sm shadow-sm hover:shadow-md min-h-[40px]"
               >
                 <Plus className="w-5 h-5" />
