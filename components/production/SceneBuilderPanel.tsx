@@ -1172,6 +1172,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   // 🔥 NEW: Location Media Library query moved to after locationId declaration
   const [fullSceneContent, setFullSceneContent] = useState<Record<string, string>>({}); // sceneId -> full content
   const [isLoadingSceneContent, setIsLoadingSceneContent] = useState<Record<string, boolean>>({}); // sceneId -> loading state
+  const [sceneContentRefreshTick, setSceneContentRefreshTick] = useState(0);
   
   // Phase 2: Scene selection state
   const [selectedSceneId, setSelectedSceneId] = useState<string | null>(null);
@@ -1653,13 +1654,34 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   // Props enrichment is now handled by usePropReferences hook (see above)
 
   // Fetch full scene content when scene is selected
+  // Refresh preview content when the user returns focus to Scene Builder so recent script edits are reflected.
+  useEffect(() => {
+    const triggerRefresh = () => {
+      setSceneContentRefreshTick(prev => prev + 1);
+    };
+
+    const onVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        triggerRefresh();
+      }
+    };
+
+    window.addEventListener('focus', triggerRefresh);
+    document.addEventListener('visibilitychange', onVisibilityChange);
+
+    return () => {
+      window.removeEventListener('focus', triggerRefresh);
+      document.removeEventListener('visibilitychange', onVisibilityChange);
+    };
+  }, []);
+
   useEffect(() => {
     const effectName = 'fetchSceneContent';
     const now = Date.now();
     const runInfo = useEffectRunCountsRef.current[effectName] || { count: 0, lastRun: 0, lastDeps: null };
     runInfo.count++;
     const timeSinceLastRun = now - runInfo.lastRun;
-    const depsChanged = JSON.stringify([selectedSceneId, projectId, currentSceneContentBoundaryKey]) !== JSON.stringify(runInfo.lastDeps);
+    const depsChanged = JSON.stringify([selectedSceneId, projectId, currentSceneContentBoundaryKey, sceneContentRefreshTick]) !== JSON.stringify(runInfo.lastDeps);
     
     if (ENABLE_SCENEBUILDER_DIAGNOSTICS) {
       sceneBuilderLogger.debug(`[${effectName}] Run #${runInfo.count} | Time since last: ${timeSinceLastRun}ms | Deps changed: ${depsChanged}`, {
@@ -1674,7 +1696,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     }
     
     runInfo.lastRun = now;
-    runInfo.lastDeps = [selectedSceneId, projectId, currentSceneContentBoundaryKey];
+    runInfo.lastDeps = [selectedSceneId, projectId, currentSceneContentBoundaryKey, sceneContentRefreshTick];
     useEffectRunCountsRef.current[effectName] = runInfo;
     
     const fetchSceneContent = async () => {
@@ -1695,7 +1717,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
         return;
       }
       
-      const sceneContentKey = `${selectedSceneId}:${scene.fountain.startLine}:${scene.fountain.endLine}`;
+      const sceneContentKey = `${selectedSceneId}:${scene.fountain.startLine}:${scene.fountain.endLine}:${sceneContentRefreshTick}`;
       // Check if already loaded for this exact boundary window.
       if (
         fullSceneContent[selectedSceneId] &&
@@ -1760,7 +1782,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     };
     
     fetchSceneContent();
-  }, [selectedSceneId, projectId, getToken, currentScene, currentSceneContentBoundaryKey]);
+  }, [selectedSceneId, projectId, getToken, currentScene, currentSceneContentBoundaryKey, sceneContentRefreshTick]);
 
   // Phase 2.2: Auto-analyze scene when selectedSceneId changes (Feature 0136)
   // BUT: Only auto-analyze if user has explicitly confirmed (not on initial selection)
