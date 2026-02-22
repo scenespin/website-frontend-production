@@ -99,7 +99,8 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
             style={{
               marginLeft: 'auto',
               marginRight: 'auto',
-              width: `min(var(--preview-dialogue-width, ${baseDialogueWidth}rem), 100%)`,
+              width: 'fit-content',
+              maxWidth: `min(var(--preview-dialogue-width, ${baseDialogueWidth}rem), 100%)`,
               paddingLeft: 'var(--preview-parenthetical-inset, 1.25rem)',
               paddingRight: 'var(--preview-parenthetical-inset, 1.25rem)',
               boxSizing: 'border-box',
@@ -209,7 +210,7 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
           .screenplay-preview-container .screenplay-parenthetical {
             margin-left: auto !important;
             margin-right: auto !important;
-            width: var(--preview-dialogue-width) !important;
+            width: fit-content !important;
             max-width: 100% !important;
             padding-left: var(--preview-parenthetical-inset) !important;
             padding-right: var(--preview-parenthetical-inset) !important;
@@ -243,8 +244,8 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
           .screenplay-preview-container .screenplay-parenthetical {
             margin-left: auto !important;
             margin-right: auto !important;
-            width: var(--preview-dialogue-width) !important;
-            max-width: 100% !important;
+            width: fit-content !important;
+            max-width: var(--preview-dialogue-width) !important;
             padding-left: var(--preview-parenthetical-inset) !important;
             padding-right: var(--preview-parenthetical-inset) !important;
             box-sizing: border-box !important;
@@ -275,6 +276,8 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
           }
 
           .screenplay-preview-container .screenplay-parenthetical {
+            width: fit-content !important;
+            max-width: var(--preview-dialogue-width) !important;
             padding-left: var(--preview-parenthetical-inset) !important;
             padding-right: var(--preview-parenthetical-inset) !important;
             box-sizing: border-box !important;
