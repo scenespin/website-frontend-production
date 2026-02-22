@@ -1,8 +1,7 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo } from 'react';
 import { parseFountain, ParsedElement, SCREENPLAY_FORMAT } from '@/utils/pdfExport';
-import { useDrawer } from '@/contexts/DrawerContext';
 
 interface ScreenplayPreviewProps {
   content: string;
@@ -16,21 +15,6 @@ function inchesToRem(inches: number): string {
 }
 
 export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
-  const { isDrawerOpen } = useDrawer();
-  const [isDesktop, setIsDesktop] = useState(false);
-
-  useEffect(() => {
-    const updateIsDesktop = () => {
-      setIsDesktop(window.innerWidth >= 768);
-    };
-
-    updateIsDesktop();
-    window.addEventListener('resize', updateIsDesktop);
-    return () => window.removeEventListener('resize', updateIsDesktop);
-  }, []);
-
-  const rightRailOffset = isDesktop ? (isDrawerOpen ? '30rem' : '3.5rem') : '0rem';
-
   // Parse Fountain content into elements
   const elements = useMemo(() => {
     if (!content.trim()) {
@@ -59,8 +43,9 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
             key={key}
             className="font-bold uppercase mb-3 screenplay-scene"
             style={{
-              marginLeft: 0,
-              marginRight: 0,
+              marginLeft: 'auto',
+              marginRight: 'auto',
+              maxWidth: `min(var(--preview-action-width, ${baseActionWidth}rem), 100%)`,
               fontFamily: 'Courier, monospace',
               fontSize: '12pt',
             }}
@@ -75,8 +60,8 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
             key={key}
             className="mb-1 screenplay-action"
             style={{
-              marginLeft: 0,
-              marginRight: 0,
+              marginLeft: 'auto',
+              marginRight: 'auto',
               maxWidth: `min(var(--preview-action-width, ${baseActionWidth}rem), 100%)`,
               fontFamily: 'Courier, monospace',
               fontSize: '12pt',
@@ -97,7 +82,6 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
               marginLeft: 'auto',
               marginRight: 'auto',
               maxWidth: `min(var(--preview-dialogue-width, ${baseDialogueWidth}rem), 100%)`,
-              paddingLeft: 'var(--preview-character-center-offset, 0.75rem)',
               textAlign: 'center',
               fontFamily: 'Courier, monospace',
               fontSize: '12pt',
@@ -151,8 +135,9 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
             key={key}
             className="mt-3 mb-3 uppercase screenplay-transition"
             style={{
-              marginLeft: 0,
-              marginRight: 0,
+              marginLeft: 'auto',
+              marginRight: 'auto',
+              maxWidth: `min(var(--preview-action-width, ${baseActionWidth}rem), 100%)`,
               textAlign: 'right',
               fontFamily: 'Courier, monospace',
               fontSize: '12pt',
@@ -184,18 +169,14 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
   return (
     <>
       <style jsx global>{`
-        .screenplay-preview-viewport {
-          --preview-usable-left-offset: 0rem;
-          --preview-usable-right-offset: 0rem;
-        }
-
         .screenplay-preview-container {
-          --preview-frame-max-width: 72rem;
+          --preview-frame-max-width: 76rem;
           --preview-frame-padding-x: clamp(1rem, 2.2vw, 1.75rem);
-          --preview-action-width: 45rem;
-          --preview-character-center-offset: 0.75rem;
+          --preview-action-width: 52rem;
           --preview-parenthetical-width: 24rem;
           --preview-dialogue-width: 32rem;
+          box-sizing: border-box;
+          width: 100%;
         }
 
         @media (max-width: 767px) {
@@ -203,7 +184,6 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
             --preview-frame-max-width: 100%;
             --preview-frame-padding-x: 0.75rem;
             --preview-action-width: 100%;
-            --preview-character-center-offset: 0.25rem;
             --preview-parenthetical-width: min(20rem, calc(100% - 2.5rem));
             --preview-dialogue-width: min(22rem, calc(100% - 2.75rem));
             padding: 0.75rem !important;
@@ -213,15 +193,14 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
           .screenplay-preview-container .screenplay-scene,
           .screenplay-preview-container .screenplay-action,
           .screenplay-preview-container .screenplay-transition {
-            margin-left: 0 !important;
-            margin-right: 0 !important;
+            margin-left: auto !important;
+            margin-right: auto !important;
             max-width: 100% !important;
           }
           .screenplay-preview-container .screenplay-character {
             margin-left: auto !important;
             margin-right: auto !important;
             text-align: center !important;
-            padding-left: var(--preview-character-center-offset) !important;
             max-width: var(--preview-dialogue-width) !important;
           }
           .screenplay-preview-container .screenplay-parenthetical {
@@ -237,15 +216,10 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
         }
 
         @media (min-width: 768px) and (max-width: 1024px) {
-          .screenplay-preview-viewport {
-            --preview-usable-right-offset: 3.5rem;
-          }
-
           .screenplay-preview-container {
-            --preview-frame-max-width: 70rem;
+            --preview-frame-max-width: 72rem;
             --preview-frame-padding-x: 1.25rem;
-            --preview-action-width: 50rem;
-            --preview-character-center-offset: 0.55rem;
+            --preview-action-width: 48rem;
             --preview-parenthetical-width: 23rem;
             --preview-dialogue-width: 31rem;
             padding-left: var(--preview-frame-padding-x) !important;
@@ -255,7 +229,6 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
             margin-left: auto !important;
             margin-right: auto !important;
             text-align: center !important;
-            padding-left: var(--preview-character-center-offset) !important;
             max-width: var(--preview-dialogue-width) !important;
           }
           .screenplay-preview-container .screenplay-parenthetical {
@@ -271,15 +244,10 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
         }
 
         @media (min-width: 1025px) {
-          .screenplay-preview-viewport {
-            --preview-usable-right-offset: 3.5rem;
-          }
-
           .screenplay-preview-container .screenplay-character {
             margin-left: auto !important;
             margin-right: auto !important;
             text-align: center !important;
-            padding-left: var(--preview-character-center-offset) !important;
             max-width: var(--preview-dialogue-width) !important;
           }
 
@@ -291,10 +259,8 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
         }
       `}</style>
       <div
-        className="h-full overflow-auto screenplay-preview-viewport"
-        style={{
-          ['--preview-usable-right-offset' as string]: rightRailOffset,
-        }}
+        className="h-full overflow-auto"
+        style={{ overflowX: 'hidden' }}
       >
         <div
           className="screenplay-preview-container"
@@ -305,8 +271,6 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
           paddingRight: 'var(--preview-frame-padding-x)',
           margin: '0 auto',
           maxWidth: 'var(--preview-frame-max-width)',
-          transform:
-            'translateX(calc((var(--preview-usable-left-offset, 0rem) - var(--preview-usable-right-offset, 0rem)) / 2))',
           fontFamily: 'Courier, monospace',
           fontSize: '12pt',
           lineHeight: '1.5',
