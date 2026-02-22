@@ -28,6 +28,10 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
   const bottomMargin = inchesToRem(SCREENPLAY_FORMAT.marginBottom);
   const baseActionWidth = SCREENPLAY_FORMAT.width.action * 6;
   const baseDialogueWidth = SCREENPLAY_FORMAT.width.dialogue * 6;
+  const baseParentheticalWidth = SCREENPLAY_FORMAT.width.parenthetical * 6;
+  const baseCharacterIndent = SCREENPLAY_FORMAT.indent.character * 6;
+  const baseParentheticalIndent = SCREENPLAY_FORMAT.indent.parenthetical * 6;
+  const baseDialogueIndent = SCREENPLAY_FORMAT.indent.dialogue * 6;
 
   const renderElement = (element: ParsedElement, index: number) => {
     const key = `element-${index}`;
@@ -42,8 +46,8 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
             key={key}
             className="font-bold uppercase mb-3 screenplay-scene"
             style={{
-              marginLeft: 'auto',
-              marginRight: 'auto',
+              marginLeft: 0,
+              marginRight: 0,
               maxWidth: `min(var(--preview-action-width, ${baseActionWidth}rem), 100%)`,
               fontFamily: 'Courier, monospace',
               fontSize: '12pt',
@@ -59,8 +63,8 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
             key={key}
             className="mb-1 screenplay-action"
             style={{
-              marginLeft: 'auto',
-              marginRight: 'auto',
+              marginLeft: 0,
+              marginRight: 0,
               maxWidth: `min(var(--preview-action-width, ${baseActionWidth}rem), 100%)`,
               fontFamily: 'Courier, monospace',
               fontSize: '12pt',
@@ -78,10 +82,10 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
             key={key}
             className="mt-3 mb-1 screenplay-character"
             style={{
-              marginLeft: 'auto',
+              marginLeft: `var(--preview-character-indent, ${baseCharacterIndent}rem)`,
               marginRight: 'auto',
-              maxWidth: `min(var(--preview-dialogue-width, ${baseDialogueWidth}rem), 100%)`,
-              textAlign: 'center',
+              width: `min(var(--preview-dialogue-width, ${baseDialogueWidth}rem), calc(100% - var(--preview-character-indent, ${baseCharacterIndent}rem)))`,
+              textAlign: 'left',
               fontFamily: 'Courier, monospace',
               fontSize: '12pt',
               fontWeight: 'normal',
@@ -97,13 +101,9 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
             key={key}
             className="mb-1 screenplay-parenthetical"
             style={{
-              marginLeft: 'auto',
+              marginLeft: `var(--preview-parenthetical-indent, ${baseParentheticalIndent}rem)`,
               marginRight: 'auto',
-              width: 'fit-content',
-              maxWidth: `min(var(--preview-dialogue-width, ${baseDialogueWidth}rem), 100%)`,
-              paddingLeft: 'var(--preview-parenthetical-inset, 1.25rem)',
-              paddingRight: 'var(--preview-parenthetical-inset, 1.25rem)',
-              boxSizing: 'border-box',
+              width: `min(var(--preview-parenthetical-width, ${baseParentheticalWidth}rem), calc(100% - var(--preview-parenthetical-indent, ${baseParentheticalIndent}rem)))`,
               fontFamily: 'Courier, monospace',
               fontSize: '12pt',
               wordWrap: 'break-word',
@@ -119,7 +119,7 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
             key={key}
             className="mb-3 screenplay-dialogue"
             style={{
-              marginLeft: 'auto',
+              marginLeft: `var(--preview-dialogue-indent, ${baseDialogueIndent}rem)`,
               marginRight: 'auto',
               width: `min(var(--preview-dialogue-width, ${baseDialogueWidth}rem), 100%)`,
               fontFamily: 'Courier, monospace',
@@ -138,8 +138,8 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
             key={key}
             className="mt-3 mb-3 uppercase screenplay-transition"
             style={{
-              marginLeft: 'auto',
-              marginRight: 'auto',
+              marginLeft: 0,
+              marginRight: 0,
               maxWidth: `min(var(--preview-action-width, ${baseActionWidth}rem), 100%)`,
               textAlign: 'right',
               fontFamily: 'Courier, monospace',
@@ -177,7 +177,10 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
           --preview-frame-padding-x: clamp(1rem, 2.2vw, 1.75rem);
           --preview-action-width: 52rem;
           --preview-dialogue-width: 30rem;
-          --preview-parenthetical-inset: 1.25rem;
+          --preview-character-indent: 9rem;
+          --preview-parenthetical-indent: 7rem;
+          --preview-parenthetical-width: 24rem;
+          --preview-dialogue-indent: 7rem;
           box-sizing: border-box;
           width: 100%;
         }
@@ -187,8 +190,11 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
             --preview-frame-max-width: 100%;
             --preview-frame-padding-x: 0.75rem;
             --preview-action-width: 100%;
-            --preview-dialogue-width: min(22rem, calc(100% - 1.5rem));
-            --preview-parenthetical-inset: 0.8rem;
+            --preview-dialogue-width: min(22rem, calc(100% - 2.25rem));
+            --preview-character-indent: clamp(3rem, 16vw, 5rem);
+            --preview-parenthetical-indent: clamp(2.25rem, 14vw, 4rem);
+            --preview-parenthetical-width: min(20rem, calc(100% - 2.5rem));
+            --preview-dialogue-indent: clamp(2.5rem, 12vw, 4.5rem);
             padding: 0.75rem !important;
             font-size: clamp(10pt, 2.8vw, 12pt) !important;
             line-height: 1.45 !important;
@@ -196,31 +202,26 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
           .screenplay-preview-container .screenplay-scene,
           .screenplay-preview-container .screenplay-action,
           .screenplay-preview-container .screenplay-transition {
-            margin-left: auto !important;
-            margin-right: auto !important;
+            margin-left: 0 !important;
+            margin-right: 0 !important;
             max-width: 100% !important;
           }
           .screenplay-preview-container .screenplay-character {
-            margin-left: auto !important;
+            margin-left: var(--preview-character-indent) !important;
             margin-right: auto !important;
-            text-align: center !important;
-            width: var(--preview-dialogue-width) !important;
-            max-width: 100% !important;
+            text-align: left !important;
+            width: min(var(--preview-dialogue-width), calc(100% - var(--preview-character-indent))) !important;
           }
           .screenplay-preview-container .screenplay-parenthetical {
-            margin-left: auto !important;
+            margin-left: var(--preview-parenthetical-indent) !important;
             margin-right: auto !important;
-            width: fit-content !important;
-            max-width: 100% !important;
-            padding-left: var(--preview-parenthetical-inset) !important;
-            padding-right: var(--preview-parenthetical-inset) !important;
-            box-sizing: border-box !important;
+            width: min(var(--preview-parenthetical-width), calc(100% - var(--preview-parenthetical-indent))) !important;
           }
           .screenplay-preview-container .screenplay-dialogue {
-            margin-left: auto !important;
+            margin-left: var(--preview-dialogue-indent) !important;
             margin-right: auto !important;
             width: var(--preview-dialogue-width) !important;
-            max-width: 100% !important;
+            max-width: calc(100% - var(--preview-dialogue-indent)) !important;
           }
         }
 
@@ -230,57 +231,52 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
             --preview-frame-padding-x: 1.25rem;
             --preview-action-width: 48rem;
             --preview-dialogue-width: 29rem;
-            --preview-parenthetical-inset: 1.1rem;
+            --preview-character-indent: 7.5rem;
+            --preview-parenthetical-indent: 5.75rem;
+            --preview-parenthetical-width: 23rem;
+            --preview-dialogue-indent: 5.5rem;
             padding-left: var(--preview-frame-padding-x) !important;
             padding-right: var(--preview-frame-padding-x) !important;
           }
           .screenplay-preview-container .screenplay-character {
-            margin-left: auto !important;
+            margin-left: var(--preview-character-indent) !important;
             margin-right: auto !important;
-            text-align: center !important;
-            width: var(--preview-dialogue-width) !important;
-            max-width: 100% !important;
+            text-align: left !important;
+            width: min(var(--preview-dialogue-width), calc(100% - var(--preview-character-indent))) !important;
           }
           .screenplay-preview-container .screenplay-parenthetical {
-            margin-left: auto !important;
+            margin-left: var(--preview-parenthetical-indent) !important;
             margin-right: auto !important;
-            width: fit-content !important;
-            max-width: var(--preview-dialogue-width) !important;
-            padding-left: var(--preview-parenthetical-inset) !important;
-            padding-right: var(--preview-parenthetical-inset) !important;
-            box-sizing: border-box !important;
+            width: min(var(--preview-parenthetical-width), calc(100% - var(--preview-parenthetical-indent))) !important;
           }
           .screenplay-preview-container .screenplay-dialogue {
-            margin-left: auto !important;
+            margin-left: var(--preview-dialogue-indent) !important;
             margin-right: auto !important;
             width: var(--preview-dialogue-width) !important;
-            max-width: 100% !important;
+            max-width: calc(100% - var(--preview-dialogue-indent)) !important;
           }
         }
 
         @media (min-width: 1025px) {
           .screenplay-preview-container .screenplay-character {
-            margin-left: auto !important;
+            margin-left: var(--preview-character-indent) !important;
             margin-right: auto !important;
-            text-align: center !important;
-            width: var(--preview-dialogue-width) !important;
-            max-width: 100% !important;
+            text-align: left !important;
+            width: min(var(--preview-dialogue-width), calc(100% - var(--preview-character-indent))) !important;
           }
 
           .screenplay-preview-container .screenplay-parenthetical,
           .screenplay-preview-container .screenplay-dialogue {
-            margin-left: auto !important;
+            margin-left: var(--preview-dialogue-indent) !important;
             margin-right: auto !important;
             width: var(--preview-dialogue-width) !important;
-            max-width: 100% !important;
+            max-width: calc(100% - var(--preview-dialogue-indent)) !important;
           }
 
           .screenplay-preview-container .screenplay-parenthetical {
-            width: fit-content !important;
-            max-width: var(--preview-dialogue-width) !important;
-            padding-left: var(--preview-parenthetical-inset) !important;
-            padding-right: var(--preview-parenthetical-inset) !important;
-            box-sizing: border-box !important;
+            margin-left: var(--preview-parenthetical-indent) !important;
+            width: min(var(--preview-parenthetical-width), calc(100% - var(--preview-parenthetical-indent))) !important;
+            max-width: none !important;
           }
         }
       `}</style>
