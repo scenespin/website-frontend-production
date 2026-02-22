@@ -926,16 +926,18 @@ Tip:
                 </button>
             )}
             
-            {/* FAB Group - Mobile & Desktop */}
-            <AgentFABGroup
-                onLaunchScreenwriter={handleLaunchScreenwriter}
-                onLaunchRewrite={handleLaunchRewrite}
-                onWrydaTabClick={handleWrydaTabButton}
-                hasSelection={hasSelection}
-                selectedText={selectedText}
-                isDrawerOpen={isDrawerOpen}
-                isMobile={isMobile}
-            />
+            {/* FAB Group - Mobile & Desktop (hidden in preview mode) */}
+            {!isPreviewMode && (
+                <AgentFABGroup
+                    onLaunchScreenwriter={handleLaunchScreenwriter}
+                    onLaunchRewrite={handleLaunchRewrite}
+                    onWrydaTabClick={handleWrydaTabButton}
+                    hasSelection={hasSelection}
+                    selectedText={selectedText}
+                    isDrawerOpen={isDrawerOpen}
+                    isMobile={isMobile}
+                />
+            )}
             
             {/* Scene Type Dropdown */}
             {showSceneTypeDropdown && sceneTypeDropdownPosition && (
