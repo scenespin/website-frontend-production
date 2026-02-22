@@ -31,10 +31,15 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
   }, [content]);
 
   // Convert formatting constants to CSS values
-  const leftMargin = inchesToRem(SCREENPLAY_FORMAT.marginLeft);
-  const rightMargin = inchesToRem(SCREENPLAY_FORMAT.marginRight);
   const topMargin = inchesToRem(SCREENPLAY_FORMAT.marginTop);
   const bottomMargin = inchesToRem(SCREENPLAY_FORMAT.marginBottom);
+  const maxPageWidth = inchesToRem(SCREENPLAY_FORMAT.pageWidth);
+  const actionWidth = inchesToRem(SCREENPLAY_FORMAT.width.action);
+  const dialogueWidth = inchesToRem(SCREENPLAY_FORMAT.width.dialogue);
+  const parentheticalWidth = inchesToRem(SCREENPLAY_FORMAT.width.parenthetical);
+  const characterIndent = inchesToRem(SCREENPLAY_FORMAT.indent.character);
+  const parentheticalIndent = inchesToRem(SCREENPLAY_FORMAT.indent.parenthetical);
+  const dialogueIndent = inchesToRem(SCREENPLAY_FORMAT.indent.dialogue);
 
   const renderElement = (element: ParsedElement, index: number) => {
     const key = `element-${index}`;
@@ -49,8 +54,8 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
             key={key}
             className="font-bold uppercase mb-3 screenplay-scene"
             style={{
-              marginLeft: leftMargin,
-              marginRight: rightMargin,
+              marginLeft: 0,
+              marginRight: 0,
               fontFamily: 'Courier, monospace',
               fontSize: '12pt',
             }}
@@ -65,9 +70,9 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
             key={key}
             className="mb-1 screenplay-action"
             style={{
-              marginLeft: leftMargin,
-              marginRight: rightMargin,
-              maxWidth: `calc(100% - ${leftMargin} - ${rightMargin})`,
+              marginLeft: 0,
+              marginRight: 0,
+              maxWidth: `min(${actionWidth}, 100%)`,
               fontFamily: 'Courier, monospace',
               fontSize: '12pt',
               wordWrap: 'break-word',
@@ -84,8 +89,8 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
             key={key}
             className="mt-3 mb-1 screenplay-character"
             style={{
-              marginLeft: `calc(${leftMargin} + ${inchesToRem(SCREENPLAY_FORMAT.indent.character)})`,
-              marginRight: rightMargin,
+              marginLeft: characterIndent,
+              marginRight: 0,
               fontFamily: 'Courier, monospace',
               fontSize: '12pt',
               fontWeight: 'normal',
@@ -101,9 +106,9 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
             key={key}
             className="mb-1 screenplay-parenthetical"
             style={{
-              marginLeft: `calc(${leftMargin} + ${inchesToRem(SCREENPLAY_FORMAT.indent.parenthetical)})`,
-              marginRight: rightMargin,
-              maxWidth: inchesToRem(SCREENPLAY_FORMAT.width.parenthetical),
+              marginLeft: parentheticalIndent,
+              marginRight: 0,
+              maxWidth: `min(${parentheticalWidth}, calc(100% - ${parentheticalIndent}))`,
               fontFamily: 'Courier, monospace',
               fontSize: '12pt',
               wordWrap: 'break-word',
@@ -119,9 +124,9 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
             key={key}
             className="mb-3 screenplay-dialogue"
             style={{
-              marginLeft: `calc(${leftMargin} + ${inchesToRem(SCREENPLAY_FORMAT.indent.dialogue)})`,
-              marginRight: rightMargin,
-              maxWidth: inchesToRem(SCREENPLAY_FORMAT.width.dialogue),
+              marginLeft: dialogueIndent,
+              marginRight: 0,
+              maxWidth: `min(${dialogueWidth}, calc(100% - ${dialogueIndent}))`,
               fontFamily: 'Courier, monospace',
               fontSize: '12pt',
               wordWrap: 'break-word',
@@ -138,8 +143,8 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
             key={key}
             className="mt-3 mb-3 uppercase screenplay-transition"
             style={{
-              marginLeft: leftMargin,
-              marginRight: rightMargin,
+              marginLeft: 0,
+              marginRight: 0,
               textAlign: 'right',
               fontFamily: 'Courier, monospace',
               fontSize: '12pt',
@@ -171,38 +176,50 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
   return (
     <>
       <style jsx global>{`
-        @media (max-width: 640px) {
+        @media (max-width: 767px) {
           .screenplay-preview-container {
-            padding: 0.5rem !important;
-            font-size: clamp(10pt, 2.5vw, 12pt) !important;
+            padding: 0.75rem !important;
+            font-size: clamp(10pt, 2.8vw, 12pt) !important;
+            line-height: 1.45 !important;
           }
-          .screenplay-preview-container .screenplay-scene {
-            margin-left: 0.5rem !important;
-            margin-right: 0.5rem !important;
-            margin-bottom: 0.5rem !important;
-          }
-          .screenplay-preview-container .screenplay-action {
-            margin-left: 0.5rem !important;
-            margin-right: 0.5rem !important;
-            max-width: calc(100% - 1rem) !important;
+          .screenplay-preview-container .screenplay-scene,
+          .screenplay-preview-container .screenplay-action,
+          .screenplay-preview-container .screenplay-transition {
+            margin-left: 0 !important;
+            margin-right: 0 !important;
+            max-width: 100% !important;
           }
           .screenplay-preview-container .screenplay-character {
-            margin-left: 0.5rem !important;
-            margin-right: 0.5rem !important;
+            margin-left: clamp(3rem, 16vw, 5rem) !important;
+            margin-right: 0 !important;
           }
           .screenplay-preview-container .screenplay-parenthetical {
-            margin-left: 0.5rem !important;
-            margin-right: 0.5rem !important;
-            max-width: calc(100% - 1rem) !important;
+            margin-left: clamp(2.25rem, 14vw, 4rem) !important;
+            margin-right: 0 !important;
+            max-width: min(20rem, calc(100% - 2.5rem)) !important;
           }
           .screenplay-preview-container .screenplay-dialogue {
-            margin-left: 0.5rem !important;
-            margin-right: 0.5rem !important;
-            max-width: calc(100% - 1rem) !important;
+            margin-left: clamp(2.5rem, 12vw, 4.5rem) !important;
+            margin-right: 0 !important;
+            max-width: min(22rem, calc(100% - 2.75rem)) !important;
           }
-          .screenplay-preview-container .screenplay-transition {
-            margin-left: 0.5rem !important;
-            margin-right: 0.5rem !important;
+        }
+
+        @media (min-width: 768px) and (max-width: 1024px) {
+          .screenplay-preview-container {
+            padding-left: 1rem !important;
+            padding-right: 1rem !important;
+          }
+          .screenplay-preview-container .screenplay-character {
+            margin-left: clamp(7rem, 14vw, 9.5rem) !important;
+          }
+          .screenplay-preview-container .screenplay-parenthetical {
+            margin-left: clamp(5.25rem, 11vw, 7.5rem) !important;
+            max-width: min(24rem, calc(100% - 5.5rem)) !important;
+          }
+          .screenplay-preview-container .screenplay-dialogue {
+            margin-left: clamp(4.5rem, 10vw, 6.5rem) !important;
+            max-width: min(30rem, calc(100% - 4.75rem)) !important;
           }
         }
       `}</style>
@@ -211,8 +228,10 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
         style={{
           paddingTop: topMargin,
           paddingBottom: bottomMargin,
-          paddingLeft: leftMargin,
-          paddingRight: rightMargin,
+          paddingLeft: 'clamp(0.75rem, 2.5vw, 1.5rem)',
+          paddingRight: 'clamp(0.75rem, 2.5vw, 1.5rem)',
+          margin: '0 auto',
+          maxWidth: `min(100%, ${maxPageWidth})`,
           fontFamily: 'Courier, monospace',
           fontSize: '12pt',
           lineHeight: '1.5',
