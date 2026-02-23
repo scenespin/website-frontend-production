@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
 import { X, GitBranch, ExternalLink, RotateCcw, Loader2, HelpCircle, Save, Undo2, Info, ChevronDown, ChevronUp } from 'lucide-react';
+import { useAuth } from '@clerk/nextjs';
 import { useEditor } from '@/contexts/EditorContext';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { getFileCommits, getFileFromCommit, getDefaultBranch, getScreenplayFilePath, type GitHubConfig } from '@/utils/github';
@@ -26,6 +27,8 @@ interface Commit {
 }
 
 export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryModalProps) {
+    const { getToken } = useAuth();
+    const useBackendManualSave = process.env.NEXT_PUBLIC_ENABLE_GITHUB_BACKEND_MANUAL_SAVE === 'true';
     const { state, setContent } = useEditor();
     const { screenplayId } = useScreenplay();
     const [commits, setCommits] = useState<Commit[]>([]);
@@ -49,7 +52,7 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
                 if (configStr) {
                     const config = JSON.parse(configStr);
                     setGithubConfig({
-                        token: config.accessToken || config.token,
+                        token: config.accessToken || config.token || '',
                         owner: config.owner,
                         repo: config.repo
                     });
@@ -94,19 +97,63 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
         setLoading(true);
         setTokenExpired(false);
         try {
-            // Get default branch
-            const defaultBranch = await getDefaultBranch(githubConfig);
-            setBranch(defaultBranch);
-            
-            // Fetch commits
-            const fileCommits = await getFileCommits(githubConfig, screenplayGitHubPath, defaultBranch, 10);
-            setCommits(fileCommits);
+            if (useBackendManualSave) {
+                const token = await getToken({ template: 'wryda-backend' });
+                if (!token) {
+                    throw new Error('Unable to authenticate with backend. Please sign in again.');
+                }
+
+                const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://backend.wryda.ai';
+                const query = new URLSearchParams({
+                    screenplayId: screenplayId || '',
+                    owner: githubConfig.owner,
+                    repo: githubConfig.repo,
+                    limit: '10'
+                });
+
+                const response = await fetch(`${backendUrl}/api/github/screenplay/history?${query.toString()}`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                });
+                const payload = await response.json().catch(() => null);
+
+                if ((!response.ok || !payload?.success) && payload?.errorCode === 'GITHUB_NOT_CONNECTED' && githubConfig.token) {
+                    // Additive rollout safety: fallback to legacy client-read when backend token is not connected yet.
+                    const defaultBranch = await getDefaultBranch(githubConfig);
+                    setBranch(defaultBranch);
+                    const fileCommits = await getFileCommits(githubConfig, screenplayGitHubPath, defaultBranch, 10);
+                    setCommits(fileCommits);
+                } else if (!response.ok || !payload?.success) {
+                    const backendError = new Error(payload?.message || 'Failed to load version history');
+                    (backendError as Error & { errorCode?: string }).errorCode = payload?.errorCode;
+                    throw backendError;
+                } else {
+                    setBranch(payload.branch || 'main');
+                    setCommits(payload.commits || []);
+                }
+            } else {
+                // Get default branch
+                const defaultBranch = await getDefaultBranch(githubConfig);
+                setBranch(defaultBranch);
+                
+                // Fetch commits
+                const fileCommits = await getFileCommits(githubConfig, screenplayGitHubPath, defaultBranch, 10);
+                setCommits(fileCommits);
+            }
         } catch (error: any) {
             console.error('[VersionHistory] Failed to fetch commits:', error);
             
             // Check if this is an authentication error
             const errorMessage = error.message || '';
-            if (errorMessage.includes('Bad credentials') || errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
+            const errorCode = error.errorCode || '';
+            if (
+                errorMessage.includes('Bad credentials') ||
+                errorMessage.includes('401') ||
+                errorMessage.includes('Unauthorized') ||
+                errorCode === 'GITHUB_TOKEN_EXPIRED' ||
+                errorCode === 'GITHUB_NOT_CONNECTED'
+            ) {
                 setTokenExpired(true);
                 toast.error('Your GitHub connection has expired. Please reconnect.');
             } else {
@@ -132,7 +179,41 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
         setShowRestoreConfirm(false);
         
         try {
-            const content = await getFileFromCommit(githubConfig, screenplayGitHubPath, commitToRestore.sha);
+            let content: string;
+
+            if (useBackendManualSave) {
+                const token = await getToken({ template: 'wryda-backend' });
+                if (!token) {
+                    throw new Error('Unable to authenticate with backend. Please sign in again.');
+                }
+
+                const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://backend.wryda.ai';
+                const query = new URLSearchParams({
+                    screenplayId: screenplayId || '',
+                    owner: githubConfig.owner,
+                    repo: githubConfig.repo,
+                    commitSha: commitToRestore.sha
+                });
+
+                const response = await fetch(`${backendUrl}/api/github/screenplay/content?${query.toString()}`, {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                });
+                const payload = await response.json().catch(() => null);
+
+                if ((!response.ok || !payload?.success) && payload?.errorCode === 'GITHUB_NOT_CONNECTED' && githubConfig.token) {
+                    // Additive rollout safety: fallback to legacy client-read when backend token is not connected yet.
+                    content = await getFileFromCommit(githubConfig, screenplayGitHubPath, commitToRestore.sha);
+                } else if (!response.ok || !payload?.success) {
+                    throw new Error(payload?.message || 'Failed to restore version from backend');
+                } else {
+                    content = payload.content;
+                }
+            } else {
+                content = await getFileFromCommit(githubConfig, screenplayGitHubPath, commitToRestore.sha);
+            }
+
             setContent(content, true);
             toast.success(
                 `Restored! Your screenplay is now at: "${commitToRestore.message.split('\n')[0]}"\n\nPress Ctrl+Z to undo if needed.`,
@@ -276,6 +357,11 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
                                             <p className="text-xs text-gray-400">
                                                 Backups for this screenplay • {commits.length} version{commits.length !== 1 ? 's' : ''} found
                                             </p>
+                                            {useBackendManualSave && (
+                                                <p className="text-[11px] text-[#00D9FF] mt-1">
+                                                    Backend-token mode enabled
+                                                </p>
+                                            )}
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
