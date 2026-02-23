@@ -935,14 +935,15 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                                 onClick={onOpenVersionHistory}
                                 className="px-2 py-2 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-w-[40px] min-h-[40px] flex flex-col items-center justify-center transition-colors"
                             >
-                                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
-                                </svg>
+                                <span className="text-base">🕒</span>
                                 <span className="text-[9px] hidden sm:inline">HIST</span>
                             </button>
                         </div>
                     );
                 })()}
+                
+                {/* Feature 0111: Save Backup to GitHub - Actually commits to GitHub */}
+                <GitHubSaveButton />
 
                 {onOpenAIDisclosure && (
                     <div className="tooltip tooltip-bottom" data-tip="AI Use Disclosure report">
@@ -955,9 +956,6 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                         </button>
                     </div>
                 )}
-                
-                {/* Feature 0111: Save Backup to GitHub - Actually commits to GitHub */}
-                <GitHubSaveButton />
                 
                 {/* Divider */}
                 <div className="hidden md:block h-8 w-px bg-base-300 mx-2"></div>
