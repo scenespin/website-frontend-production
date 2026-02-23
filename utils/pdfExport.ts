@@ -458,424 +458,270 @@ export async function exportScreenplayToPDF(
   // Parse screenplay
   const elements = parseFountain(screenplay);
 
-  type SceneCoverage = Map<number, Set<string>>;
+  type LayoutOp = {
+    text: string;
+    x: number;
+    y: number;
+    align?: 'left' | 'center' | 'right';
+  };
 
-  function addSceneCoverage(
-    coverage: SceneCoverage,
-    page: number,
-    scene: string | null
-  ) {
-    if (!scene) return;
-    if (!coverage.has(page)) {
-      coverage.set(page, new Set<string>());
-    }
-    coverage.get(page)!.add(scene);
-  }
+  type LayoutPage = {
+    ops: LayoutOp[];
+    hasContinuedTop: boolean;
+    hasContinuedBottom: boolean;
+  };
 
-  function buildSceneCoverageByPage(): SceneCoverage {
-    const coverage: SceneCoverage = new Map<number, Set<string>>();
-    const lineHeightPt = SCREENPLAY_FORMAT.lineHeight;
-    const topY = inchesToPoints(SCREENPLAY_FORMAT.marginTop);
-    const bottomY = inchesToPoints(SCREENPLAY_FORMAT.pageHeight - SCREENPLAY_FORMAT.marginBottom);
-
-    let simPage = 1;
-    let simY = topY;
-    let simCurrentScene: string | null = null;
-
-    const simCheckPageBreak = (requiredLines: number = 1): boolean => {
-      const requiredSpace = requiredLines * lineHeightPt;
-      if (simY + requiredSpace > bottomY) {
-        simPage += 1;
-        simY = topY;
-        return true;
-      }
-      return false;
-    };
-
-    for (let i = 0; i < elements.length; i++) {
-      const element = elements[i];
-
-      switch (element.type) {
-        case 'blank': {
-          simY += lineHeightPt;
-          simCheckPageBreak(1);
-          break;
-        }
-
-        case 'scene': {
-          simCheckPageBreak(2);
-
-          let blankLinesBeforeScene = 0;
-          for (let j = i - 1; j >= 0; j--) {
-            if (elements[j].type === 'blank') {
-              blankLinesBeforeScene++;
-            } else {
-              break;
-            }
-          }
-
-          if (blankLinesBeforeScene < 2) {
-            simY += lineHeightPt * (2 - blankLinesBeforeScene);
-          } else if (blankLinesBeforeScene > 2) {
-            simY -= lineHeightPt * (blankLinesBeforeScene - 2);
-          }
-
-          simCurrentScene = element.text;
-          addSceneCoverage(coverage, simPage, simCurrentScene);
-          simY += lineHeightPt * 2;
-          break;
-        }
-
-        case 'action': {
-          const actionLines = wrapText(doc, element.text, SCREENPLAY_FORMAT.width.action);
-          simCheckPageBreak(actionLines.length);
-          if (actionLines.length > 0) {
-            addSceneCoverage(coverage, simPage, simCurrentScene);
-            simY += actionLines.length * lineHeightPt;
-          }
-          break;
-        }
-
-        case 'character': {
-          const nextElement = elements[i + 1];
-          const dialogueLines =
-            nextElement && nextElement.type === 'dialogue'
-              ? wrapText(doc, nextElement.text, SCREENPLAY_FORMAT.width.dialogue).length
-              : 0;
-          simCheckPageBreak(2 + dialogueLines);
-          simY += lineHeightPt; // Space before character
-          addSceneCoverage(coverage, simPage, simCurrentScene);
-          simY += lineHeightPt; // Character cue line
-          break;
-        }
-
-        case 'parenthetical': {
-          const parenLines = wrapText(doc, element.text, SCREENPLAY_FORMAT.width.parenthetical);
-          parenLines.forEach(() => {
-            simCheckPageBreak(1);
-            addSceneCoverage(coverage, simPage, simCurrentScene);
-            simY += lineHeightPt;
-          });
-          break;
-        }
-
-        case 'dialogue': {
-          const dialogueWrapped = wrapText(doc, element.text, SCREENPLAY_FORMAT.width.dialogue);
-          dialogueWrapped.forEach(() => {
-            simCheckPageBreak(1);
-            addSceneCoverage(coverage, simPage, simCurrentScene);
-            simY += lineHeightPt;
-          });
-          break;
-        }
-
-        case 'transition': {
-          simCheckPageBreak(2);
-          simY += lineHeightPt; // Space before transition
-          addSceneCoverage(coverage, simPage, simCurrentScene);
-          simY += lineHeightPt * 2; // Transition line + space after
-          break;
-        }
-      }
-    }
-
-    return coverage;
-  }
-
-  function buildContinuationPageSet(coverage: SceneCoverage): Set<number> {
-    const continuedPages = new Set<number>();
-    const sortedPages = Array.from(coverage.keys()).sort((a, b) => a - b);
-
-    for (let idx = 0; idx < sortedPages.length - 1; idx++) {
-      const page = sortedPages[idx];
-      const nextPage = page + 1;
-      const scenesCurrent = coverage.get(page);
-      const scenesNext = coverage.get(nextPage);
-
-      if (!scenesCurrent || !scenesNext) continue;
-
-      const sharesScene = Array.from(scenesCurrent).some((sceneId) => scenesNext.has(sceneId));
-      if (sharesScene) {
-        continuedPages.add(page);
-      }
-    }
-
-    return continuedPages;
-  }
-
-  const sceneCoverageByPage = buildSceneCoverageByPage();
-  const pagesWithContinuation = buildContinuationPageSet(sceneCoverageByPage);
-  
-  // Track position
-  let currentY = inchesToPoints(SCREENPLAY_FORMAT.marginTop);
+  const lineHeightPt = SCREENPLAY_FORMAT.lineHeight;
+  const topY = inchesToPoints(SCREENPLAY_FORMAT.marginTop);
   const maxY = inchesToPoints(SCREENPLAY_FORMAT.pageHeight - SCREENPLAY_FORMAT.marginBottom);
   const leftMargin = inchesToPoints(SCREENPLAY_FORMAT.marginLeft);
   const rightMarginX = inchesToPoints(SCREENPLAY_FORMAT.pageWidth - SCREENPLAY_FORMAT.marginRight);
-  let pageNumber = 0; // Title page is unnumbered; first script page should be 1.
-  
+
   // Bookmarks storage
   const bookmarks: Array<{ title: string; page: number }> = [];
-  
-  let currentCharacterCue: string | null = null;
-  
-  /**
-   * Add "(CONTINUED)" at bottom right of current page
-   */
-  function addContinuedBottom() {
-    const continuedY = maxY + 12; // Just below bottom margin
-    const continuedX = inchesToPoints(SCREENPLAY_FORMAT.pageNumberRight);
-    doc.setFontSize(SCREENPLAY_FORMAT.fontSize);
-    doc.text('(CONTINUED)', continuedX, continuedY, { align: 'right', baseline: 'top' });
-  }
-  
-  /**
-   * Add "CONTINUED:" at top right of new page
-   */
-  function addContinuedTop() {
-    const continuedY = inchesToPoints(SCREENPLAY_FORMAT.marginTop) - 12; // Just above top margin
-    const continuedX = inchesToPoints(SCREENPLAY_FORMAT.pageNumberRight);
-    doc.setFontSize(SCREENPLAY_FORMAT.fontSize);
-    doc.text('CONTINUED:', continuedX, continuedY, { align: 'right', baseline: 'top' });
-  }
-  
-  /**
-   * Add a new page
-   */
-  function addNewPage() {
-    const previousPage = pageNumber;
 
-    // Add "(CONTINUED)" at bottom only when adjacent pages share the same scene.
-    if (previousPage > 0 && pagesWithContinuation.has(previousPage)) {
-      addContinuedBottom();
+  const layoutPages: LayoutPage[] = [
+    { ops: [], hasContinuedTop: false, hasContinuedBottom: false },
+  ];
+  let layoutPageIndex = 0;
+  let layoutY = topY;
+  let layoutCurrentScene: string | null = null;
+  let layoutCurrentCharacterCue: string | null = null;
+
+  const currentLayoutPage = (): LayoutPage => layoutPages[layoutPageIndex];
+
+  const pushLayoutText = (
+    text: string,
+    x: number,
+    align: 'left' | 'center' | 'right' = 'left'
+  ) => {
+    currentLayoutPage().ops.push({ text, x, y: layoutY, align });
+    layoutY += lineHeightPt;
+  };
+
+  const breakToNextPage = (markContinuation: boolean) => {
+    if (markContinuation && layoutCurrentScene) {
+      currentLayoutPage().hasContinuedBottom = true;
     }
-    
-    doc.addPage();
-    pageNumber++;
-    currentY = inchesToPoints(SCREENPLAY_FORMAT.marginTop);
-    
-    // Add page number (not on first page)
-    const pageNumX = inchesToPoints(SCREENPLAY_FORMAT.pageNumberRight);
-    const pageNumY = inchesToPoints(SCREENPLAY_FORMAT.pageNumberTop);
-    doc.setFontSize(SCREENPLAY_FORMAT.fontSize);
-    doc.text(`${pageNumber}.`, pageNumX, pageNumY, { align: 'right', baseline: 'top' });
-    
-    // Add "CONTINUED:" at top only when previous page continues into this page.
-    if (pagesWithContinuation.has(pageNumber - 1)) {
-      addContinuedTop();
-    }
-    
-    // Add text watermark if specified (image watermarks handled by pdf-lib post-processing)
-    if (watermark && watermark.text && !watermark.image) {
-      addWatermark(doc, watermark);
-    }
-  }
-  
-  /**
-   * Check if we need a new page
-   */
-  function checkPageBreak(requiredLines: number = 1) {
-    const lineHeightPt = SCREENPLAY_FORMAT.lineHeight;
+
+    layoutPages.push({
+      ops: [],
+      hasContinuedTop: markContinuation && !!layoutCurrentScene,
+      hasContinuedBottom: false,
+    });
+    layoutPageIndex += 1;
+    layoutY = topY;
+  };
+
+  const ensureSpace = (requiredLines: number = 1, markContinuation: boolean = false): boolean => {
     const requiredSpace = requiredLines * lineHeightPt;
-    
-    if (currentY + requiredSpace > maxY) {
-      addNewPage();
+    if (layoutY + requiredSpace > maxY) {
+      breakToNextPage(markContinuation);
       return true;
     }
     return false;
-  }
-  
-  /**
-   * Add title page
-   */
-  function addTitlePage() {
-    const centerX = inchesToPoints(SCREENPLAY_FORMAT.pageWidth / 2);
-    const centerY = inchesToPoints(SCREENPLAY_FORMAT.pageHeight / 2);
-    
-    doc.setFontSize(SCREENPLAY_FORMAT.fontSize);
-    
-    // Title (centered, middle of page)
-    doc.text(title.toUpperCase(), centerX, centerY, {
-      align: 'center',
-      baseline: 'top',
-    });
-    
-    // Author (if provided)
-    if (author) {
-      doc.text(`by`, centerX, centerY + 48, {
-        align: 'center',
-        baseline: 'top',
-      });
-      doc.text(author, centerX, centerY + 72, {
-        align: 'center',
-        baseline: 'top',
-      });
-    }
-    
-    // Contact info (bottom left)
-    if (contact) {
-      const contactY = inchesToPoints(SCREENPLAY_FORMAT.pageHeight - 1.5);
-      const contactLines = contact.split('\n');
-      contactLines.forEach((line, idx) => {
-        doc.text(line, leftMargin, contactY + (idx * SCREENPLAY_FORMAT.lineHeight), { baseline: 'top' });
-      });
-    }
-    
-    // Add text watermark if specified (image watermarks handled by pdf-lib post-processing)
-    if (watermark && watermark.text && !watermark.image) {
-      addWatermark(doc, watermark);
-    }
-    
-    // Start screenplay on new page
-    addNewPage();
-  }
-  
-  // Add title page
-  addTitlePage();
-  
-  /**
-   * Process each element
-   */
+  };
+
+  const addContinuedCharacterCue = () => {
+    if (!layoutCurrentCharacterCue) return;
+    const continuedCue = layoutCurrentCharacterCue.includes("(CONT'D)")
+      ? layoutCurrentCharacterCue
+      : `${layoutCurrentCharacterCue} (CONT'D)`;
+    layoutY += lineHeightPt; // Space before continued cue
+    pushLayoutText(
+      continuedCue,
+      leftMargin + inchesToPoints(SCREENPLAY_FORMAT.indent.character)
+    );
+  };
+
+  // Single-source layout pass: all pagination decisions happen here.
   for (let i = 0; i < elements.length; i++) {
     const element = elements[i];
-    const lineHeightPt = SCREENPLAY_FORMAT.lineHeight;
-    
+
     switch (element.type) {
-      case 'blank':
-        currentCharacterCue = null;
-        currentY += lineHeightPt;
-        checkPageBreak();
+      case 'blank': {
+        layoutCurrentCharacterCue = null;
+        layoutY += lineHeightPt;
+        if (layoutY > maxY) {
+          breakToNextPage(false);
+        }
         break;
-        
-      case 'scene':
-        currentCharacterCue = null;
-        // Scene headings should not be orphaned
-        checkPageBreak(2);
-        
-        // Ensure consistent double spacing before scene headings (Fountain spec requirement)
-        // Count blank lines that have already been processed (they've already moved currentY)
+      }
+
+      case 'scene': {
+        layoutCurrentCharacterCue = null;
+        ensureSpace(2, false);
+
         let blankLinesBeforeScene = 0;
         for (let j = i - 1; j >= 0; j--) {
           if (elements[j].type === 'blank') {
             blankLinesBeforeScene++;
           } else {
-            // Found a non-blank element - stop counting
             break;
           }
         }
-        
-        // Scene headings need exactly 2 line heights of space before them
-        // Blank lines have already moved currentY down by blankLinesBeforeScene * lineHeightPt
+
         if (blankLinesBeforeScene < 2) {
-          // Too few blank lines - add the remaining space needed
-          currentY += lineHeightPt * (2 - blankLinesBeforeScene);
+          layoutY += lineHeightPt * (2 - blankLinesBeforeScene);
         } else if (blankLinesBeforeScene > 2) {
-          // Too many blank lines (from skipped notes/acts/synopsis) - reduce spacing to exactly 2
-          // Move currentY back up by the excess blank lines
-          currentY -= lineHeightPt * (blankLinesBeforeScene - 2);
+          layoutY -= lineHeightPt * (blankLinesBeforeScene - 2);
         }
-        // If blankLinesBeforeScene === 2, we're already at the correct spacing
-        
-        // Add bookmark
+
+        if (layoutY > maxY) {
+          breakToNextPage(false);
+        }
+
+        layoutCurrentScene = element.text;
+
         if (includeBookmarks && element.bookmark) {
           bookmarks.push({
             title: element.bookmark,
-            page: pageNumber,
+            page: layoutPageIndex + 1,
           });
         }
-        
-        doc.setFont(SCREENPLAY_FORMAT.fontFamily, 'normal');
-        doc.text(
+
+        pushLayoutText(
           element.text,
-          leftMargin + inchesToPoints(SCREENPLAY_FORMAT.indent.sceneHeading),
-          currentY,
-          { baseline: 'top' }
+          leftMargin + inchesToPoints(SCREENPLAY_FORMAT.indent.sceneHeading)
         );
-        doc.setFont(SCREENPLAY_FORMAT.fontFamily, 'normal');
-        
-        currentY += lineHeightPt * 2; // Extra space after scene heading
+        layoutY += lineHeightPt; // Extra spacing after scene heading
         break;
-        
-      case 'action':
-        currentCharacterCue = null;
+      }
+
+      case 'action': {
+        layoutCurrentCharacterCue = null;
         const actionX = leftMargin + inchesToPoints(SCREENPLAY_FORMAT.indent.action);
         const actionLines = wrapText(doc, element.text, SCREENPLAY_FORMAT.width.action);
-        
-        checkPageBreak(actionLines.length);
-        
+
         actionLines.forEach((line: string) => {
-          doc.text(line, actionX, currentY, { baseline: 'top' });
-          currentY += lineHeightPt;
+          ensureSpace(1, true);
+          pushLayoutText(line, actionX);
         });
         break;
-        
-      case 'character':
-        // Character names should not be orphaned from dialogue
+      }
+
+      case 'character': {
         const nextElement = elements[i + 1];
-        const dialogueLines = nextElement && nextElement.type === 'dialogue' 
-          ? wrapText(doc, nextElement.text, SCREENPLAY_FORMAT.width.dialogue).length
-          : 0;
-        
-        checkPageBreak(2 + dialogueLines);
-        
-        currentY += lineHeightPt; // Space before character
-        
-        currentCharacterCue = element.text;
+        const dialogueLines =
+          nextElement && nextElement.type === 'dialogue'
+            ? wrapText(doc, nextElement.text, SCREENPLAY_FORMAT.width.dialogue).length
+            : 0;
+
+        // Keep cue + first dialogue chunk together when possible.
+        ensureSpace(2 + dialogueLines, false);
+        layoutY += lineHeightPt; // Space before character
+
+        layoutCurrentCharacterCue = element.text;
         const charX = leftMargin + inchesToPoints(SCREENPLAY_FORMAT.indent.character);
-        doc.text(element.text, charX, currentY, { baseline: 'top' });
-        currentY += lineHeightPt;
+        pushLayoutText(element.text, charX);
         break;
-        
-      case 'parenthetical':
+      }
+
+      case 'parenthetical': {
         const parenX = leftMargin + inchesToPoints(SCREENPLAY_FORMAT.indent.parenthetical);
         const parenLines = wrapText(doc, element.text, SCREENPLAY_FORMAT.width.parenthetical);
-        
+
         parenLines.forEach((line: string) => {
-          const didBreak = checkPageBreak();
-          if (didBreak && currentCharacterCue) {
-            currentY += lineHeightPt;
-            const continuedCue = currentCharacterCue.includes("(CONT'D)")
-              ? currentCharacterCue
-              : `${currentCharacterCue} (CONT'D)`;
-            const continuedCharX = leftMargin + inchesToPoints(SCREENPLAY_FORMAT.indent.character);
-            doc.text(continuedCue, continuedCharX, currentY, { baseline: 'top' });
-            currentY += lineHeightPt;
+          const didBreak = ensureSpace(1, true);
+          if (didBreak) {
+            addContinuedCharacterCue();
           }
-          doc.text(line, parenX, currentY, { baseline: 'top' });
-          currentY += lineHeightPt;
+          pushLayoutText(line, parenX);
         });
         break;
-        
-      case 'dialogue':
+      }
+
+      case 'dialogue': {
         const dialogueX = leftMargin + inchesToPoints(SCREENPLAY_FORMAT.indent.dialogue);
-        const dialogueWrapped = wrapText(doc, element.text, SCREENPLAY_FORMAT.width.dialogue);
-        
-        dialogueWrapped.forEach((line: string) => {
-          const didBreak = checkPageBreak();
-          if (didBreak && currentCharacterCue) {
-            currentY += lineHeightPt;
-            const continuedCue = currentCharacterCue.includes("(CONT'D)")
-              ? currentCharacterCue
-              : `${currentCharacterCue} (CONT'D)`;
-            const continuedCharX = leftMargin + inchesToPoints(SCREENPLAY_FORMAT.indent.character);
-            doc.text(continuedCue, continuedCharX, currentY, { baseline: 'top' });
-            currentY += lineHeightPt;
+        const dialogueLines = wrapText(doc, element.text, SCREENPLAY_FORMAT.width.dialogue);
+
+        dialogueLines.forEach((line: string) => {
+          const didBreak = ensureSpace(1, true);
+          if (didBreak) {
+            addContinuedCharacterCue();
           }
-          doc.text(line, dialogueX, currentY, { baseline: 'top' });
-          currentY += lineHeightPt;
+          pushLayoutText(line, dialogueX);
         });
         break;
-        
-      case 'transition':
-        currentCharacterCue = null;
-        checkPageBreak(2);
-        
-        currentY += lineHeightPt; // Space before transition
-        
-        doc.text(element.text, rightMarginX, currentY, { align: 'right', baseline: 'top' });
-        currentY += lineHeightPt * 2; // Extra space after transition
+      }
+
+      case 'transition': {
+        layoutCurrentCharacterCue = null;
+        ensureSpace(2, false);
+        layoutY += lineHeightPt; // Space before transition
+        pushLayoutText(element.text, rightMarginX, 'right');
+        layoutY += lineHeightPt; // Extra spacing after transition
         break;
+      }
     }
   }
+
+  // Draw title page first (page 1, unnumbered).
+  const centerX = inchesToPoints(SCREENPLAY_FORMAT.pageWidth / 2);
+  const centerY = inchesToPoints(SCREENPLAY_FORMAT.pageHeight / 2);
+
+  doc.setFontSize(SCREENPLAY_FORMAT.fontSize);
+  doc.text(title.toUpperCase(), centerX, centerY, {
+    align: 'center',
+    baseline: 'top',
+  });
+
+  if (author) {
+    doc.text('by', centerX, centerY + 48, {
+      align: 'center',
+      baseline: 'top',
+    });
+    doc.text(author, centerX, centerY + 72, {
+      align: 'center',
+      baseline: 'top',
+    });
+  }
+
+  if (contact) {
+    const contactY = inchesToPoints(SCREENPLAY_FORMAT.pageHeight - 1.5);
+    const contactLines = contact.split('\n');
+    contactLines.forEach((line, idx) => {
+      doc.text(line, leftMargin, contactY + (idx * SCREENPLAY_FORMAT.lineHeight), { baseline: 'top' });
+    });
+  }
+
+  if (watermark && watermark.text && !watermark.image) {
+    addWatermark(doc, watermark);
+  }
+
+  // Render layout pages exactly as planned (no pagination decisions here).
+  layoutPages.forEach((page, index) => {
+    doc.addPage();
+    const scriptPageNumber = index + 1;
+
+    const pageNumX = inchesToPoints(SCREENPLAY_FORMAT.pageNumberRight);
+    const pageNumY = inchesToPoints(SCREENPLAY_FORMAT.pageNumberTop);
+    doc.setFontSize(SCREENPLAY_FORMAT.fontSize);
+    doc.text(`${scriptPageNumber}.`, pageNumX, pageNumY, { align: 'right', baseline: 'top' });
+
+    if (page.hasContinuedTop) {
+      const continuedY = inchesToPoints(SCREENPLAY_FORMAT.marginTop) - 12;
+      const continuedX = inchesToPoints(SCREENPLAY_FORMAT.pageNumberRight);
+      doc.text('CONTINUED:', continuedX, continuedY, { align: 'right', baseline: 'top' });
+    }
+
+    page.ops.forEach((op) => {
+      doc.text(op.text, op.x, op.y, {
+        align: op.align,
+        baseline: 'top',
+      });
+    });
+
+    if (page.hasContinuedBottom) {
+      const continuedY = maxY + 12;
+      const continuedX = inchesToPoints(SCREENPLAY_FORMAT.pageNumberRight);
+      doc.text('(CONTINUED)', continuedX, continuedY, { align: 'right', baseline: 'top' });
+    }
+
+    if (watermark && watermark.text && !watermark.image) {
+      addWatermark(doc, watermark);
+    }
+  });
   
   // Add PDF bookmarks (outline)
   if (includeBookmarks && bookmarks.length > 0) {
