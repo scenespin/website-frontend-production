@@ -10,6 +10,35 @@ import { useShowcaseStatus } from "@/hooks/useShowcase";
 
 export default function ExamplesPage() {
   const { data: status, isLoading: statusLoading } = useShowcaseStatus();
+  const writingExamples = [
+    {
+      title: "Action line tightening",
+      agent: "Rewrite",
+      before:
+        "Sarah walks into the newsroom and looks around nervously as everyone stares at her and she slowly walks toward her desk.",
+      after:
+        "Sarah enters the newsroom. Heads turn. She keeps moving toward her desk without looking up.",
+      outcome: "Sharper rhythm and cleaner visual beats without changing intent.",
+    },
+    {
+      title: "Dialogue voice polish",
+      agent: "Dialogue",
+      before:
+        "I do not believe we can trust him right now because he has lied to us before and he is hiding something.",
+      after:
+        "We can't trust him. He lied before, and he's still hiding something.",
+      outcome: "More natural character voice with stronger on-page impact.",
+    },
+    {
+      title: "Scene continuation draft",
+      agent: "Screenwriter",
+      before:
+        "Marcus sees Sarah in the hallway.",
+      after:
+        "Marcus catches Sarah in the hallway and lowers his voice.\n\nMARCUS\nYou should've stopped digging when I warned you.\n\nSARAH\nThen stop giving me reasons to keep going.",
+      outcome: "Expanded conflict while preserving your story direction.",
+    },
+  ];
   
   return (
     <>
@@ -85,6 +114,46 @@ export default function ExamplesPage() {
                 </div>
               </div>
             )}
+          </div>
+        </section>
+
+        {/* Writing Before/After Examples */}
+        <section className="py-16">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-10">
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">Before/After Writing Examples</h2>
+              <p className="text-gray-300 max-w-3xl mx-auto">
+                Sample text edits showing how writers can use Wryda agents for rewrite, dialogue polish, and scene expansion.
+              </p>
+            </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              {writingExamples.map((example) => (
+                <article
+                  key={example.title}
+                  className="rounded-xl border border-[#3F3F46] bg-[#111111] p-5"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-lg font-semibold">{example.title}</h3>
+                    <span className="text-xs px-2 py-1 rounded bg-[#DC143C]/20 text-[#F28BA0] border border-[#DC143C]/40">
+                      {example.agent}
+                    </span>
+                  </div>
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">Before</p>
+                      <p className="text-sm text-gray-300 whitespace-pre-line">{example.before}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">After</p>
+                      <p className="text-sm text-white whitespace-pre-line">{example.after}</p>
+                    </div>
+                    <div className="pt-2 border-t border-[#2A2A2A]">
+                      <p className="text-xs text-gray-400">{example.outcome}</p>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
           </div>
         </section>
 

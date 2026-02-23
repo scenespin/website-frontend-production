@@ -5,7 +5,6 @@ import Image from "next/image";
 import config from "@/config";
 import Footer from "@/components/Footer";
 import logo from "@/app/icon.png";
-import { ShowcaseGallery } from "@/components/showcase/ShowcaseGallery";
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
@@ -101,11 +100,11 @@ export default function Page() {
               </h1>
 
               <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-gray-300 max-w-4xl mx-auto mb-4 md:mb-6 px-4">
-                Wryda is a professional, screenplay-native workspace for faster drafts, sharper rewrites, and stronger pages - while you stay in full creative control.
+                Wryda is a professional, screenplay-native workspace for faster drafts, sharper rewrites, and stronger pages, while you stay in full creative control.
               </p>
 
               <p className="text-base sm:text-lg md:text-xl text-gray-400 max-w-3xl mx-auto mb-6 md:mb-8 px-4">
-                Screenplay-native writing tools stay front and center, with production visuals and video as optional extensions when you need them. <span className="italic">(Video scenes coming soon)</span>
+                Screenplay-native writing tools stay front and center, with production visuals and video available as optional extensions when you need them.
               </p>
 
               {/* CTAs */}
@@ -140,23 +139,14 @@ export default function Page() {
                 </div>
               </div>
 
-              {/* Showcase Gallery - AI Generated Examples */}
-              <div className="mt-16 max-w-6xl mx-auto">
-                <ShowcaseGallery 
-                  contentType="all" 
-                  limit={4}
-                  columns={4}
-                  title="See What Wryda Creates"
-                  showSeeMore={false}
-                />
-                <div className="text-center mt-8">
-                  <Link
-                    href="/examples"
-                    className="text-[#DC143C] hover:text-white text-sm font-medium transition-colors"
-                  >
-                    View Writing + Visual Examples →
-                  </Link>
-                </div>
+              {/* Supporting link to examples */}
+              <div className="mt-10 text-center">
+                <Link
+                  href="/examples"
+                  className="text-[#DC143C] hover:text-white text-sm font-medium transition-colors"
+                >
+                  View Writing + Visual Examples →
+                </Link>
               </div>
 
               {/* Trust Strip */}
