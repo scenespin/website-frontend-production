@@ -22,6 +22,7 @@ interface EditorToolbarProps {
     onOpenFindReplace?: () => void;
     onToggleItalics?: () => void;
     onOpenVersionHistory?: () => void;
+    onOpenAIDisclosure?: () => void;
     onToggleSceneNav?: () => void;
     onLaunchDirector?: () => void;
     onLaunchDialogue?: () => void;
@@ -250,7 +251,7 @@ function GitHubSaveButton() {
                         
                         <div className="space-y-3 text-sm text-gray-300 mb-4">
                             <p>
-                                <strong>What is GitHub?</strong> Think of it as a super-powered "save" feature. 
+                                <strong>What is GitHub?</strong> Think of it as a super-powered &quot;save&quot; feature. 
                                 It keeps every version of your screenplay safe in the cloud.
                             </p>
                             <p>
@@ -287,7 +288,7 @@ function GitHubSaveButton() {
  * EditorToolbar - Formatting toolbar with screenplay element buttons
  * Theme-aware styling with DaisyUI classes
  */
-export default function EditorToolbar({ className = '', onExportPDF, onOpenCollaboration, onSave, isEditorFullscreen = false, onToggleEditorFullscreen, isPreviewMode = false, onTogglePreview, onOpenFindReplace, onToggleItalics, onOpenVersionHistory, onToggleSceneNav, onLaunchDirector, onLaunchDialogue }: EditorToolbarProps) {
+export default function EditorToolbar({ className = '', onExportPDF, onOpenCollaboration, onSave, isEditorFullscreen = false, onToggleEditorFullscreen, isPreviewMode = false, onTogglePreview, onOpenFindReplace, onToggleItalics, onOpenVersionHistory, onOpenAIDisclosure, onToggleSceneNav, onLaunchDirector, onLaunchDialogue }: EditorToolbarProps) {
     const { state, setContent, setCursorPosition, toggleFocusMode, setFontSize, undo, redo, saveNow, isEditorLocked, isPreviewMode: contextPreviewMode, setIsPreviewMode } = useEditor();
     
     // Use prop if provided, otherwise use context
@@ -942,6 +943,18 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                         </div>
                     );
                 })()}
+
+                {onOpenAIDisclosure && (
+                    <div className="tooltip tooltip-bottom" data-tip="AI Use Disclosure report">
+                        <button
+                            onClick={onOpenAIDisclosure}
+                            className="px-2 py-2 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-w-[40px] min-h-[40px] flex flex-col items-center justify-center transition-colors"
+                        >
+                            <span className="text-base">🛡️</span>
+                            <span className="text-[9px] hidden sm:inline">AI LOG</span>
+                        </button>
+                    </div>
+                )}
                 
                 {/* Feature 0111: Save Backup to GitHub - Actually commits to GitHub */}
                 <GitHubSaveButton />
@@ -1299,6 +1312,16 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                         </button>
                     </div>
                 </div>
+                )}
+
+                {onOpenAIDisclosure && (
+                    <button
+                        onClick={onOpenAIDisclosure}
+                        className="w-full px-2 py-2 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-h-[36px] flex items-center justify-center gap-2 transition-colors"
+                    >
+                        <span className="text-sm">🛡️</span>
+                        <span>AI Use Disclosure</span>
+                    </button>
                 )}
             </div>
             

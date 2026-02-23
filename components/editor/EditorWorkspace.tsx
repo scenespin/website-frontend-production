@@ -20,12 +20,18 @@ import DirectorModal from '../modals/DirectorModal';
 import DialogueModal from '../modals/DialogueModal';
 import FindReplaceModal from './FindReplaceModal';
 import VersionHistoryModal from './VersionHistoryModal';
+import AIDisclosurePanel from '../screenplay/AIDisclosurePanel';
 import { saveToGitHub, getScreenplayFilePath } from '@/utils/github';
 import { markPeriodicGitHubBackupCheckpoint } from '@/utils/githubPeriodicBackup';
 import { extractEditorContext } from '@/utils/editorContext';
 import { detectCurrentScene } from '@/utils/sceneDetection';
 import { detectElementType } from '@/utils/fountain';
 import { toast } from 'sonner';
+import {
+    buildAIDisclosurePreview,
+    createAIDisclosureEventSafe,
+    isAIDisclosureEnabled,
+} from '@/utils/aiDisclosureStorage';
 import type { Scene } from '../../types/screenplay';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import SceneTypeDropdown from './SceneTypeDropdown';
@@ -76,11 +82,13 @@ export default function EditorWorkspace() {
     
     // Version History modal state
     const [isVersionHistoryModalOpen, setIsVersionHistoryModalOpen] = useState(false);
+    const [isAIDisclosurePanelOpen, setIsAIDisclosurePanelOpen] = useState(false);
     
     // Wryda Tab scene type dropdown state
     const [showSceneTypeDropdown, setShowSceneTypeDropdown] = useState(false);
     const [sceneTypeDropdownPosition, setSceneTypeDropdownPosition] = useState<{ top: number; left: number; above?: boolean } | null>(null);
     const savedCursorPositionRef = React.useRef<number | null>(null);
+    const aiDisclosureEnabled = isAIDisclosureEnabled();
     
     // Get screenplayId and sceneId from URL params (for collaboration and scene navigation)
     // Feature 0130: Use useSearchParams() for reactive URL parameter reading
@@ -124,6 +132,29 @@ export default function EditorWorkspace() {
         setSelectedText(selectedText);
         setSelectionRange(selectionRange);
     };
+
+    const logAIDisclosureEvent = useCallback((payload: {
+        source: 'rewrite_ai' | 'dialogue_ai' | 'screenwriter_ai' | 'director_ai';
+        feature: 'replace_selection' | 'insert_text';
+        range_start: number;
+        range_end: number;
+        text: string;
+    }) => {
+        if (!aiDisclosureEnabled || !screenplay.screenplayId) return;
+
+        const sceneContext = detectCurrentScene(state.content, payload.range_start);
+        const sceneHeading = sceneContext?.heading || null;
+
+        void createAIDisclosureEventSafe(screenplay.screenplayId, {
+            source: payload.source,
+            feature: payload.feature,
+            range_start: payload.range_start,
+            range_end: payload.range_end,
+            scene_heading: sceneHeading,
+            preview: buildAIDisclosurePreview(payload.text),
+            confidence: 'high',
+        });
+    }, [aiDisclosureEnabled, screenplay.screenplayId, state.content]);
 
     const clearEditorDomSelection = useCallback(() => {
         if (typeof document === 'undefined') return;
@@ -307,8 +338,16 @@ export default function EditorWorkspace() {
     
     // Handle screenwriter insertion (called from ScreenwriterModal)
     const handleScreenwriterInsert = (content: string) => {
+        const insertionStart = state.cursorPosition || 0;
         // Insert at cursor position using insertText
-        insertText(content, state.cursorPosition);
+        insertText(content, insertionStart);
+        logAIDisclosureEvent({
+            source: 'screenwriter_ai',
+            feature: 'insert_text',
+            range_start: insertionStart,
+            range_end: insertionStart + content.length,
+            text: content,
+        });
         
         // Close modal
         setIsScreenwriterModalOpen(false);
@@ -322,8 +361,16 @@ export default function EditorWorkspace() {
     
     // Handle director insertion (called from DirectorModal)
     const handleDirectorInsert = (content: string) => {
+        const insertionStart = state.cursorPosition || 0;
         // Insert at cursor position using insertText
-        insertText(content, state.cursorPosition);
+        insertText(content, insertionStart);
+        logAIDisclosureEvent({
+            source: 'director_ai',
+            feature: 'insert_text',
+            range_start: insertionStart,
+            range_end: insertionStart + content.length,
+            text: content,
+        });
         
         // Close modal
         setIsDirectorModalOpen(false);
@@ -337,8 +384,16 @@ export default function EditorWorkspace() {
     
     // Handle dialogue insertion (called from DialogueModal)
     const handleDialogueInsert = (content: string) => {
+        const insertionStart = state.cursorPosition || 0;
         // Insert at cursor position using insertText
-        insertText(content, state.cursorPosition);
+        insertText(content, insertionStart);
+        logAIDisclosureEvent({
+            source: 'dialogue_ai',
+            feature: 'insert_text',
+            range_start: insertionStart,
+            range_end: insertionStart + content.length,
+            text: content,
+        });
         
         // Close modal
         setIsDialogueModalOpen(false);
@@ -426,6 +481,13 @@ export default function EditorWorkspace() {
         
         // Replace the selected text (newline will be preserved)
         replaceSelection(cleaned, selectionRange.start, selectionRange.end);
+        logAIDisclosureEvent({
+            source: 'rewrite_ai',
+            feature: 'replace_selection',
+            range_start: selectionRange.start,
+            range_end: selectionRange.start + cleaned.length,
+            text: cleaned,
+        });
         
         console.log('[EditorWorkspace] ✅ replaceSelection called with newline preserved');
         
@@ -790,6 +852,7 @@ export default function EditorWorkspace() {
                             }
                         }}
                         onOpenVersionHistory={() => setIsVersionHistoryModalOpen(true)}
+                        onOpenAIDisclosure={aiDisclosureEnabled ? () => setIsAIDisclosurePanelOpen(true) : undefined}
                         onToggleSceneNav={() => {
                             // Use startTransition to prevent React error #185 (updating during render)
                             startTransition(() => {
@@ -882,7 +945,7 @@ Tip:
                                             <div className="text-sm text-base-content/60 space-y-1">
                                                 <p><strong>Repository:</strong> {githubConfig.repo || 'Unknown'}</p>
                                                 <p><strong>Owner:</strong> {githubConfig.owner || 'Unknown'}</p>
-                                                <p className="text-xs text-info">Use "Export to GitHub" button in toolbar to sync</p>
+                                                <p className="text-xs text-info">Use &quot;Export to GitHub&quot; button in toolbar to sync</p>
                                             </div>
                                             <button 
                                                 onClick={() => {
@@ -900,7 +963,7 @@ Tip:
                                                 GitHub export is optional. Your screenplay auto-saves to secure cloud storage every 30 seconds.
                                             </p>
                                             <p className="text-xs text-base-content/40">
-                                                Connect GitHub for version control and backup exports using the "Export to GitHub" button in the toolbar.
+                                                Connect GitHub for version control and backup exports using the &quot;Export to GitHub&quot; button in the toolbar.
                                             </p>
                                         </div>
                                     )}
@@ -1024,6 +1087,16 @@ Tip:
                 isOpen={isVersionHistoryModalOpen}
                 onClose={() => setIsVersionHistoryModalOpen(false)}
             />
+
+            {/* AI Disclosure Panel */}
+            {aiDisclosureEnabled && screenplay.screenplayId && (
+                <AIDisclosurePanel
+                    isOpen={isAIDisclosurePanelOpen}
+                    onClose={() => setIsAIDisclosurePanelOpen(false)}
+                    screenplayId={screenplay.screenplayId}
+                    screenplayTitle={state.title}
+                />
+            )}
             
         </div>
     );

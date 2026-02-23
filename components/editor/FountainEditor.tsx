@@ -13,6 +13,13 @@ import { useEntityAutocomplete } from '@/hooks/useEntityAutocomplete';
 import { useFountainFormatting } from '@/hooks/useFountainFormatting';
 import { useWrydaTabNavigation } from '@/hooks/useWrydaTabNavigation';
 import { parseSceneHeading, formatSceneHeadingType, buildSceneHeading, updateSceneHeadingParts } from '@/utils/sceneHeadingParser';
+import { toast } from 'sonner';
+import { matchStoryAdvisorCopy } from '@/utils/aiCopyAttribution';
+import {
+    buildAIDisclosurePreview,
+    createAIDisclosureEventSafe,
+    isAIDisclosureEnabled,
+} from '@/utils/aiDisclosureStorage';
 
 // Contextual Navigation Integration
 import { useContextStore } from '@/lib/contextStore';
@@ -39,6 +46,22 @@ interface FountainEditorProps {
     onSelectionStateChange?: (hasSelection: boolean, selectedText: string | null, selectionRange: { start: number; end: number } | null) => void;
     selectionResetSignal?: number;
     onToggleSceneNav?: () => void; // Optional: for mobile scene navigator button
+}
+
+function getNearestSceneHeading(content: string, position: number): string | null {
+    if (!content) return null;
+    const scanTo = Math.max(0, Math.min(position, content.length));
+    const beforeCursor = content.slice(0, scanTo);
+    const lines = beforeCursor.split('\n');
+
+    for (let i = lines.length - 1; i >= 0; i -= 1) {
+        const line = lines[i].trim();
+        if (/^(INT\.|EXT\.|EST\.|I\/E\.|INT\/EXT\.)\s+/i.test(line)) {
+            return line;
+        }
+    }
+
+    return null;
 }
 
 export default function FountainEditor({
@@ -501,6 +524,42 @@ export default function FountainEditor({
             : displayContent.substring(0, displaySelectionStart) + pastedText + displayContent.substring(displaySelectionStart);
         const visibleLineNumber = getVisibleLineNumber(newDisplayContent, newDisplayCursorPos);
         setCurrentLine(visibleLineNumber);
+
+        if (isAIDisclosureEnabled() && screenplay.screenplayId) {
+            const matchedMarker = matchStoryAdvisorCopy(pastedText);
+            if (matchedMarker) {
+                const rangeStart = fullSelectionStart;
+                const rangeEnd = fullSelectionStart + pastedText.length;
+                const sceneHeading = getNearestSceneHeading(state.content, rangeStart);
+
+                toast('Track this paste for your disclosure report?', {
+                    duration: 9000,
+                    action: {
+                        label: 'Track',
+                        onClick: () => {
+                            void createAIDisclosureEventSafe(screenplay.screenplayId!, {
+                                source: 'story_advisor_ai',
+                                feature: 'copy_paste',
+                                range_start: rangeStart,
+                                range_end: rangeEnd,
+                                scene_heading: sceneHeading,
+                                preview: buildAIDisclosurePreview(pastedText),
+                                confidence: 'confirmed',
+                                meta: {
+                                    marker_id: matchedMarker.markerId,
+                                    marker_created_at: matchedMarker.createdAt,
+                                },
+                            });
+                            toast.success('Added to disclosure report.');
+                        },
+                    },
+                    cancel: {
+                        label: 'Dismiss',
+                        onClick: () => {},
+                    },
+                });
+            }
+        }
         
         // Update textarea cursor position immediately (before React re-render)
         // This provides immediate visual feedback

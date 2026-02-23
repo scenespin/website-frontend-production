@@ -5,6 +5,7 @@ import { remark } from 'remark';
 import html from 'remark-html';
 import remarkGfm from 'remark-gfm';
 import toast from 'react-hot-toast';
+import { registerStoryAdvisorCopy } from '@/utils/aiCopyAttribution';
 
 /**
  * MarkdownRenderer - Renders markdown text as HTML
@@ -83,6 +84,7 @@ export function MarkdownRenderer({ content, className = '' }) {
         e.preventDefault();
         try {
           await navigator.clipboard.writeText(codeText);
+          registerStoryAdvisorCopy(codeText);
           // Update button to show checkmark temporarily
           const originalHTML = copyButton.innerHTML;
           copyButton.innerHTML = `
