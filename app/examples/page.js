@@ -217,9 +217,9 @@ export default function ExamplesPage() {
         {/* Media Examples Intro */}
         <section className="pt-2 pb-8">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h2 className="text-2xl md:text-3xl font-bold mb-3">Media Examples (Optional Extension)</h2>
+            <h2 className="text-2xl md:text-3xl font-bold mb-3">Media Examples (Production-Ready Continuity)</h2>
             <p className="text-gray-300 max-w-3xl mx-auto">
-              Once writing decisions are in place, these reference examples support production planning and continuity.
+              After you shape the story on the page, Wryda turns that screenplay context into consistent character, location, asset, shot, and video outputs for visual development and production planning.
             </p>
           </div>
         </section>
@@ -264,10 +264,10 @@ export default function ExamplesPage() {
         <section className="py-20 bg-gradient-to-b from-[#0A0A0A] to-[#141414]">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h2 className="text-3xl md:text-4xl font-bold mb-6">
-              Ready to build your next script in Wryda?
+              Ready to write and visualize your next project in Wryda?
             </h2>
             <p className="text-xl text-gray-300 mb-8">
-              Start writing with screenplay-native tools, then extend into optional visual planning when you need it.
+              Start with screenplay-native writing tools, then carry the same story context into image and video workflows built for continuity, speed, and creative control.
             </p>
             <Link
               href="/sign-up"
