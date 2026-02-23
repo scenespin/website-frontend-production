@@ -583,7 +583,10 @@ export async function exportScreenplayToPDF(
         layoutCurrentCharacterCue = null;
         layoutY += lineHeightPt;
         if (layoutY > maxY) {
-          breakToNextPage(null);
+          // Blank-line overflow can still be an in-scene continuation.
+          // Record as a continuable split and let scene-coverage validation
+          // filter out scene-boundary false positives in the post-pass.
+          breakToNextPage(layoutCurrentScene ? 'action' : null);
         }
         break;
       }
