@@ -38,6 +38,15 @@ export default function ExamplesPage() {
         "INT. PARKING GARAGE - NIGHT\n\nRivera steps from the shadows, rainwater dripping off his coat. He presses a USB into Sarah’s palm.\n\nRIVERA\nIf this gets out, Blake’s finished. If it doesn’t, we are.\n\nA CAR ENGINE turns over above them. Headlights sweep the concrete.\n\nSARAH\nWe don’t wait until morning.\n\nShe pockets the drive. They split in opposite directions as the headlights descend the ramp.",
       outcome: "Raises stakes, adds urgency, and strengthens the scene turn so momentum carries into the next beat.",
     },
+    {
+      title: "Story Direction Guidance",
+      agent: "Story Advisor",
+      before:
+        "ACT II currently feels flat: Sarah keeps investigating, but each scene lands at the same emotional level and the antagonist pressure does not escalate.",
+      after:
+        "Story Advisor feedback:\n1) Add a visible cost by the midpoint (career, relationship, or safety).\n2) Introduce a false win that backfires two scenes later.\n3) Force Sarah into a no-return choice before Act III.\n\nRevision direction selected by writer:\n- Midpoint false win: source appears cooperative.\n- Backfire: source is linked to Blake.\n- No-return choice: Sarah publishes partial evidence anyway.",
+      outcome: "Demonstrates strategic, writer-directed story shaping where the final direction depends on your goals and notes.",
+    },
   ];
   
   return (
@@ -124,6 +133,9 @@ export default function ExamplesPage() {
               <h2 className="text-3xl md:text-4xl font-bold mb-4">Before/After Writing Examples</h2>
               <p className="text-gray-300 max-w-3xl mx-auto">
                 Sample text edits showing how writers can use Wryda agents for rewrite, dialogue polish, and scene expansion.
+              </p>
+              <p className="text-sm text-gray-400 max-w-3xl mx-auto mt-4">
+                These examples are guided by user input and goals. The same tools can produce very different outcomes based on the writer&apos;s direction, tone preferences, and revision intent.
               </p>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
