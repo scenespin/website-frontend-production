@@ -1,5 +1,6 @@
 'use client';
 
+import { useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import config from "@/config";
@@ -7,9 +8,15 @@ import Footer from "@/components/Footer";
 import logo from "@/app/icon.png";
 import { ShowcaseGallery } from "@/components/showcase/ShowcaseGallery";
 import { useShowcaseStatus } from "@/hooks/useShowcase";
+import { mediaShowcaseContent } from "@/lib/mediaShowcaseContent";
 
 export default function ExamplesPage() {
   const { data: status, isLoading: statusLoading } = useShowcaseStatus();
+  const [activeMediaTabId, setActiveMediaTabId] = useState(mediaShowcaseContent.tabs[0].id);
+  const activeMediaTab = useMemo(
+    () => mediaShowcaseContent.tabs.find((tab) => tab.id === activeMediaTabId) || mediaShowcaseContent.tabs[0],
+    [activeMediaTabId]
+  );
   const writingExamples = [
     {
       title: "Action Sequence Tightening",
@@ -216,47 +223,98 @@ export default function ExamplesPage() {
 
         {/* Media Examples Intro */}
         <section className="pt-2 pb-8">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h2 className="text-2xl md:text-3xl font-bold mb-3">Media Examples (Production-Ready Continuity)</h2>
-            <p className="text-gray-300 max-w-3xl mx-auto">
-              After you shape the story on the page, Wryda turns that screenplay context into consistent character, location, asset, shot, and video outputs for visual development and production planning.
-            </p>
-          </div>
-        </section>
-
-        {/* Characters Section */}
-        <section className="pt-0 pb-12">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <ShowcaseGallery 
-              contentType="characters"
-              columns={4}
-              title="Character Reference Examples"
-              showTitle={true}
-            />
-          </div>
-        </section>
+            <div className="text-center mb-6">
+              <h2 className="text-2xl md:text-3xl font-bold mb-3">Media Examples (Production-Ready Continuity)</h2>
+              <p className="text-gray-300 max-w-3xl mx-auto">
+                After you shape the story on the page, Wryda turns screenplay context into consistent visual outputs for production planning.
+              </p>
+            </div>
 
-        {/* Locations Section */}
-        <section className="py-12 bg-[#0D0D0D]">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <ShowcaseGallery 
-              contentType="locations"
-              columns={3}
-              title="Location Planning Examples"
-              showTitle={true}
-            />
-          </div>
-        </section>
+            <div className="flex flex-wrap justify-center gap-2 mb-8">
+              {mediaShowcaseContent.tabs.map((tab) => {
+                const active = tab.id === activeMediaTabId;
+                return (
+                  <button
+                    key={tab.id}
+                    type="button"
+                    onClick={() => setActiveMediaTabId(tab.id)}
+                    className={`px-3 py-2 rounded-md text-sm border transition-colors ${
+                      active
+                        ? "bg-[#DC143C]/20 text-[#F28BA0] border-[#DC143C]/50"
+                        : "bg-[#111111] text-gray-300 border-[#3F3F46] hover:border-[#DC143C]/40 hover:text-white"
+                    }`}
+                  >
+                    {tab.label}
+                  </button>
+                );
+              })}
+            </div>
 
-        {/* Props Section */}
-        <section className="py-12">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <ShowcaseGallery 
-              contentType="props"
-              columns={4}
-              title="Prop Continuity Examples"
-              showTitle={true}
-            />
+            <div className="rounded-xl border border-[#3F3F46] bg-[#111111] p-5 md:p-6 mb-8">
+              <h3 className="text-xl md:text-2xl font-semibold mb-3">{activeMediaTab.headline}</h3>
+              <p className="text-gray-300 mb-4">{activeMediaTab.howItWorks}</p>
+
+              <div className="mb-4">
+                <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Sample flow</p>
+                <ol className="space-y-2 text-sm text-gray-300 list-decimal list-inside">
+                  {activeMediaTab.sampleFlow.map((step) => (
+                    <li key={step}>{step}</li>
+                  ))}
+                </ol>
+              </div>
+
+              <div>
+                <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Output strip</p>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  {activeMediaTab.outputCaptions.map((caption) => (
+                    <div key={caption} className="rounded-lg border border-[#2F2F2F] bg-[#0E0E0E] px-3 py-2 text-sm text-gray-300">
+                      {caption}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {activeMediaTab.supportingLine && (
+                <p className="text-sm text-gray-400 mt-4">{activeMediaTab.supportingLine}</p>
+              )}
+            </div>
+
+            {activeMediaTab.id === "references" ? (
+              <div className="space-y-10">
+                <ShowcaseGallery 
+                  contentType="characters"
+                  columns={4}
+                  title="Character Reference Examples"
+                  showTitle={true}
+                />
+                <ShowcaseGallery 
+                  contentType="locations"
+                  columns={3}
+                  title="Location Planning Examples"
+                  showTitle={true}
+                />
+                <ShowcaseGallery 
+                  contentType="props"
+                  columns={4}
+                  title="Prop Continuity Examples"
+                  showTitle={true}
+                />
+              </div>
+            ) : (
+              <div>
+                <ShowcaseGallery
+                  contentType="all"
+                  limit={6}
+                  columns={3}
+                  title="Demo Showcase Strip"
+                  showTitle={true}
+                />
+                <p className="text-xs text-gray-500 mt-3">
+                  Visual strip content is loaded from the current demo showcase account and can be curated per tab as assets are added.
+                </p>
+              </div>
+            )}
           </div>
         </section>
 
