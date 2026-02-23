@@ -150,6 +150,7 @@ export default function HelpCenter() {
             description="Image and video generation with per-model transparency"
             features={[
               "Image and video generation—model, resolution, and options shown per model",
+              "Optional noneditable AI disclosure bundles (PDF + JSON + SHA-256 hash) for WGA/studio workflows",
               "Character, location & prop consistency",
               "Scene Builder (Motion Picture Technology)",
               "Turn screenplay into images and video"

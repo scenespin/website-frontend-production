@@ -491,7 +491,7 @@ export default function WritingHelp() {
             <div className="card-body">
               <h3 className="font-bold mb-3 text-[#DC143C]">AI Use Disclosure Submission Bundle</h3>
               <p className="text-sm text-[#B3B3B3] mb-3">
-                Lock and export a timestamped, noneditable submission bundle for your disclosure records.
+                Lock and export a timestamped, noneditable submission bundle for your disclosure records in WGA and studio policy workflows.
               </p>
               <ul className="space-y-2 text-sm text-[#B3B3B3]">
                 <li>• <strong className="text-[#FFFFFF]">PDF</strong> - Human-facing submission report</li>
@@ -499,6 +499,9 @@ export default function WritingHelp() {
                 <li>• <strong className="text-[#FFFFFF]">SHA-256 hash file</strong> - Integrity check for the JSON snapshot</li>
                 <li>• Generated as a timestamped ZIP bundle each time you export</li>
               </ul>
+              <p className="text-[11px] text-[#808080] mt-3">
+                Supports WGA and studio disclosure workflows; not a legal determination, legal advice, or certification of compliance.
+              </p>
             </div>
           </div>
         </section>

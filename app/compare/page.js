@@ -73,6 +73,9 @@ export default function ComparePage() {
             <p className="text-base text-gray-400 max-w-2xl mx-auto mb-8">
               One place for writing, references, and prep—see how others compare.
             </p>
+            <p className="text-sm text-gray-500 max-w-3xl mx-auto">
+              Includes optional timestamped, noneditable AI disclosure bundles (PDF + JSON + SHA-256 hash) for WGA and studio policy workflows.
+            </p>
           </div>
         </section>
 

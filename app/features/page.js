@@ -110,7 +110,7 @@ export default function Features() {
                   </div>
                 </div>
                 <p className="text-xs text-gray-500">
-                  Writer-first by default, with integrated image and video generation workflows when you're ready.
+                  Writer-first by default, with integrated image and video generation workflows plus optional noneditable disclosure bundles for WGA and studio policy workflows when you're ready.
                 </p>
               </div>
             </div>
