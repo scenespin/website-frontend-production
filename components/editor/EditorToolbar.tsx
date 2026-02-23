@@ -1314,15 +1314,6 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                 </div>
                 )}
 
-                {onOpenAIDisclosure && (
-                    <button
-                        onClick={onOpenAIDisclosure}
-                        className="w-full px-2 py-2 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-h-[36px] flex items-center justify-center gap-2 transition-colors"
-                    >
-                        <span className="text-sm">🛡️</span>
-                        <span>AI Use Disclosure</span>
-                    </button>
-                )}
             </div>
             
             {/* Extended format menu */}
