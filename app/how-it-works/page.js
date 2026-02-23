@@ -114,6 +114,35 @@ export default function HowItWorksPage() {
           </div>
         </section>
 
+        {/* AI Use Transparency */}
+        <section className="py-12 md:py-16 bg-[#0A0A0A]">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="rounded-xl border border-[#3F3F46] bg-[#111111] p-6 md:p-8 max-w-4xl mx-auto">
+              <h2 className="text-xl md:text-2xl font-bold mb-3 text-white">Writer-first AI use transparency</h2>
+              <p className="text-gray-300 mb-4">
+                Wryda includes an optional <strong className="text-white">AI Use Disclosure</strong> system so you can track in-app AI-assisted writing actions and export a transparency record for submission support. It&apos;s optional, non-blocking, and editable—there to support your workflow without changing how you write.
+              </p>
+              <ul className="space-y-2 text-sm text-gray-400 mb-4">
+                <li className="flex items-start gap-2">
+                  <span className="text-[#DC143C] mt-0.5">•</span>
+                  <span>Track where AI insertions (Story Advisor, Rewrite, Dialogue, Screenwriter, Director) were accepted in your script</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-[#DC143C] mt-0.5">•</span>
+                  <span>Review and export a disclosure report for your records or submission packages</span>
+                </li>
+                <li className="flex items-start gap-2">
+                  <span className="text-[#DC143C] mt-0.5">•</span>
+                  <span>Add optional consent or policy context to the report</span>
+                </li>
+              </ul>
+              <p className="text-xs text-gray-500">
+                Transparency records are advisory and not a legal determination, certification, or guarantee of policy compliance.
+              </p>
+            </div>
+          </div>
+        </section>
+
         {/* Three-Step Process */}
         <section className="py-20 bg-[#0A0A0A]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
