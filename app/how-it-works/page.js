@@ -59,14 +59,58 @@ export default function HowItWorksPage() {
 
       <main className="bg-[#0A0A0A] text-white min-h-screen">
         {/* Hero Section */}
-        <section className="py-20 bg-[#141414]">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h1 className="text-3xl sm:text-4xl md:text-6xl font-extrabold tracking-tight mb-4 md:mb-6 px-4">
-              How It Works
-            </h1>
-            <p className="text-base sm:text-lg md:text-xl text-gray-300 max-w-3xl mx-auto mb-6 md:mb-8 px-4">
-              A screenplay-first workflow in three steps: write stronger pages, build continuity assets, then extend into visual planning when needed.
-            </p>
+        <section className="py-16 md:py-20 bg-gradient-to-b from-[#141414] to-[#0A0A0A]">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid lg:grid-cols-2 gap-10 items-center">
+              <div>
+                <h1 className="text-3xl sm:text-4xl md:text-6xl font-extrabold tracking-tight mb-4 md:mb-6">
+                  How It Works
+                </h1>
+                <p className="text-base sm:text-lg md:text-xl text-gray-300 max-w-xl mb-6 md:mb-8">
+                  Focus on the page. We keep story context connected so you can extend to visuals when you're ready.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Link
+                    href="/sign-up"
+                    className="inline-flex items-center justify-center px-6 py-3 bg-[#DC143C] text-white font-semibold rounded-lg hover:bg-[#B01030] transition-colors min-h-[44px]"
+                  >
+                    Start Writing
+                  </Link>
+                  <Link
+                    href="/examples"
+                    className="inline-flex items-center justify-center px-6 py-3 bg-[#141414] border border-[#3F3F46] text-white font-semibold rounded-lg hover:bg-[#1F1F1F] transition-colors min-h-[44px]"
+                  >
+                    View Examples
+                  </Link>
+                </div>
+              </div>
+              <div className="rounded-xl border border-[#3F3F46] bg-[#111111] p-6 md:p-7">
+                <h2 className="text-lg md:text-xl font-semibold mb-4">Three steps</h2>
+                <div className="space-y-3">
+                  <div className="rounded-lg border border-[#2F2F2F] bg-[#0E0E0E] p-3 flex items-center gap-3">
+                    <span className="flex-shrink-0 w-8 h-8 rounded bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-sm font-bold text-white">1</span>
+                    <div>
+                      <p className="font-medium text-white">Create</p>
+                      <p className="text-sm text-gray-400">Write and connect characters, locations, and props to your script.</p>
+                    </div>
+                  </div>
+                  <div className="rounded-lg border border-[#2F2F2F] bg-[#0E0E0E] p-3 flex items-center gap-3">
+                    <span className="flex-shrink-0 w-8 h-8 rounded bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-sm font-bold text-white">2</span>
+                    <div>
+                      <p className="font-medium text-white">Produce</p>
+                      <p className="text-sm text-gray-400">Turn script context into continuity-ready references and assets.</p>
+                    </div>
+                  </div>
+                  <div className="rounded-lg border border-[#2F2F2F] bg-[#0E0E0E] p-3 flex items-center gap-3">
+                    <span className="flex-shrink-0 w-8 h-8 rounded bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-sm font-bold text-white">3</span>
+                    <div>
+                      <p className="font-medium text-white">Direct</p>
+                      <p className="text-sm text-gray-400">Visual planning and shot progressions when you're ready.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 

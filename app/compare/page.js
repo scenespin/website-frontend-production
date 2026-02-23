@@ -63,12 +63,15 @@ export default function ComparePage() {
               <span className="font-semibold text-gray-300">✨ The First Integrated Screenwriting Environment</span>
             </div>
             <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight mb-6">
-              What Makes Wryda.ai Unique
+              What Makes Wryda Unique
             </h1>
-            <p className="text-xl text-gray-300 max-w-3xl mx-auto mb-8">
+            <p className="text-xl text-gray-300 max-w-3xl mx-auto mb-2">
               A screenplay-first integrated workflow that keeps writing, references, and production planning connected.
               <br />
-              <strong className="text-white">Built for writers who want one continuous context from draft to prep.</strong>
+              <strong className="text-white">Built for writers who want one continuous context from draft to{"\u00A0"}prep.</strong>
+            </p>
+            <p className="text-base text-gray-400 max-w-2xl mx-auto mb-8">
+              One place for writing, references, and prep—see how others compare.
             </p>
           </div>
         </section>
