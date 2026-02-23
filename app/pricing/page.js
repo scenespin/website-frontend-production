@@ -297,7 +297,7 @@ export default function PricingPage() {
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>All quality tiers unlocked</span>
+                    <span>Model options and resolutions shown per generation</span>
                   </li>
                 </ul>
                 <Link
@@ -404,7 +404,7 @@ export default function PricingPage() {
                   <li>
                     <div className="font-semibold text-white mb-1">Video Generation</div>
                     <div className="text-gray-400">50-150 credits per 5-10s</div>
-                    <div className="text-xs text-gray-500 mt-1">Professional 1080p to Ultra 4K</div>
+                    <div className="text-xs text-gray-500 mt-1">Resolution and options per model; credits shown before generation</div>
                   </li>
                   <li>
                     <div className="font-semibold text-white mb-1">Dialogue Scenes</div>

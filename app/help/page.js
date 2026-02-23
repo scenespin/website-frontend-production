@@ -147,12 +147,12 @@ export default function HelpCenter() {
             href="/help/production"
             icon="🎬"
             title="Production"
-            description="AI video generation and consistency systems"
+            description="Image and video generation with per-model transparency"
             features={[
-              "AI video generation (multiple quality tiers)",
+              "Image and video generation—model, resolution, and options shown per model",
               "Character, location & prop consistency",
               "Scene Builder (Motion Picture Technology)",
-              "Turn screenplay into video"
+              "Turn screenplay into images and video"
             ]}
           />
           <div className="relative">

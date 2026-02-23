@@ -1,5 +1,5 @@
-﻿import { redirect } from 'next/navigation';
+import { redirect } from 'next/navigation';
 
-export default function HelpPage() {
-  redirect('/');
+export default function HelpQualityTiersPage() {
+  redirect('/help/production');
 }

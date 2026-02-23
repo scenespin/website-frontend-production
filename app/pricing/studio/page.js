@@ -205,7 +205,7 @@ export default function StudioPricingPage() {
                   <div>
                     <h3 className="font-semibold text-lg mb-2">All Features Included</h3>
                     <p className="text-gray-300 text-sm">
-                      Everything in Pro and Ultra, plus enterprise features. Full screenplay editor, team collaboration, all quality tiers, and more.
+                      Everything in Pro and Ultra, plus enterprise features. Full screenplay editor, team collaboration, model-based options, and more.
                     </p>
                   </div>
                 </div>

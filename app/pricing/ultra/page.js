@@ -143,7 +143,7 @@ export default function UltraPricingPage() {
                   <div>
                     <h3 className="font-semibold text-lg mb-2">All Features Included</h3>
                     <p className="text-gray-300 text-sm">
-                      Full screenplay editor, team collaboration, all quality tiers, aspect ratios, compositions, and transitions. Everything unlocked.
+                      Full screenplay editor, team collaboration, model-based options, aspect ratios, compositions, and transitions. Everything unlocked.
                     </p>
                   </div>
                 </div>

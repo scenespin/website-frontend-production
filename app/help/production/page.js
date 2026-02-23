@@ -1,4 +1,4 @@
-﻿import Link from "next/link";
+import Link from "next/link";
 import Image from "next/image";
 import { getSEOTags } from "@/libs/seo";
 import config from "@/config";
@@ -6,7 +6,7 @@ import logo from "@/app/icon.png";
 
 export const metadata = getSEOTags({
   title: `Production Help | ${config.appName}`,
-  description: "Learn how to generate videos with Scene Builder and maintain character/location/prop consistency with Wryda.ai.",
+  description: "Learn how to generate images and video with Scene Builder and maintain character/location/prop consistency with Wryda.ai.",
   canonicalUrlRelative: "/help/production",
 });
 
@@ -33,88 +33,25 @@ export default function ProductionHelp() {
       <main className="max-w-4xl mx-auto px-8 py-16 bg-[#0A0A0A] text-[#FFFFFF]">
         <h1 className="text-4xl font-extrabold mb-4 text-[#FFFFFF]">🎬 Production</h1>
         <p className="text-xl opacity-80 mb-12 text-[#B3B3B3]">
-          Generate professional videos with Scene Builder and maintain consistency across your entire production.
+          Turn your script into consistent images and video when you&apos;re ready. Generate from your screenplay with full transparency—model, resolution, aspect ratio, and cost are shown per option in the app.
         </p>
 
-        {/* Video Generation */}
+        {/* Image & Video Generation */}
         <section className="mb-12">
-          <h2 className="text-3xl font-bold mb-4 text-[#FFFFFF]">AI Video Generation</h2>
+          <h2 className="text-3xl font-bold mb-4 text-[#FFFFFF]">Image & Video Generation</h2>
           <p className="mb-6 text-[#B3B3B3]">
-            Wryda.ai provides powerful AI video generation with professional quality tiers and comprehensive customization options. 
-            Choose the right settings for your production needs.
+            Wryda offers image and video generation with full transparency. In the app you choose the model and see its capabilities—resolution, aspect ratio, duration, and credits—before you generate. No tiers; options are shown per model so you can pick what fits your scene.
           </p>
 
           <div className="card bg-[#141414] border border-white/10 mb-6">
             <div className="card-body">
-              <h3 className="font-bold mb-4 text-[#DC143C]">Quality Tiers</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                <div className="p-4 rounded border border-[#DC143C]/30 bg-[#0A0A0A]">
-                  <h4 className="font-semibold mb-2 text-[#DC143C] flex items-center gap-2">
-                    👑 Professional (1080p)
-                    <span className="badge bg-[#DC143C] text-[#FFFFFF] border-none badge-sm">Recommended</span>
-                  </h4>
-                  <ul className="space-y-1 text-sm text-[#B3B3B3]">
-                    <li>• ~50 credits per 5-second video*</li>
-                    <li>• ~100 credits per 10-second video*</li>
-                    <li>• High-quality 1080p resolution</li>
-                    <li>• Fast generation time</li>
-                    <li>• Perfect for most productions</li>
-                  </ul>
-                  <p className="text-xs text-[#808080] mt-2 italic">*Cost varies based on dialogue and shot complexity</p>
-                </div>
-                <div className="p-4 rounded border border-[#00D9FF]/30 bg-[#0A0A0A]">
-                  <h4 className="font-semibold mb-2 text-[#00D9FF] flex items-center gap-2">
-                    ✨ Premium (4K)
-                    <span className="badge bg-[#00D9FF] text-[#0A0A0A] border-none badge-sm">Best Quality</span>
-                  </h4>
-                  <ul className="space-y-1 text-sm text-[#B3B3B3]">
-                    <li>• ~75 credits per 5-second video*</li>
-                    <li>• ~150 credits per 10-second video*</li>
-                    <li>• Ultra-high quality 4K resolution</li>
-                    <li>• Professional cinematic output</li>
-                    <li>• Ideal for final production</li>
-                  </ul>
-                  <p className="text-xs text-[#808080] mt-2 italic">*Cost varies based on dialogue and shot complexity</p>
-                </div>
-              </div>
-
-              <div className="alert alert-info bg-[#0A0A0A] border border-[#00D9FF]/30 mb-4">
+              <h3 className="font-bold mb-4 text-[#DC143C]">What you can configure</h3>
+              <p className="text-sm text-[#B3B3B3] mb-4">
+                Each model in the Video Generation area shows its own options (e.g. resolution, aspect ratio, duration). Character assignment, outfit selection, and dialogue choices are available where the workflow supports them. Credits are shown before generation.
+              </p>
+              <div className="alert alert-info bg-[#0A0A0A] border border-[#00D9FF]/30">
                 <div className="text-sm text-[#B3B3B3]">
-                  <strong className="text-[#00D9FF]">Pricing Note:</strong> Video generation costs are approximate and may vary based on dialogue, shot complexity, and other factors. Actual costs will be shown before generation.
-                </div>
-              </div>
-
-              <h3 className="font-bold mb-4 text-[#DC143C]">Generation Options</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <h4 className="font-semibold mb-2 text-[#FFFFFF]">Resolution</h4>
-                  <ul className="space-y-1 text-sm text-[#B3B3B3]">
-                    <li>• 1080p (Professional tier)</li>
-                    <li>• 4K (Premium tier)</li>
-                  </ul>
-                </div>
-                <div>
-                  <h4 className="font-semibold mb-2 text-[#FFFFFF]">Aspect Ratios</h4>
-                  <ul className="space-y-1 text-sm text-[#B3B3B3]">
-                    <li>• 16:9 (Horizontal/Cinema)</li>
-                    <li>• 9:16 (Vertical/TikTok)</li>
-                    <li>• 1:1 (Square/Instagram)</li>
-                  </ul>
-                </div>
-                <div>
-                  <h4 className="font-semibold mb-2 text-[#FFFFFF]">Duration</h4>
-                  <ul className="space-y-1 text-sm text-[#B3B3B3]">
-                    <li>• 5 seconds (standard)</li>
-                    <li>• 10 seconds (extended)</li>
-                  </ul>
-                </div>
-                <div>
-                  <h4 className="font-semibold mb-2 text-[#FFFFFF]">Customization Options</h4>
-                  <ul className="space-y-1 text-sm text-[#B3B3B3]">
-                    <li>• Image prompts (optional reference images)</li>
-                    <li>• Character outfit selection per shot</li>
-                    <li>• Dialogue selection per shot</li>
-                  </ul>
+                  <strong className="text-[#00D9FF]">Transparency:</strong> Model names, resolutions, and pricing are displayed upfront. Use what the model offers and choose before you generate.
                 </div>
               </div>
             </div>
@@ -135,7 +72,7 @@ export default function ProductionHelp() {
               <ol className="space-y-3 list-decimal list-inside text-[#B3B3B3]">
                 <li><strong className="text-[#FFFFFF]">Select a Scene</strong> - Choose a scene from your screenplay</li>
                 <li><strong className="text-[#FFFFFF]">Scene Analysis</strong> - AI analyzes the scene structure, dialogue, and action</li>
-                <li><strong className="text-[#FFFFFF]">Shot Configuration</strong> - Configure quality tier, resolution, aspect ratio, and duration</li>
+                <li><strong className="text-[#FFFFFF]">Shot Configuration</strong> - Choose model, resolution, aspect ratio, and duration (options shown per model)</li>
                 <li><strong className="text-[#FFFFFF]">Character Assignment</strong> - Assign characters to shots with outfit selection</li>
                 <li><strong className="text-[#FFFFFF]">Video Generation</strong> - AI generates video clips for each shot</li>
                 <li><strong className="text-[#FFFFFF]">Automatic Consistency</strong> - Character, location, and prop consistency maintained automatically</li>
@@ -147,39 +84,9 @@ export default function ProductionHelp() {
           <div className="card bg-[#141414] border border-white/10">
             <div className="card-body">
               <h3 className="font-bold mb-4 text-[#DC143C]">Scene Builder Options:</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <h4 className="font-semibold mb-2 text-[#FFFFFF]">Quality Tier Selection</h4>
-                  <ul className="space-y-1 text-sm text-[#B3B3B3]">
-                    <li>• Professional (1080p) - ~50 credits per 5s*</li>
-                    <li>• Premium (4K) - ~75 credits per 5s*</li>
-                  </ul>
-                  <p className="text-xs text-[#808080] mt-2 italic">*Cost varies based on dialogue and shot complexity</p>
-                </div>
-                <div>
-                  <h4 className="font-semibold mb-2 text-[#FFFFFF]">Resolution & Aspect Ratio</h4>
-                  <ul className="space-y-1 text-sm text-[#B3B3B3]">
-                    <li>• Resolution: 1080p or 4K</li>
-                    <li>• Aspect Ratios: 16:9, 9:16, 1:1</li>
-                  </ul>
-                </div>
-                <div>
-                  <h4 className="font-semibold mb-2 text-[#FFFFFF]">Duration & Customization</h4>
-                  <ul className="space-y-1 text-sm text-[#B3B3B3]">
-                    <li>• Duration: 5s or 10s per clip</li>
-                    <li>• Image prompts (optional reference images)</li>
-                    <li>• Character outfit selection per shot</li>
-                  </ul>
-                </div>
-                <div>
-                  <h4 className="font-semibold mb-2 text-[#FFFFFF]">Advanced Options</h4>
-                  <ul className="space-y-1 text-sm text-[#B3B3B3]">
-                    <li>• Image prompts (optional reference images)</li>
-                    <li>• Character outfit selection per shot</li>
-                    <li>• Dialogue selection per shot</li>
-                  </ul>
-                </div>
-              </div>
+              <p className="text-sm text-[#B3B3B3] mb-4">
+                Model, resolution, aspect ratio, and duration are shown per model in the app. You can configure character assignment, outfit selection per shot, optional image prompts, and dialogue where supported. Credits are shown before generation.
+              </p>
             </div>
           </div>
         </section>
@@ -247,7 +154,7 @@ export default function ProductionHelp() {
                   <strong className="text-[#FFFFFF]">Use Scene Builder</strong> - Select a scene from your screenplay and configure generation settings
                 </li>
                 <li>
-                  <strong className="text-[#FFFFFF]">Configure Shots</strong> - Select quality tier, resolution, aspect ratio, and assign characters
+                  <strong className="text-[#FFFFFF]">Configure Shots</strong> - Select model, resolution, aspect ratio, and assign characters
                 </li>
                 <li>
                   <strong className="text-[#FFFFFF]">Generate & Review</strong> - AI generates videos with automatic consistency, then review and export

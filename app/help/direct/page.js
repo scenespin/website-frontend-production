@@ -37,7 +37,7 @@ export default function DirectHelp() {
           <ComingSoonBadge size="md" />
         </div>
         <p className="text-xl opacity-80 mb-12 text-[#B3B3B3]">
-          Review, organize, and control your production. Use Scene Builder to generate scenes and Shot Board to view all your first frames and videos.
+          After writing and producing, use Direct when you&apos;re ready to review, organize, and control your production. Scene Builder and Shot Board put first frames and videos in one place.
         </p>
 
         {/* Direct Hub Overview */}
@@ -98,7 +98,7 @@ export default function DirectHelp() {
               <ol className="space-y-3 list-decimal list-inside text-[#B3B3B3]">
                 <li><strong className="text-[#FFFFFF]">Select a Scene</strong> - Choose a scene from your screenplay</li>
                 <li><strong className="text-[#FFFFFF]">Scene Analysis</strong> - AI analyzes the scene structure, dialogue, and action</li>
-                <li><strong className="text-[#FFFFFF]">Configure Shots</strong> - Set quality tier, resolution, aspect ratio, and duration</li>
+                <li><strong className="text-[#FFFFFF]">Configure Shots</strong> - Set model, resolution, aspect ratio, and duration (options per model)</li>
                 <li><strong className="text-[#FFFFFF]">Assign Characters</strong> - Assign characters to shots with outfit selection</li>
                 <li><strong className="text-[#FFFFFF]">Generate</strong> - AI generates video clips for each shot with automatic consistency</li>
                 <li><strong className="text-[#FFFFFF]">Review</strong> - Review generated first frames and videos in the Shot Board</li>
@@ -113,10 +113,9 @@ export default function DirectHelp() {
                 <div>
                   <h4 className="font-semibold mb-2 text-[#FFFFFF]">Generation Options</h4>
                   <ul className="space-y-1 text-sm text-[#B3B3B3]">
-                    <li>• Quality tiers: Professional (~50 credits/5s) or Premium (~75 credits/5s)</li>
-                    <li>• Resolution: 1080p or 4K</li>
-                    <li>• Aspect ratios: 16:9, 9:16, 1:1</li>
-                    <li>• Duration: 5s or 10s per clip</li>
+                    <li>• Model, resolution, and aspect ratio shown per option in the app</li>
+                    <li>• Credits shown before generation</li>
+                    <li>• Duration and customization depend on the model you choose</li>
                   </ul>
                 </div>
                 <div>

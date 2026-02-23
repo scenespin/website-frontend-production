@@ -34,7 +34,7 @@ export default function WritingHelp() {
       <main className="max-w-5xl mx-auto px-8 py-16 bg-black text-[#FFFFFF]">
         <h1 className="text-4xl md:text-5xl font-extrabold mb-4 text-[#FFFFFF]">✍️ Writing & Fountain Editor</h1>
         <p className="text-xl opacity-80 mb-12 text-[#B3B3B3]">
-          Master the professional Fountain format screenplay editor with comprehensive features, keyboard shortcuts, collaboration, and 5 AI writing agents.
+          Write stronger pages first. The Fountain editor, keyboard shortcuts, collaboration, and 5 AI writing agents are here to support your script—not the other way around.
         </p>
 
         {/* Table of Contents */}
@@ -60,7 +60,7 @@ export default function WritingHelp() {
         <section id="fountain-format" className="mb-12">
           <h2 className="text-3xl font-bold mb-4 text-[#FFFFFF]">Fountain Format</h2>
           <p className="mb-6 text-[#B3B3B3]">
-            Wryda.ai uses the industry-standard <strong className="text-[#FFFFFF]">Fountain format</strong>, the same format used by Final Draft, Celtx, and Fade In. 
+            Wryda uses the industry-standard <strong className="text-[#FFFFFF]">Fountain format</strong>, the same format used by Final Draft, Celtx, and Fade In. 
             Your screenplays are compatible with all major screenwriting software.
           </p>
           
@@ -83,11 +83,11 @@ export default function WritingHelp() {
                 </div>
 
                 <div>
-                  <h4 className="font-semibold mb-2 text-[#FFFFFF]">Wryda.ai's Fountain Advantage</h4>
+                  <h4 className="font-semibold mb-2 text-[#FFFFFF]">Wryda's Fountain Advantage</h4>
                   <p className="text-sm text-[#B3B3B3]">
-                    Wryda.ai doesn't just support Fountain—we enhance it. Our editor provides real-time formatting, automatic 
+                    Wryda doesn't just support Fountain—we enhance it. Our editor provides real-time formatting, automatic 
                     character and location tracking, and seamless integration with our Scene Builder technology. Write in the format 
-                    you know, then watch as Wryda.ai transforms your screenplay into a complete production with automatic consistency 
+                    you know, then watch as Wryda transforms your screenplay into a complete production with automatic consistency 
                     across characters, locations, and props.
                   </p>
                 </div>
@@ -105,7 +105,7 @@ export default function WritingHelp() {
                   <p className="text-sm text-[#B3B3B3]">
                     <strong className="text-[#DC143C]">Learn More:</strong> Fountain format is maintained by the screenwriting community 
                     and documented at <a href="https://fountain.io" target="_blank" rel="noopener noreferrer" className="text-[#00D9FF] hover:text-[#DC143C]">fountain.io</a>. 
-                    Wryda.ai fully implements the Fountain specification, ensuring your screenplays work everywhere.
+                    Wryda fully implements the Fountain specification, ensuring your screenplays work everywhere.
                   </p>
                 </div>
               </div>
