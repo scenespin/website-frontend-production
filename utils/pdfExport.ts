@@ -462,8 +462,8 @@ export async function exportScreenplayToPDF(
   let currentY = inchesToPoints(SCREENPLAY_FORMAT.marginTop);
   const maxY = inchesToPoints(SCREENPLAY_FORMAT.pageHeight - SCREENPLAY_FORMAT.marginBottom);
   const leftMargin = inchesToPoints(SCREENPLAY_FORMAT.marginLeft);
-  let pageNumber = 1;
-  let firstPage = true;
+  const rightMarginX = inchesToPoints(SCREENPLAY_FORMAT.pageWidth - SCREENPLAY_FORMAT.marginRight);
+  let pageNumber = 0; // Title page is unnumbered; first script page should be 1.
   
   // Bookmarks storage
   const bookmarks: Array<{ title: string; page: number }> = [];
@@ -471,6 +471,7 @@ export async function exportScreenplayToPDF(
   // Track current scene for CONTINUED markers
   let currentScene: string | null = null;
   let sceneContinuing = false; // Track if we're continuing a scene on new page
+  let currentCharacterCue: string | null = null;
   
   /**
    * Add "(CONTINUED)" at bottom right of current page
@@ -530,13 +531,13 @@ export async function exportScreenplayToPDF(
   /**
    * Check if we need a new page
    */
-  function checkPageBreak(requiredLines: number = 1) {
+  function checkPageBreak(requiredLines: number = 1, markSceneContinuation: boolean = true) {
     const lineHeightPt = SCREENPLAY_FORMAT.lineHeight;
     const requiredSpace = requiredLines * lineHeightPt;
     
     if (currentY + requiredSpace > maxY) {
       // Mark that scene is continuing if we're in a scene
-      if (currentScene) {
+      if (markSceneContinuation && currentScene) {
         sceneContinuing = true;
       }
       addNewPage();
@@ -588,7 +589,6 @@ export async function exportScreenplayToPDF(
     
     // Start screenplay on new page
     addNewPage();
-    firstPage = false;
   }
   
   // Add title page
@@ -603,13 +603,15 @@ export async function exportScreenplayToPDF(
     
     switch (element.type) {
       case 'blank':
+        currentCharacterCue = null;
         currentY += lineHeightPt;
         checkPageBreak();
         break;
         
       case 'scene':
+        currentCharacterCue = null;
         // Scene headings should not be orphaned
-        checkPageBreak(2);
+        checkPageBreak(2, false);
         
         // Ensure consistent double spacing before scene headings (Fountain spec requirement)
         // Count blank lines that have already been processed (they've already moved currentY)
@@ -647,7 +649,7 @@ export async function exportScreenplayToPDF(
           });
         }
         
-        doc.setFont(SCREENPLAY_FORMAT.fontFamily, 'bold');
+        doc.setFont(SCREENPLAY_FORMAT.fontFamily, 'normal');
         doc.text(
           element.text,
           leftMargin + inchesToPoints(SCREENPLAY_FORMAT.indent.sceneHeading),
@@ -660,6 +662,7 @@ export async function exportScreenplayToPDF(
         break;
         
       case 'action':
+        currentCharacterCue = null;
         const actionX = leftMargin + inchesToPoints(SCREENPLAY_FORMAT.indent.action);
         const actionLines = wrapText(doc, element.text, SCREENPLAY_FORMAT.width.action);
         
@@ -682,6 +685,7 @@ export async function exportScreenplayToPDF(
         
         currentY += lineHeightPt; // Space before character
         
+        currentCharacterCue = element.text;
         const charX = leftMargin + inchesToPoints(SCREENPLAY_FORMAT.indent.character);
         doc.text(element.text, charX, currentY, { baseline: 'top' });
         currentY += lineHeightPt;
@@ -692,6 +696,16 @@ export async function exportScreenplayToPDF(
         const parenLines = wrapText(doc, element.text, SCREENPLAY_FORMAT.width.parenthetical);
         
         parenLines.forEach((line: string) => {
+          const didBreak = checkPageBreak();
+          if (didBreak && currentCharacterCue) {
+            currentY += lineHeightPt;
+            const continuedCue = currentCharacterCue.includes("(CONT'D)")
+              ? currentCharacterCue
+              : `${currentCharacterCue} (CONT'D)`;
+            const continuedCharX = leftMargin + inchesToPoints(SCREENPLAY_FORMAT.indent.character);
+            doc.text(continuedCue, continuedCharX, currentY, { baseline: 'top' });
+            currentY += lineHeightPt;
+          }
           doc.text(line, parenX, currentY, { baseline: 'top' });
           currentY += lineHeightPt;
         });
@@ -702,19 +716,28 @@ export async function exportScreenplayToPDF(
         const dialogueWrapped = wrapText(doc, element.text, SCREENPLAY_FORMAT.width.dialogue);
         
         dialogueWrapped.forEach((line: string) => {
-          checkPageBreak();
+          const didBreak = checkPageBreak();
+          if (didBreak && currentCharacterCue) {
+            currentY += lineHeightPt;
+            const continuedCue = currentCharacterCue.includes("(CONT'D)")
+              ? currentCharacterCue
+              : `${currentCharacterCue} (CONT'D)`;
+            const continuedCharX = leftMargin + inchesToPoints(SCREENPLAY_FORMAT.indent.character);
+            doc.text(continuedCue, continuedCharX, currentY, { baseline: 'top' });
+            currentY += lineHeightPt;
+          }
           doc.text(line, dialogueX, currentY, { baseline: 'top' });
           currentY += lineHeightPt;
         });
         break;
         
       case 'transition':
+        currentCharacterCue = null;
         checkPageBreak(2);
         
         currentY += lineHeightPt; // Space before transition
         
-        const transX = leftMargin + inchesToPoints(SCREENPLAY_FORMAT.indent.transition);
-        doc.text(element.text, transX, currentY, { baseline: 'top' });
+        doc.text(element.text, rightMarginX, currentY, { align: 'right', baseline: 'top' });
         currentY += lineHeightPt * 2; // Extra space after transition
         break;
     }
