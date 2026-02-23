@@ -4,10 +4,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useEditor } from '@/contexts/EditorContext';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { FountainElementType, formatElement, detectElementType } from '@/utils/fountain';
-import { saveToGitHub, getDefaultBranch, getScreenplayFilePath } from '@/utils/github';
+import { saveToGitHub, getScreenplayFilePath } from '@/utils/github';
 import { markPeriodicGitHubBackupCheckpoint } from '@/utils/githubPeriodicBackup';
 import { toast } from 'sonner';
-import { useAuth } from '@clerk/nextjs';
 import ScriptImportModal from './ScriptImportModal';
 import SceneTypeDropdown from './SceneTypeDropdown';
 
@@ -37,7 +36,6 @@ interface EditorToolbarProps {
 function GitHubSaveButton() {
     const { state } = useEditor();
     const { screenplayId } = useScreenplay();
-    const { getToken } = useAuth();
     const [saving, setSaving] = useState(false);
     const [showModal, setShowModal] = useState(false);
     const [showSetup, setShowSetup] = useState(false);
@@ -63,71 +61,23 @@ function GitHubSaveButton() {
         try {
             setSaving(true);
             const rawConfig = JSON.parse(githubConfigStr);
-            const useBackendManualSave = process.env.NEXT_PUBLIC_ENABLE_GITHUB_BACKEND_MANUAL_SAVE === 'true';
-            const hasRepoConfig = !!(rawConfig.owner && rawConfig.repo);
-            const hasClientToken = !!(rawConfig.accessToken || rawConfig.token);
-            if (!hasRepoConfig || (!useBackendManualSave && !hasClientToken)) {
-                throw new Error('GitHub configuration incomplete');
-            }
             
             // Normalize config - OAuth handler saves as 'accessToken', github.ts expects 'token'
             const config = {
                 token: rawConfig.accessToken || rawConfig.token,
                 owner: rawConfig.owner,
-                repo: rawConfig.repo,
-                branch: rawConfig.branch
+                repo: rawConfig.repo
             };
             
             // Use the user's message or a default
             const message = commitMessage.trim() || `Backup: ${state.title || 'Untitled Screenplay'}`;
 
-            if (useBackendManualSave) {
-                const token = await getToken({ template: 'wryda-backend' });
-                if (!token) {
-                    throw new Error('Unable to authenticate with backend. Please sign in again.');
-                }
-
-                const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://backend.wryda.ai';
-                const response = await fetch(`${backendUrl}/api/github/screenplay/save`, {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                        Authorization: `Bearer ${token}`
-                    },
-                    body: JSON.stringify({
-                        screenplayId,
-                        content: state.content,
-                        message,
-                        owner: config.owner,
-                        repo: config.repo,
-                        branch: config.branch
-                    })
-                });
-
-                const payload = await response.json().catch(() => null);
-                if ((!response.ok || !payload?.success) && payload?.errorCode === 'GITHUB_NOT_CONNECTED' && config.token) {
-                    // Additive rollout safety: fallback to legacy client-save when backend token is not connected yet.
-                    const branch = config.branch || await getDefaultBranch(config);
-                    await saveToGitHub(config, {
-                        path: getScreenplayFilePath(screenplayId),
-                        content: state.content,
-                        message: message,
-                        branch
-                    });
-                } else if (!response.ok || !payload?.success) {
-                    const backendError = new Error(payload?.message || 'Backend GitHub save failed');
-                    (backendError as Error & { errorCode?: string }).errorCode = payload?.errorCode;
-                    throw backendError;
-                }
-            } else {
-                const branch = config.branch || await getDefaultBranch(config);
-                await saveToGitHub(config, {
-                    path: getScreenplayFilePath(screenplayId),
-                    content: state.content,
-                    message: message,
-                    branch
-                });
-            }
+            await saveToGitHub(config, {
+                path: getScreenplayFilePath(screenplayId),
+                content: state.content,
+                message: message,
+                branch: 'main'
+            });
             if (screenplayId?.startsWith('screenplay_')) {
                 markPeriodicGitHubBackupCheckpoint(screenplayId, state.content);
             }
@@ -142,14 +92,7 @@ function GitHubSaveButton() {
             
             // Check if this is an authentication error (expired/revoked token)
             const errorMessage = error.message || '';
-            const errorCode = error.errorCode || '';
-            if (
-                errorMessage.includes('Bad credentials') ||
-                errorMessage.includes('401') ||
-                errorMessage.includes('Unauthorized') ||
-                errorCode === 'GITHUB_TOKEN_EXPIRED' ||
-                errorCode === 'GITHUB_NOT_CONNECTED'
-            ) {
+            if (errorMessage.includes('Bad credentials') || errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
                 // Clear the invalid token
                 localStorage.removeItem('screenplay_github_config');
                 

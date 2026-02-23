@@ -95,9 +95,17 @@ export default function WritingHelp() {
                 <div>
                   <h4 className="font-semibold mb-2 text-[#FFFFFF]">Professional Workflow</h4>
                   <p className="text-sm text-[#B3B3B3]">
-                    Write your screenplay in Fountain format, export to PDF for industry submissions, or use 
+                    Write your screenplay in Fountain format, export to PDF or Final Draft (.fdx) for industry submissions, or use 
                     our unique Scene Builder to generate complete video scenes directly from your script. Fountain format ensures 
                     compatibility throughout your entire production pipeline—from writing to pre-visualization to final export.
+                  </p>
+                </div>
+
+                <div className="p-4 rounded bg-[#0A0A0A] border border-[#DC143C]/30">
+                  <p className="text-sm text-[#B3B3B3]">
+                    <strong className="text-[#DC143C]">Learn More:</strong> Fountain format is maintained by the screenwriting community 
+                    and documented at <a href="https://fountain.io" target="_blank" rel="noopener noreferrer" className="text-[#00D9FF] hover:text-[#DC143C]">fountain.io</a>. 
+                    Wryda fully implements the Fountain specification, ensuring your screenplays work everywhere.
                   </p>
                 </div>
               </div>
@@ -873,7 +881,7 @@ export default function WritingHelp() {
                   <strong className="text-[#FFFFFF]">Track Characters</strong> - Characters are automatically detected and tracked
                 </li>
                 <li>
-                  <strong className="text-[#FFFFFF]">Save & Export</strong> - Your work auto-saves every 2 seconds. Export to PDF when ready
+                  <strong className="text-[#FFFFFF]">Save & Export</strong> - Your work auto-saves every 2 seconds. Export to PDF or Final Draft format when ready
                 </li>
               </ol>
             </div>

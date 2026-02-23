@@ -81,7 +81,8 @@ export default function GitHubOAuthHandler() {
                     const githubConfig = {
                         accessToken,
                         owner,
-                        repo: repoName
+                        repo: repoName,
+                        branch: 'main'
                     };
                     localStorage.setItem('screenplay_github_config', JSON.stringify(githubConfig));
                     
