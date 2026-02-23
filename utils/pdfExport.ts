@@ -482,10 +482,17 @@ export async function exportScreenplayToPDF(
     align?: 'left' | 'center' | 'right';
   };
 
+  type ContinuationTrigger = 'action' | 'centered' | 'dialogue' | 'dialogue-block';
+
+  type SplitEvent = {
+    fromPage: number;
+    toPage: number;
+    sceneId: string;
+    trigger: ContinuationTrigger;
+  };
+
   type LayoutPage = {
     ops: LayoutOp[];
-    hasContinuedTop: boolean;
-    hasContinuedBottom: boolean;
   };
 
   const lineHeightPt = SCREENPLAY_FORMAT.lineHeight;
@@ -497,9 +504,11 @@ export async function exportScreenplayToPDF(
 
   // Bookmarks storage
   const bookmarks: Array<{ title: string; page: number }> = [];
+  const sceneCoverageByPage = new Map<number, Set<string>>();
+  const splitEvents: SplitEvent[] = [];
 
   const layoutPages: LayoutPage[] = [
-    { ops: [], hasContinuedTop: false, hasContinuedBottom: false },
+    { ops: [] },
   ];
   let layoutPageIndex = 0;
   let layoutY = topY;
@@ -514,27 +523,40 @@ export async function exportScreenplayToPDF(
     align: 'left' | 'center' | 'right' = 'left'
   ) => {
     currentLayoutPage().ops.push({ text, x, y: layoutY, align });
+    if (layoutCurrentScene) {
+      const pageNumber = layoutPageIndex + 1;
+      if (!sceneCoverageByPage.has(pageNumber)) {
+        sceneCoverageByPage.set(pageNumber, new Set<string>());
+      }
+      sceneCoverageByPage.get(pageNumber)!.add(layoutCurrentScene);
+    }
     layoutY += lineHeightPt;
   };
 
-  const breakToNextPage = (markContinuation: boolean) => {
-    if (markContinuation && layoutCurrentScene) {
-      currentLayoutPage().hasContinuedBottom = true;
+  const breakToNextPage = (continuationTrigger: ContinuationTrigger | null) => {
+    if (continuationTrigger && layoutCurrentScene) {
+      splitEvents.push({
+        fromPage: layoutPageIndex + 1,
+        toPage: layoutPageIndex + 2,
+        sceneId: layoutCurrentScene,
+        trigger: continuationTrigger,
+      });
     }
 
     layoutPages.push({
       ops: [],
-      hasContinuedTop: markContinuation && !!layoutCurrentScene,
-      hasContinuedBottom: false,
     });
     layoutPageIndex += 1;
     layoutY = topY;
   };
 
-  const ensureSpace = (requiredLines: number = 1, markContinuation: boolean = false): boolean => {
+  const ensureSpace = (
+    requiredLines: number = 1,
+    continuationTrigger: ContinuationTrigger | null = null
+  ): boolean => {
     const requiredSpace = requiredLines * lineHeightPt;
     if (layoutY + requiredSpace > maxY) {
-      breakToNextPage(markContinuation);
+      breakToNextPage(continuationTrigger);
       return true;
     }
     return false;
@@ -561,14 +583,14 @@ export async function exportScreenplayToPDF(
         layoutCurrentCharacterCue = null;
         layoutY += lineHeightPt;
         if (layoutY > maxY) {
-          breakToNextPage(false);
+          breakToNextPage(null);
         }
         break;
       }
 
       case 'scene': {
         layoutCurrentCharacterCue = null;
-        ensureSpace(2, false);
+        ensureSpace(2, null);
 
         let blankLinesBeforeScene = 0;
         for (let j = i - 1; j >= 0; j--) {
@@ -586,7 +608,7 @@ export async function exportScreenplayToPDF(
         }
 
         if (layoutY > maxY) {
-          breakToNextPage(false);
+          breakToNextPage(null);
         }
 
         layoutCurrentScene = element.text;
@@ -613,7 +635,7 @@ export async function exportScreenplayToPDF(
         const isTerminalAction = element.text.trim().toUpperCase() === 'THE END';
 
         actionLines.forEach((line: string) => {
-          ensureSpace(1, !isTerminalAction);
+          ensureSpace(1, isTerminalAction ? null : 'action');
           pushLayoutText(line, actionX);
         });
         break;
@@ -623,7 +645,7 @@ export async function exportScreenplayToPDF(
         layoutCurrentCharacterCue = null;
         const centeredLines = wrapText(doc, element.text, SCREENPLAY_FORMAT.width.action);
         centeredLines.forEach((line: string) => {
-          ensureSpace(1, true);
+          ensureSpace(1, 'centered');
           pushLayoutText(line, bodyCenterX, 'center');
         });
         break;
@@ -637,7 +659,7 @@ export async function exportScreenplayToPDF(
             : 0;
 
         // Keep cue + first dialogue chunk together when possible.
-        ensureSpace(2 + dialogueLines, false);
+        ensureSpace(2 + dialogueLines, dialogueLines > 0 ? 'dialogue-block' : null);
         layoutY += lineHeightPt; // Space before character
 
         layoutCurrentCharacterCue = element.text;
@@ -651,7 +673,7 @@ export async function exportScreenplayToPDF(
         const parenLines = wrapText(doc, element.text, SCREENPLAY_FORMAT.width.parenthetical);
 
         parenLines.forEach((line: string) => {
-          const didBreak = ensureSpace(1, true);
+          const didBreak = ensureSpace(1, 'dialogue');
           if (didBreak) {
             addContinuedCharacterCue();
           }
@@ -665,7 +687,7 @@ export async function exportScreenplayToPDF(
         const dialogueLines = wrapText(doc, element.text, SCREENPLAY_FORMAT.width.dialogue);
 
         dialogueLines.forEach((line: string) => {
-          const didBreak = ensureSpace(1, true);
+          const didBreak = ensureSpace(1, 'dialogue');
           if (didBreak) {
             addContinuedCharacterCue();
           }
@@ -676,7 +698,7 @@ export async function exportScreenplayToPDF(
 
       case 'transition': {
         layoutCurrentCharacterCue = null;
-        ensureSpace(2, false);
+        ensureSpace(2, null);
         layoutY += lineHeightPt; // Space before transition
         pushLayoutText(element.text, rightMarginX, 'right');
         layoutY += lineHeightPt; // Extra spacing after transition
@@ -684,6 +706,22 @@ export async function exportScreenplayToPDF(
       }
     }
   }
+
+  const continuedBottomPages = new Set<number>();
+  const continuedTopPages = new Set<number>();
+  splitEvents.forEach((event) => {
+    const fromCoverage = sceneCoverageByPage.get(event.fromPage);
+    const toCoverage = sceneCoverageByPage.get(event.toPage);
+    const hasSharedScene =
+      !!fromCoverage &&
+      !!toCoverage &&
+      fromCoverage.has(event.sceneId) &&
+      toCoverage.has(event.sceneId);
+
+    if (!hasSharedScene) return;
+    continuedBottomPages.add(event.fromPage);
+    continuedTopPages.add(event.toPage);
+  });
 
   // Draw title page first (page 1, unnumbered).
   const centerX = inchesToPoints(SCREENPLAY_FORMAT.pageWidth / 2);
@@ -728,7 +766,7 @@ export async function exportScreenplayToPDF(
     doc.setFontSize(SCREENPLAY_FORMAT.fontSize);
     doc.text(`${scriptPageNumber}.`, pageNumX, pageNumY, { align: 'right', baseline: 'top' });
 
-    if (page.hasContinuedTop) {
+    if (continuedTopPages.has(scriptPageNumber)) {
       const continuedY = inchesToPoints(SCREENPLAY_FORMAT.marginTop) - 12;
       const continuedX = inchesToPoints(SCREENPLAY_FORMAT.pageNumberRight);
       doc.text('CONTINUED:', continuedX, continuedY, { align: 'right', baseline: 'top' });
@@ -741,7 +779,7 @@ export async function exportScreenplayToPDF(
       });
     });
 
-    if (page.hasContinuedBottom) {
+    if (continuedBottomPages.has(scriptPageNumber)) {
       const continuedY = maxY + 12;
       const continuedX = inchesToPoints(SCREENPLAY_FORMAT.pageNumberRight);
       doc.text('(CONTINUED)', continuedX, continuedY, { align: 'right', baseline: 'top' });
