@@ -43,8 +43,8 @@ export default function HowItWorksPage() {
               <Link href="/pricing" className="text-sm text-gray-300 hover:text-white transition-colors">
                 Pricing
               </Link>
-              <Link href="/help" className="text-sm text-gray-300 hover:text-white transition-colors">
-                Help
+              <Link href="/examples" className="text-sm text-gray-300 hover:text-white transition-colors">
+                Examples
               </Link>
               <Link href="/sign-in" className="text-sm text-gray-300 hover:text-white transition-colors">
                 Login
