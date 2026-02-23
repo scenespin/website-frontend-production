@@ -68,8 +68,8 @@ export default function Page() {
               <Link href="#pricing" className="text-sm text-gray-300 hover:text-white transition-colors">
                 Pricing
               </Link>
-              <Link href="/help" className="text-sm text-gray-300 hover:text-white transition-colors">
-                Help
+              <Link href="/examples" className="text-sm text-gray-300 hover:text-white transition-colors">
+                Examples
               </Link>
               <div className="flex items-center">
                 <ButtonSignin text="Login" extraStyle="!bg-transparent !border-none !text-gray-300 hover:!text-white !px-0 !min-h-0 !h-auto !text-sm !shadow-none !normal-case" />

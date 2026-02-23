@@ -57,8 +57,12 @@ export default function ExamplesPage() {
       outcome: "Shows Director creating a structured scene draft from location/scenario/direction inputs and inserting it as a new additive block.",
     },
   ];
-  const topRowExamples = writingExamples.slice(0, 3);
-  const bottomRowExamples = writingExamples.slice(3);
+  const topRowExamples = writingExamples.filter((example) =>
+    ["Rewrite", "Screenwriter", "Story Advisor"].includes(example.agent)
+  );
+  const bottomRowExamples = writingExamples.filter((example) =>
+    ["Dialogue", "Director"].includes(example.agent)
+  );
   
   return (
     <>
