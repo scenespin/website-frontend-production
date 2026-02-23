@@ -138,6 +138,9 @@ export default function AIDisclosurePanel({
 
               <div className="rounded border border-white/10 bg-[#121212] p-3 space-y-3">
                 <h3 className="text-sm font-semibold text-white">Consent & Policy Context (optional)</h3>
+                <p className="text-xs text-gray-400">
+                  Events are tracked automatically. The fields below are optional writer-supplied context for submissions.
+                </p>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   <label className="text-xs text-gray-300 flex flex-col gap-1">
                     Consent status
@@ -150,30 +153,39 @@ export default function AIDisclosurePanel({
                       <option value="declared_yes">Declared yes</option>
                       <option value="declared_no">Declared no</option>
                     </select>
+                    <span className="text-[11px] text-gray-500">
+                      Example: Choose declared yes if AI assistance was permitted in your project context.
+                    </span>
                   </label>
                   <label className="text-xs text-gray-300 flex flex-col gap-1">
                     Organization name
                     <input
                       value={consentForm.org_name}
                       onChange={(e) => setConsentForm((prev) => ({ ...prev, org_name: e.target.value }))}
+                      placeholder="e.g., Studio Name, Production Co, or leave blank"
                       className="bg-[#1B1B1B] border border-white/10 rounded px-2 py-2 text-sm"
                     />
+                    <span className="text-[11px] text-gray-500">Who this policy/consent context belongs to.</span>
                   </label>
                   <label className="text-xs text-gray-300 flex flex-col gap-1">
                     Policy reference
                     <input
                       value={consentForm.policy_reference}
                       onChange={(e) => setConsentForm((prev) => ({ ...prev, policy_reference: e.target.value }))}
+                      placeholder="e.g., AI Policy 2026-02, WGA memo, internal handbook section"
                       className="bg-[#1B1B1B] border border-white/10 rounded px-2 py-2 text-sm"
                     />
+                    <span className="text-[11px] text-gray-500">Document name or ID, if one exists.</span>
                   </label>
                   <label className="text-xs text-gray-300 flex flex-col gap-1">
                     Policy version
                     <input
                       value={consentForm.policy_version}
                       onChange={(e) => setConsentForm((prev) => ({ ...prev, policy_version: e.target.value }))}
+                      placeholder="e.g., v1.2 or 2026-02-01"
                       className="bg-[#1B1B1B] border border-white/10 rounded px-2 py-2 text-sm"
                     />
+                    <span className="text-[11px] text-gray-500">Version or effective date (optional).</span>
                   </label>
                 </div>
                 <label className="text-xs text-gray-300 flex flex-col gap-1">
@@ -182,8 +194,12 @@ export default function AIDisclosurePanel({
                     value={consentForm.consent_note}
                     onChange={(e) => setConsentForm((prev) => ({ ...prev, consent_note: e.target.value }))}
                     rows={3}
+                    placeholder="Example: Used AI for dialogue alternatives and outline exploration; final pages were writer-edited."
                     className="bg-[#1B1B1B] border border-white/10 rounded px-2 py-2 text-sm"
                   />
+                  <span className="text-[11px] text-gray-500">
+                    Plain-language context for reviewers. Keep this factual and concise.
+                  </span>
                 </label>
                 <div className="flex gap-2">
                   <button onClick={handleSaveConsent} disabled={savingConsent} className="btn btn-sm btn-primary">

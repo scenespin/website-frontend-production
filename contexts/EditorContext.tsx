@@ -671,8 +671,13 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
             undoDebounceRef.current = null;
         }
         pendingUndoSnapshotRef.current = null;
-        
-        let newContentSnapshot = '';
+
+        const currentState = stateRef.current;
+        const pos = position ?? currentState.cursorPosition ?? 0;
+        const beforeSnapshot = currentState.content.substring(0, pos);
+        const afterSnapshot = currentState.content.substring(pos);
+        const newContentSnapshot = beforeSnapshot + text + afterSnapshot;
+
         setState(prev => {
             // CRITICAL: Push current state to undo stack BEFORE making changes
             const currentSnapshot = {
@@ -688,11 +693,9 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
             previousContentForUndoRef.current = prev.content;
             previousCursorForUndoRef.current = prev.cursorPosition ?? 0;
             
-            const pos = position ?? prev.cursorPosition;
             const before = prev.content.substring(0, pos);
             const after = prev.content.substring(pos);
             const newContent = before + text + after;
-            newContentSnapshot = newContent;
             
             console.log('[EditorContext] insertText - pushed to undo stack, setting highlightRange:', { start: pos, end: pos + text.length });
             
@@ -708,9 +711,7 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                 canRedo: false
             };
         });
-        if (newContentSnapshot) {
-            scheduleDebouncedBackendSave(newContentSnapshot, 'insertText');
-        }
+        scheduleDebouncedBackendSave(newContentSnapshot, 'insertText');
     }, [isLocked, scheduleDebouncedBackendSave]);
     
     const replaceSelection = useCallback((text: string, start: number, end: number) => {
@@ -728,8 +729,12 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
             undoDebounceRef.current = null;
         }
         pendingUndoSnapshotRef.current = null;
-        
-        let newContentSnapshot = '';
+
+        const currentState = stateRef.current;
+        const beforeSnapshot = currentState.content.substring(0, start);
+        const afterSnapshot = currentState.content.substring(end);
+        const newContentSnapshot = beforeSnapshot + text + afterSnapshot;
+
         setState(prev => {
             // CRITICAL: Push current state to undo stack BEFORE making changes
             const currentSnapshot = {
@@ -748,7 +753,6 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
             const before = prev.content.substring(0, start);
             const after = prev.content.substring(end);
             const newContent = before + text + after;
-            newContentSnapshot = newContent;
             
             console.log('[EditorContext] 📝 New content length:', newContent.length);
             console.log('[EditorContext] 📝 New content preview (around insertion):', JSON.stringify(newContent.substring(Math.max(0, start - 10), start + text.length + 10)));
@@ -766,9 +770,7 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
                 canRedo: false
             };
         });
-        if (newContentSnapshot) {
-            scheduleDebouncedBackendSave(newContentSnapshot, 'replaceSelection');
-        }
+        scheduleDebouncedBackendSave(newContentSnapshot, 'replaceSelection');
     }, [isLocked, scheduleDebouncedBackendSave]);
     
     // Undo operations
