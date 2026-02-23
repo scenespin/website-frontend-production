@@ -457,6 +457,154 @@ export async function exportScreenplayToPDF(
   
   // Parse screenplay
   const elements = parseFountain(screenplay);
+
+  type SceneCoverage = Map<number, Set<string>>;
+
+  function addSceneCoverage(
+    coverage: SceneCoverage,
+    page: number,
+    scene: string | null
+  ) {
+    if (!scene) return;
+    if (!coverage.has(page)) {
+      coverage.set(page, new Set<string>());
+    }
+    coverage.get(page)!.add(scene);
+  }
+
+  function buildSceneCoverageByPage(): SceneCoverage {
+    const coverage: SceneCoverage = new Map<number, Set<string>>();
+    const lineHeightPt = SCREENPLAY_FORMAT.lineHeight;
+    const topY = inchesToPoints(SCREENPLAY_FORMAT.marginTop);
+    const bottomY = inchesToPoints(SCREENPLAY_FORMAT.pageHeight - SCREENPLAY_FORMAT.marginBottom);
+
+    let simPage = 1;
+    let simY = topY;
+    let simCurrentScene: string | null = null;
+
+    const simCheckPageBreak = (requiredLines: number = 1): boolean => {
+      const requiredSpace = requiredLines * lineHeightPt;
+      if (simY + requiredSpace > bottomY) {
+        simPage += 1;
+        simY = topY;
+        return true;
+      }
+      return false;
+    };
+
+    for (let i = 0; i < elements.length; i++) {
+      const element = elements[i];
+
+      switch (element.type) {
+        case 'blank': {
+          simY += lineHeightPt;
+          simCheckPageBreak(1);
+          break;
+        }
+
+        case 'scene': {
+          simCheckPageBreak(2);
+
+          let blankLinesBeforeScene = 0;
+          for (let j = i - 1; j >= 0; j--) {
+            if (elements[j].type === 'blank') {
+              blankLinesBeforeScene++;
+            } else {
+              break;
+            }
+          }
+
+          if (blankLinesBeforeScene < 2) {
+            simY += lineHeightPt * (2 - blankLinesBeforeScene);
+          } else if (blankLinesBeforeScene > 2) {
+            simY -= lineHeightPt * (blankLinesBeforeScene - 2);
+          }
+
+          simCurrentScene = element.text;
+          addSceneCoverage(coverage, simPage, simCurrentScene);
+          simY += lineHeightPt * 2;
+          break;
+        }
+
+        case 'action': {
+          const actionLines = wrapText(doc, element.text, SCREENPLAY_FORMAT.width.action);
+          simCheckPageBreak(actionLines.length);
+          if (actionLines.length > 0) {
+            addSceneCoverage(coverage, simPage, simCurrentScene);
+            simY += actionLines.length * lineHeightPt;
+          }
+          break;
+        }
+
+        case 'character': {
+          const nextElement = elements[i + 1];
+          const dialogueLines =
+            nextElement && nextElement.type === 'dialogue'
+              ? wrapText(doc, nextElement.text, SCREENPLAY_FORMAT.width.dialogue).length
+              : 0;
+          simCheckPageBreak(2 + dialogueLines);
+          simY += lineHeightPt; // Space before character
+          addSceneCoverage(coverage, simPage, simCurrentScene);
+          simY += lineHeightPt; // Character cue line
+          break;
+        }
+
+        case 'parenthetical': {
+          const parenLines = wrapText(doc, element.text, SCREENPLAY_FORMAT.width.parenthetical);
+          parenLines.forEach(() => {
+            simCheckPageBreak(1);
+            addSceneCoverage(coverage, simPage, simCurrentScene);
+            simY += lineHeightPt;
+          });
+          break;
+        }
+
+        case 'dialogue': {
+          const dialogueWrapped = wrapText(doc, element.text, SCREENPLAY_FORMAT.width.dialogue);
+          dialogueWrapped.forEach(() => {
+            simCheckPageBreak(1);
+            addSceneCoverage(coverage, simPage, simCurrentScene);
+            simY += lineHeightPt;
+          });
+          break;
+        }
+
+        case 'transition': {
+          simCheckPageBreak(2);
+          simY += lineHeightPt; // Space before transition
+          addSceneCoverage(coverage, simPage, simCurrentScene);
+          simY += lineHeightPt * 2; // Transition line + space after
+          break;
+        }
+      }
+    }
+
+    return coverage;
+  }
+
+  function buildContinuationPageSet(coverage: SceneCoverage): Set<number> {
+    const continuedPages = new Set<number>();
+    const sortedPages = Array.from(coverage.keys()).sort((a, b) => a - b);
+
+    for (let idx = 0; idx < sortedPages.length - 1; idx++) {
+      const page = sortedPages[idx];
+      const nextPage = page + 1;
+      const scenesCurrent = coverage.get(page);
+      const scenesNext = coverage.get(nextPage);
+
+      if (!scenesCurrent || !scenesNext) continue;
+
+      const sharesScene = Array.from(scenesCurrent).some((sceneId) => scenesNext.has(sceneId));
+      if (sharesScene) {
+        continuedPages.add(page);
+      }
+    }
+
+    return continuedPages;
+  }
+
+  const sceneCoverageByPage = buildSceneCoverageByPage();
+  const pagesWithContinuation = buildContinuationPageSet(sceneCoverageByPage);
   
   // Track position
   let currentY = inchesToPoints(SCREENPLAY_FORMAT.marginTop);
@@ -468,17 +616,12 @@ export async function exportScreenplayToPDF(
   // Bookmarks storage
   const bookmarks: Array<{ title: string; page: number }> = [];
   
-  // Track current scene for CONTINUED markers
-  let currentScene: string | null = null;
-  let sceneContinuing = false; // Track if we're continuing a scene on new page
   let currentCharacterCue: string | null = null;
   
   /**
    * Add "(CONTINUED)" at bottom right of current page
    */
   function addContinuedBottom() {
-    if (!currentScene) return; // Only if we're in a scene
-    
     const continuedY = maxY + 12; // Just below bottom margin
     const continuedX = inchesToPoints(SCREENPLAY_FORMAT.pageNumberRight);
     doc.setFontSize(SCREENPLAY_FORMAT.fontSize);
@@ -489,8 +632,6 @@ export async function exportScreenplayToPDF(
    * Add "CONTINUED:" at top right of new page
    */
   function addContinuedTop() {
-    if (!currentScene) return; // Only if we're continuing a scene
-    
     const continuedY = inchesToPoints(SCREENPLAY_FORMAT.marginTop) - 12; // Just above top margin
     const continuedX = inchesToPoints(SCREENPLAY_FORMAT.pageNumberRight);
     doc.setFontSize(SCREENPLAY_FORMAT.fontSize);
@@ -501,8 +642,10 @@ export async function exportScreenplayToPDF(
    * Add a new page
    */
   function addNewPage() {
-    // Add "(CONTINUED)" at bottom of current page if scene is continuing
-    if (currentScene && sceneContinuing) {
+    const previousPage = pageNumber;
+
+    // Add "(CONTINUED)" at bottom only when adjacent pages share the same scene.
+    if (previousPage > 0 && pagesWithContinuation.has(previousPage)) {
       addContinuedBottom();
     }
     
@@ -516,10 +659,9 @@ export async function exportScreenplayToPDF(
     doc.setFontSize(SCREENPLAY_FORMAT.fontSize);
     doc.text(`${pageNumber}.`, pageNumX, pageNumY, { align: 'right', baseline: 'top' });
     
-    // Add "CONTINUED:" at top if scene is continuing
-    if (currentScene && sceneContinuing) {
+    // Add "CONTINUED:" at top only when previous page continues into this page.
+    if (pagesWithContinuation.has(pageNumber - 1)) {
       addContinuedTop();
-      sceneContinuing = false; // Reset after adding
     }
     
     // Add text watermark if specified (image watermarks handled by pdf-lib post-processing)
@@ -531,15 +673,11 @@ export async function exportScreenplayToPDF(
   /**
    * Check if we need a new page
    */
-  function checkPageBreak(requiredLines: number = 1, markSceneContinuation: boolean = true) {
+  function checkPageBreak(requiredLines: number = 1) {
     const lineHeightPt = SCREENPLAY_FORMAT.lineHeight;
     const requiredSpace = requiredLines * lineHeightPt;
     
     if (currentY + requiredSpace > maxY) {
-      // Mark that scene is continuing if we're in a scene
-      if (markSceneContinuation && currentScene) {
-        sceneContinuing = true;
-      }
       addNewPage();
       return true;
     }
@@ -611,7 +749,7 @@ export async function exportScreenplayToPDF(
       case 'scene':
         currentCharacterCue = null;
         // Scene headings should not be orphaned
-        checkPageBreak(2, false);
+        checkPageBreak(2);
         
         // Ensure consistent double spacing before scene headings (Fountain spec requirement)
         // Count blank lines that have already been processed (they've already moved currentY)
@@ -636,10 +774,6 @@ export async function exportScreenplayToPDF(
           currentY -= lineHeightPt * (blankLinesBeforeScene - 2);
         }
         // If blankLinesBeforeScene === 2, we're already at the correct spacing
-        
-        // Update current scene tracking
-        currentScene = element.text;
-        sceneContinuing = false; // New scene, not continuing
         
         // Add bookmark
         if (includeBookmarks && element.bookmark) {
