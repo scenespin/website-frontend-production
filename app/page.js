@@ -139,18 +139,8 @@ export default function Page() {
                 </div>
               </div>
 
-              {/* Supporting link to examples */}
-              <div className="mt-10 text-center">
-                <Link
-                  href="/examples"
-                  className="text-[#DC143C] hover:text-white text-sm font-medium transition-colors"
-                >
-                  View Writing + Visual Examples →
-                </Link>
-              </div>
-
               {/* Trust Strip */}
-              <div className="flex flex-wrap justify-center gap-3 md:gap-4 text-xs sm:text-sm text-gray-400 px-4">
+              <div className="mt-10 flex flex-wrap justify-center gap-3 md:gap-4 text-xs sm:text-sm text-gray-400 px-4">
                 <span>Built for pro writers</span>
                 <span className="text-gray-600">•</span>
                 <span>AI assistance is optional and writer-directed</span>
