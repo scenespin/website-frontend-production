@@ -60,22 +60,60 @@ export default function Features() {
 
       <main className="bg-[#0A0A0A] text-white">
         {/* Hero */}
-        <section className="py-20 bg-[#141414]">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-black border border-[#DC143C]/30 text-sm mb-6">
-              <span className="font-semibold text-gray-300">✨ The First Integrated Screenwriting Environment</span>
+        <section className="py-16 md:py-20 bg-gradient-to-b from-[#141414] to-[#0A0A0A]">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="grid lg:grid-cols-2 gap-10 items-center">
+              <div>
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-black border border-[#DC143C]/30 text-sm mb-6">
+                  <span className="font-semibold text-gray-300">✨ Screenplay-First Platform</span>
+                </div>
+                <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight mb-5">
+                  Write stronger pages. Keep production context connected.
+                </h1>
+                <p className="text-lg md:text-xl text-gray-300 max-w-2xl mb-6">
+                  Everything is unlocked from day one. Draft, revise, and shape story direction, then extend into references, shot planning, and video workflows in the same environment.
+                </p>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <Link
+                    href="/sign-up"
+                    className="inline-flex items-center justify-center px-6 py-3 bg-[#DC143C] text-white font-semibold rounded-lg hover:bg-[#B01030] transition-colors min-h-[44px]"
+                  >
+                    Start Writing
+                  </Link>
+                  <Link
+                    href="/examples"
+                    className="inline-flex items-center justify-center px-6 py-3 bg-[#141414] border border-[#3F3F46] text-white font-semibold rounded-lg hover:bg-[#1F1F1F] transition-colors min-h-[44px]"
+                  >
+                    View Examples
+                  </Link>
+                </div>
+              </div>
+
+              <div className="rounded-xl border border-[#3F3F46] bg-[#111111] p-6 md:p-7">
+                <h2 className="text-lg md:text-xl font-semibold mb-4">Why teams switch to Wryda</h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+                  <div className="rounded-lg border border-[#2F2F2F] bg-[#0E0E0E] p-3">
+                    <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">Write</p>
+                    <p className="text-sm text-gray-200">Screenplay-native editor plus 5 specialized agents</p>
+                  </div>
+                  <div className="rounded-lg border border-[#2F2F2F] bg-[#0E0E0E] p-3">
+                    <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">Consistency</p>
+                    <p className="text-sm text-gray-200">Character, location, and prop continuity across scenes</p>
+                  </div>
+                  <div className="rounded-lg border border-[#2F2F2F] bg-[#0E0E0E] p-3">
+                    <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">Flow</p>
+                    <p className="text-sm text-gray-200">One connected path from draft to production planning</p>
+                  </div>
+                  <div className="rounded-lg border border-[#2F2F2F] bg-[#0E0E0E] p-3">
+                    <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">Access</p>
+                    <p className="text-sm text-gray-200">All features unlocked, scale by credits only</p>
+                  </div>
+                </div>
+                <p className="text-xs text-gray-500">
+                  Writer-first by default, with integrated image and video generation workflows when you need them.
+                </p>
+              </div>
             </div>
-            <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight mb-6">
-              Screenplay-First Features
-            </h1>
-            <p className="text-xl text-gray-300 max-w-3xl mx-auto">
-              <strong className="text-white">Everything unlocked from day one.</strong>
-              <br />
-              Start with writing and revision, then extend into references, shot planning, and video workflows.
-            </p>
-            <p className="text-sm text-gray-500 max-w-2xl mx-auto mt-3">
-              One integrated workspace designed for screenplay development first, with production tools connected to the same story context.
-            </p>
           </div>
         </section>
 

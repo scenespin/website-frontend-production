@@ -267,7 +267,7 @@ export default function ExamplesPage() {
                 {writingToMediaMap.map((row) => (
                   <div key={row.writingStep} className="rounded-lg border border-[#2F2F2F] bg-[#0E0E0E] p-3">
                     <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">Workflow mapping</p>
-                    <p className="text-sm text-white mb-1">{row.writingStep} -> {row.mediaStep}</p>
+                    <p className="text-sm text-white mb-1">{row.writingStep} {'->'} {row.mediaStep}</p>
                     <p className="text-xs text-gray-400">{row.value}</p>
                   </div>
                 ))}
