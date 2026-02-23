@@ -88,6 +88,12 @@ export function parseFountain(fountain: string): ParsedElement[] {
       i++;
       continue;
     }
+
+    // Skip imported PDF page markers like "-- 3 of 9 --"
+    if (/^--\s*\d+\s+of\s+\d+\s*--$/i.test(trimmed)) {
+      i++;
+      continue;
+    }
     
     // IMPORTANT: Skip organizational elements FIRST (before other parsing)
     // Skip synopsis lines (starting with =)
@@ -592,9 +598,10 @@ export async function exportScreenplayToPDF(
         layoutCurrentCharacterCue = null;
         const actionX = leftMargin + inchesToPoints(SCREENPLAY_FORMAT.indent.action);
         const actionLines = wrapText(doc, element.text, SCREENPLAY_FORMAT.width.action);
+        const isTerminalAction = element.text.trim().toUpperCase() === 'THE END';
 
         actionLines.forEach((line: string) => {
-          ensureSpace(1, true);
+          ensureSpace(1, !isTerminalAction);
           pushLayoutText(line, actionX);
         });
         break;
