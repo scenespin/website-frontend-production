@@ -195,7 +195,7 @@ export default function WritingHelp() {
                       <td><kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">⌘</kbd> + <kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">E</kbd></td>
                     </tr>
                     <tr className="border-white/10">
-                      <td>Focus Mode</td>
+                      <td>Editor Fullscreen</td>
                       <td><kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">F11</kbd></td>
                       <td><kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">F11</kbd></td>
                     </tr>
@@ -297,12 +297,8 @@ export default function WritingHelp() {
                 <ul className="space-y-2 text-sm text-[#B3B3B3]">
                   <li>• <strong className="text-[#FFFFFF]">Global Search</strong> (<kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">Ctrl+F</kbd> / <kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">⌘+F</kbd>) - Search entire screenplay</li>
                   <li>• <strong className="text-[#FFFFFF]">Find and Replace</strong> - Replace text throughout</li>
-                  <li>• <strong className="text-[#FFFFFF]">Case-sensitive option</strong> - Toggle case matching</li>
-                  <li>• <strong className="text-[#FFFFFF]">Regular expressions</strong> - Advanced pattern matching</li>
-                  <li>• <strong className="text-[#FFFFFF]">Search by character</strong> - Find all dialogue by specific character</li>
-                  <li>• <strong className="text-[#FFFFFF]">Search by location</strong> - Find all scenes in a location</li>
-                  <li>• <strong className="text-[#FFFFFF]">Search within scene range</strong> - Limit search to specific scenes</li>
-                  <li>• <strong className="text-[#FFFFFF]">Search action vs. dialogue only</strong> - Filter by element type</li>
+                  <li>• <strong className="text-[#FFFFFF]">Case-sensitive</strong> - Toggle case matching</li>
+                  <li>• <strong className="text-[#FFFFFF]">Whole word</strong> - Match full words only</li>
                 </ul>
               </div>
             </div>
@@ -344,7 +340,7 @@ export default function WritingHelp() {
                   <li>• <strong className="text-[#FFFFFF]">Comment Access</strong> - Can add comments but not edit</li>
                   <li>• <strong className="text-[#FFFFFF]">Edit Access</strong> - Full editing rights</li>
                   <li>• <strong className="text-[#FFFFFF]">Invite by Email</strong> - Send invitations directly</li>
-                  <li>• <strong className="text-[#FFFFFF]">Role-based permissions</strong> - Director, Script Writer, Asset Contributor, Viewer</li>
+                  <li>• <strong className="text-[#FFFFFF]">Role-based permissions</strong> - Director, Writer, Producer, Viewer</li>
                 </ul>
               </div>
             </div>
@@ -356,10 +352,8 @@ export default function WritingHelp() {
                   Add comments without changing the script. Collaborate on feedback and suggestions.
                 </p>
                 <ul className="space-y-2 text-sm text-[#B3B3B3]">
-                  <li>• <strong className="text-[#FFFFFF">Select text</strong> and right-click → "Add Comment"</li>
-                  <li>• <strong className="text-[#FFFFFF]">@ mention collaborators</strong> in comments</li>
-                  <li>• <strong className="text-[#FFFFFF]">Comment types:</strong> General note, Question, Suggestion, Issue, Resolved</li>
-                  <li>• <strong className="text-[#FFFFFF]">Notifications</strong> - Collaborators see comments in real-time</li>
+                  <li>• Add comments and @ mention collaborators when collaborating</li>
+                  <li>• Notifications when collaborators interact with the screenplay</li>
                 </ul>
               </div>
             </div>
@@ -375,7 +369,7 @@ export default function WritingHelp() {
               <div className="card-body">
                 <h3 className="font-bold mb-3 text-[#DC143C]">Auto-Save</h3>
                 <ul className="space-y-2 text-sm text-[#B3B3B3]">
-                  <li>• <strong className="text-[#FFFFFF]">Auto-saves every 2 seconds</strong> - Never lose your work</li>
+                  <li>• <strong className="text-[#FFFFFF]">Auto-save</strong> - Saves shortly after you stop typing; screenplay also syncs to the cloud on an interval</li>
                   <li>• <strong className="text-[#FFFFFF]">Manual save</strong> - <kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">Ctrl+S</kbd> / <kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">⌘+S</kbd> for immediate save</li>
                   <li>• <strong className="text-[#FFFFFF]">Save status indicator</strong> - See when your work is saved</li>
                 </ul>
@@ -402,14 +396,12 @@ export default function WritingHelp() {
               <div className="card-body">
                 <h3 className="font-bold mb-3 text-[#DC143C]">GitHub Integration</h3>
                 <p className="text-sm text-[#B3B3B3] mb-4">
-                  Professional version control with GitHub integration (Pro/Ultra tiers).
+                  Optional GitHub export for backup and version history.
                 </p>
                 <ul className="space-y-2 text-sm text-[#B3B3B3]">
-                  <li>• <strong className="text-[#FFFFFF]">Connect to GitHub</strong> - Link your repository</li>
-                  <li>• <strong className="text-[#FFFFFF]">Automatic commits on save</strong> - Every save becomes a commit</li>
-                  <li>• <strong className="text-[#FFFFFF]">Branch management</strong> - Create and switch branches</li>
-                  <li>• <strong className="text-[#FFFFFF]">Pull requests</strong> - Collaborate via GitHub workflows</li>
-                  <li>• <strong className="text-[#FFFFFF]">Full Git history</strong> - Complete version control</li>
+                  <li>• <strong className="text-[#FFFFFF]">Connect to GitHub</strong> - Link your repository from the toolbar</li>
+                  <li>• <strong className="text-[#FFFFFF]">Export to GitHub</strong> - Manually save a backup to your repo when you want</li>
+                  <li>• <strong className="text-[#FFFFFF]">Version History</strong> - View and restore from GitHub commits via the History button</li>
                 </ul>
               </div>
             </div>
@@ -418,13 +410,11 @@ export default function WritingHelp() {
               <div className="card-body">
                 <h3 className="font-bold mb-3 text-[#DC143C]">Cloud Backup</h3>
                 <p className="text-sm text-[#B3B3B3] mb-4">
-                  Automatic backups to cloud storage services.
+                  Your screenplay auto-saves to the app&apos;s cloud. Google Drive and Dropbox are available for production assets and media.
                 </p>
                 <ul className="space-y-2 text-sm text-[#B3B3B3]">
-                  <li>• <strong className="text-[#FFFFFF]">Google Drive</strong> - Automatic backups</li>
-                  <li>• <strong className="text-[#FFFFFF]">Dropbox</strong> - Automatic backups</li>
-                  <li>• <strong className="text-[#FFFFFF]">Never lose your work</strong> - Multiple backup locations</li>
-                  <li>• <strong className="text-[#FFFFFF]">Sync across devices</strong> - Access from anywhere</li>
+                  <li>• <strong className="text-[#FFFFFF]">Screenplay</strong> - Auto-saved to secure cloud; optional GitHub export for backup</li>
+                  <li>• <strong className="text-[#FFFFFF]">Production assets</strong> - Google Drive and Dropbox integration for media and files</li>
                 </ul>
               </div>
             </div>
@@ -437,53 +427,15 @@ export default function WritingHelp() {
           
           <div className="card bg-[#141414] border border-white/10 mb-6">
             <div className="card-body">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <h3 className="font-bold mb-3 text-[#DC143C]">PDF Export</h3>
-                  <ul className="space-y-2 text-sm text-[#B3B3B3]">
-                    <li>• Industry-standard formatting</li>
-                    <li>• Courier font, 12pt</li>
-                    <li>• Proper margins (1.5" left, 1" others)</li>
-                    <li>• Page numbers (top right)</li>
-                    <li>• Title page option</li>
-                    <li>• Scene numbers option</li>
-                    <li>• Watermark option</li>
-                    <li>• Draft number/date</li>
-                  </ul>
-                </div>
-
-                <div>
-                  <h3 className="font-bold mb-3 text-[#DC143C]">Final Draft (.fdx)</h3>
-                  <ul className="space-y-2 text-sm text-[#B3B3B3]">
-                    <li>• Preserves all formatting</li>
-                    <li>• Scene numbers</li>
-                    <li>• Revision colors</li>
-                    <li>• Notes and comments</li>
-                    <li>• Compatible with Final Draft</li>
-                  </ul>
-                </div>
-
-                <div>
-                  <h3 className="font-bold mb-3 text-[#DC143C]">Fountain (.fountain)</h3>
-                  <ul className="space-y-2 text-sm text-[#B3B3B3]">
-                    <li>• Plain text format</li>
-                    <li>• Compatible with other Fountain apps</li>
-                    <li>• Easy version control</li>
-                    <li>• GitHub-friendly</li>
-                  </ul>
-                </div>
-
-                <div>
-                  <h3 className="font-bold mb-3 text-[#DC143C]">Other Formats</h3>
-                  <ul className="space-y-2 text-sm text-[#B3B3B3]">
-                    <li>• <strong className="text-[#FFFFFF]">HTML</strong> - Web-friendly format</li>
-                    <li>• <strong className="text-[#FFFFFF]">Microsoft Word (.docx)</strong> - For editing in Word</li>
-                    <li>• <strong className="text-[#FFFFFF]">Plain Text (.txt)</strong> - No formatting</li>
-                    <li>• <strong className="text-[#FFFFFF]">JSON</strong> - For custom integrations</li>
-                    <li>• <strong className="text-[#FFFFFF]">Print</strong> - Direct printing from browser</li>
-                  </ul>
-                </div>
-              </div>
+              <h3 className="font-bold mb-3 text-[#DC143C]">PDF Export</h3>
+              <p className="text-sm text-[#B3B3B3] mb-4">
+                The editor exports to PDF only. Use the PDF button in the toolbar (or Cmd+P / Ctrl+P) to generate a submission-ready script.
+              </p>
+              <ul className="space-y-2 text-sm text-[#B3B3B3]">
+                <li>• Industry-standard formatting (Courier 12pt, proper margins)</li>
+                <li>• Page numbers (top right)</li>
+                <li>• Title page, scene numbers, watermark, draft number/date options</li>
+              </ul>
             </div>
           </div>
 
@@ -513,16 +465,13 @@ export default function WritingHelp() {
           <div className="space-y-6">
             <div className="card bg-[#141414] border border-white/10">
               <div className="card-body">
-                <h3 className="font-bold mb-3 text-[#DC143C]">Focus Mode</h3>
+                <h3 className="font-bold mb-3 text-[#DC143C]">Editor Fullscreen (Focus Mode)</h3>
                 <p className="text-sm text-[#B3B3B3] mb-4">
-                  Distraction-free writing environment.
+                  Distraction-free writing: hide the scene navigator and focus on the page.
                 </p>
                 <ul className="space-y-2 text-sm text-[#B3B3B3]">
-                  <li>• Press <kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">F11</kbd> or click Focus Mode icon</li>
-                  <li>• Hide all sidebars</li>
-                  <li>• Typewriter mode (text stays centered)</li>
-                  <li>• Word count goals</li>
-                  <li>• Timed writing sessions</li>
+                  <li>• Press <kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">F11</kbd> for browser fullscreen, or click the <strong className="text-[#FFFFFF]">Editor Fullscreen (FULL)</strong> button in the toolbar</li>
+                  <li>• Hides the scene navigator sidebar</li>
                 </ul>
               </div>
             </div>
