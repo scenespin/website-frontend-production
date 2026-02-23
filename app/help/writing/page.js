@@ -486,6 +486,21 @@ export default function WritingHelp() {
               </div>
             </div>
           </div>
+
+          <div className="card bg-[#141414] border border-[#DC143C]/30">
+            <div className="card-body">
+              <h3 className="font-bold mb-3 text-[#DC143C]">AI Use Disclosure Submission Bundle</h3>
+              <p className="text-sm text-[#B3B3B3] mb-3">
+                Lock and export a timestamped, noneditable submission bundle for your disclosure records.
+              </p>
+              <ul className="space-y-2 text-sm text-[#B3B3B3]">
+                <li>• <strong className="text-[#FFFFFF]">PDF</strong> - Human-facing submission report</li>
+                <li>• <strong className="text-[#FFFFFF]">JSON</strong> - Full machine-readable snapshot of the disclosure report</li>
+                <li>• <strong className="text-[#FFFFFF]">SHA-256 hash file</strong> - Integrity check for the JSON snapshot</li>
+                <li>• Generated as a timestamped ZIP bundle each time you export</li>
+              </ul>
+            </div>
+          </div>
         </section>
 
         {/* Advanced Features */}

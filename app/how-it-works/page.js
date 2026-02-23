@@ -120,7 +120,7 @@ export default function HowItWorksPage() {
             <div className="rounded-xl border border-[#3F3F46] bg-[#111111] p-6 md:p-8 max-w-4xl mx-auto">
               <h2 className="text-xl md:text-2xl font-bold mb-3 text-white">Writer-first AI use transparency</h2>
               <p className="text-gray-300 mb-4">
-                Wryda includes an optional <strong className="text-white">AI Use Disclosure</strong> system so you can track in-app AI-assisted writing actions and export a transparency record for submission support. It&apos;s optional and nonblocking. There to support your workflow without changing how you write.
+                Wryda includes an optional <strong className="text-white">AI Use Disclosure</strong> system so you can track in-app AI-assisted writing actions and lock a timestamped, noneditable submission bundle (PDF + JSON + SHA-256 hash) for submission support. It&apos;s optional and nonblocking, designed to support your workflow without changing how you write.
               </p>
               <ul className="space-y-2 text-sm text-gray-400 mb-4">
                 <li className="flex items-start gap-2">
@@ -129,7 +129,7 @@ export default function HowItWorksPage() {
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-[#DC143C] mt-0.5">•</span>
-                  <span>Review and export a disclosure report for your records or submission packages</span>
+                  <span>Lock and export a noneditable disclosure bundle (PDF + JSON snapshot + SHA-256 hash file) for submission packages</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <span className="text-[#DC143C] mt-0.5">•</span>

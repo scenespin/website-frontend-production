@@ -145,7 +145,7 @@ export default function Page() {
                 <span className="text-gray-600">•</span>
                 <span>AI assistance is optional and writer-directed</span>
                 <span className="text-gray-600">•</span>
-                <span>Optional AI-use transparency records for submission support</span>
+                <span>Lock and export timestamped, noneditable disclosure bundles (PDF + JSON + SHA-256 hash) for submission support</span>
                 <span className="text-gray-600">•</span>
                 <span>Your screenplay data is not used to train AI models by Wryda or our AI API providers.</span>
               </div>
