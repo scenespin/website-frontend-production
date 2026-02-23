@@ -92,20 +92,20 @@ export default function Page() {
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#141414] border border-[#3F3F46] text-sm mb-8">
                 <span className="font-semibold text-gray-300">Early Access</span>
                 <span className="text-gray-600">•</span>
-                <span className="text-gray-300">Building With Creators</span>
+                <span className="text-gray-300">Built with Working Writers</span>
               </div>
 
               {/* Main Headline */}
               <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-extrabold tracking-tight mb-4 md:mb-6 px-2">
-                Turn Your Screenplay Into Visual Assets
+                Write the script only you can write.
               </h1>
 
-              <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-gray-300 max-w-3xl mx-auto mb-4 md:mb-6 px-4">
-                The First Integrated Screenwriting Environment (ISE)
+              <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-gray-300 max-w-4xl mx-auto mb-4 md:mb-6 px-4">
+                Wryda is a professional, screenplay-native workspace for faster drafts, sharper rewrites, and stronger pages - while you stay in full creative control.
               </p>
 
               <p className="text-base sm:text-lg md:text-xl text-gray-400 max-w-3xl mx-auto mb-6 md:mb-8 px-4">
-                Generate production-ready assets from your screenplay: characters in any wardrobe, locations, and props. Then bring them to life with video scenes that become your live storyboard. <span className="italic">(Video scenes coming soon)</span>
+                Screenplay-native writing tools stay front and center, with production visuals and video as optional extensions when you need them. <span className="italic">(Video scenes coming soon)</span>
               </p>
 
               {/* CTAs */}
@@ -114,7 +114,7 @@ export default function Page() {
                   href="/sign-up"
                   className="inline-flex items-center justify-center px-6 py-3 md:px-8 md:py-4 bg-[#DC143C] text-white font-semibold rounded-lg hover:bg-[#B01030] transition-colors text-base md:text-lg min-h-[44px] w-full sm:w-auto"
                 >
-                  Start Free - 50 Credits
+                  Start Your Script
                 </Link>
                 <Link
                   href="#demo"
@@ -135,7 +135,7 @@ export default function Page() {
                       </svg>
                     </div>
                     <h3 className="text-xl font-bold mb-2">Demo Video Coming Soon</h3>
-                    <p className="text-gray-400 text-sm">See how Wryda.ai turns your screenplay into video</p>
+                    <p className="text-gray-400 text-sm">See how Wryda.ai supports your writing workflow end to end</p>
                   </div>
                 </div>
               </div>
@@ -154,38 +154,24 @@ export default function Page() {
                     href="/examples"
                     className="text-[#DC143C] hover:text-white text-sm font-medium transition-colors"
                   >
-                    See all examples →
+                    View Writing + Visual Examples →
                   </Link>
                 </div>
               </div>
 
-              {/* Value Props */}
-              <div className="flex flex-wrap justify-center gap-4 md:gap-6 text-xs sm:text-sm text-gray-400 px-4">
-                <div className="flex items-center gap-2">
-                  <svg className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span>No credit card required</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <svg className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span>50 free credits to start</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <svg className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span>Everything unlocked</span>
-                </div>
-                <div className="flex items-center gap-2">
-                  <svg className="w-4 h-4 sm:w-5 sm:h-5 text-green-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
-                  </svg>
-                  <span>Import PDF, Fountain, or paste</span>
-                </div>
+              {/* Trust Strip */}
+              <div className="flex flex-wrap justify-center gap-3 md:gap-4 text-xs sm:text-sm text-gray-400 px-4">
+                <span>Built for pro writers</span>
+                <span className="text-gray-600">•</span>
+                <span>AI assistance is optional and writer-directed</span>
+                <span className="text-gray-600">•</span>
+                <span>Optional AI-use transparency records for submission support</span>
+                <span className="text-gray-600">•</span>
+                <span>Your screenplay data is not used to train AI models by Wryda or our AI API providers.</span>
               </div>
+              <p className="text-xs text-gray-500 mt-4 px-4 max-w-4xl mx-auto">
+                Transparency records are advisory and not a legal determination, certification, or guarantee of policy compliance.
+              </p>
             </div>
           </div>
         </section>
@@ -226,14 +212,14 @@ export default function Page() {
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-[#DC143C]">🎬</span>
-                      <span><strong>Produce</strong> : Generate consistent character, location, and prop assets</span>
+                      <span><strong>Produce</strong> : Build consistent references for characters, locations, and props when needed</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-[#DC143C]">🎞️</span>
                       <span className="flex items-center gap-2 flex-wrap">
                         <strong>Direct</strong>
                         <ComingSoonBadge size="sm" />
-                        <span className="text-gray-300">: Scene Builder turns your script into video</span>
+                        <span className="text-gray-300">: Scene Builder extends your script into optional visual planning</span>
                       </span>
                     </li>
                     <li className="flex items-start gap-2">
@@ -251,17 +237,17 @@ export default function Page() {
               <div className="bg-[#141414] border border-[#DC143C]/30 rounded-lg p-6">
                 <h3 className="text-xl font-bold mb-3 text-[#DC143C]">The Difference</h3>
                 <p className="text-gray-300 mb-4">
-                  An Integrated Screenwriting Environment isn't just a tool, it's a complete environment where every feature understands your screenplay context. Your characters stay consistent. Your locations are reused intelligently. Your AI agents know your full story. Create complete video productions from script to screen, making it an amazing tool for pitching by generating extensive visualizations upfront. Export for final editing and polish.
+                  Wryda is a complete writing environment where every feature understands screenplay context. Your AI agents work with your full script, rewrites stay coherent across scenes, and references stay organized for production planning when you need them. Write first, then extend into visuals and delivery workflows without leaving your script.
                 </p>
                 <div className="mt-4 pt-4 border-t border-[#3F3F46]">
-                  <p className="text-sm font-semibold text-gray-300 mb-2">Perfect For:</p>
+                  <p className="text-sm font-semibold text-gray-300 mb-2">Best For:</p>
                   <div className="flex flex-wrap gap-2">
                     <span className="px-3 py-1 bg-[#0A0A0A] border border-[#3F3F46] rounded-full text-xs text-gray-300">Trailers & Teasers</span>
                     <span className="px-3 py-1 bg-[#0A0A0A] border border-[#3F3F46] rounded-full text-xs text-gray-300">Pilot Episodes</span>
                     <span className="px-3 py-1 bg-[#0A0A0A] border border-[#3F3F46] rounded-full text-xs text-gray-300">Short Films</span>
                     <span className="px-3 py-1 bg-[#0A0A0A] border border-[#3F3F46] rounded-full text-xs text-gray-300">Feature Development</span>
                   </div>
-                  <p className="text-xs text-gray-500 mt-2 italic">Built from production assets and video scenes (video coming soon)</p>
+                  <p className="text-xs text-gray-500 mt-2 italic">Built for screenplay-first workflows, with optional production visuals and video (coming soon)</p>
                 </div>
               </div>
             </div>
@@ -319,7 +305,7 @@ export default function Page() {
                 How It Works
               </h2>
               <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto">
-                From screenplay to visual development in three steps.
+                From first draft to delivery in three steps.
               </p>
             </div>
 
@@ -353,7 +339,7 @@ export default function Page() {
                   <ComingSoonBadge size="sm" />
                 </h3>
                 <p className="text-gray-300">
-                  Generate video scenes from your script. Your scenes become a live storyboard. Our motion picture technology handles consistency automatically.
+                  Extend approved scenes into optional visual planning. Storyboard-style outputs help with pitching and prep. Video remains an add-on workflow.
                 </p>
               </div>
             </div>
@@ -454,10 +440,10 @@ export default function Page() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12 md:mb-16 px-4">
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 md:mb-4">
-                Complete Production Platform
+                Complete Screenplay Platform
               </h2>
               <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto">
-                Everything you need for visual story development.
+                Everything you need for screenplay development, with optional visual planning tools.
               </p>
             </div>
 
@@ -500,9 +486,9 @@ export default function Page() {
 
               <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-6 hover:border-[#DC143C]/50 transition-colors">
                 <div className="text-3xl mb-3">🎥</div>
-                <h3 className="text-lg font-bold mb-2">Motion Picture Technology</h3>
+                <h3 className="text-lg font-bold mb-2">Visual Planning</h3>
                 <p className="text-sm text-gray-300">
-                  Generate complete scenes from your script. Professional video generation.
+                  Generate visual scene concepts from your script when you want pitching or planning support.
                 </p>
               </div>
 
@@ -526,7 +512,7 @@ export default function Page() {
                 <div className="text-3xl mb-3">☁️</div>
                 <h3 className="text-lg font-bold mb-2">Cloud Backup</h3>
                 <p className="text-sm text-gray-300">
-                  Automatic backup to Google Drive and Dropbox. Your screenplays and assets are always safe.
+                  Automatic backup to Google Drive and Dropbox. Your screenplays and project files are always safe.
                 </p>
               </div>
             </div>
@@ -576,16 +562,16 @@ export default function Page() {
         <section className="py-20 bg-[#0A0A0A]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 md:mb-4">
-              Ready to Visualize Your Screenplay?
+              Ready to finish your next screenplay?
             </h2>
             <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto mb-6 md:mb-8">
-              Join creators using the first Integrated Screenwriting Environment. Develop trailers, pilots, and pitch-ready assets. Start free with 50 credits.
+              Join writers using Wryda to draft faster, rewrite with confidence, and deliver stronger pages in a professional screenplay workflow.
             </p>
             <Link
               href="/sign-up"
               className="inline-flex items-center justify-center px-6 py-3 md:px-8 md:py-4 bg-[#DC143C] text-white font-semibold rounded-lg hover:bg-[#B01030] transition-colors text-base md:text-lg min-h-[44px] w-full sm:w-auto max-w-xs"
             >
-              Start Free - 50 Credits
+              Start Writing
             </Link>
           </div>
         </section>

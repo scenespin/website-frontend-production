@@ -59,13 +59,13 @@ export default function ExamplesPage() {
         <section className="py-16 bg-gradient-to-b from-[#141414] to-[#0A0A0A]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-black border border-[#DC143C]/30 text-sm mb-6">
-              <span className="font-semibold text-gray-300">✨ Real AI-Generated Content</span>
+              <span className="font-semibold text-gray-300">✨ Real Writer Workflows</span>
             </div>
             <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight mb-6">
-              Examples Gallery
+              Writing + Visual Workflow Examples
             </h1>
             <p className="text-xl text-gray-300 max-w-3xl mx-auto mb-8">
-              See what Wryda.ai can create. Every character, location, and prop below was generated using our AI tools.
+              See how screenplay-first work in Wryda extends into optional visual planning. The examples below show character, location, and prop references used to support writing, continuity, and production prep.
             </p>
             
             {/* Stats */}
@@ -73,15 +73,15 @@ export default function ExamplesPage() {
               <div className="flex justify-center gap-8 text-center">
                 <div>
                   <div className="text-3xl font-bold text-[#DC143C]">{status.contentCounts?.characters || 0}</div>
-                  <div className="text-sm text-gray-400">Characters</div>
+                  <div className="text-sm text-gray-400">Character References</div>
                 </div>
                 <div>
                   <div className="text-3xl font-bold text-cyan-400">{status.contentCounts?.locations || 0}</div>
-                  <div className="text-sm text-gray-400">Locations</div>
+                  <div className="text-sm text-gray-400">Location References</div>
                 </div>
                 <div>
                   <div className="text-3xl font-bold text-amber-400">{status.contentCounts?.props || 0}</div>
-                  <div className="text-sm text-gray-400">Props</div>
+                  <div className="text-sm text-gray-400">Prop References</div>
                 </div>
               </div>
             )}
@@ -94,7 +94,7 @@ export default function ExamplesPage() {
             <ShowcaseGallery 
               contentType="characters"
               columns={4}
-              title="AI-Generated Characters"
+              title="Character Reference Examples"
               showTitle={true}
             />
           </div>
@@ -106,7 +106,7 @@ export default function ExamplesPage() {
             <ShowcaseGallery 
               contentType="locations"
               columns={3}
-              title="Cinematic Locations"
+              title="Location Planning Examples"
               showTitle={true}
             />
           </div>
@@ -118,7 +118,7 @@ export default function ExamplesPage() {
             <ShowcaseGallery 
               contentType="props"
               columns={4}
-              title="Production Props"
+              title="Prop Continuity Examples"
               showTitle={true}
             />
           </div>
@@ -128,16 +128,16 @@ export default function ExamplesPage() {
         <section className="py-20 bg-gradient-to-b from-[#0A0A0A] to-[#141414]">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h2 className="text-3xl md:text-4xl font-bold mb-6">
-              Ready to Create Your Own?
+              Ready to build your next script in Wryda?
             </h2>
             <p className="text-xl text-gray-300 mb-8">
-              Start with 50 free credits. No credit card required.
+              Start writing with screenplay-native tools, then extend into optional visual planning when you need it.
             </p>
             <Link
               href="/sign-up"
               className="inline-flex items-center justify-center px-8 py-4 bg-[#DC143C] text-white font-semibold rounded-lg hover:bg-[#B01030] transition-colors text-lg"
             >
-              Start Creating Free
+              Start Your Script
             </Link>
           </div>
         </section>
