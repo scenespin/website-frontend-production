@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo, startTransition } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useAuth } from '@clerk/nextjs';
 import { useEditor } from '@/contexts/EditorContext';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useDrawer } from '@/contexts/DrawerContext';
@@ -21,7 +22,7 @@ import DialogueModal from '../modals/DialogueModal';
 import FindReplaceModal from './FindReplaceModal';
 import VersionHistoryModal from './VersionHistoryModal';
 import AIDisclosurePanel from '../screenplay/AIDisclosurePanel';
-import { saveToGitHub, getScreenplayFilePath } from '@/utils/github';
+import { saveToGitHub, getDefaultBranch, getScreenplayFilePath } from '@/utils/github';
 import { markPeriodicGitHubBackupCheckpoint } from '@/utils/githubPeriodicBackup';
 import { extractEditorContext } from '@/utils/editorContext';
 import { detectCurrentScene } from '@/utils/sceneDetection';
@@ -43,6 +44,7 @@ import SceneTypeDropdown from './SceneTypeDropdown';
  */
 export default function EditorWorkspace() {
     const router = useRouter();
+    const { getToken } = useAuth();
     const { state, setContent, setCurrentLine, replaceSelection, insertText, setCursorPosition, isEditorFullscreen, setIsEditorFullscreen, isPreviewMode, setIsPreviewMode, undo, redo, isEditorLocked, isCollaboratorEditing, lockedBy } = useEditor();
     const screenplay = useScreenplay();
     const { isDrawerOpen, openDrawer } = useDrawer();
@@ -195,22 +197,65 @@ export default function EditorWorkspace() {
             
             if (githubConfigStr) {
                 const githubConfig = JSON.parse(githubConfigStr);
+                const useBackendManualSave = process.env.NEXT_PUBLIC_ENABLE_GITHUB_BACKEND_MANUAL_SAVE === 'true';
+                const hasRepoConfig = !!(githubConfig.owner && githubConfig.repo);
+                const hasClientToken = !!(githubConfig.accessToken || githubConfig.token);
                 
-                if (githubConfig.accessToken && githubConfig.owner && githubConfig.repo) {
+                if (hasRepoConfig && (useBackendManualSave || hasClientToken)) {
                     toast.info('Saving to GitHub...');
 
                     const normalizedConfig = {
                         token: githubConfig.accessToken || githubConfig.token,
                         owner: githubConfig.owner,
-                        repo: githubConfig.repo
+                        repo: githubConfig.repo,
+                        branch: githubConfig.branch
                     };
 
-                    await saveToGitHub(normalizedConfig, {
-                        path: getScreenplayFilePath(screenplayId),
-                        content: state.content,
-                        message: `Manual save: ${state.title}`,
-                        branch: 'main'
-                    });
+                    if (useBackendManualSave) {
+                        const token = await getToken({ template: 'wryda-backend' });
+                        if (!token) {
+                            throw new Error('Unable to authenticate with backend. Please sign in again.');
+                        }
+
+                        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://backend.wryda.ai';
+                        const response = await fetch(`${backendUrl}/api/github/screenplay/save`, {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json',
+                                Authorization: `Bearer ${token}`
+                            },
+                            body: JSON.stringify({
+                                screenplayId,
+                                content: state.content,
+                                message: `Manual save: ${state.title}`,
+                                owner: normalizedConfig.owner,
+                                repo: normalizedConfig.repo,
+                                branch: normalizedConfig.branch
+                            })
+                        });
+
+                        const payload = await response.json().catch(() => null);
+                        if ((!response.ok || !payload?.success) && payload?.errorCode === 'GITHUB_NOT_CONNECTED' && normalizedConfig.token) {
+                            // Additive rollout safety: fallback to legacy client-save when backend token is not connected yet.
+                            const branch = normalizedConfig.branch || await getDefaultBranch(normalizedConfig);
+                            await saveToGitHub(normalizedConfig, {
+                                path: getScreenplayFilePath(screenplayId),
+                                content: state.content,
+                                message: `Manual save: ${state.title}`,
+                                branch
+                            });
+                        } else if (!response.ok || !payload?.success) {
+                            throw new Error(payload?.message || 'Backend GitHub save failed');
+                        }
+                    } else {
+                        const branch = normalizedConfig.branch || await getDefaultBranch(normalizedConfig);
+                        await saveToGitHub(normalizedConfig, {
+                            path: getScreenplayFilePath(screenplayId),
+                            content: state.content,
+                            message: `Manual save: ${state.title}`,
+                            branch
+                        });
+                    }
                     if (screenplayId?.startsWith('screenplay_')) {
                         markPeriodicGitHubBackupCheckpoint(screenplayId, state.content);
                     }

@@ -1,4 +1,4 @@
-import { getScreenplayFilePath, saveToGitHub, type GitHubConfig } from '@/utils/github';
+import { getDefaultBranch, getScreenplayFilePath, saveToGitHub, type GitHubConfig } from '@/utils/github';
 
 const FEATURE_FLAG = 'NEXT_PUBLIC_ENABLE_GITHUB_PERIODIC_BACKUP';
 const GITHUB_CONFIG_KEY = 'screenplay_github_config';
@@ -9,6 +9,8 @@ export const PERIODIC_BACKUP_COOLDOWN_MS = 15 * 60 * 1000; // 15m minimum betwee
 const hashKey = (screenplayId: string) => `github_periodic_last_hash_${screenplayId}`;
 const committedAtKey = (screenplayId: string) => `github_periodic_last_commit_at_${screenplayId}`;
 const pendingKey = (screenplayId: string) => `github_periodic_pending_${screenplayId}`;
+const inFlightKey = (screenplayId: string) => `github_periodic_inflight_${screenplayId}`;
+const IN_FLIGHT_TTL_MS = 30 * 1000;
 
 export interface PeriodicBackupInput {
   screenplayId: string;
@@ -36,6 +38,8 @@ export type PeriodicBackupResult =
         | 'empty_content'
         | 'cooldown'
         | 'unchanged'
+        | 'stale_pending'
+        | 'in_flight'
         | 'no_pending';
       reason: string;
     }
@@ -61,7 +65,8 @@ export function normalizeGitHubConfig(rawConfig: unknown): GitHubConfig | null {
   return {
     token: tokenValue.trim(),
     owner: owner.trim(),
-    repo: repo.trim()
+    repo: repo.trim(),
+    branch: typeof candidate.branch === 'string' && candidate.branch.trim() ? candidate.branch.trim() : undefined
   };
 }
 
@@ -128,6 +133,22 @@ function clearPending(screenplayId: string): void {
   localStorage.removeItem(pendingKey(screenplayId));
 }
 
+function tryAcquireInFlightLock(screenplayId: string, now: number): boolean {
+  if (typeof window === 'undefined') return true;
+  const raw = localStorage.getItem(inFlightKey(screenplayId));
+  const existing = raw ? Number(raw) : NaN;
+  if (Number.isFinite(existing) && now - existing < IN_FLIGHT_TTL_MS) {
+    return false;
+  }
+  localStorage.setItem(inFlightKey(screenplayId), String(now));
+  return true;
+}
+
+function releaseInFlightLock(screenplayId: string): void {
+  if (typeof window === 'undefined') return;
+  localStorage.removeItem(inFlightKey(screenplayId));
+}
+
 function fnv1aHash(value: string): string {
   let hash = 0x811c9dc5;
   for (let i = 0; i < value.length; i += 1) {
@@ -152,11 +173,12 @@ async function commit(
   content: string,
   message: string
 ): Promise<void> {
+  const branch = config.branch?.trim() || await getDefaultBranch(config);
   await saveToGitHub(config, {
     path: getScreenplayFilePath(screenplayId),
     content,
     message,
-    branch: 'main'
+    branch
   });
 }
 
@@ -169,7 +191,8 @@ export async function maybeRunPeriodicGitHubBackup(
 
 export async function retryPendingPeriodicGitHubBackup(
   screenplayId: string,
-  isDirty: boolean
+  isDirty: boolean,
+  currentContent: string
 ): Promise<PeriodicBackupResult> {
   if (!isGitHubPeriodicBackupEnabled()) {
     return { status: 'disabled', reason: 'Feature flag disabled' };
@@ -181,6 +204,13 @@ export async function retryPendingPeriodicGitHubBackup(
   const pending = getPending(screenplayId);
   if (!pending) {
     return { status: 'no_pending', reason: 'No pending periodic backup' };
+  }
+
+  // Never commit queued stale data if the editor moved on.
+  const currentHash = fnv1aHash(currentContent || '');
+  if (currentHash !== pending.hash) {
+    clearPending(screenplayId);
+    return { status: 'stale_pending', reason: 'Pending backup is stale compared to current content' };
   }
 
   return runPeriodicBackup({
@@ -234,6 +264,9 @@ async function runPeriodicBackup(
   }
 
   const message = periodicCommitMessage(input.title, options.now);
+  if (!tryAcquireInFlightLock(input.screenplayId, options.now)) {
+    return { status: 'in_flight', reason: 'Periodic backup already in progress' };
+  }
 
   try {
     await commit(config, input.screenplayId, input.content, message);
@@ -253,6 +286,8 @@ async function runPeriodicBackup(
       status: 'queued',
       reason: error?.message || 'GitHub periodic backup failed'
     };
+  } finally {
+    releaseInFlightLock(input.screenplayId);
   }
 }
 

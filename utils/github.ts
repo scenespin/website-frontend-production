@@ -9,6 +9,7 @@ export interface GitHubConfig {
     token: string;
     owner: string;
     repo: string;
+    branch?: string;
 }
 
 export const LEGACY_SCREENPLAY_FILE_PATH = 'screenplay.fountain';

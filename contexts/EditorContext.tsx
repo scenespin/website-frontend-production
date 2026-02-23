@@ -150,6 +150,7 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
     const [isPreviewMode, setIsPreviewMode] = useState(false);
     const autoSaveTimerRef = useRef<NodeJS.Timeout | null>(null);
     const githubSyncTimerRef = useRef<NodeJS.Timeout | null>(null);
+    const periodicBackupInFlightRef = useRef(false);
     const isInitialLoadRef = useRef(true); // Prevent auto-clear during initial import
 
     // Need screenplay id early so editor lock runs even when URL has no ?project= (e.g. second browser/tab)
@@ -1191,18 +1192,27 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
         }
 
         githubSyncTimerRef.current = setInterval(async () => {
+            if (periodicBackupInFlightRef.current) {
+                return;
+            }
+
             const activeScreenplayId = getActiveScreenplayId();
             if (!activeScreenplayId) {
                 return;
             }
 
             const current = stateRef.current;
-            await maybeRunPeriodicGitHubBackup({
-                screenplayId: activeScreenplayId,
-                title: current.title,
-                content: current.content,
-                isDirty: current.isDirty
-            });
+            periodicBackupInFlightRef.current = true;
+            try {
+                await maybeRunPeriodicGitHubBackup({
+                    screenplayId: activeScreenplayId,
+                    title: current.title,
+                    content: current.content,
+                    isDirty: current.isDirty
+                });
+            } finally {
+                periodicBackupInFlightRef.current = false;
+            }
         }, PERIODIC_EVALUATION_INTERVAL_MS);
 
         return () => {
@@ -1220,9 +1230,22 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
         }
 
         const runRetry = async () => {
+            if (periodicBackupInFlightRef.current) {
+                return;
+            }
+
             const activeScreenplayId = getActiveScreenplayId();
             if (!activeScreenplayId) return;
-            await retryPendingPeriodicGitHubBackup(activeScreenplayId, stateRef.current.isDirty);
+            periodicBackupInFlightRef.current = true;
+            try {
+                await retryPendingPeriodicGitHubBackup(
+                    activeScreenplayId,
+                    stateRef.current.isDirty,
+                    stateRef.current.content
+                );
+            } finally {
+                periodicBackupInFlightRef.current = false;
+            }
         };
 
         const handleFocus = () => {
