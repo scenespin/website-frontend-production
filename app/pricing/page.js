@@ -62,24 +62,41 @@ export default function PricingPage() {
         <section className="py-20 bg-[#141414]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h1 className="text-3xl sm:text-4xl md:text-6xl font-extrabold tracking-tight mb-4 md:mb-6 px-4">
-              Everything is Free. You Only Pay for Credits.
+              Start Free. Upgrade for More Credits.
             </h1>
             <p className="text-base sm:text-lg md:text-xl text-gray-300 max-w-3xl mx-auto mb-6 md:mb-8 px-4">
-              All features unlocked. The only difference is credits per month. No paywalls. No feature tiers. No watermarks.
+              All features are unlocked on every plan. Your only decision is how many credits you want each month, or whether you prefer one-time credit packs.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center px-4">
               <Link
                 href="/sign-up"
                 className="inline-flex items-center justify-center px-6 py-3 md:px-8 md:py-4 bg-[#DC143C] text-white font-semibold rounded-lg hover:bg-[#B01030] transition-colors text-base md:text-lg min-h-[44px] w-full sm:w-auto"
               >
-                Start Free - 50 Credits
+                Start Free
               </Link>
               <Link
-                href="/buy-credits"
+                href="/examples"
                 className="inline-flex items-center justify-center px-6 py-3 md:px-8 md:py-4 bg-[#141414] border border-[#3F3F46] text-white font-semibold rounded-lg hover:bg-[#1F1F1F] transition-colors text-base md:text-lg min-h-[44px] w-full sm:w-auto"
               >
-                Buy Credits
+                View Examples
               </Link>
+            </div>
+            <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-3 max-w-4xl mx-auto px-4 text-left">
+              <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg p-4">
+                <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">Step 1</p>
+                <p className="text-sm text-gray-200 font-medium">Start Free and write</p>
+                <p className="text-xs text-gray-400 mt-1">Use the screenplay editor and writing agents with no feature gates.</p>
+              </div>
+              <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg p-4">
+                <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">Step 2</p>
+                <p className="text-sm text-gray-200 font-medium">Use credits when you generate</p>
+                <p className="text-xs text-gray-400 mt-1">Credits apply only when you run AI generation workflows.</p>
+              </div>
+              <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg p-4">
+                <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">Step 3</p>
+                <p className="text-sm text-gray-200 font-medium">Upgrade only for volume</p>
+                <p className="text-xs text-gray-400 mt-1">Pick a monthly plan for lower per-credit cost, or top up anytime.</p>
+              </div>
             </div>
           </div>
         </section>
@@ -95,7 +112,7 @@ export default function PricingPage() {
                 href="/sign-up"
                 className="inline-flex items-center justify-center px-6 py-3 bg-[#DC143C] text-white font-semibold rounded-lg hover:bg-[#B01030] transition-colors min-h-[44px] w-full sm:w-auto max-w-xs"
               >
-                Get Started Free
+                Start Free
               </Link>
             </div>
           </div>
@@ -109,10 +126,10 @@ export default function PricingPage() {
                 Monthly Subscriptions
               </h2>
               <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto">
-                Volume discounts on credits. Credits roll over month-to-month (up to 2x your monthly amount). Cancel anytime.
+                Best for consistent monthly usage. Get discounted credits and rollover up to 2x your monthly amount.
               </p>
               <p className="text-xs sm:text-sm text-gray-400 max-w-2xl mx-auto mt-2">
-                Everything is free. You only pay for credits. The only difference is credits per month and volume discount. All features unlocked for everyone.
+                Mental model: subscription = discounted monthly credits. Same features as free tier.
               </p>
             </div>
 
@@ -147,7 +164,7 @@ export default function PricingPage() {
                     href="/sign-up?plan=pro"
                     className="block w-full text-center px-6 py-3 bg-[#DC143C] text-white font-semibold rounded-lg hover:bg-[#B01030] transition-colors min-h-[44px] flex items-center justify-center"
                   >
-                    Get Pro
+                    Start Pro
                   </Link>
                   <Link
                     href="/pricing/pro"
@@ -191,7 +208,7 @@ export default function PricingPage() {
                     href="/sign-up?plan=ultra"
                     className="block w-full text-center px-6 py-3 bg-[#DC143C] text-white font-semibold rounded-lg hover:bg-[#B01030] transition-colors min-h-[44px] flex items-center justify-center"
                   >
-                    Get Ultra
+                    Start Ultra
                   </Link>
                   <Link
                     href="/pricing/ultra"
@@ -232,7 +249,7 @@ export default function PricingPage() {
                     href="/sign-up?plan=studio"
                     className="block w-full text-center px-6 py-3 bg-[#DC143C] text-white font-semibold rounded-lg hover:bg-[#B01030] transition-colors min-h-[44px] flex items-center justify-center"
                   >
-                    Get Studio
+                    Start Studio
                   </Link>
                   <Link
                     href="/pricing/studio"
@@ -254,7 +271,7 @@ export default function PricingPage() {
                 Credit Packages (One-Time Purchase)
               </h2>
               <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto">
-                Pay-as-you-go. No monthly commitment. Credits never expire.
+                Best for flexible or occasional usage. No monthly commitment and credits never expire.
               </p>
             </div>
 
@@ -287,7 +304,7 @@ export default function PricingPage() {
                   href="/buy-credits"
                   className="block w-full text-center px-6 py-3 bg-[#DC143C] text-white font-semibold rounded-lg hover:bg-[#B01030] transition-colors min-h-[44px] flex items-center justify-center"
                 >
-                  Buy Starter Pack
+                  Buy Credits
                 </Link>
               </div>
 
@@ -323,7 +340,7 @@ export default function PricingPage() {
                   href="/buy-credits"
                   className="block w-full text-center px-6 py-3 bg-[#DC143C] text-white font-semibold rounded-lg hover:bg-[#B01030] transition-colors min-h-[44px] flex items-center justify-center"
                 >
-                  Buy Booster Pack
+                  Buy Credits
                 </Link>
               </div>
 
@@ -356,7 +373,7 @@ export default function PricingPage() {
                   href="/buy-credits"
                   className="block w-full text-center px-6 py-3 bg-[#DC143C] text-white font-semibold rounded-lg hover:bg-[#B01030] transition-colors min-h-[44px] flex items-center justify-center"
                 >
-                  Buy Mega Pack
+                  Buy Credits
                 </Link>
               </div>
             </div>
@@ -371,7 +388,7 @@ export default function PricingPage() {
                 How Credits Work
               </h2>
               <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto">
-                Pay only for AI generation. Everything else is free. Volume discounts available on subscriptions.
+                You only spend credits when you generate AI outputs. Writing, editing, and project setup remain available across plans.
               </p>
             </div>
 
@@ -469,7 +486,7 @@ export default function PricingPage() {
               href="/sign-up"
               className="inline-flex items-center justify-center px-6 py-3 md:px-8 md:py-4 bg-[#DC143C] text-white font-semibold rounded-lg hover:bg-[#B01030] transition-colors text-base md:text-lg min-h-[44px] w-full sm:w-auto max-w-xs"
             >
-              Start Free - 50 Credits
+              Start Free
             </Link>
           </div>
         </section>

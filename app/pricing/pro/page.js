@@ -65,14 +65,14 @@ export default function ProPricingPage() {
                 href="/sign-up?plan=pro"
                 className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-[#DC143C] text-white font-semibold rounded-lg hover:bg-[#B01030] transition-colors text-lg min-h-[56px]"
               >
-                Get Pro Plan
+                Start Pro
                 <ArrowRight className="w-5 h-5" />
               </Link>
               <Link
-                href="/pricing"
+                href="/examples"
                 className="inline-flex items-center justify-center px-6 py-4 bg-[#141414] border border-[#3F3F46] text-white font-semibold rounded-lg hover:bg-[#1F1F1F] transition-colors min-h-[56px]"
               >
-                Compare All Plans
+                View Examples
               </Link>
             </div>
           </div>
@@ -100,7 +100,7 @@ export default function ProPricingPage() {
                   href="/sign-up?plan=pro"
                   className="block w-full max-w-md mx-auto px-8 py-4 bg-[#DC143C] text-white font-semibold rounded-lg hover:bg-[#B01030] transition-colors text-lg min-h-[56px] flex items-center justify-center gap-2"
                 >
-                  Start Pro Plan
+                  Start Pro
                   <ArrowRight className="w-5 h-5" />
                 </Link>
                 <p className="text-sm text-gray-400 mt-4">Cancel anytime • No contracts</p>
@@ -237,7 +237,7 @@ export default function ProPricingPage() {
               href="/sign-up?plan=pro"
               className="inline-flex items-center justify-center gap-2 px-8 py-4 bg-[#DC143C] text-white font-semibold rounded-lg hover:bg-[#B01030] transition-colors text-lg min-h-[56px]"
             >
-              Get Started with Pro Plan
+              Start Pro
               <ArrowRight className="w-5 h-5" />
             </Link>
           </div>

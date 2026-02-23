@@ -104,7 +104,7 @@ export default function Page() {
               </p>
 
               <p className="text-base sm:text-lg md:text-xl text-gray-400 max-w-3xl mx-auto mb-6 md:mb-8 px-4">
-                Screenplay-native writing tools stay front and center, with production visuals and video available as optional extensions when you need them.
+                Screenplay-native writing tools stay front and center, with integrated image and video generation ready when you want to move from pages to visual planning and production.
               </p>
 
               {/* CTAs */}
@@ -113,13 +113,13 @@ export default function Page() {
                   href="/sign-up"
                   className="inline-flex items-center justify-center px-6 py-3 md:px-8 md:py-4 bg-[#DC143C] text-white font-semibold rounded-lg hover:bg-[#B01030] transition-colors text-base md:text-lg min-h-[44px] w-full sm:w-auto"
                 >
-                  Start Your Script
+                  Start Writing
                 </Link>
                 <Link
-                  href="#demo"
+                  href="/examples"
                   className="inline-flex items-center justify-center px-6 py-3 md:px-8 md:py-4 bg-[#141414] border border-[#3F3F46] text-white font-semibold rounded-lg hover:bg-[#1F1F1F] transition-colors text-base md:text-lg min-h-[44px] w-full sm:w-auto"
                 >
-                  Watch Demo
+                  View Examples
                 </Link>
               </div>
 

@@ -70,6 +70,33 @@ export default function ExamplesPage() {
   const bottomRowExamples = writingExamples.filter((example) =>
     ["Dialogue", "Director"].includes(example.agent)
   );
+  const writingToMediaMap = [
+    {
+      writingStep: "Rewrite",
+      mediaStep: "Shot Board",
+      value: "Tighter scene beats produce cleaner first-frame options and easier shot selection.",
+    },
+    {
+      writingStep: "Screenwriter",
+      mediaStep: "References + Shot Board",
+      value: "Expanded scene action clarifies which character, location, and prop references need coverage.",
+    },
+    {
+      writingStep: "Story Advisor",
+      mediaStep: "References",
+      value: "Story-level direction helps prioritize which moments deserve continuity assets first.",
+    },
+    {
+      writingStep: "Dialogue",
+      mediaStep: "Dialogue + Voice",
+      value: "Voice intent from dialogue passes maps directly to continuity-safe dialogue performance tests.",
+    },
+    {
+      writingStep: "Director",
+      mediaStep: "Shot Board + Video",
+      value: "Additive scene skeletons can be staged into first frames, then handed off into video generation.",
+    },
+  ];
   
   return (
     <>
@@ -100,7 +127,7 @@ export default function ExamplesPage() {
               <Link href="/examples" className="text-sm text-white font-medium">
                 Examples
               </Link>
-              <Link href="/#pricing" className="text-sm text-gray-300 hover:text-white transition-colors">
+              <Link href="/pricing" className="text-sm text-gray-300 hover:text-white transition-colors">
                 Pricing
               </Link>
               <Link href="/sign-in" className="text-sm text-gray-300 hover:text-white transition-colors">
@@ -231,6 +258,22 @@ export default function ExamplesPage() {
               </p>
             </div>
 
+            <div className="rounded-xl border border-[#3F3F46] bg-[#111111] p-5 md:p-6 mb-8">
+              <h3 className="text-lg md:text-xl font-semibold mb-2">How writing examples map to media outputs</h3>
+              <p className="text-sm text-gray-400 mb-4">
+                These workflows are designed to connect the same scene intent across writing, references, shot planning, and video.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {writingToMediaMap.map((row) => (
+                  <div key={row.writingStep} className="rounded-lg border border-[#2F2F2F] bg-[#0E0E0E] p-3">
+                    <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">Workflow mapping</p>
+                    <p className="text-sm text-white mb-1">{row.writingStep} -> {row.mediaStep}</p>
+                    <p className="text-xs text-gray-400">{row.value}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
             <div className="flex flex-wrap justify-center gap-2 mb-8">
               {mediaShowcaseContent.tabs.map((tab) => {
                 const active = tab.id === activeMediaTabId;
@@ -331,7 +374,7 @@ export default function ExamplesPage() {
               href="/sign-up"
               className="inline-flex items-center justify-center px-8 py-4 bg-[#DC143C] text-white font-semibold rounded-lg hover:bg-[#B01030] transition-colors text-lg"
             >
-              Start Your Script
+              Start Writing
             </Link>
           </div>
         </section>

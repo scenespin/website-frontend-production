@@ -7,7 +7,7 @@ import ComingSoonBadge from "@/components/ComingSoonBadge";
 
 export const metadata = getSEOTags({
   title: `Help Center | ${config.appName}`,
-  description: "Get help with Wryda.ai - Learn how to write screenplays, generate videos, and create professional content with AI.",
+  description: "Get started quickly with Wryda.ai: write your first script, run your first agent pass, create first references, and understand credits.",
   canonicalUrlRelative: "/help",
 });
 
@@ -39,25 +39,68 @@ export default function HelpCenter() {
             📚 Help Center
           </h1>
           <p className="text-xl opacity-80 max-w-3xl mx-auto text-[#B3B3B3]">
-            Everything you need to turn your screenplay into a movie.
+            Start fast with a practical activation path:
             <br />
-            Write → Produce → Direct
+            First script → first agent pass → first references → credits clarity
           </p>
+        </section>
+
+        {/* First Success Path */}
+        <section className="mb-16">
+          <div className="card bg-[#141414] border border-[#DC143C]/30">
+            <div className="card-body">
+              <h2 className="text-3xl font-bold mb-2 text-[#DC143C]">🚀 First Success Path (20-30 Minutes)</h2>
+              <p className="text-sm opacity-70 mb-6 text-[#B3B3B3]">
+                Use this path to get your first real result quickly.
+              </p>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <Link href="/help/writing" className="card bg-[#141414] hover:bg-[#1F1F1F] transition-colors border border-[#DC143C]/30">
+                  <div className="card-body items-start">
+                    <div className="text-xs text-gray-500">Step 1</div>
+                    <h3 className="font-bold text-base">Create first script page</h3>
+                    <p className="text-xs opacity-70">Import Fountain or start from a scene idea.</p>
+                  </div>
+                </Link>
+                <Link href="/help/advanced/dialogue-generation" className="card bg-[#141414] hover:bg-[#1F1F1F] transition-colors border border-[#DC143C]/30">
+                  <div className="card-body items-start">
+                    <div className="text-xs text-gray-500">Step 2</div>
+                    <h3 className="font-bold text-base">Run first agent pass</h3>
+                    <p className="text-xs opacity-70">Use Dialogue, Rewrite, or Screenwriter additively.</p>
+                  </div>
+                </Link>
+                <Link href="/help/production" className="card bg-[#141414] hover:bg-[#1F1F1F] transition-colors border border-[#DC143C]/30">
+                  <div className="card-body items-start">
+                    <div className="text-xs text-gray-500">Step 3</div>
+                    <h3 className="font-bold text-base">Build first references</h3>
+                    <p className="text-xs opacity-70">Generate character, location, and prop continuity sets.</p>
+                  </div>
+                </Link>
+                <Link href="/help/credits" className="card bg-[#141414] hover:bg-[#1F1F1F] transition-colors border border-[#DC143C]/30">
+                  <div className="card-body items-start">
+                    <div className="text-xs text-gray-500">Step 4</div>
+                    <h3 className="font-bold text-base">Understand credits</h3>
+                    <p className="text-xs opacity-70">Learn what consumes credits and how to scale usage.</p>
+                  </div>
+                </Link>
+              </div>
+            </div>
+          </div>
         </section>
 
         {/* Workflow Overview */}
         <section className="mb-16">
           <div className="card bg-[#141414] border border-[#DC143C]/30">
             <div className="card-body">
-              <h2 className="text-3xl font-bold mb-2 text-[#DC143C]">🎬 Complete Production Workflow</h2>
-              <p className="text-sm opacity-70 mb-6 text-[#B3B3B3]">Follow the same workflow you'll use in the app - Write → Produce → Direct</p>
+              <h2 className="text-3xl font-bold mb-2 text-[#DC143C]">🧭 Core Workflow Overview</h2>
+              <p className="text-sm opacity-70 mb-6 text-[#B3B3B3]">Follow the product flow: write first, build references, then direct when needed.</p>
               
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <Link href="/help/writing" className="card bg-[#141414] hover:bg-[#1F1F1F] transition-colors border border-[#DC143C]/30">
                   <div className="card-body items-center text-center">
                     <div className="text-4xl mb-2">✍️</div>
                     <h3 className="font-bold text-base">1. Write</h3>
-                    <p className="text-xs opacity-70">Screenplay editor with 5 AI writing agents</p>
+                    <p className="text-xs opacity-70">Draft and revise with screenplay-native agents</p>
                     <div className="badge badge-sm badge-primary mt-2">START HERE</div>
                   </div>
                 </Link>
@@ -66,7 +109,7 @@ export default function HelpCenter() {
                   <div className="card-body items-center text-center">
                     <div className="text-4xl mb-2">🎬</div>
                     <h3 className="font-bold text-base text-[#FFFFFF]">2. Produce</h3>
-                    <p className="text-xs opacity-70 text-[#B3B3B3]">Scene Builder & consistency systems</p>
+                    <p className="text-xs opacity-70 text-[#B3B3B3]">Create continuity references and prep assets</p>
                     <div className="badge bg-[#DC143C] text-[#FFFFFF] border-none badge-sm mt-2">GENERATE</div>
                   </div>
                 </Link>
@@ -75,7 +118,7 @@ export default function HelpCenter() {
                   <div className="card-body items-center text-center">
                     <div className="text-4xl mb-2">🎞️</div>
                     <h3 className="font-bold text-base text-[#FFFFFF]">3. Direct</h3>
-                    <p className="text-xs opacity-70 text-[#B3B3B3]">Review & control your production</p>
+                    <p className="text-xs opacity-70 text-[#B3B3B3]">Stage outputs and steer visual execution</p>
                     <div className="badge bg-[#00D9FF] text-[#0A0A0A] border-none badge-sm mt-2">DIRECT</div>
                   </div>
                 </Link>
@@ -149,18 +192,18 @@ export default function HelpCenter() {
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <QuickLinkCard
               href="/help/writing"
-              title="Create Your First Screenplay"
-              description="Learn the basics of writing with our editor"
+              title="Write Your First Page"
+              description="Start a script and build clean screenplay structure"
             />
             <QuickLinkCard
-              href="/help/production"
-              title="Generate Your First Video"
-              description="Turn your screenplay into video"
+              href="/help/advanced/dialogue-generation"
+              title="Run Your First Agent Pass"
+              description="Apply an additive Dialogue/Rewrite pass in context"
             />
             <QuickLinkCard
-              href="/help/faq"
-              title="Understanding Credits"
-              description="How credits work and what they buy"
+              href="/help/credits"
+              title="Understand Credits Fast"
+              description="Know what uses credits and how to plan usage"
             />
           </div>
         </section>

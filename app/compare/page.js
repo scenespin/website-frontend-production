@@ -7,7 +7,7 @@ import logo from "@/app/icon.png";
 
 export const metadata = getSEOTags({
   title: `What Makes Wryda.ai Unique | Screenplay to Video Platform | ${config.appName}`,
-  description: "The only platform that generates video from screenplays. Character consistency, screenplay-aware AI, and production workflow—all in one place. See what makes Wryda.ai different.",
+  description: "Compare Wryda.ai's screenplay-first workflow, writing agents, and production planning tools with other common screenwriting and production tools.",
   canonicalUrlRelative: "/compare",
 });
 
@@ -66,9 +66,9 @@ export default function ComparePage() {
               What Makes Wryda.ai Unique
             </h1>
             <p className="text-xl text-gray-300 max-w-3xl mx-auto mb-8">
-              The only Integrated Screenwriting Environment (ISE) that turns your screenplay into visual assets.
+              A screenplay-first integrated workflow that keeps writing, references, and production planning connected.
               <br />
-              <strong className="text-white">We're not competing. We're creating a new category.</strong>
+              <strong className="text-white">Built for writers who want one continuous context from draft to prep.</strong>
             </p>
           </div>
         </section>
@@ -212,8 +212,8 @@ export default function ComparePage() {
                   <tr className="border-b border-[#3F3F46]">
                     <td className="p-4 bg-[#141414]">Story Advisor (Reads Entire Screenplay)</td>
                     <td className="p-4 text-center border-l-2 border-[#DC143C]">
-                      <span className="text-[#DC143C] font-bold">✓ Unique</span>
-                      <div className="text-xs text-gray-400 mt-1">Only Wryda.ai</div>
+                      <span className="text-[#DC143C] font-bold">✓ Advanced</span>
+                      <div className="text-xs text-gray-400 mt-1">Script-level analysis workflow</div>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
                       <span className="text-gray-500">No</span>
@@ -236,8 +236,8 @@ export default function ComparePage() {
                   <tr className="border-b border-[#3F3F46]">
                     <td className="p-4 font-semibold bg-[#141414]">Scene Builder <span className="text-xs text-yellow-400">(Coming Soon)</span></td>
                     <td className="p-4 text-center border-l-2 border-[#DC143C]">
-                      <span className="text-[#DC143C] font-bold">✓ Groundbreaking</span>
-                      <div className="text-xs text-gray-400 mt-1">Only Wryda.ai - Generate video scenes from screenplay</div>
+                      <span className="text-[#DC143C] font-bold">✓ In Platform</span>
+                      <div className="text-xs text-gray-400 mt-1">Planned screenplay-linked scene generation workflow</div>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
                       <span className="text-gray-500">No</span>
@@ -441,7 +441,7 @@ export default function ComparePage() {
                 <div className="text-3xl mb-3">🎬</div>
                 <h3 className="text-xl font-bold mb-3">Scene Builder</h3>
                 <p className="text-gray-300 text-sm">
-                  The only platform that generates complete video scenes directly from your screenplay. Our motion picture technology brings your script to life with professional, consistent scene packages—something no other tool can do.
+                  Scene Builder is designed to carry screenplay context into shot planning and scene package generation inside the same workspace.
                 </p>
               </div>
 
@@ -449,7 +449,7 @@ export default function ComparePage() {
                 <div className="text-3xl mb-3">🌟</div>
                 <h3 className="text-xl font-bold mb-3">Story Advisor</h3>
                 <p className="text-gray-300 text-sm">
-                  The only AI that reads your entire screenplay. Analyzes structure, tracks character arcs, identifies plot holes—nothing like this exists.
+                  Story Advisor is built for script-level analysis: structure checks, character-arc tracking, and revision direction.
                 </p>
               </div>
 
@@ -469,19 +469,19 @@ export default function ComparePage() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                The Only Platform That...
+                Workflow Differentiators
               </h2>
               <p className="text-lg text-gray-300 max-w-2xl mx-auto mb-12">
-                We combine features that have never been combined before. Here's what makes us different.
+                These are the practical differences in how work moves from writing to planning.
               </p>
             </div>
 
             <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
               <div className="bg-[#0A0A0A] border-2 border-[#DC143C] rounded-lg p-6">
                 <div className="text-3xl mb-3">🎬</div>
-                <h3 className="text-xl font-bold mb-2">Generates Video From Screenplays</h3>
+                <h3 className="text-xl font-bold mb-2">Screenplay-Linked Visual Planning</h3>
                 <p className="text-sm text-gray-300">
-                  The only platform that understands screenplay structure and generates complete video scenes directly from your script.
+                  Keep writing context connected as you move into references, shot planning, and scene output workflows.
                 </p>
               </div>
 
@@ -513,7 +513,7 @@ export default function ComparePage() {
                 <div className="text-3xl mb-3">🌟</div>
                 <h3 className="text-xl font-bold mb-2">Story Advisor</h3>
                 <p className="text-sm text-gray-300">
-                  The only AI that reads your entire screenplay and analyzes structure, character arcs, and plot consistency.
+                  Script-level guidance for structure, character arcs, and consistency across the full draft.
                 </p>
               </div>
 
@@ -544,7 +544,7 @@ export default function ComparePage() {
               <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg p-8">
                 <h3 className="text-2xl font-bold mb-4">vs. Final Draft / Celtx / Fade In</h3>
                 <p className="text-gray-300 mb-4">
-                  <strong className="text-white">They help you write. We help you write AND produce.</strong>
+                  <strong className="text-white">They focus on writing. Wryda connects writing with downstream planning.</strong>
                 </p>
                 <ul className="space-y-2 text-sm text-gray-300">
                   <li className="flex items-start gap-2">
@@ -577,7 +577,7 @@ export default function ComparePage() {
               <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg p-8">
                 <h3 className="text-2xl font-bold mb-4">vs. StudioBinder</h3>
                 <p className="text-gray-300 mb-4">
-                  <strong className="text-white">They manage production. We help you create it.</strong>
+                  <strong className="text-white">StudioBinder focuses on production management. Wryda emphasizes screenplay creation plus connected planning.</strong>
                 </p>
                 <ul className="space-y-2 text-sm text-gray-300">
                   <li className="flex items-start gap-2">
@@ -606,7 +606,7 @@ export default function ComparePage() {
               <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg p-8">
                 <h3 className="text-2xl font-bold mb-4">vs. WriterDuet</h3>
                 <p className="text-gray-300 mb-4">
-                  <strong className="text-white">They focus on collaboration. We focus on creation AND collaboration.</strong>
+                  <strong className="text-white">WriterDuet emphasizes collaboration. Wryda pairs collaboration with integrated writing and planning workflows.</strong>
                 </p>
                 <ul className="space-y-2 text-sm text-gray-300">
                   <li className="flex items-start gap-2">
@@ -631,7 +631,7 @@ export default function ComparePage() {
               <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg p-8">
                 <h3 className="text-2xl font-bold mb-4">vs. AI Writing Tools (ChatGPT, Claude, etc.)</h3>
                 <p className="text-gray-300 mb-4">
-                  <strong className="text-white">We use the same powerful models, but in a screenplay-specific environment that understands your entire project.</strong>
+                  <strong className="text-white">Wryda applies major AI models inside a screenplay-specific workspace with project context.</strong>
                 </p>
                 <ul className="space-y-2 text-sm text-gray-300">
                   <li className="flex items-start gap-2">
@@ -727,13 +727,13 @@ export default function ComparePage() {
             <div className="bg-[#141414] border-2 border-[#DC143C] rounded-lg p-8 text-center">
               <h3 className="text-2xl font-bold mb-4">The Only AI Platform Built for Fountain</h3>
               <p className="text-gray-300 mb-6 max-w-2xl mx-auto">
-                While other AI tools treat screenplays as plain text, Wryda.ai understands the structure, format, and industry standards that make screenplays work.
+                While many AI tools treat screenplays as plain text, Wryda.ai is designed around Fountain structure and screenplay-native workflows.
               </p>
               <Link
                 href="/sign-up"
                 className="inline-flex items-center justify-center px-8 py-4 bg-[#DC143C] text-white font-semibold rounded-lg hover:bg-[#B01030] transition-colors text-lg"
               >
-                Start Free - 50 Credits
+                Start Free
               </Link>
             </div>
           </div>
@@ -753,13 +753,13 @@ export default function ComparePage() {
                 href="/sign-up"
                 className="inline-flex items-center justify-center px-8 py-4 bg-[#DC143C] text-white font-semibold rounded-lg hover:bg-[#B01030] transition-colors text-lg"
               >
-                Start Free - 50 Credits
+                Start Free
               </Link>
               <Link
-                href="/features"
+                href="/examples"
                 className="inline-flex items-center justify-center px-8 py-4 bg-[#141414] border border-[#3F3F46] text-white font-semibold rounded-lg hover:bg-[#1F1F1F] transition-colors text-lg"
               >
-                See All Features
+                View Examples
               </Link>
             </div>
           </div>

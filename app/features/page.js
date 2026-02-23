@@ -7,7 +7,7 @@ import logo from "@/app/icon.png";
 
 export const metadata = getSEOTags({
   title: `Complete Features | ${config.appName}`,
-  description: "Explore all features including AI writing agents, video generation, character consistency, and professional production tools. Everything unlocked from day one.",
+  description: "Explore screenplay-native writing features, agent workflows, and production planning tools in one integrated workspace.",
   canonicalUrlRelative: "/features",
 });
 
@@ -41,7 +41,7 @@ export default function Features() {
               <Link href="/compare" className="text-sm text-gray-300 hover:text-white transition-colors">
                 Compare
               </Link>
-              <Link href="/#pricing" className="text-sm text-gray-300 hover:text-white transition-colors">
+              <Link href="/pricing" className="text-sm text-gray-300 hover:text-white transition-colors">
                 Pricing
               </Link>
               <Link href="/examples" className="text-sm text-gray-300 hover:text-white transition-colors">
@@ -66,15 +66,15 @@ export default function Features() {
               <span className="font-semibold text-gray-300">✨ The First Integrated Screenwriting Environment</span>
             </div>
             <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight mb-6">
-              Complete Feature List
+              Screenplay-First Features
             </h1>
             <p className="text-xl text-gray-300 max-w-3xl mx-auto">
               <strong className="text-white">Everything unlocked from day one.</strong>
               <br />
-              Free users get everything. Pro/Ultra/Studio just get more credits.
+              Start with writing and revision, then extend into references, shot planning, and video workflows.
             </p>
             <p className="text-sm text-gray-500 max-w-2xl mx-auto mt-3">
-              The only Integrated Screenwriting Environment (ISE) that combines writing, production, and direction in one platform.
+              One integrated workspace designed for screenplay development first, with production tools connected to the same story context.
             </p>
           </div>
         </section>
@@ -236,7 +236,7 @@ export default function Features() {
                 <div className="text-3xl mb-3">🎬</div>
                 <h3 className="text-lg font-bold mb-2">Director</h3>
                 <p className="text-sm text-gray-300">
-                  Generate full scenes with action, dialogue, and direction. Production-ready formatting.
+                  Build guided, additive scene skeletons from location, scenario, and direction inputs.
                 </p>
               </div>
 
@@ -264,10 +264,10 @@ export default function Features() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-16">
               <h2 className="text-3xl md:text-4xl font-bold mb-4">
-                Complete Production Platform
+                Complete Screenplay Platform
               </h2>
               <p className="text-lg text-gray-300 max-w-2xl mx-auto">
-                Everything you need to turn your screenplay into a movie.
+                Everything you need for screenplay development, with connected planning and production workflows.
               </p>
             </div>
 
@@ -356,16 +356,16 @@ export default function Features() {
         <section className="py-20 bg-[#141414]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Ready to Create?
+              Ready to start writing?
             </h2>
             <p className="text-lg text-gray-300 mb-8 max-w-2xl mx-auto">
-              Sign up for free and get 50 credits to start. All features unlocked from day one.
+              Sign up free, write in a professional screenplay workflow, and use credits only when you generate.
             </p>
             <Link
               href="/sign-up"
               className="inline-flex items-center justify-center px-8 py-4 bg-[#DC143C] text-white font-semibold rounded-lg hover:bg-[#B01030] transition-colors text-lg"
             >
-              Start Free - 50 Credits
+              Start Writing
             </Link>
           </div>
         </section>

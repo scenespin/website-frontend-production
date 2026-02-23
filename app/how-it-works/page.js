@@ -6,7 +6,7 @@ import logo from '@/app/icon.png';
 
 export const metadata = getSEOTags({
   title: `How It Works | ${config.appName}`,
-  description: "Learn how to create, produce, and direct your content with Wryda.ai. From script import to final video production.",
+  description: "Learn how writers move from draft to production planning in Wryda.ai using a screenplay-native workflow.",
   canonicalUrlRelative: "/how-it-works",
 });
 
@@ -65,7 +65,7 @@ export default function HowItWorksPage() {
               How It Works
             </h1>
             <p className="text-base sm:text-lg md:text-xl text-gray-300 max-w-3xl mx-auto mb-6 md:mb-8 px-4">
-              From idea to screen in three simple steps. Whether you're a seasoned professional or just getting started, Wryda.ai makes video production accessible to everyone.
+              A screenplay-first workflow in three steps: write stronger pages, build continuity assets, then extend into visual planning when needed.
             </p>
           </div>
         </section>
@@ -91,7 +91,7 @@ export default function HowItWorksPage() {
                     </span>
                   </div>
                   <p className="text-lg text-gray-300 leading-relaxed">
-                    Start with your vision. In the Create section, you build the foundation of your project—your script, characters, locations, and props. Upload reference images to establish your visual style, then write your script directly or let our AI agents help you get started.
+                    Start with the page. In Create, you build script context first, then connect supporting characters, locations, and props so everything stays grounded in your screenplay.
                   </p>
                   
                   {/* Import & Smart Detection Section */}
@@ -173,7 +173,7 @@ export default function HowItWorksPage() {
                     </span>
                   </div>
                   <p className="text-lg text-gray-300 leading-relaxed">
-                    Transform your creation assets into production-ready elements. The Production Hub takes your uploaded images and generates AI assets in multiple variations, angles, and styles—giving you everything you need for your scenes.
+                    Turn screenplay context into continuity-ready references. The Production Hub uses your inputs to generate reusable character, location, and prop sets for planning and prep.
                   </p>
                   
                   {/* Transform Your Creation Assets Section */}
@@ -269,7 +269,7 @@ export default function HowItWorksPage() {
                     </span>
                   </div>
                   <p className="text-lg text-gray-300 leading-relaxed">
-                    Assemble your scenes with our algorithmic Motion Picture technology. Scene Builder uses your Production Hub assets to automatically compose shots based on your scenes, bringing everything together into a cohesive video.
+                    Extend approved writing and references into visual planning workflows. Scene Builder helps stage scene intent into coherent shot progressions and optional video outputs.
                   </p>
                   <div className="space-y-3 pt-2">
                     <div className="flex items-start gap-3">
@@ -304,23 +304,23 @@ export default function HowItWorksPage() {
         <section className="py-20 bg-[#141414]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4">
-              Ready to get started?
+              Ready to start your next script?
             </h2>
             <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto mb-8">
-              Join creators who are already bringing their ideas to life with Wryda.ai
+              Write first, then carry the same story context into planning and production workflows as needed.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
                 href="/sign-up"
                 className="inline-flex items-center justify-center px-6 py-3 md:px-8 md:py-4 bg-[#DC143C] text-white font-semibold rounded-lg hover:bg-[#B01030] transition-colors text-base md:text-lg min-h-[44px] w-full sm:w-auto"
               >
-                Get Started
+                Start Writing
               </Link>
               <Link
-                href="/pricing"
+                href="/examples"
                 className="inline-flex items-center justify-center px-6 py-3 md:px-8 md:py-4 bg-[#141414] border border-[#3F3F46] text-white font-semibold rounded-lg hover:bg-[#1F1F1F] transition-colors text-base md:text-lg min-h-[44px] w-full sm:w-auto"
               >
-                View Pricing
+                View Examples
               </Link>
             </div>
           </div>
