@@ -139,6 +139,18 @@ export function parseFountain(fountain: string): ParsedElement[] {
       continue;
     }
     
+    // Centered text (Fountain: > centered text <)
+    // Must be checked before forced transitions to avoid leaving trailing "<".
+    if (trimmed.startsWith('>') && trimmed.endsWith('<') && trimmed.length > 1) {
+      const centeredText = trimmed.slice(1, -1).trim();
+      if (centeredText) {
+        // Treat centered lines as action text for strict export flow.
+        elements.push({ type: 'action', text: centeredText });
+      }
+      i++;
+      continue;
+    }
+
     // Transition (ends with TO:)
     if (trimmed.endsWith('TO:') && trimmed === trimmed.toUpperCase()) {
       elements.push({ type: 'transition', text: trimmed });
