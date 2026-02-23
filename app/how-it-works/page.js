@@ -120,7 +120,7 @@ export default function HowItWorksPage() {
             <div className="rounded-xl border border-[#3F3F46] bg-[#111111] p-6 md:p-8 max-w-4xl mx-auto">
               <h2 className="text-xl md:text-2xl font-bold mb-3 text-white">Writer-first AI use transparency</h2>
               <p className="text-gray-300 mb-4">
-                Wryda includes an optional <strong className="text-white">AI Use Disclosure</strong> system so you can track in-app AI-assisted writing actions and export a transparency record for submission support. It&apos;s optional, non-blocking, and editable—there to support your workflow without changing how you write.
+                Wryda includes an optional <strong className="text-white">AI Use Disclosure</strong> system so you can track in-app AI-assisted writing actions and export a transparency record for submission support. It&apos;s optional and nonblocking. There to support your workflow without changing how you write.
               </p>
               <ul className="space-y-2 text-sm text-gray-400 mb-4">
                 <li className="flex items-start gap-2">

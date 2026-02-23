@@ -5,10 +5,10 @@ import { toast } from 'sonner';
 import {
   AIDisclosureConsentStatus,
   AIDisclosureEvent,
-  downloadAIDisclosureReportJson,
   getAIDisclosureReport,
   updateAIDisclosureConsent,
 } from '@/utils/aiDisclosureStorage';
+import { downloadAIDisclosureSubmissionBundle } from '@/utils/aiDisclosureExport';
 
 interface AIDisclosurePanelProps {
   isOpen: boolean;
@@ -33,6 +33,7 @@ export default function AIDisclosurePanel({
 }: AIDisclosurePanelProps) {
   const [loading, setLoading] = useState(false);
   const [savingConsent, setSavingConsent] = useState(false);
+  const [exportingSubmission, setExportingSubmission] = useState(false);
   const [events, setEvents] = useState<AIDisclosureEvent[]>([]);
   const [report, setReport] = useState<any>(null);
   const [consentForm, setConsentForm] = useState<ConsentFormState>({
@@ -101,10 +102,21 @@ export default function AIDisclosurePanel({
     }
   };
 
-  const handleExportJson = () => {
+  const handleLockAndExportSubmission = async () => {
     if (!report) return;
-    downloadAIDisclosureReportJson(report, screenplayTitle);
-    toast.success('Disclosure JSON exported.');
+    setExportingSubmission(true);
+    try {
+      const { hashHex, zipFilename } = await downloadAIDisclosureSubmissionBundle(
+        report,
+        screenplayId,
+        screenplayTitle
+      );
+      toast.success(`Submission bundle exported (${zipFilename}). SHA-256: ${hashHex.slice(0, 12)}...`);
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to export submission bundle');
+    } finally {
+      setExportingSubmission(false);
+    }
   };
 
   return (
@@ -205,8 +217,17 @@ export default function AIDisclosurePanel({
                   <button onClick={handleSaveConsent} disabled={savingConsent} className="btn btn-sm btn-primary">
                     {savingConsent ? 'Saving...' : 'Save Context'}
                   </button>
-                  <button onClick={handleExportJson} className="btn btn-sm btn-outline">Export JSON</button>
+                  <button
+                    onClick={handleLockAndExportSubmission}
+                    disabled={exportingSubmission || !report}
+                    className="btn btn-sm btn-outline"
+                  >
+                    {exportingSubmission ? 'Exporting...' : 'Lock & Export for Submission'}
+                  </button>
                 </div>
+                <p className="text-[11px] text-gray-500">
+                  Export downloads a timestamped ZIP bundle containing PDF, JSON snapshot, and SHA-256 hash file.
+                </p>
               </div>
 
               <div className="rounded border border-white/10 bg-[#121212] p-3">

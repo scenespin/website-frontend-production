@@ -150,10 +150,7 @@ export async function updateAIDisclosureConsent(
 }
 
 export function downloadAIDisclosureReportJson(report: any, screenplayTitle?: string): void {
-  const fileTitle = (screenplayTitle || 'screenplay')
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '');
+  const fileTitle = toSlugFileTitle(screenplayTitle);
 
   const blob = new Blob([JSON.stringify(report, null, 2)], {
     type: 'application/json;charset=utf-8',
@@ -166,4 +163,11 @@ export function downloadAIDisclosureReportJson(report: any, screenplayTitle?: st
   anchor.click();
   anchor.remove();
   URL.revokeObjectURL(url);
+}
+
+function toSlugFileTitle(screenplayTitle?: string): string {
+  return (screenplayTitle || 'screenplay')
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '');
 }
