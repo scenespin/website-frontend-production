@@ -66,6 +66,8 @@ export default function FountainEditor({
     const textareaRef = useRef<HTMLTextAreaElement>(null!);
     const isMountedRef = useRef(true);
     const isSettingHighlightRef = useRef(false);
+    const previousPreviewModeRef = useRef(isPreviewMode);
+    const suppressCursorPreserveRef = useRef(false);
     
     // Auto-save manager
     const autoSaveManager = useRef<AutoSaveManager>(
@@ -104,6 +106,7 @@ export default function FountainEditor({
     
     // Track when user is typing (to distinguish from programmatic updates)
     useEffect(() => {
+        if (isPreviewMode) return;
         const textarea = textareaRef.current;
         if (!textarea) return;
         
@@ -118,10 +121,11 @@ export default function FountainEditor({
         
         textarea.addEventListener('input', handleInput);
         return () => textarea.removeEventListener('input', handleInput);
-    }, []);
+    }, [isPreviewMode]);
     
     // Save cursor position on every selection change (so we have it before content updates)
     useEffect(() => {
+        if (isPreviewMode) return;
         const textarea = textareaRef.current;
         if (!textarea) return;
         
@@ -146,13 +150,72 @@ export default function FountainEditor({
             textarea.removeEventListener('click', handleSelectionChange);
             textarea.removeEventListener('keyup', handleSelectionChange);
         };
-    }, []);
+    }, [isPreviewMode]);
+
+    // Keep preview toggle transitions deterministic:
+    // capture cursor on enter-preview, then restore exactly once on exit-preview.
+    useEffect(() => {
+        const wasPreviewMode = previousPreviewModeRef.current;
+
+        if (!wasPreviewMode && isPreviewMode) {
+            const textarea = textareaRef.current;
+            if (textarea) {
+                savedCursorPositionRef.current = textarea.selectionStart;
+            }
+            if (state.highlightRange) {
+                clearHighlight();
+            }
+        }
+
+        if (wasPreviewMode && !isPreviewMode) {
+            suppressCursorPreserveRef.current = true;
+
+            requestAnimationFrame(() => {
+                const textarea = textareaRef.current;
+                if (!textarea) {
+                    suppressCursorPreserveRef.current = false;
+                    return;
+                }
+
+                const targetPos = Math.max(
+                    0,
+                    Math.min(
+                        savedCursorPositionRef.current ?? state.cursorPosition ?? 0,
+                        displayContent.length
+                    )
+                );
+
+                textarea.focus({ preventScroll: true });
+                textarea.selectionStart = targetPos;
+                textarea.selectionEnd = targetPos;
+                setCursorPosition(targetPos);
+                savedCursorPositionRef.current = targetPos;
+
+                requestAnimationFrame(() => {
+                    suppressCursorPreserveRef.current = false;
+                });
+            });
+        }
+
+        previousPreviewModeRef.current = isPreviewMode;
+        isUserTypingRef.current = false;
+        lastTypingTimeRef.current = 0;
+    }, [isPreviewMode, clearHighlight, displayContent.length, setCursorPosition, state.cursorPosition, state.highlightRange]);
     
     // Use useLayoutEffect to restore cursor synchronously BEFORE browser paints
     // This runs after DOM updates but before the browser paints, so we can restore cursor before user sees it reset
     useLayoutEffect(() => {
+        if (isPreviewMode) {
+            previousContentRef.current = displayContent;
+            return;
+        }
+
         const textarea = textareaRef.current;
         if (!textarea) return;
+        if (suppressCursorPreserveRef.current) {
+            previousContentRef.current = displayContent;
+            return;
+        }
         
         const previousContent = previousContentRef.current;
         const currentContent = displayContent;
@@ -223,7 +286,7 @@ export default function FountainEditor({
         }
         
         previousContentRef.current = currentContent;
-    }, [displayContent, setCursorPosition]);
+    }, [displayContent, isPreviewMode, setCursorPosition]);
     
     // Memoized duration calculation
     const duration = useMemo(() => {

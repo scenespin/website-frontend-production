@@ -54,7 +54,7 @@ export const SCREENPLAY_FORMAT = {
 };
 
 export interface ParsedElement {
-  type: 'scene' | 'action' | 'character' | 'dialogue' | 'parenthetical' | 'transition' | 'blank';
+  type: 'scene' | 'action' | 'character' | 'dialogue' | 'parenthetical' | 'transition' | 'centered' | 'blank';
   text: string;
   pageNumber?: number;
   bookmark?: string;
@@ -144,8 +144,7 @@ export function parseFountain(fountain: string): ParsedElement[] {
     if (trimmed.startsWith('>') && trimmed.endsWith('<') && trimmed.length > 1) {
       const centeredText = trimmed.slice(1, -1).trim();
       if (centeredText) {
-        // Treat centered lines as action text for strict export flow.
-        elements.push({ type: 'action', text: centeredText });
+        elements.push({ type: 'centered', text: centeredText });
       }
       i++;
       continue;
@@ -494,6 +493,7 @@ export async function exportScreenplayToPDF(
   const maxY = inchesToPoints(SCREENPLAY_FORMAT.pageHeight - SCREENPLAY_FORMAT.marginBottom);
   const leftMargin = inchesToPoints(SCREENPLAY_FORMAT.marginLeft);
   const rightMarginX = inchesToPoints(SCREENPLAY_FORMAT.pageWidth - SCREENPLAY_FORMAT.marginRight);
+  const bodyCenterX = inchesToPoints(SCREENPLAY_FORMAT.pageWidth / 2);
 
   // Bookmarks storage
   const bookmarks: Array<{ title: string; page: number }> = [];
@@ -615,6 +615,16 @@ export async function exportScreenplayToPDF(
         actionLines.forEach((line: string) => {
           ensureSpace(1, !isTerminalAction);
           pushLayoutText(line, actionX);
+        });
+        break;
+      }
+
+      case 'centered': {
+        layoutCurrentCharacterCue = null;
+        const centeredLines = wrapText(doc, element.text, SCREENPLAY_FORMAT.width.action);
+        centeredLines.forEach((line: string) => {
+          ensureSpace(1, true);
+          pushLayoutText(line, bodyCenterX, 'center');
         });
         break;
       }

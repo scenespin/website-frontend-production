@@ -76,6 +76,26 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
           </div>
         );
 
+      case 'centered':
+        return (
+          <div
+            key={key}
+            className="mb-1 screenplay-centered"
+            style={{
+              marginLeft: 0,
+              marginRight: 0,
+              maxWidth: `min(var(--preview-action-width, ${baseActionWidth}rem), 100%)`,
+              textAlign: 'center',
+              fontFamily: 'Courier, monospace',
+              fontSize: '12pt',
+              wordWrap: 'break-word',
+              whiteSpace: 'pre-wrap',
+            }}
+          >
+            {element.text}
+          </div>
+        );
+
       case 'character':
         return (
           <div
@@ -201,6 +221,7 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
           }
           .screenplay-preview-container .screenplay-scene,
           .screenplay-preview-container .screenplay-action,
+          .screenplay-preview-container .screenplay-centered,
           .screenplay-preview-container .screenplay-transition {
             margin-left: 0 !important;
             margin-right: 0 !important;
