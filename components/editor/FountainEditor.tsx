@@ -694,6 +694,17 @@ export default function FountainEditor({
                 .fountain-editor-textarea::-webkit-scrollbar {
                     display: none;
                 }
+
+                /* Mobile keeps existing side padding; tablet/desktop gets more horizontal breathing room */
+                .fountain-editor-textarea {
+                    --editor-horizontal-padding: var(--space-6, 1.5rem);
+                }
+
+                @media (min-width: 768px) {
+                    .fountain-editor-textarea {
+                        --editor-horizontal-padding: var(--space-8, 2rem);
+                    }
+                }
             `}</style>
             
             {/* Main Editor - Preview or Textarea */}
@@ -710,8 +721,8 @@ export default function FountainEditor({
                         width: '100%',
                         margin: 0,
                         paddingTop: 'var(--space-6)',
-                        paddingLeft: 'var(--space-6)',
-                        paddingRight: 'var(--space-6)',
+                        paddingLeft: 'var(--editor-horizontal-padding)',
+                        paddingRight: 'var(--editor-horizontal-padding)',
                         paddingBottom: '50vh', // Scroll beyond last line - allows cursor to be positioned mid-screen
                         fontSize: `${state.fontSize}px`,
                         fontFamily: 'var(--font-mono)',
