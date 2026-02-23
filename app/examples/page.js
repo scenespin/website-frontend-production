@@ -12,31 +12,31 @@ export default function ExamplesPage() {
   const { data: status, isLoading: statusLoading } = useShowcaseStatus();
   const writingExamples = [
     {
-      title: "Action line tightening",
+      title: "Action Sequence Tightening",
       agent: "Rewrite",
       before:
         "Sarah walks into the newsroom and looks around nervously as everyone stares at her and she slowly walks toward her desk.",
       after:
-        "Sarah enters the newsroom. Heads turn. She keeps moving toward her desk without looking up.",
-      outcome: "Sharper rhythm and cleaner visual beats without changing intent.",
+        "Sarah pushes through the newsroom doors and heads for her desk as conversations die and heads turn; she keeps her eyes forward, jaw tight, refusing to give anyone the satisfaction of eye contact.",
+      outcome: "Delivers tighter pacing and clearer visual readability while preserving the same single-shot action intent.",
     },
     {
-      title: "Dialogue voice polish",
+      title: "Dialogue Voice + Subtext Upgrade",
       agent: "Dialogue",
       before:
-        "I do not believe we can trust him right now because he has lied to us before and he is hiding something.",
+        "RIVERA\nI think you should stop investigating Blake because this is becoming dangerous and it is not worth your safety.\n\nSARAH\nI understand what you are saying but I cannot stop now because too many people are depending on this and I have already gone too far.",
       after:
-        "We can't trust him. He lied before, and he's still hiding something.",
-      outcome: "More natural character voice with stronger on-page impact.",
+        "RIVERA\nWalk away, Sarah. Blake doesn’t scare easy, and you’re on his radar now.\n\nSARAH\nGood. Let him know I’m not leaving.",
+      outcome: "Creates sharper character voice contrast, stronger subtext, and more dramatic tension in fewer lines.",
     },
     {
-      title: "Scene continuation draft",
+      title: "Scene-Level Escalation Pass",
       agent: "Screenwriter",
       before:
-        "Marcus sees Sarah in the hallway.",
+        "INT. PARKING GARAGE - NIGHT\n\nRivera meets Sarah in the garage. He gives her a USB with files that could expose Blake. They agree to review it in the morning and leave separately.",
       after:
-        "Marcus catches Sarah in the hallway and lowers his voice.\n\nMARCUS\nYou should've stopped digging when I warned you.\n\nSARAH\nThen stop giving me reasons to keep going.",
-      outcome: "Expanded conflict while preserving your story direction.",
+        "INT. PARKING GARAGE - NIGHT\n\nRivera steps from the shadows, rainwater dripping off his coat. He presses a USB into Sarah’s palm.\n\nRIVERA\nIf this gets out, Blake’s finished. If it doesn’t, we are.\n\nA CAR ENGINE turns over above them. Headlights sweep the concrete.\n\nSARAH\nWe don’t wait until morning.\n\nShe pockets the drive. They split in opposite directions as the headlights descend the ramp.",
+      outcome: "Raises stakes, adds urgency, and strengthens the scene turn so momentum carries into the next beat.",
     },
   ];
   
@@ -85,7 +85,7 @@ export default function ExamplesPage() {
 
       <main className="bg-[#0A0A0A] text-white min-h-screen">
         {/* Hero Section */}
-        <section className="py-16 bg-gradient-to-b from-[#141414] to-[#0A0A0A]">
+        <section className="pt-14 pb-8 bg-gradient-to-b from-[#141414] to-[#0A0A0A]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-black border border-[#DC143C]/30 text-sm mb-6">
               <span className="font-semibold text-gray-300">✨ Real Writer Workflows</span>
@@ -99,7 +99,7 @@ export default function ExamplesPage() {
             
             {/* Stats */}
             {status && (
-              <div className="flex justify-center gap-8 text-center">
+              <div className="flex justify-center gap-8 text-center mt-6">
                 <div>
                   <div className="text-3xl font-bold text-[#DC143C]">{status.contentCounts?.characters || 0}</div>
                   <div className="text-sm text-gray-400">Character References</div>
@@ -118,7 +118,7 @@ export default function ExamplesPage() {
         </section>
 
         {/* Writing Before/After Examples */}
-        <section className="py-16">
+        <section className="pt-8 pb-12">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-10">
               <h2 className="text-3xl md:text-4xl font-bold mb-4">Before/After Writing Examples</h2>
@@ -157,8 +157,18 @@ export default function ExamplesPage() {
           </div>
         </section>
 
+        {/* Media Examples Intro */}
+        <section className="pt-2 pb-8">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h2 className="text-2xl md:text-3xl font-bold mb-3">Media Examples (Optional Extension)</h2>
+            <p className="text-gray-300 max-w-3xl mx-auto">
+              Once writing decisions are in place, these reference examples support production planning and continuity.
+            </p>
+          </div>
+        </section>
+
         {/* Characters Section */}
-        <section className="py-16">
+        <section className="pt-0 pb-12">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <ShowcaseGallery 
               contentType="characters"
@@ -170,7 +180,7 @@ export default function ExamplesPage() {
         </section>
 
         {/* Locations Section */}
-        <section className="py-16 bg-[#0D0D0D]">
+        <section className="py-12 bg-[#0D0D0D]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <ShowcaseGallery 
               contentType="locations"
@@ -182,7 +192,7 @@ export default function ExamplesPage() {
         </section>
 
         {/* Props Section */}
-        <section className="py-16">
+        <section className="py-12">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <ShowcaseGallery 
               contentType="props"
