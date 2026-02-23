@@ -21,13 +21,13 @@ export default function ExamplesPage() {
       outcome: "Delivers tighter pacing and clearer visual readability while preserving the same single-shot action intent.",
     },
     {
-      title: "Dialogue Voice + Subtext Upgrade",
+      title: "Context-Guided Dialogue Draft",
       agent: "Dialogue",
       before:
-        "RIVERA\nI think you should stop investigating Blake because this is becoming dangerous and it is not worth your safety.\n\nSARAH\nI understand what you are saying but I cannot stop now because too many people are depending on this and I have already gone too far.",
+        "Scene context: INT. NEWSROOM - NIGHT\nCharacters selected: RIVERA, SARAH\nConflict/Tension: Rivera warns Sarah to back off before Blake retaliates.\nTone: tense\nSubtext: Rivera is scared for her but hides it behind authority.\n\nCurrent script at cursor:\nRIVERA\nI think you should stop investigating Blake because this is becoming dangerous and it is not worth your safety.\n\nSARAH\nI understand what you are saying but I cannot stop now because too many people are depending on this and I have already gone too far.",
       after:
         "RIVERA\nWalk away, Sarah. Blake doesn’t scare easy, and you’re on his radar now.\n\nSARAH\nGood. Let him know I’m not leaving.",
-      outcome: "Creates sharper character voice contrast, stronger subtext, and more dramatic tension in fewer lines.",
+      outcome: "Shows guided dialogue generation from scene context and writer inputs, inserted additively at the cursor for review or further editing.",
     },
     {
       title: "Scene-Level Escalation Pass",
@@ -47,7 +47,18 @@ export default function ExamplesPage() {
         "Story Advisor feedback:\n1) Add a visible cost by the midpoint (career, relationship, or safety).\n2) Introduce a false win that backfires two scenes later.\n3) Force Sarah into a no-return choice before Act III.\n\nRevision direction selected by writer:\n- Midpoint false win: source appears cooperative.\n- Backfire: source is linked to Blake.\n- No-return choice: Sarah publishes partial evidence anyway.",
       outcome: "Demonstrates strategic, writer-directed story shaping where the final direction depends on your goals and notes.",
     },
+    {
+      title: "Directed Scene Skeleton Draft",
+      agent: "Director",
+      before:
+        "Scene 1 Input (Director modal)\nLocation: INT. NEWSROOM - NIGHT\nScenario: Sarah confronts Blake near the elevators as security closes in.\nDirection: Keep it tense and fast, with a threat beat at the end.\n\nCurrent scene context is preserved; generate a NEW scene that comes after the current page.",
+      after:
+        "INT. NEWSROOM - NIGHT\n\nFluorescent lights buzz over an almost empty floor. Sarah cuts Blake off at the elevators.\n\nSARAH\nYou buried the audit trail.\n\nBLAKE\nI protected people who know how to protect me.\n\nSecurity pivots from the far hallway and moves in.\n\nSARAH\nThen you won&apos;t mind when I publish everything at sunrise.\n\nThe elevator doors open. Blake backs in without blinking.\n\nBLAKE\nYou won&apos;t make sunrise.",
+      outcome: "Shows Director creating a structured scene draft from location/scenario/direction inputs and inserting it as a new additive block.",
+    },
   ];
+  const topRowExamples = writingExamples.slice(0, 3);
+  const bottomRowExamples = writingExamples.slice(3);
   
   return (
     <>
@@ -135,11 +146,41 @@ export default function ExamplesPage() {
                 Sample text edits showing how writers can use Wryda agents for rewrite, dialogue polish, and scene expansion.
               </p>
               <p className="text-sm text-gray-400 max-w-3xl mx-auto mt-4">
-                These examples are guided by user input and goals. The same tools can produce very different outcomes based on the writer&apos;s direction, tone preferences, and revision intent.
+                These are representative sample outputs from in-product agent runs. Results are guided by user prompts and goals, so the same tools can produce very different outcomes based on writer direction, tone, and revision intent.
               </p>
             </div>
+
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {writingExamples.map((example) => (
+              {topRowExamples.map((example) => (
+                <article
+                  key={example.title}
+                  className="rounded-xl border border-[#3F3F46] bg-[#111111] p-5"
+                >
+                  <div className="flex items-center justify-between mb-3">
+                    <h3 className="text-lg font-semibold">{example.title}</h3>
+                    <span className="text-xs px-2 py-1 rounded bg-[#DC143C]/20 text-[#F28BA0] border border-[#DC143C]/40">
+                      {example.agent}
+                    </span>
+                  </div>
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">Before</p>
+                      <p className="text-sm text-gray-300 whitespace-pre-line">{example.before}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">After</p>
+                      <p className="text-sm text-white whitespace-pre-line">{example.after}</p>
+                    </div>
+                    <div className="pt-2 border-t border-[#2A2A2A]">
+                      <p className="text-xs text-gray-400">{example.outcome}</p>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 max-w-5xl mx-auto">
+              {bottomRowExamples.map((example) => (
                 <article
                   key={example.title}
                   className="rounded-xl border border-[#3F3F46] bg-[#111111] p-5"
