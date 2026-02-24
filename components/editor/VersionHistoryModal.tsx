@@ -74,32 +74,11 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
     // State for showing expired token message
     const [tokenExpired, setTokenExpired] = useState(false);
     
-    const handleReconnectGitHub = async () => {
+    const handleReconnectGitHub = () => {
         // Clear invalid token
         localStorage.removeItem('screenplay_github_config');
-        try {
-            const token = await getToken({ template: 'wryda-backend' });
-            if (!token) {
-                throw new Error('Unable to authenticate. Please sign in again.');
-            }
-
-            const response = await fetch('/api/github/auth', {
-                method: 'GET',
-                headers: {
-                    Authorization: `Bearer ${token}`
-                },
-                redirect: 'manual'
-            });
-
-            const redirectTarget = response.headers.get('location');
-            if (!redirectTarget) {
-                throw new Error('GitHub reconnect redirect was not returned.');
-            }
-
-            window.location.href = redirectTarget;
-        } catch (error: any) {
-            toast.error(error?.message || 'Unable to start GitHub reconnect flow.');
-        }
+        // Use full-page navigation so browser follows redirect chain to github.com.
+        window.location.href = '/api/github/auth';
     };
 
     const handleDisconnectGitHub = async () => {

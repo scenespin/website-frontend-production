@@ -138,30 +138,9 @@ function GitHubSaveButton() {
         }
     };
 
-    const handleConnectGitHub = async () => {
-        try {
-            const backendToken = await getToken({ template: 'wryda-backend' });
-            if (!backendToken) {
-                throw new Error('Unable to authenticate. Please sign in again.');
-            }
-
-            const response = await fetch('/api/github/auth', {
-                method: 'GET',
-                headers: {
-                    Authorization: `Bearer ${backendToken}`
-                },
-                redirect: 'manual'
-            });
-
-            const redirectTarget = response.headers.get('location');
-            if (!redirectTarget) {
-                throw new Error('GitHub connect redirect was not returned.');
-            }
-
-            window.location.href = redirectTarget;
-        } catch (error: any) {
-            toast.error(error?.message || 'Unable to start GitHub connect flow.');
-        }
+    const handleConnectGitHub = () => {
+        // Use full-page navigation so browser follows redirect chain to github.com.
+        window.location.href = '/api/github/auth';
     };
 
     // Check if GitHub is connected
