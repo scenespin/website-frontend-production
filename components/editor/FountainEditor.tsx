@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useRef, useEffect, useLayoutEffect, useMemo, ChangeEvent } from 'react';
+import { useAuth } from '@clerk/nextjs';
 import { useEditor } from '@/contexts/EditorContext';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { stripTagsForDisplay, getVisibleLineNumber, mapDisplayPositionToFullContent, mapFullContentPositionToDisplay } from '@/utils/fountain';
@@ -78,6 +79,7 @@ export default function FountainEditor({
     selectionResetSignal,
     onToggleSceneNav
 }: FountainEditorProps) {
+    const { getToken } = useAuth();
     // Context hooks
     const { state, setContent, setCursorPosition, setCurrentLine, insertText, replaceSelection, markSaved, clearHighlight, otherUsersCursors, lastSyncedContent, isPreviewMode } = useEditor();
     const screenplay = useScreenplay();
@@ -549,7 +551,7 @@ export default function FountainEditor({
                                     marker_id: matchedMarker.markerId,
                                     marker_created_at: matchedMarker.createdAt,
                                 },
-                            });
+                            }, async () => getToken({ template: 'wryda-backend' }));
                             toast.success('Added to disclosure report.');
                         },
                     },

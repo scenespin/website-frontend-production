@@ -2,6 +2,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo, startTransition } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
+import { useAuth } from '@clerk/nextjs';
 import { useEditor } from '@/contexts/EditorContext';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useDrawer } from '@/contexts/DrawerContext';
@@ -42,6 +43,7 @@ import SceneTypeDropdown from './SceneTypeDropdown';
  * Theme-aware styling with DaisyUI classes
  */
 export default function EditorWorkspace() {
+    const { getToken } = useAuth();
     const router = useRouter();
     const { state, setContent, setCurrentLine, replaceSelection, insertText, setCursorPosition, isEditorFullscreen, setIsEditorFullscreen, isPreviewMode, setIsPreviewMode, undo, redo, isEditorLocked, isCollaboratorEditing, lockedBy } = useEditor();
     const screenplay = useScreenplay();
@@ -153,8 +155,8 @@ export default function EditorWorkspace() {
             scene_heading: sceneHeading,
             preview: buildAIDisclosurePreview(payload.text),
             confidence: 'high',
-        });
-    }, [aiDisclosureEnabled, screenplay.screenplayId, state.content]);
+        }, async () => getToken({ template: 'wryda-backend' }));
+    }, [aiDisclosureEnabled, getToken, screenplay.screenplayId, state.content]);
 
     const clearEditorDomSelection = useCallback(() => {
         if (typeof document === 'undefined') return;

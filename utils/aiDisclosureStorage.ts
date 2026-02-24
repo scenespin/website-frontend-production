@@ -45,8 +45,18 @@ export type AIDisclosureEventPayload = Omit<
   'event_id' | 'screenplay_id' | 'user_id' | 'timestamp'
 >;
 
+type GitHubLedgerConfig = {
+  owner: string;
+  repo: string;
+  branch?: string;
+};
+
 export function isAIDisclosureEnabled(): boolean {
   return process.env.NEXT_PUBLIC_ENABLE_AI_DISCLOSURE_MVP === 'true';
+}
+
+export function isGitHubAIAuditLedgerEnabled(): boolean {
+  return process.env.NEXT_PUBLIC_ENABLE_GITHUB_AI_AUDIT_LEDGER === 'true';
 }
 
 export function buildAIDisclosurePreview(text: string, maxLength: number = 220): string {
@@ -76,12 +86,82 @@ export async function createAIDisclosureEvent(
 
 export async function createAIDisclosureEventSafe(
   screenplayId: string,
-  payload: AIDisclosureEventPayload
+  payload: AIDisclosureEventPayload,
+  getBackendToken?: () => Promise<string | null>
 ): Promise<void> {
   try {
-    await createAIDisclosureEvent(screenplayId, payload);
+    const createdEvent = await createAIDisclosureEvent(screenplayId, payload);
+    await appendEventToGitHubAuditLedgerSafe(screenplayId, createdEvent, getBackendToken);
   } catch (error) {
     console.warn('[AIDisclosure] Non-blocking event logging failed:', error);
+  }
+}
+
+async function appendEventToGitHubAuditLedgerSafe(
+  screenplayId: string,
+  event: AIDisclosureEvent,
+  getBackendToken?: () => Promise<string | null>
+): Promise<void> {
+  if (!isGitHubAIAuditLedgerEnabled()) return;
+  if (!getBackendToken) return;
+
+  try {
+    const config = readGitHubLedgerConfigFromStorage();
+    if (!config) return;
+
+    const token = await getBackendToken();
+    if (!token) return;
+
+    const backendUrl =
+      process.env.NEXT_PUBLIC_BACKEND_URL ||
+      process.env.NEXT_PUBLIC_API_URL ||
+      'https://backend.wryda.ai';
+
+    const response = await fetch(`${backendUrl}/api/github/ai-audit/append`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        screenplayId,
+        owner: config.owner,
+        repo: config.repo,
+        branch: config.branch,
+        event,
+      }),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json().catch(() => ({}));
+      throw new Error(errorData.message || errorData.error || 'Failed to append GitHub AI audit event');
+    }
+  } catch (error) {
+    // Non-blocking by design: audit-ledger append must never break editor workflows.
+    console.warn('[AIDisclosure] Non-blocking GitHub AI audit append failed:', error);
+  }
+}
+
+function readGitHubLedgerConfigFromStorage(): GitHubLedgerConfig | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem('screenplay_github_config');
+    if (!raw) return null;
+
+    const parsed = JSON.parse(raw) as {
+      owner?: string;
+      repo?: string;
+      branch?: string;
+    };
+
+    if (!parsed?.owner || !parsed?.repo) return null;
+    return {
+      owner: parsed.owner,
+      repo: parsed.repo,
+      branch: parsed.branch,
+    };
+  } catch {
+    return null;
   }
 }
 
