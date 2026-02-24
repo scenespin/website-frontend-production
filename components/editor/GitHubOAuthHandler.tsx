@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useAuth } from '@clerk/nextjs';
 
 /**
  * Feature 0111: GitHub OAuth Callback Handler
@@ -10,6 +11,7 @@ import { useSearchParams } from 'next/navigation';
  */
 export default function GitHubOAuthHandler() {
     const searchParams = useSearchParams();
+    const { getToken } = useAuth();
     const [isProcessing, setIsProcessing] = useState(false);
 
     useEffect(() => {
@@ -42,6 +44,8 @@ export default function GitHubOAuthHandler() {
                 
                 const data = await response.json();
                 const accessToken = data.access_token;
+                const tokenScope = data.scope || 'repo,user';
+                const tokenType = data.token_type || 'bearer';
                 
                 // Get user info
                 const userResponse = await fetch('https://api.github.com/user', {
@@ -85,6 +89,28 @@ export default function GitHubOAuthHandler() {
                         branch: 'main'
                     };
                     localStorage.setItem('screenplay_github_config', JSON.stringify(githubConfig));
+
+                    // Bridge the token into backend encrypted storage so backend-token
+                    // routes (history/audit append) can work even for legacy callback flow.
+                    try {
+                        const backendJwt = await getToken({ template: 'wryda-backend' });
+                        if (backendJwt) {
+                            await fetch(`${BACKEND_URL}/api/github/connect-token`, {
+                                method: 'POST',
+                                headers: {
+                                    'Content-Type': 'application/json',
+                                    'Authorization': `Bearer ${backendJwt}`,
+                                },
+                                body: JSON.stringify({
+                                    accessToken,
+                                    scope: tokenScope,
+                                    tokenType,
+                                }),
+                            });
+                        }
+                    } catch (syncError) {
+                        console.warn('[GitHub OAuth] Backend token sync failed (non-blocking):', syncError);
+                    }
                     
                     console.log('[GitHub OAuth] ✅ Saved GitHub config for export');
                     alert(`✅ Connected to GitHub: ${repo.full_name}\n\nYou can now export your screenplay!`);
@@ -107,7 +133,7 @@ export default function GitHubOAuthHandler() {
         };
         
         handleOAuthCallback();
-    }, [searchParams, isProcessing]);
+    }, [searchParams, isProcessing, getToken]);
 
     // This component renders nothing - it just handles the OAuth callback
     return null;
