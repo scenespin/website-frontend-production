@@ -76,10 +76,12 @@ export const PLAN_DETAILS: Record<PlanId, PlanDetails> = {
       'Mobile-responsive design',
       'Export to PDF',
     ],
-    signupHeadline: 'Start Your Creative Journey',
-    signupSubheadline: 'Explore professional screenwriting tools — completely free',
-    signupValueProp: 'Perfect for writers getting started with professional screenplay formatting',
-    targetAudience: 'Students, hobbyists, and aspiring screenwriters',
+    signupHeadline: 'Start Writing in Minutes',
+    signupSubheadline:
+      'Join a professional, screenplay-native workspace for faster drafts, sharper rewrites, and stronger pages.',
+    signupValueProp:
+      'Ideal for writers getting started with professional screenplay workflows.',
+    targetAudience: 'Independent writers, students, and aspiring screenwriters',
   },
   [PLAN_IDS.PRO]: {
     id: PLAN_IDS.PRO,
@@ -96,10 +98,12 @@ export const PLAN_DETAILS: Record<PlanId, PlanDetails> = {
       'Cloud sync & collaboration',
     ],
     badge: 'Most Popular',
-    signupHeadline: 'Power Your Content Creation',
-    signupSubheadline: 'Professional tools for creators who demand more',
-    signupValueProp: 'Generate 60+ professional videos per month with AI writing assistance',
-    targetAudience: 'YouTube creators, content marketers, and freelancers',
+    signupHeadline: 'Write Faster, Produce More',
+    signupSubheadline:
+      'More monthly credits for consistent writing, visual planning, and delivery workflows.',
+    signupValueProp:
+      'Monthly credits for frequent writing-agent and production runs.',
+    targetAudience: 'Active writers, creators, and small production teams',
   },
   [PLAN_IDS.ULTRA]: {
     id: PLAN_IDS.ULTRA,
@@ -116,10 +120,12 @@ export const PLAN_DETAILS: Record<PlanId, PlanDetails> = {
       '24/7 Priority Support',
     ],
     badge: 'Best Value',
-    signupHeadline: 'Scale Your Production',
-    signupSubheadline: 'Enterprise-grade tools for teams and agencies',
-    signupValueProp: 'Unlimited creative power with priority support and advanced features',
-    targetAudience: 'Production companies, agencies, and high-volume creators',
+    signupHeadline: 'Scale High-Volume Production',
+    signupSubheadline:
+      'High-capacity credits and priority support for teams shipping regularly.',
+    signupValueProp:
+      'High monthly credits for large projects and faster iteration cycles.',
+    targetAudience: 'Production companies, agencies, and high-volume teams',
   },
 };
 

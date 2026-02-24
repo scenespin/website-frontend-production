@@ -30,10 +30,12 @@ const config = {
         ],
         isFeatured: false,
         // Signup page specific
-        signupHeadline: "Start Your Creative Journey",
-        signupSubheadline: "Explore professional screenwriting tools — completely free",
-        signupValueProp: "Perfect for writers getting started with professional screenplay formatting",
-        targetAudience: "Students, hobbyists, and aspiring screenwriters",
+        signupHeadline: "Start Writing in Minutes",
+        signupSubheadline:
+          "Join a professional, screenplay-native workspace for faster drafts, sharper rewrites, and stronger pages.",
+        signupValueProp:
+          "Ideal for writers getting started with professional screenplay workflows.",
+        targetAudience: "Independent writers, students, and aspiring screenwriters",
       },
       {
         isFeatured: true,
@@ -51,10 +53,12 @@ const config = {
           { name: "All quality tiers unlocked" },
         ],
         // Signup page specific
-        signupHeadline: "Power Your Content Creation",
-        signupSubheadline: "Professional tools for creators who demand more",
-        signupValueProp: "3,000 monthly credits to fuel your creative workflow",
-        targetAudience: "YouTube creators, content marketers, and freelancers",
+        signupHeadline: "Write Faster, Produce More",
+        signupSubheadline:
+          "More monthly credits for consistent writing, visual planning, and delivery workflows.",
+        signupValueProp:
+          "3,000 monthly credits for frequent writing-agent and production runs.",
+        targetAudience: "Active writers, creators, and small production teams",
       },
       {
         priceId:
@@ -73,10 +77,12 @@ const config = {
         ],
         isFeatured: false,
         // Signup page specific
-        signupHeadline: "Scale Your Production",
-        signupSubheadline: "Enterprise-grade tools for teams and agencies",
-        signupValueProp: "12,000 monthly credits for unlimited creative power",
-        targetAudience: "Production companies, agencies, and high-volume creators",
+        signupHeadline: "Scale High-Volume Production",
+        signupSubheadline:
+          "High-capacity credits and priority support for teams shipping regularly.",
+        signupValueProp:
+          "12,000 monthly credits for large projects and faster iteration cycles.",
+        targetAudience: "Production companies, agencies, and high-volume teams",
       },
       {
         priceId:
@@ -95,10 +101,12 @@ const config = {
         ],
         isFeatured: false,
         // Signup page specific
-        signupHeadline: "Enterprise-Level Power",
-        signupSubheadline: "Built for studios and large production teams",
-        signupValueProp: "50,000 monthly credits for enterprise-grade reliability",
-        targetAudience: "Large studios, streaming platforms, and enterprise teams",
+        signupHeadline: "Enterprise Workflow at Scale",
+        signupSubheadline:
+          "Designed for studio teams that need reliability, control, and throughput.",
+        signupValueProp:
+          "50,000 monthly credits with enterprise-grade capacity and support.",
+        targetAudience: "Studios, enterprise production teams, and platform partners",
       },
     ],
   },

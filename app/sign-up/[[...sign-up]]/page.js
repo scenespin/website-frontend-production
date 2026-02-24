@@ -38,21 +38,21 @@ export default function SignUpPage() {
           
           {/* LEFT: Value Proposition - DYNAMIC BASED ON PLAN */}
           <div className="space-y-6 order-2 md:order-1">
-            {/* ISE Badge */}
+            {/* Positioning Badge */}
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#141414] border border-[#DC143C]/30 text-sm">
-              <span className="font-semibold text-gray-300">✨ The First Integrated Screenwriting Environment</span>
+              <span className="font-semibold text-gray-300">✨ Writer-First, Connected Workflow</span>
             </div>
 
             {/* Main Headline - Dynamic */}
             <div>
               <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight mb-3 text-white">
-                {selectedPlan.signupHeadline || "Start Creating Professional Videos"}
+                {selectedPlan.signupHeadline || "Start Writing in Minutes"}
               </h1>
               <p className="text-base sm:text-lg text-gray-300">
-                {selectedPlan.signupSubheadline || "Join the future of AI-powered video production. Everything unlocked from day one."}
+                {selectedPlan.signupSubheadline || "Join a professional, screenplay-native workspace for faster drafts, sharper rewrites, and stronger pages."}
               </p>
               <p className="text-sm text-gray-400 mt-2">
-                The only Integrated Screenwriting Environment (ISE) that combines writing, production, and direction in one platform.
+                Carry the same story context from writing into production planning and direction in one connected platform.
               </p>
             </div>
 
@@ -111,8 +111,8 @@ export default function SignUpPage() {
                     </div>
                     <ul className="text-sm text-gray-300 space-y-1 ml-6">
                       <li>• Write or import Fountain scripts</li>
-                      <li>• AI agents help you write</li>
-                      <li>• Auto-detect characters/locations</li>
+                      <li>• Use AI writing agents in context</li>
+                      <li>• Auto-detect characters and locations</li>
                     </ul>
                   </div>
                 </div>
@@ -130,8 +130,8 @@ export default function SignUpPage() {
                       <h4 className="font-semibold text-white">PRODUCE</h4>
                     </div>
                     <ul className="text-sm text-gray-300 space-y-1 ml-6">
-                      <li>• Generate AI characters/locations</li>
-                      <li>• Create angle packages</li>
+                      <li>• Generate character, location, and prop references</li>
+                      <li>• Build continuity-ready angle packages</li>
                     </ul>
                   </div>
                 </div>
@@ -153,7 +153,7 @@ export default function SignUpPage() {
                     </div>
                     <ul className="text-sm text-gray-300 space-y-1 ml-6">
                       <li>• Scene Builder (Beta)</li>
-                      <li>• Export 1080p & 4K videos</li>
+                      <li>• Export production-ready visual outputs</li>
                     </ul>
                   </div>
                 </div>
@@ -180,15 +180,15 @@ export default function SignUpPage() {
                   <li className="flex items-start gap-3">
                     <CheckCircle className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
                     <div>
-                      <strong className="text-white">10 credits every month forever</strong>
-                      <p className="text-sm text-gray-400">On the Free plan, no strings attached</p>
+                      <strong className="text-white">10 credits every month on Free</strong>
+                      <p className="text-sm text-gray-400">No card required to start</p>
                     </div>
                   </li>
                   <li className="flex items-start gap-3">
                     <CheckCircle className="w-5 h-5 text-green-500 shrink-0 mt-0.5" />
                     <div>
-                      <strong className="text-white">All features unlocked</strong>
-                      <p className="text-sm text-gray-400">58 AI workflows, timeline editor, screenplay tools, Hollywood transitions & compositions</p>
+                      <strong className="text-white">All core features unlocked</strong>
+                      <p className="text-sm text-gray-400">Screenplay tools, workflow support, and production planning features from day one</p>
                     </div>
                   </li>
                 </ul>
@@ -218,21 +218,21 @@ export default function SignUpPage() {
             {/* Cost Comparison Highlight */}
             <div className="bg-gradient-to-r from-[#DC143C]/10 to-transparent rounded-lg p-4 border-l-4 border-[#DC143C]">
               <p className="text-sm font-semibold mb-2 text-white">
-                📊 vs Traditional Tools
+                📊 Built to replace fragmented tools
               </p>
               <div className="space-y-2 text-xs text-gray-300 mb-3">
-                <p className="font-medium text-white">Instead of paying separately for:</p>
+                <p className="font-medium text-white">Instead of stitching together separate tools:</p>
                 <ul className="space-y-1 ml-4">
-                  <li>• Final Draft ($250) → <span className="text-green-400 font-semibold">✅ FREE Forever</span></li>
-                  <li>• Manual asset organization → <span className="text-green-400 font-semibold">✅ Automated</span></li>
-                  <li>• Maintaining character/location/prop consistency → <span className="text-green-400 font-semibold">✅ Built-in</span></li>
+                  <li>• Writing in one app and organizing assets in another → <span className="text-green-400 font-semibold">✅ One connected workflow</span></li>
+                  <li>• Manual asset organization → <span className="text-green-400 font-semibold">✅ Streamlined</span></li>
+                  <li>• Maintaining character/location/prop continuity manually → <span className="text-green-400 font-semibold">✅ Built-in continuity support</span></li>
                 </ul>
               </div>
               <p className="text-xs text-gray-300 mb-2">
                 Create all your production assets with screenplay continuity. Download what you need, or use our Scene Builder.
               </p>
               <p className="text-sm font-semibold text-white">
-                Save $250+/year + hours of manual work
+                Save hours of manual workflow overhead
               </p>
             </div>
 
