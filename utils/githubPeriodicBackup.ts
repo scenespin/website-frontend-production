@@ -1,4 +1,3 @@
-const FEATURE_FLAG = 'NEXT_PUBLIC_ENABLE_GITHUB_PERIODIC_BACKUP';
 const GITHUB_CONFIG_KEY = 'screenplay_github_config';
 
 export const PERIODIC_EVALUATION_INTERVAL_MS = 60 * 1000; // 60s tick
@@ -41,7 +40,8 @@ export type PeriodicBackupResult =
   | { status: 'queued'; reason: string };
 
 export function isGitHubPeriodicBackupEnabled(): boolean {
-  return process.env[FEATURE_FLAG] === 'true';
+  // Use direct access so Next.js can inline NEXT_PUBLIC env at build time.
+  return process.env.NEXT_PUBLIC_ENABLE_GITHUB_PERIODIC_BACKUP === 'true';
 }
 
 interface StoredGitHubConfig {
