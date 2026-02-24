@@ -13,6 +13,7 @@
     "test:elements-0259": "npx tsx tests/elements-workflow-0259.test.ts",
     "test:credit-guard-0276": "npx tsx tests/credit-guard-0276.test.ts",
     "test:screenplay-read-resilience": "npx tsx tests/screenplay-read-resilience.test.ts",
+    "test:ai-disclosure-ledger-0295": "npx tsx tests/ai-disclosure-ledger-queue-0295.test.ts",
     "test:newsletter": "node tests/newsletter-test.js",
     "test:newsletter:api": "node scripts/newsletter-api-test.js",
     "test:newsletter:validation": "VALIDATION_ONLY=1 node scripts/newsletter-api-test.js",

@@ -387,6 +387,23 @@ function incrementLedgerMetrics(field: keyof Omit<GitHubLedgerMetrics, 'lastUpda
   localStorage.setItem(LEDGER_METRICS_KEY, JSON.stringify(metrics));
 }
 
+export const __aiDisclosureLedgerTestUtils = {
+  LEDGER_MAX_QUEUE,
+  LEDGER_RETRY_BASE_MS,
+  LEDGER_RETRY_MAX_MS,
+  computeRetryDelayMs,
+  enqueuePendingLedgerItem,
+  readPendingLedgerQueue,
+  writePendingLedgerQueue,
+  readLedgerMetrics,
+  flushPendingGitHubLedgerQueueSafe,
+  clearAll(): void {
+    if (typeof window === 'undefined') return;
+    localStorage.removeItem(LEDGER_QUEUE_KEY);
+    localStorage.removeItem(LEDGER_METRICS_KEY);
+  },
+};
+
 function readGitHubLedgerConfigFromStorage(): GitHubLedgerConfig | null {
   if (typeof window === 'undefined') return null;
   try {
