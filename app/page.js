@@ -99,12 +99,12 @@ export default function Page() {
                 Write the script only you can write.
               </h1>
 
-              <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-gray-300 max-w-4xl mx-auto mb-5 md:mb-6 px-4">
-                Wryda is a professional, screenplay-native workspace for faster drafts, sharper rewrites, and stronger pages, while keeping you in full creative control and ready to extend into visual planning when you choose.
+              <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-gray-300 max-w-4xl mx-auto mb-4 md:mb-5 px-4">
+                Wryda is a professional, screenplay-native workspace for faster drafts, sharper rewrites, and stronger pages, while keeping you in full creative control and carrying your story seamlessly into visual planning and video.
               </p>
 
               {/* CTAs */}
-              <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
+              <div className="flex flex-col sm:flex-row gap-4 justify-center mb-6">
                 <Link
                   href="/sign-up"
                   className="inline-flex items-center justify-center px-6 py-3 md:px-8 md:py-4 bg-[#DC143C] text-white font-semibold rounded-lg hover:bg-[#B01030] transition-colors text-base md:text-lg min-h-[44px] w-full sm:w-auto"
@@ -120,7 +120,7 @@ export default function Page() {
               </div>
 
               {/* Demo Video Placeholder */}
-              <div id="demo" className="mt-8 max-w-4xl mx-auto">
+              <div id="demo" className="mt-6 max-w-4xl mx-auto">
                 <div className="bg-[#141414] border border-[#3F3F46] rounded-lg overflow-hidden aspect-video flex items-center justify-center relative group cursor-pointer hover:border-[#DC143C]/50 transition-colors">
                   <div className="absolute inset-0 bg-gradient-to-br from-[#0A0A0A] to-[#1F1F1F] opacity-50"></div>
                   <div className="relative z-10 text-center p-8">
@@ -136,7 +136,7 @@ export default function Page() {
               </div>
 
               {/* Trust Strip */}
-              <div className="mt-6 flex flex-wrap justify-center gap-3 md:gap-4 text-xs sm:text-sm text-gray-400 px-4">
+              <div className="mt-5 flex flex-wrap justify-center gap-3 md:gap-4 text-xs sm:text-sm text-gray-400 px-4">
                 <span>Built for pro writers</span>
                 <span className="text-gray-600">•</span>
                 <span>AI assistance is optional and writer-directed</span>
