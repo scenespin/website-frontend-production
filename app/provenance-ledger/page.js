@@ -5,6 +5,8 @@ import config from "@/config";
 import Footer from "@/components/Footer";
 import logo from "@/app/icon.png";
 
+const SCREENSHOT_SRC = "/images/provenance-ledger-audit-panel.png";
+
 export const metadata = getSEOTags({
   title: `Wryda Provenance Ledger | ${config.appName}`,
   description: "Writer-first AI provenance and disclosure workflow exports with Wryda Provenance Ledger.",
@@ -98,6 +100,41 @@ export default function ProvenanceLedgerPage() {
               <p className="text-xs text-gray-500 mt-4">
                 Supports WGA and studio disclosure workflows; not a legal determination, legal advice, or certification of compliance.
               </p>
+            </div>
+          </div>
+        </section>
+
+        <section className="py-6">
+          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-6">
+              <h2 className="text-xl font-bold mb-3">In-Product Screenshot</h2>
+              <p className="text-sm text-gray-300 mb-4">
+                Capture the AI Disclosure panel with logged events and Lock &amp; Export controls visible.
+              </p>
+
+              <div className="rounded-lg border border-dashed border-[#3F3F46] bg-[#0E0E0E] aspect-[16/9] overflow-hidden relative">
+                <Image
+                  src={SCREENSHOT_SRC}
+                  alt="AI Disclosure panel with provenance events and lock/export controls"
+                  fill
+                  className="object-cover"
+                />
+                <div className="absolute inset-0 flex items-center justify-center text-center px-4 pointer-events-none">
+                  <p className="text-xs md:text-sm text-gray-400 bg-black/60 border border-[#3F3F46] rounded px-3 py-2">
+                    Place screenshot at <code className="text-gray-300">{SCREENSHOT_SRC}</code>
+                  </p>
+                </div>
+              </div>
+
+              <p className="text-xs text-gray-500 mt-3">
+                Suggested shot: event summary + recent AI actions + Lock &amp; Export button in one frame.
+              </p>
+
+              <ul className="mt-4 space-y-2 text-sm text-gray-300">
+                <li>• Show event count and recent activity so provenance tracking is obvious.</li>
+                <li>• Keep Lock &amp; Export visible to connect tracking to submission-ready output.</li>
+                <li>• Include sync/status context if available for extra trust signal.</li>
+              </ul>
             </div>
           </div>
         </section>
