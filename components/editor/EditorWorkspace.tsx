@@ -31,6 +31,7 @@ import { toast } from 'sonner';
 import {
     buildAIDisclosurePreview,
     createAIDisclosureEventSafe,
+    initializeGitHubAIAuditLedgerRetries,
     isAIDisclosureEnabled,
 } from '@/utils/aiDisclosureStorage';
 import type { Scene } from '../../types/screenplay';
@@ -113,6 +114,11 @@ export default function EditorWorkspace() {
             console.error('[EditorWorkspace] Failed to load GitHub config:', err);
         }
     }, []);  // Feature 0111: No longer depend on screenplay.isConnected
+
+    useEffect(() => {
+        if (!aiDisclosureEnabled) return;
+        initializeGitHubAIAuditLedgerRetries(async () => getToken({ template: 'wryda-backend' }));
+    }, [aiDisclosureEnabled, getToken]);
     
     // Mobile detection
     useEffect(() => {
