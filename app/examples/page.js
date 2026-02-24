@@ -137,9 +137,6 @@ Not everything.`;
         {/* Hero Section */}
         <section className="pt-14 pb-8 bg-gradient-to-b from-[#141414] to-[#0A0A0A]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-black border border-[#DC143C]/30 text-sm mb-6">
-              <span className="font-semibold text-gray-300">✨ Real Writer Workflows</span>
-            </div>
             <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight mb-6">
               Writing + Visual Workflow Examples
             </h1>
