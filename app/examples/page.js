@@ -38,13 +38,6 @@ Mara presses RECORD on the voice recorder.
 MARA
 Not everything.`;
 
-  const launchImagePlan = [
-    "Characters: 4 references + 12 pose outputs (16 total)",
-    "Locations: 4 references + 12 angle outputs + 12 background outputs + 4 extreme close-up background plates (32 total)",
-    "Props: 4 references + 12 angle outputs + 4 macro detail plates (20 total)",
-    "Launch set total: 68 images",
-  ];
-
   const writingExamples = [
     {
       title: "Action Sequence Tightening",
@@ -176,16 +169,13 @@ Not everything.`;
           </div>
         </section>
 
-        {/* Script to Screen Walkthrough (Live Placeholder Plan) */}
+        {/* Script to Screen Walkthrough */}
         <section className="pt-4 pb-14 border-t border-[#1E1E1E]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-8">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#141414] border border-[#3F3F46] text-xs text-gray-300 mb-4">
-                <span>Live Placeholder Plan</span>
-              </div>
               <h2 className="text-3xl md:text-4xl font-bold mb-3">Script → References → Generated Assets</h2>
               <p className="text-gray-300 max-w-3xl mx-auto">
-                This is the exact launch narrative structure. Replace each placeholder tile with final screenshots and generated outputs as you complete your curation.
+                A complete screenplay-first flow: write the scene, extract production entities, establish references, and carry everything into visual planning.
               </p>
             </div>
 
@@ -196,15 +186,11 @@ Not everything.`;
               </p>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <div className="rounded-lg border border-[#2F2F2F] bg-[#0D0D0D] p-4">
-                  <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Fountain scene example</p>
+                  <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Scene excerpt</p>
                   <pre className="text-xs sm:text-sm text-gray-200 whitespace-pre-wrap">{fountainDemoSnippet}</pre>
                 </div>
-                <div className="rounded-lg border border-dashed border-[#4A4A4A] bg-[#0D0D0D] p-4 flex flex-col justify-between min-h-[220px]">
-                  <div>
-                    <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Placeholder</p>
-                    <p className="text-sm text-gray-300">SCRIPT_SCREEN_01</p>
-                  </div>
-                  <p className="text-xs text-gray-500">Use: editor screenshot showing this exact scene loaded.</p>
+                <div className="rounded-lg border border-[#2F2F2F] bg-gradient-to-br from-[#171717] to-[#0F0F0F] p-4 min-h-[220px] flex items-center justify-center">
+                  <p className="text-sm text-gray-400">Screenplay workspace capture</p>
                 </div>
               </div>
             </div>
@@ -215,19 +201,18 @@ Not everything.`;
                 Show what was detected directly from script context so visitors see screenplay-native automation.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div className="rounded-lg border border-dashed border-[#4A4A4A] bg-[#0D0D0D] p-4 min-h-[120px]">
-                  <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Placeholder</p>
-                  <p className="text-sm text-gray-300">AUTOPOP_SCREEN_01</p>
+                <div className="rounded-lg border border-[#2F2F2F] bg-gradient-to-br from-[#171717] to-[#0F0F0F] p-4 min-h-[120px] flex items-center justify-center">
+                  <p className="text-sm text-gray-400">Auto-populated entities view</p>
                 </div>
                 <div className="rounded-lg border border-[#2F2F2F] bg-[#0D0D0D] p-4 min-h-[120px]">
-                  <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Expected entities</p>
+                  <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Detected entities</p>
                   <p className="text-sm text-gray-300">Characters: Mara Voss, Eli Trent</p>
                   <p className="text-sm text-gray-300">Location: Interrogation Room</p>
                   <p className="text-sm text-gray-300">Props: Case file, recorder, key, burner phone</p>
                 </div>
                 <div className="rounded-lg border border-[#2F2F2F] bg-[#0D0D0D] p-4 min-h-[120px]">
-                  <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Placement note</p>
-                  <p className="text-sm text-gray-300">Keep this above generated galleries to establish context-first storytelling.</p>
+                  <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Workflow impact</p>
+                  <p className="text-sm text-gray-300">The same script context drives references, generation settings, and downstream shot planning.</p>
                 </div>
               </div>
             </div>
@@ -235,20 +220,17 @@ Not everything.`;
             <div className="rounded-xl border border-[#3F3F46] bg-[#111111] p-5 md:p-6 mb-6">
               <h3 className="text-xl font-semibold mb-3">3) Reference Uploads (Character / Location / Prop)</h3>
               <p className="text-sm text-gray-300 mb-4">
-                References anchor consistency. Replace these placeholders with your uploaded source images.
+                Reference uploads anchor consistency across all generated outputs.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div className="rounded-lg border border-dashed border-[#4A4A4A] bg-[#0D0D0D] p-4 min-h-[140px]">
-                  <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Placeholder</p>
-                  <p className="text-sm text-gray-300">REF_CHAR_GRID_01</p>
+                <div className="rounded-lg border border-[#2F2F2F] bg-gradient-to-br from-[#171717] to-[#0F0F0F] p-4 min-h-[140px] flex items-center justify-center">
+                  <p className="text-sm text-gray-400">Character reference library</p>
                 </div>
-                <div className="rounded-lg border border-dashed border-[#4A4A4A] bg-[#0D0D0D] p-4 min-h-[140px]">
-                  <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Placeholder</p>
-                  <p className="text-sm text-gray-300">REF_LOC_GRID_01</p>
+                <div className="rounded-lg border border-[#2F2F2F] bg-gradient-to-br from-[#171717] to-[#0F0F0F] p-4 min-h-[140px] flex items-center justify-center">
+                  <p className="text-sm text-gray-400">Location reference library</p>
                 </div>
-                <div className="rounded-lg border border-dashed border-[#4A4A4A] bg-[#0D0D0D] p-4 min-h-[140px]">
-                  <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Placeholder</p>
-                  <p className="text-sm text-gray-300">REF_PROP_GRID_01</p>
+                <div className="rounded-lg border border-[#2F2F2F] bg-gradient-to-br from-[#171717] to-[#0F0F0F] p-4 min-h-[140px] flex items-center justify-center">
+                  <p className="text-sm text-gray-400">Prop reference library</p>
                 </div>
               </div>
             </div>
@@ -256,35 +238,24 @@ Not everything.`;
             <div className="rounded-xl border border-[#3F3F46] bg-[#111111] p-5 md:p-6 mb-6">
               <h3 className="text-xl font-semibold mb-3">4) Generated Assets (Live)</h3>
               <p className="text-sm text-gray-300 mb-4">
-                The galleries below are live demo-account outputs. Curate your first 4 per category as hero "cover thumbnails."
+                Live demo-account outputs from one coherent screenplay world: character poses, location angles/backgrounds, and prop continuity renders.
               </p>
-              <div className="rounded-lg border border-[#2F2F2F] bg-[#0D0D0D] p-4">
-                <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Launch image plan</p>
-                <ul className="space-y-1 text-sm text-gray-300">
-                  {launchImagePlan.map((item) => (
-                    <li key={item}>• {item}</li>
-                  ))}
-                </ul>
-              </div>
             </div>
 
             <div className="rounded-xl border border-[#3F3F46] bg-[#111111] p-5 md:p-6">
               <h3 className="text-xl font-semibold mb-3">5) Direct / Shot Board Preview (Coming Soon)</h3>
               <p className="text-sm text-gray-300 mb-4">
-                Use these placeholders now; replace with Scene Builder and Shot Board screenshots once captures are finalized.
+                Scene Builder and Shot Board previews connect this same script context to shot-level planning and execution.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div className="rounded-lg border border-dashed border-[#4A4A4A] bg-[#0D0D0D] p-4 min-h-[140px]">
-                  <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Placeholder</p>
-                  <p className="text-sm text-gray-300">DIRECT_SCENEBUILDER_PREVIEW_01</p>
+                <div className="rounded-lg border border-[#2F2F2F] bg-gradient-to-br from-[#171717] to-[#0F0F0F] p-4 min-h-[140px] flex items-center justify-center">
+                  <p className="text-sm text-gray-400">Scene Builder preview</p>
                 </div>
-                <div className="rounded-lg border border-dashed border-[#4A4A4A] bg-[#0D0D0D] p-4 min-h-[140px]">
-                  <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Placeholder</p>
-                  <p className="text-sm text-gray-300">DIRECT_SHOTBOARD_PREVIEW_01</p>
+                <div className="rounded-lg border border-[#2F2F2F] bg-gradient-to-br from-[#171717] to-[#0F0F0F] p-4 min-h-[140px] flex items-center justify-center">
+                  <p className="text-sm text-gray-400">Shot Board preview</p>
                 </div>
-                <div className="rounded-lg border border-dashed border-[#4A4A4A] bg-[#0D0D0D] p-4 min-h-[140px]">
-                  <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Optional placeholder</p>
-                  <p className="text-sm text-gray-300">VIDEO_TEASER_01</p>
+                <div className="rounded-lg border border-[#2F2F2F] bg-gradient-to-br from-[#171717] to-[#0F0F0F] p-4 min-h-[140px] flex items-center justify-center">
+                  <p className="text-sm text-gray-400">Video teaser preview</p>
                 </div>
               </div>
             </div>
@@ -453,9 +424,6 @@ Not everything.`;
                   title="Demo Showcase Strip"
                   showTitle={true}
                 />
-                <p className="text-xs text-gray-500 mt-3">
-                  Visual strip content is loaded from the current demo showcase account and can be curated per tab as assets are added.
-                </p>
               </div>
             )}
           </div>
