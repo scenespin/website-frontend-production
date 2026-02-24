@@ -180,7 +180,10 @@ export async function maybeRunPeriodicGitHubBackup(
   input: PeriodicBackupInput
 ): Promise<PeriodicBackupResult> {
   const now = nowMs(input.now);
-  return runPeriodicBackup(input, { now, requireDirty: true, enforceCooldown: true });
+  // Do not gate periodic GitHub backups on local dirty state.
+  // Debounced/autosave flows can clear dirty quickly, which would starve periodic commits.
+  // Hash-change + cooldown are the reliable controls for periodic checkpointing.
+  return runPeriodicBackup(input, { now, requireDirty: false, enforceCooldown: true });
 }
 
 export async function retryPendingPeriodicGitHubBackup(
