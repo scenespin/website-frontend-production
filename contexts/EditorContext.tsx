@@ -1180,7 +1180,15 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
     // This does NOT replace existing save flows. It only creates optional periodic GitHub commits
     // when enabled and when guard checks pass.
     useEffect(() => {
-        if (!isGitHubPeriodicBackupEnabled()) {
+        const periodicEnabled = isGitHubPeriodicBackupEnabled();
+        console.warn('[EditorContext] [PeriodicGitHubBackup] Effect init', {
+            enabled: periodicEnabled,
+            projectId: projectId || null,
+            screenplayIdRef: screenplayIdRef.current || null
+        });
+
+        if (!periodicEnabled) {
+            console.warn('[EditorContext] [PeriodicGitHubBackup] Skipping effect setup: feature disabled');
             return;
         }
 
@@ -1192,6 +1200,7 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
         githubSyncTimerRef.current = setInterval(async () => {
             const activeScreenplayId = getActiveScreenplayId();
             if (!activeScreenplayId) {
+                console.warn('[EditorContext] [PeriodicGitHubBackup] Tick skipped: no active screenplay id');
                 return;
             }
 
@@ -1221,7 +1230,9 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
 
     // Retry a queued periodic checkpoint when the app regains focus or network.
     useEffect(() => {
-        if (!isGitHubPeriodicBackupEnabled()) {
+        const periodicEnabled = isGitHubPeriodicBackupEnabled();
+        if (!periodicEnabled) {
+            console.warn('[EditorContext] [PeriodicGitHubBackup] Retry hooks disabled: feature disabled');
             return;
         }
 
