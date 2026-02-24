@@ -11,7 +11,7 @@ import { useShowcaseStatus } from "@/hooks/useShowcase";
 import { mediaShowcaseContent } from "@/lib/mediaShowcaseContent";
 
 export default function ExamplesPage() {
-  const { data: status, isLoading: statusLoading } = useShowcaseStatus();
+  const { data: status } = useShowcaseStatus();
   const [activeMediaTabId, setActiveMediaTabId] = useState(mediaShowcaseContent.tabs[0].id);
   const activeMediaTab = useMemo(
     () => mediaShowcaseContent.tabs.find((tab) => tab.id === activeMediaTabId) || mediaShowcaseContent.tabs[0],
@@ -37,60 +37,6 @@ Mara presses RECORD on the voice recorder.
 
 MARA
 Not everything.`;
-
-  const writingExamples = [
-    {
-      title: "Action Sequence Tightening",
-      agent: "Rewrite",
-      before:
-        "Sarah walks into the newsroom and looks around nervously as everyone stares at her and she slowly walks toward her desk.",
-      after:
-        "Sarah pushes through the newsroom doors and heads for her desk as conversations die and heads turn; she keeps her eyes forward, jaw tight, refusing to give anyone the satisfaction of eye contact.",
-      outcome: "Delivers tighter pacing and clearer visual readability while preserving the same single-shot action intent.",
-    },
-    {
-      title: "Context-Guided Dialogue Draft",
-      agent: "Dialogue",
-      before:
-        "Scene context: INT. NEWSROOM - NIGHT\nCharacters selected: RIVERA, SARAH\nConflict/Tension: Rivera warns Sarah to back off before Blake retaliates.\nTone: tense\nSubtext: Rivera is scared for her but hides it behind authority.\n\nCurrent script at cursor:\nRIVERA\nI think you should stop investigating Blake because this is becoming dangerous and it is not worth your safety.\n\nSARAH\nI understand what you are saying but I cannot stop now because too many people are depending on this and I have already gone too far.",
-      after:
-        "RIVERA\nWalk away, Sarah. Blake doesn’t scare easy, and you’re on his radar now.\n\nSARAH\nGood. Let him know I’m not leaving.",
-      outcome: "Shows guided dialogue generation from scene context and writer inputs, inserted additively at the cursor for review or further editing.",
-    },
-    {
-      title: "Scene-Level Escalation Pass",
-      agent: "Screenwriter",
-      before:
-        "INT. PARKING GARAGE - NIGHT\n\nRivera meets Sarah in the garage. He gives her a USB with files that could expose Blake. They agree to review it in the morning and leave separately.",
-      after:
-        "INT. PARKING GARAGE - NIGHT\n\nRivera steps from the shadows, rainwater dripping off his coat. He presses a USB into Sarah’s palm.\n\nRIVERA\nIf this gets out, Blake’s finished. If it doesn’t, we are.\n\nA CAR ENGINE turns over above them. Headlights sweep the concrete.\n\nSARAH\nWe don’t wait until morning.\n\nShe pockets the drive. They split in opposite directions as the headlights descend the ramp.",
-      outcome: "Raises stakes, adds urgency, and strengthens the scene turn so momentum carries into the next beat.",
-    },
-    {
-      title: "Story Direction Guidance",
-      agent: "Story Advisor",
-      before:
-        "ACT II currently feels flat: Sarah keeps investigating, but each scene lands at the same emotional level and the antagonist pressure does not escalate.",
-      after:
-        "Story Advisor feedback:\n1) Add a visible cost by the midpoint (career, relationship, or safety).\n2) Introduce a false win that backfires two scenes later.\n3) Force Sarah into a no-return choice before Act III.\n\nRevision direction selected by writer:\n- Midpoint false win: source appears cooperative.\n- Backfire: source is linked to Blake.\n- No-return choice: Sarah publishes partial evidence anyway.",
-      outcome: "Demonstrates strategic, writer-directed story shaping where the final direction depends on your goals and notes.",
-    },
-    {
-      title: "Directed Scene Skeleton Draft",
-      agent: "Director",
-      before:
-        "Scene 1 Input (Director modal)\nLocation: INT. NEWSROOM - NIGHT\nScenario: Sarah confronts Blake near the elevators as security closes in.\nDirection: Keep it tense and fast, with a threat beat at the end.\n\nCurrent scene context is preserved; generate a NEW scene that comes after the current page.",
-      after:
-        "INT. NEWSROOM - NIGHT\n\nFluorescent lights buzz over an almost empty floor. Sarah cuts Blake off at the elevators.\n\nSARAH\nYou buried the audit trail.\n\nBLAKE\nI protected people who know how to protect me.\n\nSecurity pivots from the far hallway and moves in.\n\nSARAH\nThen you won&apos;t mind when I publish everything at sunrise.\n\nThe elevator doors open. Blake backs in without blinking.\n\nBLAKE\nYou won&apos;t make sunrise.",
-      outcome: "Shows Director creating a structured scene draft from location/scenario/direction inputs and inserting it as a new additive block.",
-    },
-  ];
-  const topRowExamples = writingExamples.filter((example) =>
-    ["Rewrite", "Screenwriter", "Story Advisor"].includes(example.agent)
-  );
-  const bottomRowExamples = writingExamples.filter((example) =>
-    ["Dialogue", "Director"].includes(example.agent)
-  );
   
   return (
     <>
@@ -220,34 +166,82 @@ Not everything.`;
             </div>
 
             <div className="rounded-xl border border-[#3F3F46] bg-[#111111] p-5 md:p-6 mb-6">
-              <h3 className="text-xl font-semibold mb-3">3) Reference Uploads (Character / Location / Prop)</h3>
+              <h3 className="text-xl font-semibold mb-3">3) Character Workflow (Virtual Try-On)</h3>
               <p className="text-sm text-gray-300 mb-4">
-                Reference uploads anchor consistency across all generated outputs.
+                Demonstrate one hero character through the complete wardrobe pipeline from baseline reference to final generated pose set.
               </p>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                 <div className="rounded-lg border border-[#2F2F2F] bg-gradient-to-br from-[#171717] to-[#0F0F0F] p-4 min-h-[140px] flex items-center justify-center">
-                  <p className="text-sm text-gray-400">Character reference library</p>
+                  <p className="text-sm text-gray-400">Character reference image</p>
                 </div>
                 <div className="rounded-lg border border-[#2F2F2F] bg-gradient-to-br from-[#171717] to-[#0F0F0F] p-4 min-h-[140px] flex items-center justify-center">
-                  <p className="text-sm text-gray-400">Location reference library</p>
+                  <p className="text-sm text-gray-400">Clothing input image</p>
                 </div>
                 <div className="rounded-lg border border-[#2F2F2F] bg-gradient-to-br from-[#171717] to-[#0F0F0F] p-4 min-h-[140px] flex items-center justify-center">
-                  <p className="text-sm text-gray-400">Prop reference library</p>
+                  <p className="text-sm text-gray-400">Virtual try-on result</p>
+                </div>
+                <div className="rounded-lg border border-[#2F2F2F] bg-gradient-to-br from-[#171717] to-[#0F0F0F] p-4 min-h-[140px] flex items-center justify-center">
+                  <p className="text-sm text-gray-400">Final generated pose set</p>
+                </div>
+              </div>
+              <div className="rounded-lg border border-[#2F2F2F] bg-[#0D0D0D] p-4 mt-3">
+                <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Prompt snippet</p>
+                <p className="text-sm text-gray-300">
+                  Base identity prompt + outfit add-on prompt. Keep identity fixed and change wardrobe only.
+                </p>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-[#3F3F46] bg-[#111111] p-5 md:p-6 mb-6">
+              <h3 className="text-xl font-semibold mb-3">4) Location Workflow</h3>
+              <p className="text-sm text-gray-300 mb-4">
+                Build location continuity from one reference through angle coverage, background variants, and a detail plate for close-up texture.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                <div className="rounded-lg border border-[#2F2F2F] bg-gradient-to-br from-[#171717] to-[#0F0F0F] p-4 min-h-[140px] flex items-center justify-center">
+                  <p className="text-sm text-gray-400">Location reference</p>
+                </div>
+                <div className="rounded-lg border border-[#2F2F2F] bg-gradient-to-br from-[#171717] to-[#0F0F0F] p-4 min-h-[140px] flex items-center justify-center">
+                  <p className="text-sm text-gray-400">Location angle outputs</p>
+                </div>
+                <div className="rounded-lg border border-[#2F2F2F] bg-gradient-to-br from-[#171717] to-[#0F0F0F] p-4 min-h-[140px] flex items-center justify-center">
+                  <p className="text-sm text-gray-400">Location background outputs</p>
+                </div>
+                <div className="rounded-lg border border-[#2F2F2F] bg-gradient-to-br from-[#171717] to-[#0F0F0F] p-4 min-h-[140px] flex items-center justify-center">
+                  <p className="text-sm text-gray-400">Extreme close-up background plate</p>
                 </div>
               </div>
             </div>
 
             <div className="rounded-xl border border-[#3F3F46] bg-[#111111] p-5 md:p-6 mb-6">
-              <h3 className="text-xl font-semibold mb-3">4) Generated Assets (Live)</h3>
+              <h3 className="text-xl font-semibold mb-3">5) Prop Workflow</h3>
+              <p className="text-sm text-gray-300 mb-4">
+                Capture prop continuity with one reference, practical angle coverage, and one macro detail pass for storytelling inserts.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="rounded-lg border border-[#2F2F2F] bg-gradient-to-br from-[#171717] to-[#0F0F0F] p-4 min-h-[140px] flex items-center justify-center">
+                  <p className="text-sm text-gray-400">Prop reference</p>
+                </div>
+                <div className="rounded-lg border border-[#2F2F2F] bg-gradient-to-br from-[#171717] to-[#0F0F0F] p-4 min-h-[140px] flex items-center justify-center">
+                  <p className="text-sm text-gray-400">Prop angle outputs</p>
+                </div>
+                <div className="rounded-lg border border-[#2F2F2F] bg-gradient-to-br from-[#171717] to-[#0F0F0F] p-4 min-h-[140px] flex items-center justify-center">
+                  <p className="text-sm text-gray-400">Macro detail output</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-[#3F3F46] bg-[#111111] p-5 md:p-6 mb-6">
+              <h3 className="text-xl font-semibold mb-3">6) Final Generated Library (Live)</h3>
               <p className="text-sm text-gray-300 mb-4">
                 Live demo-account outputs from one coherent screenplay world: character poses, location angles/backgrounds, and prop continuity renders.
               </p>
             </div>
 
             <div className="rounded-xl border border-[#3F3F46] bg-[#111111] p-5 md:p-6">
-              <h3 className="text-xl font-semibold mb-3">5) Direct / Shot Board Preview (Coming Soon)</h3>
+              <h3 className="text-xl font-semibold mb-3">7) Direct Workflow</h3>
               <p className="text-sm text-gray-300 mb-4">
-                Scene Builder and Shot Board previews connect this same script context to shot-level planning and execution.
+                Scene Builder and Shot Board connect this same script context to shot-level planning and execution.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div className="rounded-lg border border-[#2F2F2F] bg-gradient-to-br from-[#171717] to-[#0F0F0F] p-4 min-h-[140px] flex items-center justify-center">
@@ -257,93 +251,53 @@ Not everything.`;
                   <p className="text-sm text-gray-400">Shot Board preview</p>
                 </div>
                 <div className="rounded-lg border border-[#2F2F2F] bg-gradient-to-br from-[#171717] to-[#0F0F0F] p-4 min-h-[140px] flex items-center justify-center">
-                  <p className="text-sm text-gray-400">Video teaser preview</p>
+                  <p className="text-sm text-gray-400">End-result teaser video</p>
                 </div>
               </div>
             </div>
           </div>
         </section>
 
-        {/* Writing Before/After Examples */}
-        <section className="pt-8 pb-12">
+        {/* Final Generated Library (Live) */}
+        <section className="pt-2 pb-12">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-10">
-              <h2 className="text-3xl md:text-4xl font-bold mb-4">Before/After Writing Examples</h2>
+            <div className="text-center mb-8">
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">Final Generated Library (Live)</h2>
               <p className="text-gray-300 max-w-3xl mx-auto">
-                Sample text edits showing how writers can use Wryda agents for rewrite, dialogue polish, and scene expansion.
-              </p>
-              <p className="text-sm text-gray-400 max-w-3xl mx-auto mt-4">
-                These are representative sample outputs from in-product agent runs. Results are guided by user prompts and goals, so the same tools can produce very different outcomes based on writer direction, tone, and revision intent.
+                These galleries are loaded from the demo account and should reflect your strongest curated outputs for each category.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              {topRowExamples.map((example) => (
-                <article
-                  key={example.title}
-                  className="rounded-xl border border-[#3F3F46] bg-[#111111] p-5"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-lg font-semibold">{example.title}</h3>
-                    <span className="text-xs px-2 py-1 rounded bg-[#DC143C]/20 text-[#F28BA0] border border-[#DC143C]/40">
-                      {example.agent}
-                    </span>
-                  </div>
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">Before</p>
-                      <p className="text-sm text-gray-300 whitespace-pre-line">{example.before}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">After</p>
-                      <p className="text-sm text-white whitespace-pre-line">{example.after}</p>
-                    </div>
-                    <div className="pt-2 border-t border-[#2A2A2A]">
-                      <p className="text-xs text-gray-400">{example.outcome}</p>
-                    </div>
-                  </div>
-                </article>
-              ))}
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-6 max-w-5xl mx-auto">
-              {bottomRowExamples.map((example) => (
-                <article
-                  key={example.title}
-                  className="rounded-xl border border-[#3F3F46] bg-[#111111] p-5"
-                >
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="text-lg font-semibold">{example.title}</h3>
-                    <span className="text-xs px-2 py-1 rounded bg-[#DC143C]/20 text-[#F28BA0] border border-[#DC143C]/40">
-                      {example.agent}
-                    </span>
-                  </div>
-                  <div className="space-y-3">
-                    <div>
-                      <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">Before</p>
-                      <p className="text-sm text-gray-300 whitespace-pre-line">{example.before}</p>
-                    </div>
-                    <div>
-                      <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">After</p>
-                      <p className="text-sm text-white whitespace-pre-line">{example.after}</p>
-                    </div>
-                    <div className="pt-2 border-t border-[#2A2A2A]">
-                      <p className="text-xs text-gray-400">{example.outcome}</p>
-                    </div>
-                  </div>
-                </article>
-              ))}
+            <div className="space-y-10">
+              <ShowcaseGallery 
+                contentType="characters"
+                columns={4}
+                title="Character Reference Examples"
+                showTitle={true}
+              />
+              <ShowcaseGallery 
+                contentType="locations"
+                columns={3}
+                title="Location Planning Examples"
+                showTitle={true}
+              />
+              <ShowcaseGallery 
+                contentType="props"
+                columns={4}
+                title="Prop Continuity Examples"
+                showTitle={true}
+              />
             </div>
           </div>
         </section>
 
-        {/* Media Examples Intro */}
-        <section className="pt-2 pb-8">
+        {/* Media Deep Dive Tabs */}
+        <section className="pt-2 pb-10 border-t border-[#1E1E1E]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-6">
-              <h2 className="text-2xl md:text-3xl font-bold mb-3">Media Examples (Production-Ready Continuity)</h2>
+              <h2 className="text-2xl md:text-3xl font-bold mb-3">Media Deep Dive</h2>
               <p className="text-gray-300 max-w-3xl mx-auto">
-                After you shape the story on the page, Wryda turns screenplay context into consistent visual outputs for production planning.
+                Explore workflow details by mode. These tabs are secondary drill-down views on top of the script-first flow above.
               </p>
             </div>
 
