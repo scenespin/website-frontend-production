@@ -23,7 +23,7 @@ function WritePageContent() {
   // GitHub OAuth handler processes callback if user connects GitHub (optional)
   return (
     <>
-      <GitHubOAuthHandler />
+      <GitHubOAuthHandler screenplayId={screenplayId} />
       <div className="bg-slate-900">
         {!isEditorFullscreen && <EditorSubNav activeTab="write" screenplayId={screenplayId} />}
         <EditorWorkspace />

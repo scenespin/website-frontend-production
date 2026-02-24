@@ -474,6 +474,75 @@ export function getGitHubLedgerConfig(): GitHubLedgerConfig | null {
   return readGitHubLedgerConfigFromStorage();
 }
 
+/**
+ * Sync missing AI disclosure events from the report (DynamoDB) to the GitHub ledger
+ * so the ledger matches the report. Call after connecting GitHub or to fix drift.
+ * Only one sync runs at a time; if one is already in progress, returns immediately.
+ */
+let syncInProgress = false;
+
+export async function syncAIAuditLedgerToGitHub(screenplayId: string): Promise<{
+  success: boolean;
+  totalInReport?: number;
+  alreadyInLedger?: number;
+  synced?: number;
+  errors?: string[];
+  message?: string;
+}> {
+  const config = readGitHubLedgerConfigFromStorage();
+  if (!config?.owner || !config?.repo) {
+    return { success: false, message: 'GitHub repository not connected. Connect in Settings or Version History.' };
+  }
+
+  if (syncInProgress) {
+    return {
+      success: true,
+      synced: 0,
+      message: 'Sync already in progress. Ledger will be updated when it finishes.',
+    };
+  }
+
+  syncInProgress = true;
+  try {
+    const response = await fetch('/api/github/ai-audit/sync', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        screenplayId,
+        owner: config.owner,
+        repo: config.repo,
+        branch: config.branch || undefined,
+      }),
+    });
+
+    const data = await response.json().catch(() => ({}));
+  if (response.status === 409) {
+    return {
+      success: true,
+      synced: 0,
+      message: data?.message || 'Sync already in progress. Ledger will be updated when it finishes.',
+    };
+  }
+    if (!response.ok) {
+      return {
+        success: false,
+        message: data?.message || data?.error || `Sync failed (${response.status})`,
+        errors: data?.errors,
+      };
+    }
+
+    return {
+      success: true,
+      totalInReport: data.totalInReport,
+      alreadyInLedger: data.alreadyInLedger,
+      synced: data.synced,
+      errors: data.errors,
+    };
+  } finally {
+    syncInProgress = false;
+  }
+}
+
 export async function getAIAuditEvidenceManifest(params: {
   screenplayId: string;
   snapshotSha256: string;

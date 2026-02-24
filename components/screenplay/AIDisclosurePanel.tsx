@@ -9,6 +9,7 @@ import {
   getGitHubLedgerConfig,
   getAIDisclosureReport,
   updateAIDisclosureConsent,
+  syncAIAuditLedgerToGitHub,
 } from '@/utils/aiDisclosureStorage';
 import { downloadAIDisclosureSubmissionBundle } from '@/utils/aiDisclosureExport';
 
@@ -36,6 +37,7 @@ export default function AIDisclosurePanel({
   const [loading, setLoading] = useState(false);
   const [savingConsent, setSavingConsent] = useState(false);
   const [exportingSubmission, setExportingSubmission] = useState(false);
+  const [syncingToGitHub, setSyncingToGitHub] = useState(false);
   const [events, setEvents] = useState<AIDisclosureEvent[]>([]);
   const [report, setReport] = useState<any>(null);
   const [consentForm, setConsentForm] = useState<ConsentFormState>({
@@ -139,6 +141,39 @@ export default function AIDisclosurePanel({
     }
   };
 
+  const handleSyncToGitHub = async () => {
+    const config = getGitHubLedgerConfig();
+    if (!config?.owner || !config?.repo) {
+      toast.error('Connect GitHub in Version History first.');
+      return;
+    }
+    setSyncingToGitHub(true);
+    try {
+      const result = await syncAIAuditLedgerToGitHub(screenplayId);
+      if (result.success) {
+        if (result.message?.includes('already in progress')) {
+          toast.info(result.message);
+          return;
+        }
+        const { totalInReport = 0, synced = 0 } = result;
+        if (synced > 0) {
+          toast.success(`Synced ${synced} event(s) to GitHub. Report and ledger are aligned.`);
+        } else {
+          toast.success(`Report and ledger are already aligned (${totalInReport} events).`);
+        }
+        const nextReport = await getAIDisclosureReport(screenplayId);
+        setReport(nextReport);
+        setEvents(nextReport?.events || []);
+      } else {
+        toast.error(result.message || 'Sync failed');
+      }
+    } catch (error: any) {
+      toast.error(error?.message || 'Failed to sync to GitHub');
+    } finally {
+      setSyncingToGitHub(false);
+    }
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4">
       <div className="w-full max-w-5xl max-h-[90vh] overflow-hidden rounded-xl border border-white/10 bg-[#0A0A0A]">
@@ -167,6 +202,10 @@ export default function AIDisclosurePanel({
                   </div>
                 ))}
               </div>
+
+              <p className="text-xs text-gray-500">
+                Report shows all events in our records. The GitHub ledger may have fewer until you sync (e.g. after connecting or reconnecting GitHub).
+              </p>
 
               <div className="rounded border border-white/10 bg-[#121212] p-3 space-y-3">
                 <h3 className="text-sm font-semibold text-white">Consent & Policy Context (optional)</h3>
@@ -233,9 +272,17 @@ export default function AIDisclosurePanel({
                     Plain-language context for reviewers. Keep this factual and concise.
                   </span>
                 </label>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap">
                   <button onClick={handleSaveConsent} disabled={savingConsent} className="btn btn-sm btn-primary">
                     {savingConsent ? 'Saving...' : 'Save Context'}
+                  </button>
+                  <button
+                    onClick={handleSyncToGitHub}
+                    disabled={syncingToGitHub || !getGitHubLedgerConfig()}
+                    className="btn btn-sm btn-outline"
+                    title="Push missing events from this report to your GitHub audit ledger so they stay aligned"
+                  >
+                    {syncingToGitHub ? 'Syncing...' : 'Sync to GitHub'}
                   </button>
                   <button
                     onClick={handleLockAndExportSubmission}

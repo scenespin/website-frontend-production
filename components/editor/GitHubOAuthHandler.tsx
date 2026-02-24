@@ -3,6 +3,7 @@
 import { useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
+import { syncAIAuditLedgerToGitHub } from '@/utils/aiDisclosureStorage';
 
 interface GitHubRepository {
     name?: string;
@@ -17,9 +18,10 @@ interface StoredGitHubConfig {
 
 /**
  * Feature 0111: GitHub OAuth Callback Handler
- * Handles backend OAuth callback completion and stores repo metadata only.
+ * Handles backend OAuth callback completion, stores repo metadata only,
+ * and auto-syncs the current screenplay's AI audit ledger so report and GitHub stay aligned.
  */
-export default function GitHubOAuthHandler() {
+export default function GitHubOAuthHandler({ screenplayId }: { screenplayId?: string | null }) {
     const searchParams = useSearchParams();
     const hasProcessedRef = useRef(false);
 
@@ -80,6 +82,17 @@ export default function GitHubOAuthHandler() {
                 localStorage.setItem('screenplay_github_config', JSON.stringify(githubConfig));
 
                 toast.success(`GitHub connected: ${selected.owner}/${selected.name}`);
+
+                // Auto-sync AI audit ledger so report and GitHub stay aligned (no need for user to remember Sync)
+                if (screenplayId && typeof screenplayId === 'string' && screenplayId.startsWith('screenplay_')) {
+                    syncAIAuditLedgerToGitHub(screenplayId)
+                        .then((result) => {
+                            if (result.success && result.synced && result.synced > 0) {
+                                toast.success(`Audit log: ${result.synced} event(s) synced to GitHub.`);
+                            }
+                        })
+                        .catch(() => {});
+                }
             } catch (error: any) {
                 console.error('[GitHub OAuth] Failed to finalize backend OAuth connect:', error);
                 toast.error(`GitHub connected, but repository setup failed: ${error?.message || 'Unknown error'}`);
@@ -107,7 +120,7 @@ export default function GitHubOAuthHandler() {
         }
 
         cleanupQueryParams();
-    }, [searchParams]);
+    }, [searchParams, screenplayId]);
 
     // This component renders nothing - it just handles OAuth callback completion.
     return null;
