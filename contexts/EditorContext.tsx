@@ -1196,11 +1196,18 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
             }
 
             const current = stateRef.current;
-            await maybeRunPeriodicGitHubBackup({
+            const periodicResult = await maybeRunPeriodicGitHubBackup({
                 screenplayId: activeScreenplayId,
                 title: current.title,
                 content: current.content,
                 isDirty: current.isDirty
+            });
+            console.info('[EditorContext] [PeriodicGitHubBackup] Tick result', {
+                screenplayId: activeScreenplayId,
+                status: periodicResult.status,
+                reason: 'reason' in periodicResult ? periodicResult.reason : undefined,
+                isDirty: current.isDirty,
+                contentLength: current.content?.length || 0
             });
         }, PERIODIC_EVALUATION_INTERVAL_MS);
 
@@ -1221,7 +1228,13 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
         const runRetry = async () => {
             const activeScreenplayId = getActiveScreenplayId();
             if (!activeScreenplayId) return;
-            await retryPendingPeriodicGitHubBackup(activeScreenplayId, stateRef.current.isDirty);
+            const retryResult = await retryPendingPeriodicGitHubBackup(activeScreenplayId, stateRef.current.isDirty);
+            console.info('[EditorContext] [PeriodicGitHubBackup] Retry result', {
+                screenplayId: activeScreenplayId,
+                status: retryResult.status,
+                reason: 'reason' in retryResult ? retryResult.reason : undefined,
+                isDirty: stateRef.current.isDirty
+            });
         };
 
         const handleFocus = () => {
