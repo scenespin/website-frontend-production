@@ -22,6 +22,7 @@ function isPublicRoute(pathname: string): boolean {
     '/pricing/ultra',
     '/pricing/studio',
     '/examples',
+    '/provenance-ledger',
     '/how-it-works',
     '/help',
     '/coming-soon',
