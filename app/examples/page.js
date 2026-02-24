@@ -196,9 +196,9 @@ Not everything.`;
             </div>
 
             <div className="rounded-xl border border-[#3F3F46] bg-[#111111] p-5 md:p-6 mb-6">
-              <h3 className="text-xl font-semibold mb-3">2) Auto-Populate Characters + Locations</h3>
+              <h3 className="text-xl font-semibold mb-3">2) Auto-Detect Story Elements</h3>
               <p className="text-sm text-gray-300 mb-4">
-                Show what was detected directly from script context so visitors see screenplay-native automation.
+                Wryda reads your script and automatically detects core story entities from Fountain context.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <div className="rounded-lg border border-[#2F2F2F] bg-gradient-to-br from-[#171717] to-[#0F0F0F] p-4 min-h-[120px] flex items-center justify-center">
@@ -208,13 +208,15 @@ Not everything.`;
                   <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Detected entities</p>
                   <p className="text-sm text-gray-300">Characters: Mara Voss, Eli Trent</p>
                   <p className="text-sm text-gray-300">Location: Interrogation Room</p>
-                  <p className="text-sm text-gray-300">Props: Case file, recorder, key, burner phone</p>
                 </div>
                 <div className="rounded-lg border border-[#2F2F2F] bg-[#0D0D0D] p-4 min-h-[120px]">
-                  <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Workflow impact</p>
-                  <p className="text-sm text-gray-300">The same script context drives references, generation settings, and downstream shot planning.</p>
+                  <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Production props (manual by design)</p>
+                  <p className="text-sm text-gray-300">Props are production metadata. Add them manually, then attach them to the scene for continuity planning and shot setup.</p>
                 </div>
               </div>
+              <p className="text-xs text-gray-500 mt-3">
+                Script context auto-drives character and location setup, while props stay user-directed for production control.
+              </p>
             </div>
 
             <div className="rounded-xl border border-[#3F3F46] bg-[#111111] p-5 md:p-6 mb-6">
