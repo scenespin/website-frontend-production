@@ -37,6 +37,7 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
     const [githubConfig, setGithubConfig] = useState<GitHubConfig | null>(null);
     const [branch, setBranch] = useState<string>('main');
     const [showHelp, setShowHelp] = useState(false);
+    const [disconnecting, setDisconnecting] = useState(false);
     
     // Restore confirmation modal state
     const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
@@ -89,6 +90,49 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
         const authUrl = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&state=${oauthState}`;
         
         window.location.href = authUrl;
+    };
+
+    const handleDisconnectGitHub = async () => {
+        setDisconnecting(true);
+        try {
+            const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://backend.wryda.ai';
+            let authHeader: string | undefined;
+
+            if (useBackendManualSave) {
+                const token = await getToken({ template: 'wryda-backend' });
+                if (token) {
+                    authHeader = `Bearer ${token}`;
+                }
+            }
+
+            const response = await fetch(`${backendUrl}/api/github/disconnect`, {
+                method: 'DELETE',
+                headers: authHeader ? { Authorization: authHeader } : undefined,
+            });
+
+            // Even if backend disconnect fails, clear local config so user can reconnect cleanly.
+            if (!response.ok) {
+                const payload = await response.json().catch(() => null);
+                console.warn('[VersionHistory] Backend disconnect failed:', payload || response.status);
+            }
+
+            localStorage.removeItem('screenplay_github_config');
+            setGithubConfig(null);
+            setCommits([]);
+            setTokenExpired(false);
+            setShowHelp(false);
+            toast.success('GitHub disconnected. Reconnect to continue backups and version history.');
+        } catch (error) {
+            console.error('[VersionHistory] Disconnect failed:', error);
+            localStorage.removeItem('screenplay_github_config');
+            setGithubConfig(null);
+            setCommits([]);
+            setTokenExpired(false);
+            setShowHelp(false);
+            toast.success('Local GitHub connection cleared. Reconnect to continue.');
+        } finally {
+            setDisconnecting(false);
+        }
     };
     
     const fetchCommits = async () => {
@@ -365,6 +409,14 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
+                                        <button
+                                            onClick={handleDisconnectGitHub}
+                                            disabled={disconnecting}
+                                            className="btn btn-ghost btn-sm text-xs text-gray-300 hover:text-white border border-[#3F3F46] hover:border-[#52525B]"
+                                            title="Disconnect GitHub account"
+                                        >
+                                            {disconnecting ? 'Disconnecting...' : 'Disconnect'}
+                                        </button>
                                         <button 
                                             onClick={() => setShowHelp(!showHelp)} 
                                             className="btn btn-ghost btn-sm btn-circle text-gray-400 hover:text-white"
