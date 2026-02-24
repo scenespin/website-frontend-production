@@ -1251,18 +1251,24 @@ export function useTimeline(options: UseTimelineOptions = {}) {
     // Note: enableGitHubBackup check removed - this is always available as manual export
     
     try {
-      // Get GitHub config from localStorage (set by screenplay editor)
-      const githubToken = localStorage.getItem('github_token');
-      const githubOwner = localStorage.getItem('github_owner');
-      const githubRepo = localStorage.getItem('github_repo');
-      
-      if (!githubToken || !githubOwner || !githubRepo) {
+      const githubConfigRaw = localStorage.getItem('screenplay_github_config');
+      if (!githubConfigRaw) {
         console.log('[Timeline] GitHub backup not configured - connect your repository in settings');
         return false;
       }
-      
-      // Import GitHub utilities
-      const { saveToGitHub: githubSave } = await import('@/utils/github');
+
+      const githubConfig = JSON.parse(githubConfigRaw) as {
+        owner?: string;
+        repo?: string;
+        branch?: string;
+      };
+      if (!githubConfig.owner || !githubConfig.repo) {
+        console.log('[Timeline] GitHub backup config is incomplete');
+        return false;
+      }
+
+      const token = localStorage.getItem('jwt_token');
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
       
       // Prepare timeline JSON (ensure NO actual media files, just URLs to Drive/Dropbox)
       const timelineData = {
@@ -1289,14 +1295,28 @@ export function useTimeline(options: UseTimelineOptions = {}) {
       };
       
       // Save to timeline/ folder in same repo as screenplay
-      const path = `timeline/${projectData.id}.json`;
       const content = JSON.stringify(timelineData, null, 2);
       const message = `Updated timeline: ${projectData.name}`;
-      
-      await githubSave(
-        { token: githubToken, owner: githubOwner, repo: githubRepo },
-        { path, content, message }
-      );
+
+      const response = await fetch(`${apiUrl}/api/github/timeline/save`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          projectId: projectData.id,
+          owner: githubConfig.owner,
+          repo: githubConfig.repo,
+          branch: githubConfig.branch || 'main',
+          content,
+          message
+        })
+      });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok || !payload?.success) {
+        throw new Error(payload?.message || `GitHub export failed: HTTP ${response.status}`);
+      }
       
       console.log('[Timeline] ✅ Exported to GitHub - YOU own this data!');
       return true;

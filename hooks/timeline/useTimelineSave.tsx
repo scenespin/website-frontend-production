@@ -92,22 +92,37 @@ export function useTimelineSave(
         return;
       }
       
-      const githubConfig = JSON.parse(githubConfigStr);
-      if (!githubConfig.token || !githubConfig.owner || !githubConfig.repo) {
+      const githubConfig = JSON.parse(githubConfigStr) as {
+        owner?: string;
+        repo?: string;
+        branch?: string;
+      };
+      if (!githubConfig.owner || !githubConfig.repo) {
         console.log('[Timeline] GitHub config incomplete, skipping GitHub backup');
         return;
       }
-      
-      // Import saveToGitHub utility
-      const { saveToGitHub: saveFile } = await import('@/utils/github');
-      
-      // Save timeline project as JSON file
-      await saveFile(githubConfig, {
-        path: `timeline/${projectData.id}.json`,
-        content: JSON.stringify(projectData, null, 2),
-        message: `Auto-save: Timeline project "${projectData.name}"`,
-        branch: 'main'
+
+      const token = localStorage.getItem('jwt_token');
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+      const response = await fetch(`${apiUrl}/api/github/timeline/save`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          projectId: projectData.id,
+          owner: githubConfig.owner,
+          repo: githubConfig.repo,
+          branch: githubConfig.branch || 'main',
+          content: JSON.stringify(projectData, null, 2),
+          message: `Auto-save: Timeline project "${projectData.name}"`
+        })
       });
+      const payload = await response.json().catch(() => null);
+      if (!response.ok || !payload?.success) {
+        throw new Error(payload?.message || `GitHub backup failed: HTTP ${response.status}`);
+      }
       
       console.log('[Timeline] ✅ Saved to GitHub:', projectData.id);
     } catch (error) {

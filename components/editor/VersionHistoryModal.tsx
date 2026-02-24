@@ -7,7 +7,6 @@ import { X, GitBranch, ExternalLink, RotateCcw, Loader2, HelpCircle, Save, Undo2
 import { useAuth } from '@clerk/nextjs';
 import { useEditor } from '@/contexts/EditorContext';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
-import { getFileCommits, getFileFromCommit, getDefaultBranch, getScreenplayFilePath, type GitHubConfig } from '@/utils/github';
 import { toast } from 'sonner';
 
 interface VersionHistoryModalProps {
@@ -26,15 +25,19 @@ interface Commit {
     date: string;
 }
 
+interface GitHubRepoConfig {
+    owner: string;
+    repo: string;
+}
+
 export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryModalProps) {
     const { getToken } = useAuth();
-    const useBackendManualSave = process.env.NEXT_PUBLIC_ENABLE_GITHUB_BACKEND_MANUAL_SAVE === 'true';
     const { state, setContent } = useEditor();
     const { screenplayId } = useScreenplay();
     const [commits, setCommits] = useState<Commit[]>([]);
     const [loading, setLoading] = useState(false);
     const [restoring, setRestoring] = useState<string | null>(null);
-    const [githubConfig, setGithubConfig] = useState<GitHubConfig | null>(null);
+    const [githubConfig, setGithubConfig] = useState<GitHubRepoConfig | null>(null);
     const [branch, setBranch] = useState<string>('main');
     const [showHelp, setShowHelp] = useState(false);
     const [disconnecting, setDisconnecting] = useState(false);
@@ -43,8 +46,6 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
     const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
     const [commitToRestore, setCommitToRestore] = useState<Commit | null>(null);
     const [confirmText, setConfirmText] = useState('');
-    const screenplayGitHubPath = getScreenplayFilePath(screenplayId);
-    
     // Load GitHub config on mount
     useEffect(() => {
         if (isOpen) {
@@ -53,7 +54,6 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
                 if (configStr) {
                     const config = JSON.parse(configStr);
                     setGithubConfig({
-                        token: config.accessToken || config.token || '',
                         owner: config.owner,
                         repo: config.repo
                     });
@@ -77,19 +77,7 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
     const handleReconnectGitHub = () => {
         // Clear invalid token
         localStorage.removeItem('screenplay_github_config');
-        
-        const GITHUB_CLIENT_ID = process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID;
-        if (!GITHUB_CLIENT_ID) {
-            toast.error('GitHub connection is not configured. Please contact support.');
-            return;
-        }
-        
-        const scope = 'repo,user';
-        const oauthState = 'github_oauth_wryda';
-        const redirectUri = `${window.location.origin}/write`;
-        const authUrl = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&state=${oauthState}`;
-        
-        window.location.href = authUrl;
+        window.location.href = '/api/github/auth';
     };
 
     const handleDisconnectGitHub = async () => {
@@ -97,12 +85,9 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
         try {
             const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://backend.wryda.ai';
             let authHeader: string | undefined;
-
-            if (useBackendManualSave) {
-                const token = await getToken({ template: 'wryda-backend' });
-                if (token) {
-                    authHeader = `Bearer ${token}`;
-                }
+            const token = await getToken({ template: 'wryda-backend' });
+            if (token) {
+                authHeader = `Bearer ${token}`;
             }
 
             const response = await fetch(`${backendUrl}/api/github/disconnect`, {
@@ -141,49 +126,33 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
         setLoading(true);
         setTokenExpired(false);
         try {
-            if (useBackendManualSave) {
-                const token = await getToken({ template: 'wryda-backend' });
-                if (!token) {
-                    throw new Error('Unable to authenticate with backend. Please sign in again.');
+            const token = await getToken({ template: 'wryda-backend' });
+            if (!token) {
+                throw new Error('Unable to authenticate with backend. Please sign in again.');
+            }
+
+            const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://backend.wryda.ai';
+            const query = new URLSearchParams({
+                screenplayId: screenplayId || '',
+                owner: githubConfig.owner,
+                repo: githubConfig.repo,
+                limit: '10'
+            });
+
+            const response = await fetch(`${backendUrl}/api/github/screenplay/history?${query.toString()}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`
                 }
+            });
+            const payload = await response.json().catch(() => null);
 
-                const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://backend.wryda.ai';
-                const query = new URLSearchParams({
-                    screenplayId: screenplayId || '',
-                    owner: githubConfig.owner,
-                    repo: githubConfig.repo,
-                    limit: '10'
-                });
-
-                const response = await fetch(`${backendUrl}/api/github/screenplay/history?${query.toString()}`, {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
-                });
-                const payload = await response.json().catch(() => null);
-
-                if ((!response.ok || !payload?.success) && payload?.errorCode === 'GITHUB_NOT_CONNECTED' && githubConfig.token) {
-                    // Additive rollout safety: fallback to legacy client-read when backend token is not connected yet.
-                    const defaultBranch = await getDefaultBranch(githubConfig);
-                    setBranch(defaultBranch);
-                    const fileCommits = await getFileCommits(githubConfig, screenplayGitHubPath, defaultBranch, 10);
-                    setCommits(fileCommits);
-                } else if (!response.ok || !payload?.success) {
-                    const backendError = new Error(payload?.message || 'Failed to load version history');
-                    (backendError as Error & { errorCode?: string }).errorCode = payload?.errorCode;
-                    throw backendError;
-                } else {
-                    setBranch(payload.branch || 'main');
-                    setCommits(payload.commits || []);
-                }
+            if (!response.ok || !payload?.success) {
+                const backendError = new Error(payload?.message || 'Failed to load version history');
+                (backendError as Error & { errorCode?: string }).errorCode = payload?.errorCode;
+                throw backendError;
             } else {
-                // Get default branch
-                const defaultBranch = await getDefaultBranch(githubConfig);
-                setBranch(defaultBranch);
-                
-                // Fetch commits
-                const fileCommits = await getFileCommits(githubConfig, screenplayGitHubPath, defaultBranch, 10);
-                setCommits(fileCommits);
+                setBranch(payload.branch || 'main');
+                setCommits(payload.commits || []);
             }
         } catch (error: any) {
             console.error('[VersionHistory] Failed to fetch commits:', error);
@@ -225,37 +194,30 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
         try {
             let content: string;
 
-            if (useBackendManualSave) {
-                const token = await getToken({ template: 'wryda-backend' });
-                if (!token) {
-                    throw new Error('Unable to authenticate with backend. Please sign in again.');
+            const token = await getToken({ template: 'wryda-backend' });
+            if (!token) {
+                throw new Error('Unable to authenticate with backend. Please sign in again.');
+            }
+
+            const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://backend.wryda.ai';
+            const query = new URLSearchParams({
+                screenplayId: screenplayId || '',
+                owner: githubConfig.owner,
+                repo: githubConfig.repo,
+                commitSha: commitToRestore.sha
+            });
+
+            const response = await fetch(`${backendUrl}/api/github/screenplay/content?${query.toString()}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`
                 }
+            });
+            const payload = await response.json().catch(() => null);
 
-                const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://backend.wryda.ai';
-                const query = new URLSearchParams({
-                    screenplayId: screenplayId || '',
-                    owner: githubConfig.owner,
-                    repo: githubConfig.repo,
-                    commitSha: commitToRestore.sha
-                });
-
-                const response = await fetch(`${backendUrl}/api/github/screenplay/content?${query.toString()}`, {
-                    headers: {
-                        Authorization: `Bearer ${token}`
-                    }
-                });
-                const payload = await response.json().catch(() => null);
-
-                if ((!response.ok || !payload?.success) && payload?.errorCode === 'GITHUB_NOT_CONNECTED' && githubConfig.token) {
-                    // Additive rollout safety: fallback to legacy client-read when backend token is not connected yet.
-                    content = await getFileFromCommit(githubConfig, screenplayGitHubPath, commitToRestore.sha);
-                } else if (!response.ok || !payload?.success) {
-                    throw new Error(payload?.message || 'Failed to restore version from backend');
-                } else {
-                    content = payload.content;
-                }
+            if (!response.ok || !payload?.success) {
+                throw new Error(payload?.message || 'Failed to restore version from backend');
             } else {
-                content = await getFileFromCommit(githubConfig, screenplayGitHubPath, commitToRestore.sha);
+                content = payload.content;
             }
 
             setContent(content, true);
@@ -401,11 +363,9 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
                                             <p className="text-xs text-gray-400">
                                                 Backups for this screenplay • {commits.length} version{commits.length !== 1 ? 's' : ''} found
                                             </p>
-                                            {useBackendManualSave && (
-                                                <p className="text-[11px] text-[#00D9FF] mt-1">
-                                                    Backend-token mode enabled
-                                                </p>
-                                            )}
+                                            <p className="text-[11px] text-[#00D9FF] mt-1">
+                                                Backend-token mode enabled
+                                            </p>
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">

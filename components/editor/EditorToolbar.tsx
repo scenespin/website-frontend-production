@@ -1,10 +1,10 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useAuth } from '@clerk/nextjs';
 import { useEditor } from '@/contexts/EditorContext';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { FountainElementType, formatElement, detectElementType } from '@/utils/fountain';
-import { saveToGitHub, getScreenplayFilePath } from '@/utils/github';
 import { markPeriodicGitHubBackupCheckpoint } from '@/utils/githubPeriodicBackup';
 import { toast } from 'sonner';
 import ScriptImportModal from './ScriptImportModal';
@@ -34,6 +34,7 @@ interface EditorToolbarProps {
  * Writers can describe their backup (e.g., "Finished Act 1", "Before major changes")
  */
 function GitHubSaveButton() {
+    const { getToken } = useAuth();
     const { state } = useEditor();
     const { screenplayId } = useScreenplay();
     const [saving, setSaving] = useState(false);
@@ -60,24 +61,42 @@ function GitHubSaveButton() {
 
         try {
             setSaving(true);
-            const rawConfig = JSON.parse(githubConfigStr);
-            
-            // Normalize config - OAuth handler saves as 'accessToken', github.ts expects 'token'
-            const config = {
-                token: rawConfig.accessToken || rawConfig.token,
-                owner: rawConfig.owner,
-                repo: rawConfig.repo
-            };
+            const rawConfig = JSON.parse(githubConfigStr) as { owner?: string; repo?: string; branch?: string };
+            if (!rawConfig.owner || !rawConfig.repo) {
+                throw new Error('GitHub repository is not configured. Reconnect GitHub to continue.');
+            }
+            if (!screenplayId || !screenplayId.startsWith('screenplay_')) {
+                throw new Error('A valid screenplay ID is required before saving to GitHub.');
+            }
+            const backendToken = await getToken({ template: 'wryda-backend' });
+            if (!backendToken) {
+                throw new Error('Unable to authenticate with backend. Please sign in again.');
+            }
             
             // Use the user's message or a default
             const message = commitMessage.trim() || `Backup: ${state.title || 'Untitled Screenplay'}`;
-
-            await saveToGitHub(config, {
-                path: getScreenplayFilePath(screenplayId),
-                content: state.content,
-                message: message,
-                branch: 'main'
+            const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://backend.wryda.ai';
+            const response = await fetch(`${backendUrl}/api/github/screenplay/save`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${backendToken}`
+                },
+                body: JSON.stringify({
+                    screenplayId,
+                    content: state.content,
+                    message,
+                    owner: rawConfig.owner,
+                    repo: rawConfig.repo,
+                    branch: rawConfig.branch || 'main'
+                })
             });
+            const payload = await response.json().catch(() => null);
+            if (!response.ok || !payload?.success) {
+                const backendError = new Error(payload?.message || 'Backup failed');
+                (backendError as Error & { errorCode?: string }).errorCode = payload?.errorCode;
+                throw backendError;
+            }
             if (screenplayId?.startsWith('screenplay_')) {
                 markPeriodicGitHubBackupCheckpoint(screenplayId, state.content);
             }
@@ -92,7 +111,14 @@ function GitHubSaveButton() {
             
             // Check if this is an authentication error (expired/revoked token)
             const errorMessage = error.message || '';
-            if (errorMessage.includes('Bad credentials') || errorMessage.includes('401') || errorMessage.includes('Unauthorized')) {
+            const errorCode = error.errorCode || '';
+            if (
+                errorMessage.includes('Bad credentials') ||
+                errorMessage.includes('401') ||
+                errorMessage.includes('Unauthorized') ||
+                errorCode === 'GITHUB_TOKEN_EXPIRED' ||
+                errorCode === 'GITHUB_NOT_CONNECTED'
+            ) {
                 // Clear the invalid token
                 localStorage.removeItem('screenplay_github_config');
                 
@@ -113,19 +139,7 @@ function GitHubSaveButton() {
     };
 
     const handleConnectGitHub = () => {
-        const GITHUB_CLIENT_ID = process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID;
-        
-        if (!GITHUB_CLIENT_ID) {
-            toast.error('GitHub connection is not configured. Please contact support.');
-            return;
-        }
-        
-        const scope = 'repo,user';
-        const oauthState = 'github_oauth_wryda';
-        const redirectUri = `${window.location.origin}/write`;
-        const authUrl = `https://github.com/login/oauth/authorize?client_id=${GITHUB_CLIENT_ID}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=${scope}&state=${oauthState}`;
-        
-        window.location.href = authUrl;
+        window.location.href = '/api/github/auth';
     };
 
     // Check if GitHub is connected

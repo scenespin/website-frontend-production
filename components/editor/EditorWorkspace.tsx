@@ -22,7 +22,6 @@ import DialogueModal from '../modals/DialogueModal';
 import FindReplaceModal from './FindReplaceModal';
 import VersionHistoryModal from './VersionHistoryModal';
 import AIDisclosurePanel from '../screenplay/AIDisclosurePanel';
-import { saveToGitHub, getScreenplayFilePath } from '@/utils/github';
 import { markPeriodicGitHubBackupCheckpoint } from '@/utils/githubPeriodicBackup';
 import { extractEditorContext } from '@/utils/editorContext';
 import { detectCurrentScene } from '@/utils/sceneDetection';
@@ -102,7 +101,7 @@ export default function EditorWorkspace() {
     const sceneIdFromUrl = searchParams?.get('sceneId');
     
     // Get GitHub config from localStorage
-    const [githubConfig, setGithubConfig] = useState<{ owner: string; repo: string; token: string } | null>(null);
+    const [githubConfig, setGithubConfig] = useState<{ owner: string; repo: string; branch?: string } | null>(null);
     
     useEffect(() => {
         try {
@@ -204,21 +203,36 @@ export default function EditorWorkspace() {
             if (githubConfigStr) {
                 const githubConfig = JSON.parse(githubConfigStr);
                 
-                if (githubConfig.accessToken && githubConfig.owner && githubConfig.repo) {
+                if (githubConfig.owner && githubConfig.repo) {
                     toast.info('Saving to GitHub...');
+                    if (!screenplayId || !screenplayId.startsWith('screenplay_')) {
+                        throw new Error('A valid screenplay ID is required before saving to GitHub.');
+                    }
+                    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://backend.wryda.ai';
+                    const backendToken = await getToken({ template: 'wryda-backend' });
+                    if (!backendToken) {
+                        throw new Error('Unable to authenticate with backend. Please sign in again.');
+                    }
 
-                    const normalizedConfig = {
-                        token: githubConfig.accessToken || githubConfig.token,
-                        owner: githubConfig.owner,
-                        repo: githubConfig.repo
-                    };
-
-                    await saveToGitHub(normalizedConfig, {
-                        path: getScreenplayFilePath(screenplayId),
-                        content: state.content,
-                        message: `Manual save: ${state.title}`,
-                        branch: 'main'
+                    const response = await fetch(`${backendUrl}/api/github/screenplay/save`, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            Authorization: `Bearer ${backendToken}`
+                        },
+                        body: JSON.stringify({
+                            screenplayId,
+                            content: state.content,
+                            message: `Manual save: ${state.title}`,
+                            owner: githubConfig.owner,
+                            repo: githubConfig.repo,
+                            branch: githubConfig.branch || 'main'
+                        })
                     });
+                    const payload = await response.json().catch(() => null);
+                    if (!response.ok || !payload?.success) {
+                        throw new Error(payload?.message || 'GitHub save failed');
+                    }
                     if (screenplayId?.startsWith('screenplay_')) {
                         markPeriodicGitHubBackupCheckpoint(screenplayId, state.content);
                     }

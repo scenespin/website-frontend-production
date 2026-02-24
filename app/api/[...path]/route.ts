@@ -167,8 +167,16 @@ async function forwardRequest(
       method,
       headers,
       body: body as any, // TypeScript workaround for FormData
+      redirect: 'manual',
       cache: 'no-store', // 🔥 FIX: Prevent Next.js Data Cache from caching backend responses
     });
+
+    if ([301, 302, 303, 307, 308].includes(response.status)) {
+      const location = response.headers.get('location');
+      if (location) {
+        return NextResponse.redirect(location, { status: response.status });
+      }
+    }
     
     // Get response data
     const responseContentType = response.headers.get('content-type');

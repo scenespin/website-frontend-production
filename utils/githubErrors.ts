@@ -27,7 +27,7 @@ export class GitHubError extends Error {
     private getUserFriendlyMessage(): string {
         switch (this.code) {
             case 'AUTH_FAILED':
-                return 'GitHub authentication failed. Please check your Personal Access Token and try reconnecting.';
+                return 'GitHub authentication failed. Please reconnect your GitHub account and try again.';
             
             case 'REPO_NOT_FOUND':
                 return 'Repository not found. Please check the repository name and ensure you have access to it.';
@@ -39,7 +39,7 @@ export class GitHubError extends Error {
                 return 'Network connection failed. Please check your internet connection and try again.';
             
             case 'PERMISSION_DENIED':
-                return 'Permission denied. Your Personal Access Token needs the "repo" scope to make changes.';
+                return 'Permission denied. Your GitHub connection is missing required repository permissions.';
             
             case 'FILE_TOO_LARGE':
                 return 'File is too large for GitHub API. Consider splitting your screenplay into multiple files.';
@@ -297,18 +297,11 @@ export { OfflineQueue };
  * Validate GitHub configuration
  */
 export function validateGitHubConfig(config: {
-    token?: string;
     owner?: string;
     repo?: string;
     branch?: string;
 }): { valid: boolean; errors: string[] } {
     const errors: string[] = [];
-
-    if (!config.token || config.token.trim().length === 0) {
-        errors.push('Personal Access Token is required');
-    } else if (!config.token.startsWith('ghp_') && !config.token.startsWith('github_pat_')) {
-        errors.push('Invalid Personal Access Token format');
-    }
 
     if (!config.owner || config.owner.trim().length === 0) {
         errors.push('Repository owner is required');

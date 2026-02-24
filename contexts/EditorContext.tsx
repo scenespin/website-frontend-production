@@ -5,7 +5,6 @@ import { useSearchParams, usePathname } from 'next/navigation';
 import { FountainElementType } from '@/utils/fountain';
 import { useScreenplay } from './ScreenplayContext';
 import { parseContentForImport } from '@/utils/fountainAutoImport';
-import { saveToGitHub } from '@/utils/github';
 import {
     isGitHubPeriodicBackupEnabled,
     maybeRunPeriodicGitHubBackup,

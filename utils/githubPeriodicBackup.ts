@@ -1,5 +1,3 @@
-import { getScreenplayFilePath, saveToGitHub, type GitHubConfig } from '@/utils/github';
-
 const FEATURE_FLAG = 'NEXT_PUBLIC_ENABLE_GITHUB_PERIODIC_BACKUP';
 const GITHUB_CONFIG_KEY = 'screenplay_github_config';
 
@@ -46,26 +44,31 @@ export function isGitHubPeriodicBackupEnabled(): boolean {
   return process.env[FEATURE_FLAG] === 'true';
 }
 
-export function normalizeGitHubConfig(rawConfig: unknown): GitHubConfig | null {
+interface StoredGitHubConfig {
+  owner: string;
+  repo: string;
+  branch?: string;
+}
+
+export function normalizeGitHubConfig(rawConfig: unknown): StoredGitHubConfig | null {
   if (!rawConfig || typeof rawConfig !== 'object') return null;
 
   const candidate = rawConfig as Record<string, unknown>;
-  const tokenValue = candidate.accessToken || candidate.token;
   const owner = candidate.owner;
   const repo = candidate.repo;
+  const branch = candidate.branch;
 
-  if (typeof tokenValue !== 'string' || !tokenValue.trim()) return null;
   if (typeof owner !== 'string' || !owner.trim()) return null;
   if (typeof repo !== 'string' || !repo.trim()) return null;
 
   return {
-    token: tokenValue.trim(),
     owner: owner.trim(),
-    repo: repo.trim()
+    repo: repo.trim(),
+    branch: typeof branch === 'string' && branch.trim() ? branch.trim() : 'main'
   };
 }
 
-function getStoredGitHubConfig(): GitHubConfig | null {
+function getStoredGitHubConfig(): StoredGitHubConfig | null {
   if (typeof window === 'undefined') return null;
   try {
     const raw = localStorage.getItem(GITHUB_CONFIG_KEY);
@@ -147,17 +150,30 @@ function periodicCommitMessage(title: string, atMs: number): string {
 }
 
 async function commit(
-  config: GitHubConfig,
+  config: StoredGitHubConfig,
   screenplayId: string,
   content: string,
   message: string
 ): Promise<void> {
-  await saveToGitHub(config, {
-    path: getScreenplayFilePath(screenplayId),
-    content,
-    message,
-    branch: 'main'
+  const response = await fetch('/api/github/screenplay/save', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({
+      screenplayId,
+      content,
+      message,
+      owner: config.owner,
+      repo: config.repo,
+      branch: config.branch || 'main'
+    })
   });
+
+  const payload = await response.json().catch(() => null);
+  if (!response.ok || !payload?.success) {
+    throw new Error(payload?.message || 'Periodic GitHub backup failed');
+  }
 }
 
 export async function maybeRunPeriodicGitHubBackup(

@@ -1,141 +1,115 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
-import { useAuth } from '@clerk/nextjs';
+import { toast } from 'sonner';
+
+interface GitHubRepository {
+    name?: string;
+    owner?: string;
+}
+
+interface StoredGitHubConfig {
+    owner: string;
+    repo: string;
+    branch: string;
+}
 
 /**
  * Feature 0111: GitHub OAuth Callback Handler
- * Handles the OAuth callback when user connects GitHub (optional)
- * Saves GitHub config to localStorage for export functionality
+ * Handles backend OAuth callback completion and stores repo metadata only.
  */
 export default function GitHubOAuthHandler() {
     const searchParams = useSearchParams();
-    const { getToken } = useAuth();
-    const [isProcessing, setIsProcessing] = useState(false);
+    const hasProcessedRef = useRef(false);
 
     useEffect(() => {
-        const handleOAuthCallback = async () => {
-            const code = searchParams?.get('code');
-            const state = searchParams?.get('state');
-            
-            // Only process if this is a GitHub OAuth callback
-            if (!code || state !== 'github_oauth_wryda' || isProcessing) {
-                return;
-            }
+        const githubStatus = searchParams?.get('github');
+        if (!githubStatus || hasProcessedRef.current) {
+            return;
+        }
+        hasProcessedRef.current = true;
 
-            setIsProcessing(true);
-            console.log('[GitHub OAuth] Processing callback...');
+        const cleanupQueryParams = () => {
+            window.history.replaceState({}, document.title, window.location.pathname);
+        };
 
+        const handleConnected = async () => {
             try {
-                const BACKEND_URL = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://backend.wryda.ai';
-
-                // Exchange code for access token via backend
-                const response = await fetch(`${BACKEND_URL}/api/auth/github/token`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ code }),
+                const response = await fetch('/api/github/repositories?type=owner&per_page=50&page=1', {
+                    method: 'GET',
+                    cache: 'no-store'
                 });
-                
-                if (!response.ok) {
-                    const errorData = await response.json();
-                    throw new Error(errorData.error || 'Failed to authenticate');
+                const payload = await response.json().catch(() => null);
+
+                if (!response.ok || !Array.isArray(payload?.repositories)) {
+                    throw new Error(payload?.message || payload?.error || 'Failed to load repositories');
                 }
-                
-                const data = await response.json();
-                const accessToken = data.access_token;
-                const tokenScope = data.scope || 'repo,user';
-                const tokenType = data.token_type || 'bearer';
-                
-                // Get user info
-                const userResponse = await fetch('https://api.github.com/user', {
-                    headers: {
-                        'Authorization': `Bearer ${accessToken}`,
-                        'Accept': 'application/vnd.github.v3+json',
-                    },
-                });
-                
-                if (!userResponse.ok) throw new Error('Failed to get user info');
-                
-                const userData = await userResponse.json();
-                const username = userData.login;
-                
-                // Fetch user's repositories
-                const reposResponse = await fetch(`${BACKEND_URL}/api/auth/github/repos`, {
-                    headers: {
-                        'Authorization': `Bearer ${accessToken}`,
-                        'Accept': 'application/json',
-                    },
-                });
-                
-                if (!reposResponse.ok) throw new Error('Failed to fetch repositories');
-                
-                const repos = await reposResponse.json();
-                
-                console.log('[GitHub OAuth] ✅ Connected as @' + username);
-                console.log('[GitHub OAuth] Found ' + repos.length + ' repositories');
-                
-                // For now, auto-select the first repository or prompt user
-                // TODO: Show repository selection modal if needed
-                if (repos.length > 0) {
-                    const repo = repos[0];
-                    const [owner, repoName] = repo.full_name.split('/');
-                    
-                    // Feature 0111: Save GitHub config to localStorage for export
-                    const githubConfig = {
-                        accessToken,
-                        owner,
-                        repo: repoName,
-                        branch: 'main'
-                    };
-                    localStorage.setItem('screenplay_github_config', JSON.stringify(githubConfig));
 
-                    // Bridge the token into backend encrypted storage so backend-token
-                    // routes (history/audit append) can work even for legacy callback flow.
-                    try {
-                        const backendJwt = await getToken({ template: 'wryda-backend' });
-                        if (backendJwt) {
-                            await fetch(`${BACKEND_URL}/api/github/connect-token`, {
-                                method: 'POST',
-                                headers: {
-                                    'Content-Type': 'application/json',
-                                    'Authorization': `Bearer ${backendJwt}`,
-                                },
-                                body: JSON.stringify({
-                                    accessToken,
-                                    scope: tokenScope,
-                                    tokenType,
-                                }),
-                            });
+                const repositories: GitHubRepository[] = payload.repositories;
+                if (repositories.length === 0) {
+                    toast.warning('GitHub connected, but no repositories were found yet.');
+                    return;
+                }
+
+                let selected = repositories[0];
+                try {
+                    const existingRaw = localStorage.getItem('screenplay_github_config');
+                    if (existingRaw) {
+                        const existingConfig = JSON.parse(existingRaw) as Partial<StoredGitHubConfig>;
+                        const existingMatch = repositories.find((repo) =>
+                            repo.owner === existingConfig.owner && repo.name === existingConfig.repo
+                        );
+                        if (existingMatch) {
+                            selected = existingMatch;
                         }
-                    } catch (syncError) {
-                        console.warn('[GitHub OAuth] Backend token sync failed (non-blocking):', syncError);
                     }
-                    
-                    console.log('[GitHub OAuth] ✅ Saved GitHub config for export');
-                    alert(`✅ Connected to GitHub: ${repo.full_name}\n\nYou can now export your screenplay!`);
-                } else {
-                    alert('⚠️ No repositories found. Please create a repository on GitHub first.');
+                } catch (readError) {
+                    console.warn('[GitHub OAuth] Unable to reuse existing repository selection:', readError);
                 }
-                
-                // Clean up URL
-                window.history.replaceState({}, document.title, window.location.pathname);
-                
-            } catch (err: any) {
-                console.error('[GitHub OAuth] Error:', err);
-                alert('❌ GitHub connection failed: ' + (err.message || 'Unknown error'));
-                
-                // Clean up URL even on error
-                window.history.replaceState({}, document.title, window.location.pathname);
+
+                if (!selected.owner || !selected.name) {
+                    throw new Error('Repository payload is missing owner/name');
+                }
+
+                const githubConfig: StoredGitHubConfig = {
+                    owner: selected.owner,
+                    repo: selected.name,
+                    branch: 'main'
+                };
+                localStorage.setItem('screenplay_github_config', JSON.stringify(githubConfig));
+
+                toast.success(`GitHub connected: ${selected.owner}/${selected.name}`);
+            } catch (error: any) {
+                console.error('[GitHub OAuth] Failed to finalize backend OAuth connect:', error);
+                toast.error(`GitHub connected, but repository setup failed: ${error?.message || 'Unknown error'}`);
             } finally {
-                setIsProcessing(false);
+                cleanupQueryParams();
             }
         };
-        
-        handleOAuthCallback();
-    }, [searchParams, isProcessing, getToken]);
 
-    // This component renders nothing - it just handles the OAuth callback
+        if (githubStatus === 'connected') {
+            void handleConnected();
+            return;
+        }
+
+        if (githubStatus === 'denied') {
+            toast.error('GitHub authorization was denied.');
+            cleanupQueryParams();
+            return;
+        }
+
+        if (githubStatus === 'error') {
+            const message = searchParams?.get('message');
+            toast.error(`GitHub connection failed: ${message || 'Unknown error'}`);
+            cleanupQueryParams();
+            return;
+        }
+
+        cleanupQueryParams();
+    }, [searchParams]);
+
+    // This component renders nothing - it just handles OAuth callback completion.
     return null;
 }
 
