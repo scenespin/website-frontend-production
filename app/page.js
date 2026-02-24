@@ -85,10 +85,10 @@ export default function Page() {
       <main className="bg-[#0A0A0A] text-white">
         {/* Hero Section */}
         <section className="relative overflow-hidden">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 md:py-32">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 md:py-20">
             <div className="text-center">
               {/* Badge */}
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#141414] border border-[#3F3F46] text-sm mb-8">
+              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#141414] border border-[#3F3F46] text-sm mb-6">
                 <span className="font-semibold text-gray-300">Early Access</span>
                 <span className="text-gray-600">•</span>
                 <span className="text-gray-300">Built with Working Writers</span>
@@ -99,16 +99,12 @@ export default function Page() {
                 Write the script only you can write.
               </h1>
 
-              <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-gray-300 max-w-4xl mx-auto mb-4 md:mb-6 px-4">
-                Wryda is a professional, screenplay-native workspace for faster drafts, sharper rewrites, and stronger pages, while you stay in full creative control.
-              </p>
-
-              <p className="text-base sm:text-lg md:text-xl text-gray-400 max-w-3xl mx-auto mb-6 md:mb-8 px-4">
-                Screenplay-native writing tools stay front and center, with integrated image and video generation ready when you want to move from pages to visual planning and production.
+              <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-gray-300 max-w-4xl mx-auto mb-5 md:mb-6 px-4">
+                Wryda is a professional, screenplay-native workspace for faster drafts, sharper rewrites, and stronger pages, while keeping you in full creative control and ready to extend into visual planning when you choose.
               </p>
 
               {/* CTAs */}
-              <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
+              <div className="flex flex-col sm:flex-row gap-4 justify-center mb-8">
                 <Link
                   href="/sign-up"
                   className="inline-flex items-center justify-center px-6 py-3 md:px-8 md:py-4 bg-[#DC143C] text-white font-semibold rounded-lg hover:bg-[#B01030] transition-colors text-base md:text-lg min-h-[44px] w-full sm:w-auto"
@@ -124,7 +120,7 @@ export default function Page() {
               </div>
 
               {/* Demo Video Placeholder */}
-              <div id="demo" className="mt-12 max-w-4xl mx-auto">
+              <div id="demo" className="mt-8 max-w-4xl mx-auto">
                 <div className="bg-[#141414] border border-[#3F3F46] rounded-lg overflow-hidden aspect-video flex items-center justify-center relative group cursor-pointer hover:border-[#DC143C]/50 transition-colors">
                   <div className="absolute inset-0 bg-gradient-to-br from-[#0A0A0A] to-[#1F1F1F] opacity-50"></div>
                   <div className="relative z-10 text-center p-8">
@@ -140,7 +136,7 @@ export default function Page() {
               </div>
 
               {/* Trust Strip */}
-              <div className="mt-10 flex flex-wrap justify-center gap-3 md:gap-4 text-xs sm:text-sm text-gray-400 px-4">
+              <div className="mt-6 flex flex-wrap justify-center gap-3 md:gap-4 text-xs sm:text-sm text-gray-400 px-4">
                 <span>Built for pro writers</span>
                 <span className="text-gray-600">•</span>
                 <span>AI assistance is optional and writer-directed</span>
