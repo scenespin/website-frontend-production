@@ -10,6 +10,58 @@ import { ShowcaseGallery } from "@/components/showcase/ShowcaseGallery";
 import { useShowcaseStatus } from "@/hooks/useShowcase";
 import { mediaShowcaseContent } from "@/lib/mediaShowcaseContent";
 
+const step2CaptureSources = {
+  scriptContext: "/examples/captures/cap_s2a_script_context_01.jpg",
+  charactersDetected: "/examples/captures/cap_s2b_characters_detected_01.jpg",
+  locationDetected: "/examples/captures/cap_s2c_location_detected_01.jpg",
+};
+const step1CaptureSource = "/examples/captures/cap_s1_script_capture_01.jpg";
+const step3CaptureSources = {
+  characterReference: "/examples/captures/cap_s3_character_reference_01.jpg",
+  clothingInput: "/examples/captures/cap_s3_clothing_input_01.jpg",
+  tryOnResult: "/examples/captures/cap_s3_tryon_result_01.jpg",
+  finalPoses: "/examples/captures/cap_s3_final_poses_01.jpg",
+};
+const step4CaptureSources = {
+  locationReference: "/examples/captures/cap_s4_location_reference_01.jpg",
+  locationAngles: "/examples/captures/cap_s4_location_angles_01.jpg",
+  locationBackgrounds: "/examples/captures/cap_s4_location_backgrounds_01.jpg",
+  locationXcu: "/examples/captures/cap_s4_location_xcu_01.jpg",
+};
+const step5CaptureSources = {
+  propReference: "/examples/captures/cap_s5_prop_reference_01.jpg",
+  propAngles: "/examples/captures/cap_s5_prop_angles_01.jpg",
+  propMacro: "/examples/captures/cap_s5_prop_macro_01.jpg",
+};
+const step7CaptureSources = {
+  sceneBuilder: "/examples/captures/cap_s7_scenebuilder_capture_01.jpg",
+  shotBoard: "/examples/captures/cap_s7_shotboard_capture_01.jpg",
+  teaser: "/examples/captures/cap_s7_teaser_capture_01.jpg",
+};
+
+function StepCaptureCard({ src, alt, fallbackLabel, minHeight = "min-h-[120px]" }) {
+  const [hasError, setHasError] = useState(false);
+
+  return (
+    <div className={`relative overflow-hidden rounded-lg border border-[#2F2F2F] bg-gradient-to-br from-[#171717] to-[#0F0F0F] p-0 ${minHeight}`}>
+      {!hasError ? (
+        <img
+          src={src}
+          alt={alt}
+          className="h-full w-full object-cover"
+          loading="lazy"
+          onError={() => setHasError(true)}
+        />
+      ) : null}
+      {hasError ? (
+        <div className="absolute inset-0 flex items-center justify-center p-4">
+          <p className="text-sm text-gray-400 text-center">{fallbackLabel}</p>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
 export default function ExamplesPage() {
   const { data: status } = useShowcaseStatus();
   const [activeMediaTabId, setActiveMediaTabId] = useState(mediaShowcaseContent.tabs[0].id);
@@ -128,16 +180,19 @@ Not everything.`;
             <div className="rounded-xl border border-[#3F3F46] bg-[#111111] p-5 md:p-6 mb-6">
               <h3 className="text-xl font-semibold mb-3">1) Start With the Script</h3>
               <p className="text-sm text-gray-300 mb-4">
-                Paste a Fountain scene and Wryda uses it as the source of truth for downstream character, location, prop, and shot planning.
+                Write directly in Wryda with a screenplay-first workflow, then paste, import, or scan when bringing in existing pages. Your script stays the source of truth for character, location, prop, and shot planning.
               </p>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <div className="rounded-lg border border-[#2F2F2F] bg-[#0D0D0D] p-4">
                   <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Scene excerpt</p>
                   <pre className="text-xs sm:text-sm text-gray-200 whitespace-pre-wrap">{fountainDemoSnippet}</pre>
                 </div>
-                <div className="rounded-lg border border-[#2F2F2F] bg-gradient-to-br from-[#171717] to-[#0F0F0F] p-4 min-h-[220px] flex items-center justify-center">
-                  <p className="text-sm text-gray-400">Screenplay workspace capture</p>
-                </div>
+                <StepCaptureCard
+                  src={step1CaptureSource}
+                  alt="Screenplay workspace showing the active script in Wryda"
+                  fallbackLabel="Screenplay workspace capture"
+                  minHeight="min-h-[220px]"
+                />
               </div>
             </div>
 
@@ -147,21 +202,24 @@ Not everything.`;
                 Wryda reads your script and automatically detects core story entities from Fountain context.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div className="rounded-lg border border-[#2F2F2F] bg-gradient-to-br from-[#171717] to-[#0F0F0F] p-4 min-h-[120px] flex items-center justify-center">
-                  <p className="text-sm text-gray-400">Auto-populated entities view</p>
-                </div>
-                <div className="rounded-lg border border-[#2F2F2F] bg-[#0D0D0D] p-4 min-h-[120px]">
-                  <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Detected entities</p>
-                  <p className="text-sm text-gray-300">Characters: Mara Voss, Eli Trent</p>
-                  <p className="text-sm text-gray-300">Location: Interrogation Room</p>
-                </div>
-                <div className="rounded-lg border border-[#2F2F2F] bg-[#0D0D0D] p-4 min-h-[120px]">
-                  <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Production props (manual by design)</p>
-                  <p className="text-sm text-gray-300">Props are production metadata. Add them manually, then attach them to the scene for continuity planning and shot setup.</p>
-                </div>
+                <StepCaptureCard
+                  src={step2CaptureSources.scriptContext}
+                  alt="Script context showing interrogation room scene heading and character mentions"
+                  fallbackLabel="Script context capture"
+                />
+                <StepCaptureCard
+                  src={step2CaptureSources.charactersDetected}
+                  alt="Detected characters list showing Mara Voss and Eli Trent"
+                  fallbackLabel="Characters detected"
+                />
+                <StepCaptureCard
+                  src={step2CaptureSources.locationDetected}
+                  alt="Detected location list showing Interrogation Room"
+                  fallbackLabel="Location detected"
+                />
               </div>
               <p className="text-xs text-gray-500 mt-3">
-                Script context auto-drives character and location setup, while props stay user-directed for production control.
+                Script context auto-drives character and location setup. Props are manually added and attached per scene for production control.
               </p>
             </div>
 
@@ -171,18 +229,30 @@ Not everything.`;
                 Demonstrate one hero character through the complete wardrobe pipeline from baseline reference to final generated pose set.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                <div className="rounded-lg border border-[#2F2F2F] bg-gradient-to-br from-[#171717] to-[#0F0F0F] p-4 min-h-[140px] flex items-center justify-center">
-                  <p className="text-sm text-gray-400">Character reference image</p>
-                </div>
-                <div className="rounded-lg border border-[#2F2F2F] bg-gradient-to-br from-[#171717] to-[#0F0F0F] p-4 min-h-[140px] flex items-center justify-center">
-                  <p className="text-sm text-gray-400">Clothing input image</p>
-                </div>
-                <div className="rounded-lg border border-[#2F2F2F] bg-gradient-to-br from-[#171717] to-[#0F0F0F] p-4 min-h-[140px] flex items-center justify-center">
-                  <p className="text-sm text-gray-400">Virtual try-on result</p>
-                </div>
-                <div className="rounded-lg border border-[#2F2F2F] bg-gradient-to-br from-[#171717] to-[#0F0F0F] p-4 min-h-[140px] flex items-center justify-center">
-                  <p className="text-sm text-gray-400">Final generated pose set</p>
-                </div>
+                <StepCaptureCard
+                  src={step3CaptureSources.characterReference}
+                  alt="Character reference image used for identity lock"
+                  fallbackLabel="Character reference image"
+                  minHeight="min-h-[140px]"
+                />
+                <StepCaptureCard
+                  src={step3CaptureSources.clothingInput}
+                  alt="Clothing input image used for virtual try-on"
+                  fallbackLabel="Clothing input image"
+                  minHeight="min-h-[140px]"
+                />
+                <StepCaptureCard
+                  src={step3CaptureSources.tryOnResult}
+                  alt="Virtual try-on result preserving character identity"
+                  fallbackLabel="Virtual try-on result"
+                  minHeight="min-h-[140px]"
+                />
+                <StepCaptureCard
+                  src={step3CaptureSources.finalPoses}
+                  alt="Final generated character pose set"
+                  fallbackLabel="Final generated pose set"
+                  minHeight="min-h-[140px]"
+                />
               </div>
               <div className="rounded-lg border border-[#2F2F2F] bg-[#0D0D0D] p-4 mt-3">
                 <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Prompt snippet</p>
@@ -198,18 +268,30 @@ Not everything.`;
                 Build location continuity from one reference through angle coverage, background variants, and a detail plate for close-up texture.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                <div className="rounded-lg border border-[#2F2F2F] bg-gradient-to-br from-[#171717] to-[#0F0F0F] p-4 min-h-[140px] flex items-center justify-center">
-                  <p className="text-sm text-gray-400">Location reference</p>
-                </div>
-                <div className="rounded-lg border border-[#2F2F2F] bg-gradient-to-br from-[#171717] to-[#0F0F0F] p-4 min-h-[140px] flex items-center justify-center">
-                  <p className="text-sm text-gray-400">Location angle outputs</p>
-                </div>
-                <div className="rounded-lg border border-[#2F2F2F] bg-gradient-to-br from-[#171717] to-[#0F0F0F] p-4 min-h-[140px] flex items-center justify-center">
-                  <p className="text-sm text-gray-400">Location background outputs</p>
-                </div>
-                <div className="rounded-lg border border-[#2F2F2F] bg-gradient-to-br from-[#171717] to-[#0F0F0F] p-4 min-h-[140px] flex items-center justify-center">
-                  <p className="text-sm text-gray-400">Extreme close-up background plate</p>
-                </div>
+                <StepCaptureCard
+                  src={step4CaptureSources.locationReference}
+                  alt="Location reference image used for continuity"
+                  fallbackLabel="Location reference"
+                  minHeight="min-h-[140px]"
+                />
+                <StepCaptureCard
+                  src={step4CaptureSources.locationAngles}
+                  alt="Location angle outputs derived from one reference"
+                  fallbackLabel="Location angle outputs"
+                  minHeight="min-h-[140px]"
+                />
+                <StepCaptureCard
+                  src={step4CaptureSources.locationBackgrounds}
+                  alt="Location background variation outputs"
+                  fallbackLabel="Location background outputs"
+                  minHeight="min-h-[140px]"
+                />
+                <StepCaptureCard
+                  src={step4CaptureSources.locationXcu}
+                  alt="Extreme close-up background detail plate"
+                  fallbackLabel="Extreme close-up background plate"
+                  minHeight="min-h-[140px]"
+                />
               </div>
             </div>
 
@@ -219,15 +301,24 @@ Not everything.`;
                 Capture prop continuity with one reference, practical angle coverage, and one macro detail pass for storytelling inserts.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div className="rounded-lg border border-[#2F2F2F] bg-gradient-to-br from-[#171717] to-[#0F0F0F] p-4 min-h-[140px] flex items-center justify-center">
-                  <p className="text-sm text-gray-400">Prop reference</p>
-                </div>
-                <div className="rounded-lg border border-[#2F2F2F] bg-gradient-to-br from-[#171717] to-[#0F0F0F] p-4 min-h-[140px] flex items-center justify-center">
-                  <p className="text-sm text-gray-400">Prop angle outputs</p>
-                </div>
-                <div className="rounded-lg border border-[#2F2F2F] bg-gradient-to-br from-[#171717] to-[#0F0F0F] p-4 min-h-[140px] flex items-center justify-center">
-                  <p className="text-sm text-gray-400">Macro detail output</p>
-                </div>
+                <StepCaptureCard
+                  src={step5CaptureSources.propReference}
+                  alt="Prop reference image for continuity"
+                  fallbackLabel="Prop reference"
+                  minHeight="min-h-[140px]"
+                />
+                <StepCaptureCard
+                  src={step5CaptureSources.propAngles}
+                  alt="Prop angle outputs generated from the reference"
+                  fallbackLabel="Prop angle outputs"
+                  minHeight="min-h-[140px]"
+                />
+                <StepCaptureCard
+                  src={step5CaptureSources.propMacro}
+                  alt="Macro detail output for storytelling inserts"
+                  fallbackLabel="Macro detail output"
+                  minHeight="min-h-[140px]"
+                />
               </div>
             </div>
 
@@ -244,15 +335,24 @@ Not everything.`;
                 Scene Builder and Shot Board connect this same script context to shot-level planning and execution.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div className="rounded-lg border border-[#2F2F2F] bg-gradient-to-br from-[#171717] to-[#0F0F0F] p-4 min-h-[140px] flex items-center justify-center">
-                  <p className="text-sm text-gray-400">Scene Builder preview</p>
-                </div>
-                <div className="rounded-lg border border-[#2F2F2F] bg-gradient-to-br from-[#171717] to-[#0F0F0F] p-4 min-h-[140px] flex items-center justify-center">
-                  <p className="text-sm text-gray-400">Shot Board preview</p>
-                </div>
-                <div className="rounded-lg border border-[#2F2F2F] bg-gradient-to-br from-[#171717] to-[#0F0F0F] p-4 min-h-[140px] flex items-center justify-center">
-                  <p className="text-sm text-gray-400">End-result teaser video</p>
-                </div>
+                <StepCaptureCard
+                  src={step7CaptureSources.sceneBuilder}
+                  alt="Scene Builder view showing shot sequence and planning context"
+                  fallbackLabel="Scene Builder preview"
+                  minHeight="min-h-[140px]"
+                />
+                <StepCaptureCard
+                  src={step7CaptureSources.shotBoard}
+                  alt="Shot Board view showing shot variants and continuity planning"
+                  fallbackLabel="Shot Board preview"
+                  minHeight="min-h-[140px]"
+                />
+                <StepCaptureCard
+                  src={step7CaptureSources.teaser}
+                  alt="End-result teaser frame from generated sequence"
+                  fallbackLabel="End-result teaser video"
+                  minHeight="min-h-[140px]"
+                />
               </div>
             </div>
           </div>
