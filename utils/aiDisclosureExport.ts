@@ -183,7 +183,15 @@ function buildAIDisclosureSubmissionPdf(
 export async function downloadAIDisclosureSubmissionBundle(
   report: any,
   screenplayId: string,
-  screenplayTitle?: string
+  screenplayTitle?: string,
+  options?: {
+    resolveEvidenceManifest?: (params: {
+      hashHex: string;
+      generatedAtUtc: string;
+      snapshotType: 'ai_use_disclosure_submission_snapshot';
+      snapshotVersion: '1.0';
+    }) => Promise<any | null>;
+  }
 ): Promise<{ hashHex: string; zipFilename: string }> {
   const fileTitle = toSlugFileTitle(screenplayTitle) || 'screenplay';
   const generatedAtUtc = new Date().toISOString();
@@ -201,11 +209,25 @@ export async function downloadAIDisclosureSubmissionBundle(
   const jsonContent = stringifyStableJson(snapshot);
   const hashHex = await sha256Hex(jsonContent);
   const pdfBlob = buildAIDisclosureSubmissionPdf(snapshot, hashHex);
+  let evidenceManifest: any | null = null;
+  if (options?.resolveEvidenceManifest) {
+    try {
+      evidenceManifest = await options.resolveEvidenceManifest({
+        hashHex,
+        generatedAtUtc,
+        snapshotType: snapshot.snapshot_type,
+        snapshotVersion: snapshot.snapshot_version,
+      });
+    } catch {
+      evidenceManifest = null;
+    }
+  }
 
   const baseName = `${fileTitle}-ai-disclosure-submission-report-${timestampForFilename}`;
   const jsonFilename = `${baseName}.json`;
   const pdfFilename = `${baseName}.pdf`;
   const hashFilename = `${baseName}.sha256.txt`;
+  const manifestFilename = `${baseName}.evidence-manifest.json`;
   const zipFilename = `${baseName}.zip`;
 
   const hashFileContent = [
@@ -219,6 +241,9 @@ export async function downloadAIDisclosureSubmissionBundle(
   zip.file(jsonFilename, jsonContent);
   zip.file(pdfFilename, pdfBlob);
   zip.file(hashFilename, hashFileContent);
+  if (evidenceManifest) {
+    zip.file(manifestFilename, stringifyStableJson(evidenceManifest));
+  }
 
   const zipBlob = await zip.generateAsync({
     type: 'blob',

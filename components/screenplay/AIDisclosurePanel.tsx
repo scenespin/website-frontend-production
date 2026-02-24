@@ -5,6 +5,8 @@ import { toast } from 'sonner';
 import {
   AIDisclosureConsentStatus,
   AIDisclosureEvent,
+  getAIAuditEvidenceManifest,
+  getGitHubLedgerConfig,
   getAIDisclosureReport,
   updateAIDisclosureConsent,
 } from '@/utils/aiDisclosureStorage';
@@ -109,7 +111,25 @@ export default function AIDisclosurePanel({
       const { hashHex, zipFilename } = await downloadAIDisclosureSubmissionBundle(
         report,
         screenplayId,
-        screenplayTitle
+        screenplayTitle,
+        {
+          resolveEvidenceManifest: async ({
+            hashHex: snapshotSha256,
+            generatedAtUtc: snapshotGeneratedAtUtc,
+            snapshotType,
+            snapshotVersion,
+          }) => {
+            const githubConfig = getGitHubLedgerConfig();
+            if (!githubConfig) return null;
+            return getAIAuditEvidenceManifest({
+              screenplayId,
+              snapshotSha256,
+              snapshotGeneratedAtUtc,
+              snapshotType,
+              snapshotVersion,
+            });
+          },
+        }
       );
       toast.success(`Submission bundle exported (${zipFilename}). SHA-256: ${hashHex.slice(0, 12)}...`);
     } catch (error: any) {

@@ -168,7 +168,7 @@ export function initializeGitHubAIAuditLedgerRetries(
   if (!isGitHubAIAuditLedgerEnabled()) return;
   if (!getBackendToken) return;
 
-  const globalWindow = window as Window & Record<string, unknown>;
+  const globalWindow = window as unknown as Record<string, unknown>;
   if (globalWindow[LEDGER_RETRY_INIT_KEY]) return;
   globalWindow[LEDGER_RETRY_INIT_KEY] = true;
 
@@ -468,6 +468,46 @@ export async function getAIDisclosureReport(screenplayId: string): Promise<any> 
 
   const result = await response.json();
   return result.data;
+}
+
+export function getGitHubLedgerConfig(): GitHubLedgerConfig | null {
+  return readGitHubLedgerConfigFromStorage();
+}
+
+export async function getAIAuditEvidenceManifest(params: {
+  screenplayId: string;
+  snapshotSha256: string;
+  snapshotGeneratedAtUtc: string;
+  snapshotType?: string;
+  snapshotVersion?: string;
+}): Promise<any> {
+  const config = readGitHubLedgerConfigFromStorage();
+  if (!config) {
+    throw new Error('GitHub repository is not connected for this screenplay');
+  }
+
+  const query = new URLSearchParams({
+    screenplayId: params.screenplayId,
+    owner: config.owner,
+    repo: config.repo,
+    branch: config.branch || '',
+    snapshotSha256: params.snapshotSha256,
+    snapshotGeneratedAtUtc: params.snapshotGeneratedAtUtc,
+    snapshotType: params.snapshotType || 'ai_use_disclosure_submission_snapshot',
+    snapshotVersion: params.snapshotVersion || '1.0',
+  });
+  if (!config.branch) {
+    query.delete('branch');
+  }
+
+  const response = await fetch(`/api/github/ai-audit/evidence-manifest?${query.toString()}`);
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    throw new Error(errorData.message || errorData.error || 'Failed to build AI audit evidence manifest');
+  }
+
+  const result = await response.json();
+  return result.manifest;
 }
 
 export async function updateAIDisclosureConsent(
