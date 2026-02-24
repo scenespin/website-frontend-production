@@ -36,7 +36,7 @@ export default function ProductionHelp() {
           Turn your script into consistent images and video when you&apos;re ready. Generate from your screenplay with full transparency—model, resolution, aspect ratio, and cost are shown per option in the app.
         </p>
         <p className="text-sm text-[#808080] mb-8">
-          Need submission records? Use AI Use Disclosure to lock and export a timestamped, noneditable bundle (PDF + JSON + SHA-256 hash) for WGA and studio policy workflows.
+          Need submission records? Use the Wryda Provenance Ledger to lock and export a timestamped, noneditable provenance bundle (PDF + JSON + SHA-256 hash) for WGA and studio policy workflows.
         </p>
 
         {/* Image & Video Generation */}

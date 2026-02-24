@@ -120,7 +120,7 @@ export default function HowItWorksPage() {
             <div className="rounded-xl border border-[#3F3F46] bg-[#111111] p-6 md:p-8 max-w-4xl mx-auto">
               <h2 className="text-xl md:text-2xl font-bold mb-3 text-white">Writer-first AI use transparency</h2>
               <p className="text-gray-300 mb-4">
-                Wryda includes an optional <strong className="text-white">AI Use Disclosure</strong> system so you can track in-app AI-assisted writing actions and lock a timestamped, noneditable submission bundle (PDF + JSON + SHA-256 hash) for WGA and studio policy submission workflows. It&apos;s optional and nonblocking, designed to support your workflow without changing how you write.
+                Wryda includes the optional <strong className="text-white">Wryda Provenance Ledger</strong> so you can track in-app AI-assisted writing actions and lock a timestamped, noneditable provenance bundle (PDF + JSON + SHA-256 hash) for WGA and studio policy submission workflows. It&apos;s optional and nonblocking, designed to support your workflow without changing how you write.
               </p>
               <ul className="space-y-2 text-sm text-gray-400 mb-4">
                 <li className="flex items-start gap-2">
@@ -138,6 +138,11 @@ export default function HowItWorksPage() {
               </ul>
               <p className="text-xs text-gray-500">
                 Supports WGA and studio disclosure workflows; not a legal determination, legal advice, or certification of compliance.
+              </p>
+              <p className="text-xs text-gray-400 mt-2">
+                <Link href="/provenance-ledger" className="underline hover:text-white">
+                  Learn more about Wryda Provenance Ledger
+                </Link>
               </p>
             </div>
           </div>

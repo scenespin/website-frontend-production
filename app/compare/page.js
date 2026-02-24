@@ -6,7 +6,7 @@ import Footer from "@/components/Footer";
 import logo from "@/app/icon.png";
 
 export const metadata = getSEOTags({
-  title: `What Makes Wryda.ai Unique | Screenplay to Video Platform | ${config.appName}`,
+  title: `What Makes Wryda.ai Different | ${config.appName}`,
   description: "Compare Wryda.ai's screenplay-first workflow, writing agents, and production planning tools with other common screenwriting and production tools.",
   canonicalUrlRelative: "/compare",
 });
@@ -60,7 +60,7 @@ export default function ComparePage() {
         <section className="py-20 bg-[#141414]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-black border border-[#DC143C]/30 text-sm mb-6">
-              <span className="font-semibold text-gray-300">✨ The First Integrated Screenwriting Environment</span>
+              <span className="font-semibold text-gray-300">✨ Screenplay-First Integrated Environment</span>
             </div>
             <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight mb-6">
               What Makes Wryda Unique
@@ -74,7 +74,12 @@ export default function ComparePage() {
               One place for writing, references, and prep—see how others compare.
             </p>
             <p className="text-sm text-gray-500 max-w-3xl mx-auto">
-              Includes optional timestamped, noneditable AI disclosure bundles (PDF + JSON + SHA-256 hash) for WGA and studio policy workflows.
+              Includes the Wryda Provenance Ledger with optional timestamped, noneditable provenance bundles (PDF + JSON + SHA-256 hash) for WGA and studio policy workflows.
+            </p>
+            <p className="text-xs text-gray-400 max-w-3xl mx-auto mt-2">
+              <Link href="/provenance-ledger" className="underline hover:text-white">
+                Learn more about Wryda Provenance Ledger
+              </Link>
             </p>
           </div>
         </section>
@@ -187,6 +192,29 @@ export default function ComparePage() {
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
                       <span className="text-gray-400">✓</span>
+                    </td>
+                  </tr>
+
+                  <tr className="border-b border-[#3F3F46]">
+                    <td className="p-4 bg-[#141414]">AI provenance + disclosure export support</td>
+                    <td className="p-4 text-center border-l-2 border-[#DC143C]">
+                      <span className="text-[#DC143C] font-bold">✓ Included</span>
+                      <div className="text-xs text-gray-400 mt-1">Timestamped PDF + JSON + SHA-256 hash export</div>
+                    </td>
+                    <td className="p-4 text-center border-l border-[#3F3F46]">
+                      <span className="text-gray-500">Varies</span>
+                    </td>
+                    <td className="p-4 text-center border-l border-[#3F3F46]">
+                      <span className="text-gray-500">Varies</span>
+                    </td>
+                    <td className="p-4 text-center border-l border-[#3F3F46]">
+                      <span className="text-gray-500">Varies</span>
+                    </td>
+                    <td className="p-4 text-center border-l border-[#3F3F46]">
+                      <span className="text-gray-500">Varies</span>
+                    </td>
+                    <td className="p-4 text-center border-l border-[#3F3F46]">
+                      <span className="text-gray-500">Varies</span>
                     </td>
                   </tr>
 
@@ -494,8 +522,8 @@ export default function ComparePage() {
               <div className="bg-[#0A0A0A] border-2 border-[#DC143C] rounded-lg p-6">
                 <div className="text-3xl mb-3">👤</div>
                 <h3 className="text-xl font-bold mb-2">Character Consistency Across Scenes</h3>
-                <p className="text-sm text-gray-300">
-                  Maintains the same character face, voice, and outfit across every scene—something no other platform can do.
+                  <p className="text-sm text-gray-300">
+                    Maintains character face, voice, and outfit continuity across scenes for writer-to-production workflows.
                 </p>
               </div>
 
@@ -542,7 +570,7 @@ export default function ComparePage() {
                 How We're Different
               </h2>
               <p className="text-lg text-gray-300 max-w-2xl mx-auto">
-                Other tools solve one problem. We solve the entire production workflow.
+                Other tools often focus on one stage. Wryda keeps writing and planning connected in one workflow.
               </p>
             </div>
 
@@ -571,7 +599,7 @@ export default function ComparePage() {
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>Plus Story Advisor (reads entire screenplay - only Wryda)</span>
+                    <span>Plus Story Advisor for script-level analysis across the full draft</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
@@ -600,7 +628,7 @@ export default function ComparePage() {
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>Plus character consistency system (unique to us)</span>
+                    <span>Plus character consistency tooling across scenes</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
@@ -629,7 +657,7 @@ export default function ComparePage() {
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>Plus Story Advisor (unique to Wryda)</span>
+                    <span>Plus Story Advisor for full-draft analysis and revision direction</span>
                   </li>
                 </ul>
               </div>
@@ -691,7 +719,7 @@ export default function ComparePage() {
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>Export to PDF (WGA standard)</span>
+                    <span>Export to professional PDF for submission workflows</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
@@ -731,7 +759,7 @@ export default function ComparePage() {
             </div>
 
             <div className="bg-[#141414] border-2 border-[#DC143C] rounded-lg p-8 text-center">
-              <h3 className="text-2xl font-bold mb-4">The Only AI Platform Built for Fountain</h3>
+              <h3 className="text-2xl font-bold mb-4">AI Platform Built for Fountain Workflows</h3>
               <p className="text-gray-300 mb-6 max-w-2xl mx-auto">
                 While many AI tools treat screenplays as plain text, Wryda.ai is designed around Fountain structure and screenplay-native workflows.
               </p>

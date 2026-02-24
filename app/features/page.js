@@ -110,7 +110,12 @@ export default function Features() {
                   </div>
                 </div>
                 <p className="text-xs text-gray-500">
-                  Writer-first by default, with integrated image and video generation workflows plus optional noneditable disclosure bundles for WGA and studio policy workflows when you're ready.
+                  Writer-first by default, with integrated image and video generation workflows plus the Wryda Provenance Ledger for optional noneditable disclosure bundles when you're ready.
+                </p>
+                <p className="text-xs text-gray-400 mt-2">
+                  <Link href="/provenance-ledger" className="underline hover:text-white">
+                    Learn more about Wryda Provenance Ledger
+                  </Link>
                 </p>
               </div>
             </div>
@@ -125,7 +130,7 @@ export default function Features() {
                 Professional Production Consistency
               </h2>
               <p className="text-lg text-gray-300 max-w-2xl mx-auto">
-                The only platform that maintains character, location, and prop consistency across every scene.
+                Keep character, location, and prop continuity connected across scenes in one workflow.
               </p>
             </div>
 
@@ -236,7 +241,7 @@ export default function Features() {
                     Reads your <strong className="text-white">entire screenplay</strong>. Analyzes structure across all acts, tracks character arcs throughout, identifies plot holes and inconsistencies.
                   </p>
                   <p className="text-sm text-gray-400 italic mb-4">
-                    "Nothing like this exists for screenwriting. The Story Advisor holds your entire script in context and provides comprehensive analysis."
+                    "Story Advisor is built for script-level analysis. It holds your draft in context and provides comprehensive feedback."
                   </p>
                   <ul className="space-y-2 text-sm text-gray-300">
                     <li className="flex items-start gap-2">
@@ -385,6 +390,11 @@ export default function Features() {
                 icon="☁️"
                 title="Cloud Storage"
                 description="Automatic backup of large media files to Google Drive and Dropbox. Your production assets are always safe."
+              />
+              <FeatureCard
+                icon="🧾"
+                title="Wryda Provenance Ledger"
+                description="Track accepted AI-assisted actions and export a timestamped, noneditable provenance bundle (PDF + JSON + SHA-256) for WGA and studio policy workflows."
               />
             </div>
           </div>

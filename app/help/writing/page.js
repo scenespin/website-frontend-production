@@ -433,9 +433,9 @@ export default function WritingHelp() {
 
           <div className="card bg-[#141414] border border-[#DC143C]/30">
             <div className="card-body">
-              <h3 className="font-bold mb-3 text-[#DC143C]">AI Use Disclosure Submission Bundle</h3>
+              <h3 className="font-bold mb-3 text-[#DC143C]">Wryda Provenance Ledger Bundle</h3>
               <p className="text-sm text-[#B3B3B3] mb-3">
-                Lock and export a timestamped, noneditable submission bundle for your disclosure records in WGA and studio policy workflows.
+                Lock and export a timestamped, noneditable provenance bundle for your disclosure records in WGA and studio policy workflows.
               </p>
               <ul className="space-y-2 text-sm text-[#B3B3B3]">
                 <li>• <strong className="text-[#FFFFFF]">PDF</strong> - Human-facing submission report</li>

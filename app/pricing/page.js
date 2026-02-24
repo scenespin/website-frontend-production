@@ -98,6 +98,16 @@ export default function PricingPage() {
                 <p className="text-xs text-gray-400 mt-1">Pick a monthly plan for lower per-credit cost, or top up anytime.</p>
               </div>
             </div>
+            <div className="mt-4 max-w-4xl mx-auto px-4">
+              <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg p-4 text-left">
+                <p className="text-sm text-gray-300">
+                  All plans include the <strong className="text-white">Wryda Provenance Ledger</strong>. Credits apply when you generate AI outputs, not for maintaining disclosure records.
+                </p>
+                <p className="text-xs text-gray-500 mt-2">
+                  Supports WGA and studio disclosure workflows; not a legal determination, legal advice, or certification of compliance.
+                </p>
+              </div>
+            </div>
           </div>
         </section>
 

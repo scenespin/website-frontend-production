@@ -18,7 +18,7 @@ export default function Footer() {
               </span>
             </Link>
             <p className="text-sm text-gray-400 mb-2">
-              The World's First Integrated Screenwriting Environment (ISE)
+              Screenplay-first, connected writing and production workflow.
             </p>
             <p className="text-xs text-gray-500">
               Write → Produce → Direct
@@ -105,6 +105,11 @@ export default function Footer() {
                   DMCA Policy
                 </Link>
               </li>
+              <li>
+                <Link href="/provenance-ledger" className="text-sm text-gray-400 hover:text-white transition-colors">
+                  Wryda Provenance Ledger
+                </Link>
+              </li>
             </ul>
           </div>
         </div>
@@ -116,7 +121,7 @@ export default function Footer() {
               © {currentYear} Garden State Concentrate LLC (DBA Wryda.ai). All rights reserved.
             </p>
             <p className="text-xs text-gray-500">
-              The First Integrated Screenwriting Environment
+              Screenplay-first connected workflow
             </p>
           </div>
         </div>
