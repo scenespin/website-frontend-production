@@ -17,6 +17,34 @@ export default function ExamplesPage() {
     () => mediaShowcaseContent.tabs.find((tab) => tab.id === activeMediaTabId) || mediaShowcaseContent.tabs[0],
     [activeMediaTabId]
   );
+  const fountainDemoSnippet = `Title: The Last Witness
+
+INT. INTERROGATION ROOM - NIGHT
+
+Rain taps the narrow window. A steel table sits under a hard overhead light.
+
+DETECTIVE MARA VOSS enters, sets a CASE FILE and a DIGITAL VOICE RECORDER on the table, then sits across from ELI TRENT.
+
+MARA
+Let's start again. From the beginning.
+
+Eli avoids her eyes. His hands shake.
+
+ELI
+I already told patrol everything.
+
+Mara presses RECORD on the voice recorder.
+
+MARA
+Not everything.`;
+
+  const launchImagePlan = [
+    "Characters: 4 references + 12 pose outputs (16 total)",
+    "Locations: 4 references + 12 angle outputs + 12 background outputs + 4 extreme close-up background plates (32 total)",
+    "Props: 4 references + 12 angle outputs + 4 macro detail plates (20 total)",
+    "Launch set total: 68 images",
+  ];
+
   const writingExamples = [
     {
       title: "Action Sequence Tightening",
@@ -145,6 +173,121 @@ export default function ExamplesPage() {
                 </div>
               </div>
             )}
+          </div>
+        </section>
+
+        {/* Script to Screen Walkthrough (Live Placeholder Plan) */}
+        <section className="pt-4 pb-14 border-t border-[#1E1E1E]">
+          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div className="text-center mb-8">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[#141414] border border-[#3F3F46] text-xs text-gray-300 mb-4">
+                <span>Live Placeholder Plan</span>
+              </div>
+              <h2 className="text-3xl md:text-4xl font-bold mb-3">Script → References → Generated Assets</h2>
+              <p className="text-gray-300 max-w-3xl mx-auto">
+                This is the exact launch narrative structure. Replace each placeholder tile with final screenshots and generated outputs as you complete your curation.
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-[#3F3F46] bg-[#111111] p-5 md:p-6 mb-6">
+              <h3 className="text-xl font-semibold mb-3">1) Start With the Script</h3>
+              <p className="text-sm text-gray-300 mb-4">
+                Paste a Fountain scene and Wryda uses it as the source of truth for downstream character, location, prop, and shot planning.
+              </p>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                <div className="rounded-lg border border-[#2F2F2F] bg-[#0D0D0D] p-4">
+                  <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Fountain scene example</p>
+                  <pre className="text-xs sm:text-sm text-gray-200 whitespace-pre-wrap">{fountainDemoSnippet}</pre>
+                </div>
+                <div className="rounded-lg border border-dashed border-[#4A4A4A] bg-[#0D0D0D] p-4 flex flex-col justify-between min-h-[220px]">
+                  <div>
+                    <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Placeholder</p>
+                    <p className="text-sm text-gray-300">SCRIPT_SCREEN_01</p>
+                  </div>
+                  <p className="text-xs text-gray-500">Use: editor screenshot showing this exact scene loaded.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-[#3F3F46] bg-[#111111] p-5 md:p-6 mb-6">
+              <h3 className="text-xl font-semibold mb-3">2) Auto-Populate Characters + Locations</h3>
+              <p className="text-sm text-gray-300 mb-4">
+                Show what was detected directly from script context so visitors see screenplay-native automation.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="rounded-lg border border-dashed border-[#4A4A4A] bg-[#0D0D0D] p-4 min-h-[120px]">
+                  <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Placeholder</p>
+                  <p className="text-sm text-gray-300">AUTOPOP_SCREEN_01</p>
+                </div>
+                <div className="rounded-lg border border-[#2F2F2F] bg-[#0D0D0D] p-4 min-h-[120px]">
+                  <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Expected entities</p>
+                  <p className="text-sm text-gray-300">Characters: Mara Voss, Eli Trent</p>
+                  <p className="text-sm text-gray-300">Location: Interrogation Room</p>
+                  <p className="text-sm text-gray-300">Props: Case file, recorder, key, burner phone</p>
+                </div>
+                <div className="rounded-lg border border-[#2F2F2F] bg-[#0D0D0D] p-4 min-h-[120px]">
+                  <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Placement note</p>
+                  <p className="text-sm text-gray-300">Keep this above generated galleries to establish context-first storytelling.</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-[#3F3F46] bg-[#111111] p-5 md:p-6 mb-6">
+              <h3 className="text-xl font-semibold mb-3">3) Reference Uploads (Character / Location / Prop)</h3>
+              <p className="text-sm text-gray-300 mb-4">
+                References anchor consistency. Replace these placeholders with your uploaded source images.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="rounded-lg border border-dashed border-[#4A4A4A] bg-[#0D0D0D] p-4 min-h-[140px]">
+                  <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Placeholder</p>
+                  <p className="text-sm text-gray-300">REF_CHAR_GRID_01</p>
+                </div>
+                <div className="rounded-lg border border-dashed border-[#4A4A4A] bg-[#0D0D0D] p-4 min-h-[140px]">
+                  <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Placeholder</p>
+                  <p className="text-sm text-gray-300">REF_LOC_GRID_01</p>
+                </div>
+                <div className="rounded-lg border border-dashed border-[#4A4A4A] bg-[#0D0D0D] p-4 min-h-[140px]">
+                  <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Placeholder</p>
+                  <p className="text-sm text-gray-300">REF_PROP_GRID_01</p>
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-[#3F3F46] bg-[#111111] p-5 md:p-6 mb-6">
+              <h3 className="text-xl font-semibold mb-3">4) Generated Assets (Live)</h3>
+              <p className="text-sm text-gray-300 mb-4">
+                The galleries below are live demo-account outputs. Curate your first 4 per category as hero "cover thumbnails."
+              </p>
+              <div className="rounded-lg border border-[#2F2F2F] bg-[#0D0D0D] p-4">
+                <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Launch image plan</p>
+                <ul className="space-y-1 text-sm text-gray-300">
+                  {launchImagePlan.map((item) => (
+                    <li key={item}>• {item}</li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-[#3F3F46] bg-[#111111] p-5 md:p-6">
+              <h3 className="text-xl font-semibold mb-3">5) Direct / Shot Board Preview (Coming Soon)</h3>
+              <p className="text-sm text-gray-300 mb-4">
+                Use these placeholders now; replace with Scene Builder and Shot Board screenshots once captures are finalized.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="rounded-lg border border-dashed border-[#4A4A4A] bg-[#0D0D0D] p-4 min-h-[140px]">
+                  <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Placeholder</p>
+                  <p className="text-sm text-gray-300">DIRECT_SCENEBUILDER_PREVIEW_01</p>
+                </div>
+                <div className="rounded-lg border border-dashed border-[#4A4A4A] bg-[#0D0D0D] p-4 min-h-[140px]">
+                  <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Placeholder</p>
+                  <p className="text-sm text-gray-300">DIRECT_SHOTBOARD_PREVIEW_01</p>
+                </div>
+                <div className="rounded-lg border border-dashed border-[#4A4A4A] bg-[#0D0D0D] p-4 min-h-[140px]">
+                  <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Optional placeholder</p>
+                  <p className="text-sm text-gray-300">VIDEO_TEASER_01</p>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
 
