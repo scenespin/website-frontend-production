@@ -18,6 +18,7 @@ import { useAuth } from '@clerk/nextjs';
 import { hasAssetReference, showReferenceRequired } from '@/utils/referenceImageValidation';
 import AssetAnglePackageSelector from '../AssetAnglePackageSelector';
 import { extractCreditError, getCreditErrorDisplayMessage, syncCreditsFromError } from '@/utils/creditGuard';
+import { useInFlightWorkflowJobsStore } from '@/lib/inFlightWorkflowJobsStore';
 
 // Feature 0226: Vehicle/aircraft interior package definitions (match backend angleIds)
 const VEHICLE_INTERIOR_PACKAGES_UI: Record<string, { id: string; name: string; angleIds: string[]; angleLabels: string[] }> = {
@@ -378,6 +379,7 @@ export function GenerateAssetTab({
       const result = await response.json();
       
       if (result.jobId) {
+        useInFlightWorkflowJobsStore.getState().addJob(result.jobId);
         // Note: Credits are deducted asynchronously as each angle generates, not when job is created
         console.log('[GenerateAssetTab] ✅ Job created:', result.jobId);
         // So Jobs panel shows the job immediately; polling replaces with real status (handles GSI delay)

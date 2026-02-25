@@ -21,6 +21,7 @@ import { hasCharacterReference, showReferenceRequired } from '@/utils/referenceI
 import PosePackageSelector from '../../character-bank/PosePackageSelector';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { extractCreditError, getCreditErrorDisplayMessage, syncCreditsFromError } from '@/utils/creditGuard';
+import { useInFlightWorkflowJobsStore } from '@/lib/inFlightWorkflowJobsStore';
 
 interface GenerateWardrobeTabProps {
   characterId: string;
@@ -322,6 +323,9 @@ export function GenerateWardrobeTab({
       }
 
       const result = await response.json();
+      if (result.jobId) {
+        useInFlightWorkflowJobsStore.getState().addJob(result.jobId);
+      }
       
       // Note: Credits are deducted asynchronously as each pose generates, not when job is created
       // The catch-all handler in ProductionJobsPanel will refresh credits when job completes

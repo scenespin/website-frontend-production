@@ -24,6 +24,7 @@ import LocationAnglePackageSelector from '../LocationAnglePackageSelector';
 import LocationBackgroundPackageSelector from '../LocationBackgroundPackageSelector';
 import { THUMBNAIL_ASPECT_RATIO } from '../utils/imageConstants';
 import { extractCreditError, getCreditErrorDisplayMessage, syncCreditsFromError } from '@/utils/creditGuard';
+import { useInFlightWorkflowJobsStore } from '@/lib/inFlightWorkflowJobsStore';
 
 /** Human-readable labels for background types (shared with LocationDetailModal pattern) */
 const BACKGROUND_TYPE_LABELS: Record<string, string> = {
@@ -548,6 +549,7 @@ export function GenerateLocationTab({
         }
         const result = await response.json();
         if (result.jobId) {
+          useInFlightWorkflowJobsStore.getState().addJob(result.jobId);
           if (typeof window !== 'undefined') {
             window.dispatchEvent(new CustomEvent('wryda:optimistic-job', {
               detail: { jobId: result.jobId, screenplayId, jobType: 'image-generation', assetName: locationName },
@@ -618,6 +620,7 @@ export function GenerateLocationTab({
         const result = await response.json();
         
         if (result.jobId) {
+          useInFlightWorkflowJobsStore.getState().addJob(result.jobId);
           // Note: Credits are deducted asynchronously as each pose generates, not when job is created
           // The catch-all handler in ProductionJobsPanel will refresh credits when job completes
           console.log('[GenerateLocationTab] ✅ Job created:', result.jobId);
@@ -683,6 +686,7 @@ export function GenerateLocationTab({
         const result = await response.json();
         
         if (result.jobId) {
+          useInFlightWorkflowJobsStore.getState().addJob(result.jobId);
           // Note: Credits are deducted asynchronously as each background generates, not when job is created
           // The catch-all handler in ProductionJobsPanel will refresh credits when job completes
           console.log('[GenerateLocationTab] ✅ Background job created:', result.jobId);
