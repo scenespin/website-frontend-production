@@ -52,10 +52,12 @@ export function WorkflowCompletionPoller({ jobIdsKey }: WorkflowCompletionPoller
         const exec = data?.data?.execution;
         if (!exec) return null;
 
+        const resolvedJobType = exec.jobType || exec.metadata?.jobType || exec.workflowId;
+
         return {
           status: exec.status || 'running',
           projectId: exec.projectId,
-          jobType: exec.jobType,
+          jobType: resolvedJobType,
           error: exec.error,
         };
       } catch {
@@ -77,14 +79,14 @@ export function WorkflowCompletionPoller({ jobIdsKey }: WorkflowCompletionPoller
         const result = await pollJob(jobId);
         if (!result) continue;
 
-        const { status, projectId, jobType, error } = result;
+        const { status, projectId, error } = result;
         if (status === 'completed' || status === 'failed') {
           removeJob(jobId);
           if (status === 'completed' && projectId?.trim()) {
             queryClient.refetchQueries({ queryKey: ['media', 'files', projectId] });
-            if (jobType === 'pose-generation') {
-              queryClient.refetchQueries({ queryKey: ['characters', projectId, 'production-hub'] });
-            }
+            queryClient.refetchQueries({ queryKey: ['characters', projectId, 'production-hub'] });
+            queryClient.refetchQueries({ queryKey: ['locations', projectId, 'production-hub'] });
+            queryClient.refetchQueries({ queryKey: ['assets', projectId, 'production-hub'] });
           }
           if (status === 'failed') {
             toast.error('Workflow failed', {
