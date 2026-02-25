@@ -15,6 +15,7 @@ import { useAuth } from '@clerk/nextjs';
 import { toast } from 'sonner';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { hasCharacterReference, showReferenceRequired } from '@/utils/referenceImageValidation';
+import { useInFlightWorkflowJobsStore } from '@/lib/inFlightWorkflowJobsStore';
 
 interface PoseGenerationModalProps {
   isOpen: boolean;
@@ -453,6 +454,7 @@ export default function PoseGenerationModal({
       // Store jobId for reference
       if (result.jobId) {
         setJobId(result.jobId);
+        useInFlightWorkflowJobsStore.getState().addJob(result.jobId);
         console.log('[PoseGeneration] Job created:', result.jobId);
         // Notify Jobs Drawer so it shows the job immediately (placeholder + fetch-by-ID). Without this, the job only appears when list/GSI returns it.
         if (typeof window !== 'undefined' && projectId) {
