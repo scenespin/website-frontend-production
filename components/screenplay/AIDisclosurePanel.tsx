@@ -13,6 +13,18 @@ import {
 } from '@/utils/aiDisclosureStorage';
 import { downloadAIDisclosureSubmissionBundle } from '@/utils/aiDisclosureExport';
 
+const SOURCE_LABELS: Record<string, string> = {
+  story_advisor_ai: 'Story Advisor',
+  rewrite_ai: 'Rewrite',
+  dialogue_ai: 'Dialogue',
+  screenwriter_ai: 'Screenwriter',
+  director_ai: 'Director',
+};
+
+function formatSourceLabel(source: string): string {
+  return SOURCE_LABELS[source] || source.replace(/_/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
 interface AIDisclosurePanelProps {
   isOpen: boolean;
   onClose: () => void;
@@ -197,7 +209,7 @@ export default function AIDisclosurePanel({
                 </div>
                 {Object.entries(sourceCounts).slice(0, 3).map(([source, count]) => (
                   <div key={source} className="rounded border border-white/10 bg-[#121212] p-3">
-                    <div className="text-xs text-gray-400">{source}</div>
+                    <div className="text-xs text-gray-400">{formatSourceLabel(source)}</div>
                     <div className="text-xl font-semibold text-white">{count}</div>
                   </div>
                 ))}
