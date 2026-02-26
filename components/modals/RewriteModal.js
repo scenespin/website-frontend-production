@@ -198,28 +198,28 @@ const QUICK_ACTIONS = [
     label: 'Make more dramatic',
     prompt: 'make this more dramatic',
     icon: Zap,
-    color: 'btn-error'
+    styleClass: 'bg-[rgba(220,20,60,0.14)] border-[rgba(220,20,60,0.45)] hover:bg-[rgba(220,20,60,0.22)] text-white'
   },
   {
     id: 'concise',
     label: 'Make more concise',
     prompt: 'make this more concise',
     icon: Minus,
-    color: 'cinema-modal-btn-primary'
+    styleClass: 'bg-[rgba(99,102,241,0.14)] border-[rgba(99,102,241,0.45)] hover:bg-[rgba(99,102,241,0.22)] text-white'
   },
   {
     id: 'physical',
     label: 'Add physical detail',
     prompt: 'add more physical detail',
     icon: Plus,
-    color: 'cinema-modal-btn-primary'
+    styleClass: 'bg-[rgba(255,215,0,0.10)] border-[rgba(255,215,0,0.35)] hover:bg-[rgba(255,215,0,0.16)] text-white'
   },
   {
     id: 'dialogue',
     label: 'Improve dialogue',
     prompt: 'improve the dialogue',
     icon: MessageSquare,
-    color: 'cinema-modal-btn-primary'
+    styleClass: 'bg-[rgba(0,217,255,0.12)] border-[rgba(0,217,255,0.40)] hover:bg-[rgba(0,217,255,0.20)] text-white'
   }
 ];
 
@@ -860,7 +860,7 @@ export default function RewriteModal({
                               key={action.id}
                               onClick={() => handleQuickAction(action)}
                               disabled={isLoading}
-                              className={`btn ${action.color} w-full justify-start gap-2`}
+                              className={`btn w-full justify-start gap-2 border ${action.styleClass}`}
                             >
                               <Icon className="h-4 w-4" />
                               <span className="text-xs">{action.label}</span>
