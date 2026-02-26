@@ -91,16 +91,16 @@ export default function Page() {
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#141414] border border-[#3F3F46] text-sm mb-6">
                 <span className="font-semibold text-gray-300">Early Access</span>
                 <span className="text-gray-600">•</span>
-                <span className="text-gray-300">Built with Working Writers</span>
+                <span className="text-gray-300">Building in Public</span>
               </div>
 
               {/* Main Headline */}
               <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-extrabold tracking-tight mb-4 md:mb-6 px-2">
-                Write the script only you can write.
+                Where your story ideas and AI visuals stay connected.
               </h1>
 
               <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-gray-300 max-w-4xl mx-auto mb-4 md:mb-5 px-4">
-                Wryda is a professional, screenplay-native workspace for faster drafts, sharper rewrites, and stronger pages, while keeping you in full creative control and carrying your story seamlessly into visual planning and video.
+                Wryda is a screenplay-native workspace that helps you organize writing, concept notes, and AI-generated imagery in one connected workflow, so your creative intent does not get lost between tools.
               </p>
 
               {/* CTAs */}
@@ -109,13 +109,13 @@ export default function Page() {
                   href="/sign-up"
                   className="inline-flex items-center justify-center px-6 py-3 md:px-8 md:py-4 bg-[#DC143C] text-white font-semibold rounded-lg hover:bg-[#B01030] transition-colors text-base md:text-lg min-h-[44px] w-full sm:w-auto"
                 >
-                  Start Writing
+                  Join Early Access
                 </Link>
                 <Link
-                  href="/examples"
+                  href="/how-it-works"
                   className="inline-flex items-center justify-center px-6 py-3 md:px-8 md:py-4 bg-[#141414] border border-[#3F3F46] text-white font-semibold rounded-lg hover:bg-[#1F1F1F] transition-colors text-base md:text-lg min-h-[44px] w-full sm:w-auto"
                 >
-                  View Examples
+                  See How It Works
                 </Link>
               </div>
 
@@ -129,24 +129,24 @@ export default function Page() {
                         <path d="M8 5v14l11-7z" />
                       </svg>
                     </div>
-                    <h3 className="text-xl font-bold mb-2">Demo Video Coming Soon</h3>
-                    <p className="text-gray-400 text-sm">See how Wryda.ai supports your writing workflow end to end</p>
+                    <h3 className="text-xl font-bold mb-2">Product Walkthrough Coming Soon</h3>
+                    <p className="text-gray-400 text-sm">We are documenting the workflow as we build. Join early access for first-look demos.</p>
                   </div>
                 </div>
               </div>
 
               {/* Trust Strip */}
               <div className="mt-5 flex flex-wrap justify-center gap-3 md:gap-4 text-xs sm:text-sm text-gray-400 px-4">
-                <span>Built for pro writers</span>
+                <span>Writer-first workflow</span>
                 <span className="text-gray-600">•</span>
-                <span>AI assistance is optional and writer-directed</span>
+                <span>Optional AI assistance</span>
                 <span className="text-gray-600">•</span>
-                <span>Wryda Provenance Ledger: lock and export timestamped, noneditable provenance bundles (PDF + JSON + SHA-256 hash) for WGA and studio policy submission workflows</span>
+                <span>Context stays attached to your visuals</span>
                 <span className="text-gray-600">•</span>
-                <span>Your screenplay data is not used to train AI models by Wryda or our AI API providers.</span>
+                <span>Built for transparent creative development</span>
               </div>
               <p className="text-xs text-gray-500 mt-4 px-4 max-w-4xl mx-auto">
-                Supports WGA and studio disclosure workflows; not a legal determination, legal advice, or certification of compliance.
+                Early-stage product. Features evolve with community feedback.
               </p>
             </div>
           </div>
@@ -158,72 +158,68 @@ export default function Page() {
             <div className="max-w-4xl mx-auto">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
                 <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-6">
-                  <h3 className="text-xl font-bold mb-4 text-[#DC143C]">Traditional Tools</h3>
+                  <h3 className="text-xl font-bold mb-4 text-[#DC143C]">What creators deal with today</h3>
                   <ul className="space-y-2 text-gray-300">
                     <li className="flex items-start gap-2">
                       <span className="text-gray-500">•</span>
-                      <span>Writing lives in one app</span>
+                      <span>Ideas in docs, prompts in chats, images in folders</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-gray-500">•</span>
-                      <span>Production assets live somewhere else</span>
+                      <span>Visual outputs lose the "why" behind them</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-gray-500">•</span>
-                      <span>Context gets lost between tools</span>
+                      <span>Team handoffs miss creative intent</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-gray-500">•</span>
-                      <span className="text-gray-400 italic">Result: Workflow broken, tools don't talk to each other</span>
+                      <span className="text-gray-400 italic">Result: rework, confusion, and slower creative decisions</span>
                     </li>
                   </ul>
                 </div>
 
                 <div className="bg-[#141414] border border-[#DC143C]/30 rounded-lg p-6">
-                  <h3 className="text-xl font-bold mb-4 text-[#DC143C]">Wryda.ai</h3>
+                  <h3 className="text-xl font-bold mb-4 text-[#DC143C]">How Wryda helps</h3>
                   <ul className="space-y-2 text-gray-300">
                     <li className="flex items-start gap-2">
                       <span className="text-[#DC143C]">✍️</span>
-                      <span><strong>Write</strong> : Professional screenplay editor with 5 AI writing agents</span>
+                      <span><strong>Write</strong> : Build story direction in a screenplay-native workspace</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-[#DC143C]">🎬</span>
-                      <span><strong>Produce</strong> : Build consistent references for characters, locations, and props when needed</span>
+                      <span><strong>Align</strong> : Link concept notes to generated visuals</span>
                     </li>
                     <li className="flex items-start gap-2">
-                      <span className="text-[#DC143C]">🎞️</span>
-                      <span className="flex items-center gap-2 flex-wrap">
-                        <strong>Direct</strong>
-                        <ComingSoonBadge size="sm" />
-                        <span className="text-gray-300">: Scene Builder extends your script into optional visual planning</span>
-                      </span>
+                      <span className="text-[#DC143C]">🧭</span>
+                      <span><strong>Organize</strong> : Keep character, location, and prop context together</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-[#DC143C]">🔗</span>
-                      <span><strong>Integrated</strong> : Everything understands your screenplay context</span>
+                      <span><strong>Maintain continuity</strong> : Stay consistent as projects evolve</span>
                     </li>
                     <li className="flex items-start gap-2">
                       <span className="text-[#DC143C]">📤</span>
-                      <span><strong>Export</strong> : Ready for professional editing tools</span>
+                      <span><strong>Export</strong> : Move into downstream tools when you are ready</span>
                     </li>
                   </ul>
                 </div>
               </div>
 
               <div className="bg-[#141414] border border-[#DC143C]/30 rounded-lg p-6">
-                <h3 className="text-xl font-bold mb-3 text-[#DC143C]">The Difference</h3>
+                <h3 className="text-xl font-bold mb-3 text-[#DC143C]">Why this workflow is different</h3>
                 <p className="text-gray-300 mb-4">
-                  Wryda is a complete writing environment where every feature understands screenplay context. Your AI agents work with your full script, rewrites stay coherent across scenes, and references stay organized for production planning when you need them. Write first, then extend into visuals and delivery workflows without leaving your script.
+                  Wryda treats visuals as part of story development, not isolated assets. Each image can stay connected to the writing and creative choices that produced it, so you can iterate faster without losing context.
                 </p>
                 <div className="mt-4 pt-4 border-t border-[#3F3F46]">
                   <p className="text-sm font-semibold text-gray-300 mb-2">Best For:</p>
                   <div className="flex flex-wrap gap-2">
-                    <span className="px-3 py-1 bg-[#0A0A0A] border border-[#3F3F46] rounded-full text-xs text-gray-300">Trailers & Teasers</span>
-                    <span className="px-3 py-1 bg-[#0A0A0A] border border-[#3F3F46] rounded-full text-xs text-gray-300">Pilot Episodes</span>
-                    <span className="px-3 py-1 bg-[#0A0A0A] border border-[#3F3F46] rounded-full text-xs text-gray-300">Short Films</span>
-                    <span className="px-3 py-1 bg-[#0A0A0A] border border-[#3F3F46] rounded-full text-xs text-gray-300">Feature Development</span>
+                    <span className="px-3 py-1 bg-[#0A0A0A] border border-[#3F3F46] rounded-full text-xs text-gray-300">Screenplay Development</span>
+                    <span className="px-3 py-1 bg-[#0A0A0A] border border-[#3F3F46] rounded-full text-xs text-gray-300">Pitch Prep</span>
+                    <span className="px-3 py-1 bg-[#0A0A0A] border border-[#3F3F46] rounded-full text-xs text-gray-300">Pre-Production Planning</span>
+                    <span className="px-3 py-1 bg-[#0A0A0A] border border-[#3F3F46] rounded-full text-xs text-gray-300">Visual Concept Iteration</span>
                   </div>
-                  <p className="text-xs text-gray-500 mt-2 italic">Built for screenplay-first workflows, with optional production visuals and video (coming soon)</p>
+                  <p className="text-xs text-gray-500 mt-2 italic">Built for screenplay-first workflows that connect writing, visual ideation, and planning.</p>
                 </div>
               </div>
             </div>
@@ -235,10 +231,10 @@ export default function Page() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12 md:mb-16 px-4">
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 md:mb-4">
-                Professional Production Consistency
+                Keep creative context across assets
               </h2>
               <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto">
-                One reference, unlimited scenes.
+                From first concept to final selections, stay organized.
               </p>
             </div>
 
@@ -248,7 +244,7 @@ export default function Page() {
                 <div className="text-4xl mb-4">👤</div>
                 <h3 className="text-lg md:text-xl font-bold mb-3">Characters</h3>
                 <p className="text-gray-300">
-                  Same face, voice, and wardrobe across every scene. Virtual try-ons for outfit changes.
+                  Track character intent, look direction, and visual iterations together.
                 </p>
               </div>
 
@@ -257,7 +253,7 @@ export default function Page() {
                 <div className="text-4xl mb-4">📍</div>
                 <h3 className="text-lg md:text-xl font-bold mb-3">Locations</h3>
                 <p className="text-gray-300">
-                  Multiple camera angles per location. Consistent backgrounds across shots.
+                  Organize location concepts with narrative context and scene relevance.
                 </p>
               </div>
 
@@ -266,7 +262,7 @@ export default function Page() {
                 <div className="text-4xl mb-4">🎬</div>
                 <h3 className="text-lg md:text-xl font-bold mb-3">Props</h3>
                 <p className="text-gray-300">
-                  Same prop, multiple angles. Consistent appearance everywhere.
+                  Keep prop references tied to story function, not just image files.
                 </p>
               </div>
             </div>
@@ -281,7 +277,7 @@ export default function Page() {
                 How It Works
               </h2>
               <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto">
-                From first draft to delivery in three steps.
+                Capture ideas, align visuals, and move forward with clarity.
               </p>
             </div>
 
@@ -292,7 +288,7 @@ export default function Page() {
                 </div>
                 <h3 className="text-xl font-bold mb-3">Write</h3>
                 <p className="text-gray-300">
-                  Import your existing screenplay (PDF, Fountain, or paste) or start fresh. Characters and locations auto-detect instantly. Write with AI assistance or on your own.
+                  Start with your screenplay or concept notes. Build story direction in a workspace designed for writing-first development.
                 </p>
               </div>
 
@@ -302,7 +298,7 @@ export default function Page() {
                 </div>
                 <h3 className="text-xl font-bold mb-3">Produce</h3>
                 <p className="text-gray-300">
-                  Generate consistent images from your references: character angles, location packages, wardrobe variations, and props.
+                  Generate and organize visual references while keeping each output connected to its creative intent.
                 </p>
               </div>
 
@@ -315,7 +311,7 @@ export default function Page() {
                   <ComingSoonBadge size="sm" />
                 </h3>
                 <p className="text-gray-300">
-                  Extend approved scenes into optional visual planning. Storyboard-style outputs help with pitching and prep. Video remains an add-on workflow.
+                  Extend selected scenes into visual planning workflows when you are ready for pitching and prep.
                 </p>
               </div>
             </div>
@@ -330,10 +326,7 @@ export default function Page() {
                 AI Writing Agents
               </h2>
               <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto mb-2">
-                5 Specialized Agents Powered by OpenAI, Anthropic, and Google
-              </p>
-              <p className="text-xs sm:text-sm text-gray-400">
-                Five specialized agents work inside your screenplay, not on isolated prompts.
+                Specialized writing support inside your screenplay workflow
               </p>
             </div>
 
@@ -349,9 +342,7 @@ export default function Page() {
                   <p className="text-lg text-gray-300 mb-4">
                     Reads your <strong className="text-white">entire screenplay</strong>. Analyzes structure across all acts, tracks character arcs throughout, identifies plot holes and inconsistencies.
                   </p>
-                  <p className="text-sm text-gray-400 italic mb-4">
-                    "Nothing like this exists for screenwriting. The Story Advisor holds your entire script in context and provides comprehensive analysis."
-                  </p>
+                  <p className="text-sm text-gray-400 italic mb-4">Built to review full-script context so feedback stays coherent across scenes.</p>
                   <ul className="space-y-2 text-sm text-gray-300">
                     <li className="flex items-start gap-2">
                       <span className="text-[#DC143C]">✓</span>
@@ -416,10 +407,10 @@ export default function Page() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12 md:mb-16 px-4">
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 md:mb-4">
-                Complete Screenplay Platform
+                Core capabilities in one workspace
               </h2>
               <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto">
-                Everything you need for screenplay development, with optional visual planning tools.
+                Use only what you need today, then expand your workflow as your project grows.
               </p>
             </div>
 
@@ -503,7 +494,7 @@ export default function Page() {
                 Everything is Free. You Only Pay for Credits.
               </h2>
               <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto">
-                All features unlocked. The only difference is credits per month.
+                Simple access model: core workflow is available early, and usage scales with credits.
               </p>
             </div>
 
@@ -512,6 +503,7 @@ export default function Page() {
                 <h3 className="text-xl md:text-2xl font-bold mb-2">Free Tier</h3>
                 <p className="text-base md:text-lg text-gray-300">50 credits to start + 10 credits/month</p>
                 <p className="text-xs md:text-sm text-gray-400 mt-2">Everything unlocked</p>
+                <p className="text-xs md:text-sm text-gray-500 mt-1">Early supporters help shape roadmap priorities.</p>
               </div>
               <div className="flex justify-center">
                 <Link
@@ -538,16 +530,16 @@ export default function Page() {
         <section className="py-20 bg-[#0A0A0A]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 md:mb-4">
-              Ready to finish your next screenplay?
+              If this problem feels familiar, build with us.
             </h2>
             <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto mb-6 md:mb-8">
-              Join writers using Wryda to draft faster, rewrite with confidence, and deliver stronger pages in a professional screenplay workflow.
+              Join early access to help shape a better way to organize story ideas and AI visuals without losing creative context.
             </p>
             <Link
               href="/sign-up"
               className="inline-flex items-center justify-center px-6 py-3 md:px-8 md:py-4 bg-[#DC143C] text-white font-semibold rounded-lg hover:bg-[#B01030] transition-colors text-base md:text-lg min-h-[44px] w-full sm:w-auto max-w-xs"
             >
-              Start Writing
+              Become a Founding Supporter
             </Link>
           </div>
         </section>

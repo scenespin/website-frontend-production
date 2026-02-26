@@ -6,7 +6,7 @@ import logo from '@/app/icon.png';
 
 export const metadata = getSEOTags({
   title: `How It Works | ${config.appName}`,
-  description: "Learn how writers move from draft to production planning in Wryda.ai using a screenplay-native workflow.",
+  description: "Learn how writers keep ideas, screenplay context, and AI visuals connected in Wryda.ai.",
   canonicalUrlRelative: "/how-it-works",
 });
 
@@ -67,20 +67,20 @@ export default function HowItWorksPage() {
                   How It Works
                 </h1>
                 <p className="text-base sm:text-lg md:text-xl text-gray-300 max-w-xl mb-6 md:mb-8">
-                  Focus on the page. We keep story context connected so you can extend to visuals when you're ready.
+                  Start with writing, keep your creative context intact, and connect AI visuals without losing the story behind them.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3">
                   <Link
                     href="/sign-up"
                     className="inline-flex items-center justify-center px-6 py-3 bg-[#DC143C] text-white font-semibold rounded-lg hover:bg-[#B01030] transition-colors min-h-[44px]"
                   >
-                    Start Writing
+                    Join Early Access
                   </Link>
                   <Link
                     href="/examples"
                     className="inline-flex items-center justify-center px-6 py-3 bg-[#141414] border border-[#3F3F46] text-white font-semibold rounded-lg hover:bg-[#1F1F1F] transition-colors min-h-[44px]"
                   >
-                    View Examples
+                    View Workflow Examples
                   </Link>
                 </div>
               </div>
@@ -91,21 +91,21 @@ export default function HowItWorksPage() {
                     <span className="flex-shrink-0 w-8 h-8 rounded bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-sm font-bold text-white">1</span>
                     <div>
                       <p className="font-medium text-white">Create</p>
-                      <p className="text-sm text-gray-400">Write and connect characters, locations, and props to your script.</p>
+                      <p className="text-sm text-gray-400">Write and capture story context in one place.</p>
                     </div>
                   </div>
                   <div className="rounded-lg border border-[#2F2F2F] bg-[#0E0E0E] p-3 flex items-center gap-3">
                     <span className="flex-shrink-0 w-8 h-8 rounded bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-sm font-bold text-white">2</span>
                     <div>
                       <p className="font-medium text-white">Produce</p>
-                      <p className="text-sm text-gray-400">Turn script context into continuity-ready references and assets.</p>
+                      <p className="text-sm text-gray-400">Generate references and keep them linked to intent.</p>
                     </div>
                   </div>
                   <div className="rounded-lg border border-[#2F2F2F] bg-[#0E0E0E] p-3 flex items-center gap-3">
                     <span className="flex-shrink-0 w-8 h-8 rounded bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-sm font-bold text-white">3</span>
                     <div>
                       <p className="font-medium text-white">Direct</p>
-                      <p className="text-sm text-gray-400">Visual planning and shot progressions when you're ready.</p>
+                      <p className="text-sm text-gray-400">Extend selected scenes into planning workflows.</p>
                     </div>
                   </div>
                 </div>
@@ -180,24 +180,24 @@ export default function HowItWorksPage() {
                       <div>
                         <h4 className="font-semibold mb-2 text-white">Import Your Existing Script</h4>
                         <p className="text-sm text-gray-300 leading-relaxed">
-                          When you import a Fountain script, the system automatically extracts all characters from dialogue and character cues, identifies all locations from scene headings (INT./EXT.), and creates character and location cards ready to use—saving you hours of manual entry.
+                          Import a Fountain script and Wryda automatically extracts characters and locations into reusable cards, reducing manual setup.
                         </p>
                       </div>
                       
                       <div>
                         <h4 className="font-semibold mb-2 text-white">Rescan After Changes</h4>
                         <p className="text-sm text-gray-300 leading-relaxed">
-                          After editing your script, click "Re-scan Script" in the editor toolbar. The system detects new characters and locations you've added, automatically adds them to your project, and updates existing scenes with their new positions. Perfect for when you add a new character in Act 2 or introduce a new location mid-story.
+                          After script edits, use "Re-scan Script" to detect newly added characters and locations and sync them back into your project.
                         </p>
                       </div>
                       
                       <div>
                         <h4 className="font-semibold mb-2 text-white">Create Characters & Locations Outside the Script</h4>
                         <p className="text-sm text-gray-300 leading-relaxed">
-                          You can create characters and locations before they appear in your script. They'll appear with a "Not in Script" label, perfect for planning or reference. When you're ready, write them into your screenplay and rescan—the system automatically links your manually created character or location to the script, removes the "Not in Script" label, and makes them active and linked to scenes.
+                          You can create characters and locations before they appear in the script for planning and reference. Once they are written into your screenplay, a rescan links them automatically.
                         </p>
                         <p className="text-sm text-gray-400 mt-2 italic">
-                          Works for both characters and locations—create "DETECTIVE JONES" or "ABANDONED WAREHOUSE" as reference cards, then add them to your script later and rescan to activate them.
+                          Works for both characters and locations, so planning and writing stay connected from the start.
                         </p>
                       </div>
                     </div>
@@ -222,7 +222,7 @@ export default function HowItWorksPage() {
                       <span className="text-[#DC143C] mt-0.5">•</span>
                       <div>
                         <p className="font-medium text-white">Get AI assistance</p>
-                        <p className="text-sm text-gray-400">Don't have a script? Use Story Advisor to generate your first scene from an idea, then refine it with our other AI agents</p>
+                        <p className="text-sm text-gray-400">Start from an idea, generate a first scene, and refine with specialized agents inside your screenplay workflow</p>
                       </div>
                     </div>
                   </div>
@@ -251,7 +251,7 @@ export default function HowItWorksPage() {
                     </span>
                   </div>
                   <p className="text-lg text-gray-300 leading-relaxed">
-                    Turn screenplay context into continuity-ready references. The Production Hub uses your inputs to generate reusable character, location, and prop sets for planning and prep.
+                    Turn screenplay context into reusable references. The Production Hub helps you generate character, location, and prop sets while preserving continuity and intent.
                   </p>
                   
                   {/* Transform Your Creation Assets Section */}
@@ -262,28 +262,28 @@ export default function HowItWorksPage() {
                       <div>
                         <h4 className="font-semibold mb-2 text-white">Your Uploaded Images Become AI References</h4>
                         <p className="text-sm text-gray-300 leading-relaxed">
-                          The images you upload in the Create section—characters, locations, and props—become the foundation for all AI generation in Production. Open any character, location, or prop in the Production Hub to generate variations, angles, and styles based on your original references.
+                          Images you upload in Create become the foundation for production generation. Open any character, location, or prop to generate variations based on your references.
                         </p>
                       </div>
                       
                       <div>
                         <h4 className="font-semibold mb-2 text-white">Character Generation & Custom Wardrobe</h4>
                         <p className="text-sm text-gray-300 leading-relaxed">
-                          In the Character Bank, generate your characters in different positions, expressions, and poses. Want complete control? Upload your own outfit images—real photos, costumes, or wardrobe pieces. You can literally put yourself or real actors into your scenes with custom clothing, giving you complete control over wardrobe without relying on AI-generated outfits. Perfect for maintaining brand consistency or using specific costumes.
+                          In the Character Bank, generate positions and pose variations, or upload your own wardrobe references for tighter creative control.
                         </p>
                       </div>
                       
                       <div>
                         <h4 className="font-semibold mb-2 text-white">Location Angle Packages & Backgrounds</h4>
                         <p className="text-sm text-gray-300 leading-relaxed">
-                          For locations, generate multiple angle packages from your uploaded reference images. Create wide shots, close-ups, different camera positions, and various backgrounds—all based on your original location photos. Each angle package includes background variations for different times of day, weather conditions, or lighting scenarios, giving you a complete location library for any scene.
+                          For locations, generate angle packages from your references with reusable background variations for different scene needs.
                         </p>
                       </div>
                       
                       <div>
                         <h4 className="font-semibold mb-2 text-white">Props from Multiple Angles</h4>
                         <p className="text-sm text-gray-300 leading-relaxed">
-                          Transform your initial creation images into props viewed from different angles. Generate front, side, top, and detail views—ready to use in any scene from any camera position.
+                          Transform initial prop references into multiple angles so they can be reused across scenes and shot setups.
                         </p>
                       </div>
                     </div>
@@ -294,28 +294,28 @@ export default function HowItWorksPage() {
                       <span className="text-[#DC143C] mt-0.5">•</span>
                       <div>
                         <p className="font-medium text-white">Character variations</p>
-                        <p className="text-sm text-gray-400">Generate characters in different positions, outfits, or morph them into subhuman, supernatural, or any style you imagine</p>
+                        <p className="text-sm text-gray-400">Generate characters in different positions, outfits, and styles while maintaining continuity</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-3">
                       <span className="text-[#DC143C] mt-0.5">•</span>
                       <div>
                         <p className="font-medium text-white">Location angle packages</p>
-                        <p className="text-sm text-gray-400">Create different angle packages and backgrounds from your uploaded location images for use within your scenes</p>
+                        <p className="text-sm text-gray-400">Create angle packages and backgrounds from uploaded location references for scene planning</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-3">
                       <span className="text-[#DC143C] mt-0.5">•</span>
                       <div>
                         <p className="font-medium text-white">Props from multiple angles</p>
-                        <p className="text-sm text-gray-400">Transform your initial creation images into props viewed from different angles, ready to use in any scene</p>
+                        <p className="text-sm text-gray-400">Generate reusable prop views from multiple angles, ready for different camera setups</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-3">
                       <span className="text-[#DC143C] mt-0.5">•</span>
                       <div>
                         <p className="font-medium text-white">Export anywhere</p>
-                        <p className="text-sm text-gray-400">All assets are downloadable and work in any platform—use them in Scene Builder or export to your preferred tools</p>
+                        <p className="text-sm text-gray-400">All assets are downloadable and can be used in Scene Builder or your preferred downstream tools</p>
                       </div>
                     </div>
                   </div>
@@ -347,28 +347,28 @@ export default function HowItWorksPage() {
                     </span>
                   </div>
                   <p className="text-lg text-gray-300 leading-relaxed">
-                    Extend approved writing and references into visual planning workflows. Scene Builder helps stage scene intent into coherent shot progressions and optional video outputs.
+                    Extend approved writing and references into visual planning workflows. Scene Builder helps stage scene intent into coherent shot progressions.
                   </p>
                   <div className="space-y-3 pt-2">
                     <div className="flex items-start gap-3">
                       <span className="text-[#DC143C] mt-0.5">•</span>
                       <div>
                         <p className="font-medium text-white">Scene Builder</p>
-                        <p className="text-sm text-gray-400">Use our motion picture technology to automatically assemble shots based on your scenes</p>
+                        <p className="text-sm text-gray-400">Assemble shot progressions from your scene context and approved references</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-3">
                       <span className="text-[#DC143C] mt-0.5">•</span>
                       <div>
                         <p className="font-medium text-white">Algorithmic composition</p>
-                        <p className="text-sm text-gray-400">Our technology intelligently arranges your Production Hub assets into professional scenes</p>
+                        <p className="text-sm text-gray-400">Compose scenes from Production Hub assets to speed planning and previsualization</p>
                       </div>
                     </div>
                     <div className="flex items-start gap-3">
                       <span className="text-[#DC143C] mt-0.5">•</span>
                       <div>
                         <p className="font-medium text-white">Your assets, your choice</p>
-                        <p className="text-sm text-gray-400">Even if you don't use Scene Builder, all your Production Hub assets are valuable and work in any solution you prefer</p>
+                        <p className="text-sm text-gray-400">Use Scene Builder or export assets into any workflow you prefer</p>
                       </div>
                     </div>
                   </div>
@@ -382,17 +382,17 @@ export default function HowItWorksPage() {
         <section className="py-20 bg-[#141414]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4">
-              Ready to start your next script?
+              If this workflow feels right, build with us.
             </h2>
             <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto mb-8">
-              Write first, then carry the same story context into planning and production workflows as needed.
+              Join early access and help shape a better way to keep writing, ideas, and visuals connected.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
                 href="/sign-up"
                 className="inline-flex items-center justify-center px-6 py-3 md:px-8 md:py-4 bg-[#DC143C] text-white font-semibold rounded-lg hover:bg-[#B01030] transition-colors text-base md:text-lg min-h-[44px] w-full sm:w-auto"
               >
-                Start Writing
+                Become a Founding Supporter
               </Link>
               <Link
                 href="/examples"

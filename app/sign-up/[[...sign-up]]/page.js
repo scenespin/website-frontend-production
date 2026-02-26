@@ -40,7 +40,7 @@ export default function SignUpPage() {
           <div className="space-y-6 order-2 md:order-1">
             {/* Positioning Badge */}
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#141414] border border-[#DC143C]/30 text-sm">
-              <span className="font-semibold text-gray-300">✨ Writer-First, Connected Workflow</span>
+              <span className="font-semibold text-gray-300">✨ Early Access • Writer-First Workflow</span>
             </div>
 
             {/* Main Headline - Dynamic */}
@@ -52,7 +52,7 @@ export default function SignUpPage() {
                 {selectedPlan.signupSubheadline || "Join a professional, screenplay-native workspace for faster drafts, sharper rewrites, and stronger pages."}
               </p>
               <p className="text-sm text-gray-400 mt-2">
-                Carry the same story context from writing into production planning and direction in one connected platform.
+                Keep writing, concept notes, and AI-generated visuals connected in one workflow so creative intent does not get lost between tools.
               </p>
             </div>
 
@@ -64,7 +64,7 @@ export default function SignUpPage() {
               </div>
               <div className="flex items-center gap-2 text-gray-300">
                 <Zap className="w-4 h-4 text-[#DC143C]" />
-                <span>Instant access</span>
+                <span>Instant access to early features</span>
               </div>
               {!isPaidPlan && (
                 <div className="flex items-center gap-2 text-gray-300">
@@ -95,7 +95,7 @@ export default function SignUpPage() {
             <div className="space-y-4">
               <h3 className="font-semibold text-lg flex items-center gap-2 text-white">
                 <Film className="w-5 h-5 text-[#DC143C]" />
-                Your Complete Workflow
+                Your connected workflow
               </h3>
               
               {/* Step 1: CREATE */}
@@ -112,7 +112,7 @@ export default function SignUpPage() {
                     <ul className="text-sm text-gray-300 space-y-1 ml-6">
                       <li>• Write or import Fountain scripts</li>
                       <li>• Use AI writing agents in context</li>
-                      <li>• Auto-detect characters and locations</li>
+                      <li>• Capture concept notes with screenplay context</li>
                     </ul>
                   </div>
                 </div>
@@ -131,7 +131,7 @@ export default function SignUpPage() {
                     </div>
                     <ul className="text-sm text-gray-300 space-y-1 ml-6">
                       <li>• Generate character, location, and prop references</li>
-                      <li>• Build continuity-ready angle packages</li>
+                      <li>• Keep each visual tied to story intent</li>
                     </ul>
                   </div>
                 </div>
@@ -153,7 +153,7 @@ export default function SignUpPage() {
                     </div>
                     <ul className="text-sm text-gray-300 space-y-1 ml-6">
                       <li>• Scene Builder (Beta)</li>
-                      <li>• Export production-ready visual outputs</li>
+                      <li>• Move selected visuals into planning workflows</li>
                     </ul>
                   </div>
                 </div>
@@ -218,23 +218,27 @@ export default function SignUpPage() {
             {/* Cost Comparison Highlight */}
             <div className="bg-gradient-to-r from-[#DC143C]/10 to-transparent rounded-lg p-4 border-l-4 border-[#DC143C]">
               <p className="text-sm font-semibold mb-2 text-white">
-                📊 Built to replace fragmented tools
+                📊 Built to reduce fragmented workflows
               </p>
               <div className="space-y-2 text-xs text-gray-300 mb-3">
-                <p className="font-medium text-white">Instead of stitching together separate tools:</p>
+                <p className="font-medium text-white">Instead of juggling disconnected creative tools:</p>
                 <ul className="space-y-1 ml-4">
-                  <li>• Writing in one app and organizing assets in another → <span className="text-green-400 font-semibold">✅ One connected workflow</span></li>
-                  <li>• Manual asset organization → <span className="text-green-400 font-semibold">✅ Streamlined</span></li>
-                  <li>• Maintaining character/location/prop continuity manually → <span className="text-green-400 font-semibold">✅ Built-in continuity support</span></li>
+                  <li>• Writing in one app and organizing visuals in another → <span className="text-green-400 font-semibold">✅ One connected workflow</span></li>
+                  <li>• Visual outputs without rationale → <span className="text-green-400 font-semibold">✅ Context linked to decisions</span></li>
+                  <li>• Manual continuity tracking across assets → <span className="text-green-400 font-semibold">✅ Built-in continuity support</span></li>
                 </ul>
               </div>
               <p className="text-xs text-gray-300 mb-2">
-                Create all your production assets with screenplay continuity. Download what you need, or use our Scene Builder.
+                Organize production assets with screenplay continuity, then export what you need or extend in Scene Builder.
               </p>
               <p className="text-sm font-semibold text-white">
-                Save hours of manual workflow overhead
+                Build faster with less creative context loss
               </p>
             </div>
+
+            <p className="text-xs text-gray-500">
+              Early supporters shape roadmap priorities as we build in public.
+            </p>
 
             {/* Footer Note */}
             <p className="text-xs text-gray-500">
