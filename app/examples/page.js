@@ -346,8 +346,8 @@ Not everything.`;
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-8">
               <h2 className="text-3xl md:text-4xl font-bold mb-3">Script → Agents → Visuals → Shots</h2>
-              <p className="text-gray-300 max-w-3xl mx-auto">
-                A writing-first flow: shape the story, refine with AI, then carry continuity into planning and shot decisions.
+              <p className="text-gray-300 mx-auto text-sm md:text-base lg:text-lg md:whitespace-nowrap">
+                A writing-first flow: shape story, refine with AI, and carry continuity into shot planning.
               </p>
             </div>
 
