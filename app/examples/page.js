@@ -605,7 +605,7 @@ Not everything.`;
             <div className="text-center mb-8">
               <h2 className="text-3xl md:text-4xl font-bold mb-4">8) Final Video-Ready Handoff</h2>
               <p className="text-gray-300 max-w-3xl mx-auto">
-                Move from approved story frames to final video outcomes with a clean, provider-agnostic handoff built for speed and creative control.
+                Move from approved story frames to final video outcomes with a clean, provider-agnostic handoff built for speed, creative control, and compatibility with your own provider.
               </p>
             </div>
 
