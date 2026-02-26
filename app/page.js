@@ -91,16 +91,16 @@ export default function Page() {
               <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#141414] border border-[#3F3F46] text-sm mb-6">
                 <span className="font-semibold text-gray-300">Early Access</span>
                 <span className="text-gray-600">•</span>
-                <span className="text-gray-300">Building in Public</span>
+                <span className="text-gray-300">Built with Working Writers</span>
               </div>
 
               {/* Main Headline */}
               <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-extrabold tracking-tight mb-4 md:mb-6 px-2">
-                Where your story ideas and AI visuals stay connected.
+                Write the script only you can write.
               </h1>
 
               <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-gray-300 max-w-4xl mx-auto mb-4 md:mb-5 px-4">
-                Wryda is a screenplay-native workspace that helps you organize writing, concept notes, and AI-generated imagery in one connected workflow, so your creative intent does not get lost between tools.
+                Wryda is a professional, screenplay-native workspace for faster drafts, sharper rewrites, and stronger pages, while keeping you in full creative control and carrying your story seamlessly into visual planning and video.
               </p>
 
               {/* CTAs */}
@@ -137,16 +137,16 @@ export default function Page() {
 
               {/* Trust Strip */}
               <div className="mt-5 flex flex-wrap justify-center gap-3 md:gap-4 text-xs sm:text-sm text-gray-400 px-4">
-                <span>Writer-first workflow</span>
+                <span>Built for pro writers</span>
                 <span className="text-gray-600">•</span>
-                <span>Optional AI assistance</span>
+                <span>AI assistance is optional and writer-directed</span>
                 <span className="text-gray-600">•</span>
-                <span>Context stays attached to your visuals</span>
+                <span>Wryda Provenance Ledger: lock and export timestamped, noneditable provenance bundles (PDF + JSON + SHA-256 hash) for WGA and studio policy submission workflows</span>
                 <span className="text-gray-600">•</span>
-                <span>Built for transparent creative development</span>
+                <span>Your screenplay data is not used to train AI models by Wryda or our AI API providers.</span>
               </div>
               <p className="text-xs text-gray-500 mt-4 px-4 max-w-4xl mx-auto">
-                Early-stage product. Features evolve with community feedback.
+                Supports WGA and studio disclosure workflows; not a legal determination, legal advice, or certification of compliance.
               </p>
             </div>
           </div>
