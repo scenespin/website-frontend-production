@@ -56,20 +56,17 @@ export default function Page() {
               </span>
             </Link>
             <nav className="hidden md:flex items-center gap-6">
-              <Link href="/how-it-works" className="text-sm text-gray-300 hover:text-white transition-colors">
-                How It Works
-              </Link>
               <Link href="/features" className="text-sm text-gray-300 hover:text-white transition-colors">
                 Features
+              </Link>
+              <Link href="/examples" className="text-sm text-gray-300 hover:text-white transition-colors">
+                Examples
               </Link>
               <Link href="/compare" className="text-sm text-gray-300 hover:text-white transition-colors">
                 Compare
               </Link>
               <Link href="#pricing" className="text-sm text-gray-300 hover:text-white transition-colors">
                 Pricing
-              </Link>
-              <Link href="/examples" className="text-sm text-gray-300 hover:text-white transition-colors">
-                Examples
               </Link>
               <div className="flex items-center">
                 <ButtonSignin text="Login" extraStyle="!bg-transparent !border-none !text-gray-300 hover:!text-white !px-0 !min-h-0 !h-auto !text-sm !shadow-none !normal-case" />

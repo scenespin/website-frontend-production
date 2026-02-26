@@ -287,14 +287,14 @@ Not everything.`;
               </span>
             </Link>
             <nav className="hidden md:flex items-center gap-6">
-              <Link href="/how-it-works" className="text-sm text-gray-300 hover:text-white transition-colors">
-                How It Works
-              </Link>
               <Link href="/features" className="text-sm text-gray-300 hover:text-white transition-colors">
                 Features
               </Link>
               <Link href="/examples" className="text-sm text-white font-medium">
                 Examples
+              </Link>
+              <Link href="/compare" className="text-sm text-gray-300 hover:text-white transition-colors">
+                Compare
               </Link>
               <Link href="/pricing" className="text-sm text-gray-300 hover:text-white transition-colors">
                 Pricing
