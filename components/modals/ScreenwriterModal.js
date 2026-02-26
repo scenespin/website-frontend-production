@@ -13,6 +13,7 @@ import { getCharactersInScene, buildCharacterSummaries } from '@/utils/character
 import { getTimingMessage } from '@/utils/modelTiming';
 import { createClientLogger } from '@/utils/clientLogger';
 import { extractCreditError, getCreditErrorDisplayMessage, syncCreditsFromError } from '@/utils/creditGuard';
+import { AGENT_BADGE_THEMES } from './editorAgentBadgeThemes';
 import toast from 'react-hot-toast';
 // ModelSelect removed - using DaisyUI select instead
 const ENABLE_EDITOR_AGENT_DEBUG_LOGS =
@@ -612,9 +613,9 @@ CRITICAL SPACING RULES (Fountain.io spec):
                   {/* Desktop: Horizontal layout with icon */}
                   <div className="hidden md:flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg relative overflow-hidden backdrop-blur-lg border-2 border-white/30"
+                      <div className={`flex h-10 w-10 items-center justify-center rounded-lg relative overflow-hidden backdrop-blur-lg border-2 ${AGENT_BADGE_THEMES.screenwriter.borderClass}`}
                         style={{
-                          background: 'linear-gradient(135deg, rgba(99, 102, 241, 0.85) 0%, rgba(79, 70, 229, 0.85) 100%)',
+                          background: AGENT_BADGE_THEMES.screenwriter.gradient,
                         }}
                       >
                         {/* Glass overlay with shine effect */}

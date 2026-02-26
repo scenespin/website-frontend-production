@@ -14,6 +14,7 @@ import { formatFountainSpacing } from '@/utils/fountainSpacing';
 import { getTimingMessage } from '@/utils/modelTiming';
 import { createClientLogger } from '@/utils/clientLogger';
 import { extractCreditError, getCreditErrorDisplayMessage, syncCreditsFromError } from '@/utils/creditGuard';
+import { AGENT_BADGE_THEMES } from './editorAgentBadgeThemes';
 import toast from 'react-hot-toast';
 // ModelSelect removed - using DaisyUI select instead
 const ENABLE_EDITOR_AGENT_DEBUG_LOGS =
@@ -513,9 +514,9 @@ Rules:
                   {/* Desktop: Horizontal layout with icon */}
                   <div className="hidden md:flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="flex h-10 w-10 items-center justify-center rounded-lg relative overflow-hidden backdrop-blur-lg border-2 border-white/30"
+                      <div className={`flex h-10 w-10 items-center justify-center rounded-lg relative overflow-hidden backdrop-blur-lg border-2 ${AGENT_BADGE_THEMES.dialogue.borderClass}`}
                         style={{
-                          background: 'linear-gradient(135deg, rgba(147, 51, 234, 0.85) 0%, rgba(124, 58, 237, 0.85) 100%)',
+                          background: AGENT_BADGE_THEMES.dialogue.gradient,
                         }}
                       >
                         {/* Glass overlay with shine effect */}
