@@ -374,7 +374,9 @@ Not everything.`;
             <div className="rounded-xl border border-[#3F3F46] bg-[#111111] p-5 md:p-6 mb-6">
               <h3 className="text-xl font-semibold mb-3">2) Auto-Detect Story Elements</h3>
               <p className="text-sm text-gray-300 mb-4">
-                Import an existing script or click Scan, and Wryda automatically detects characters and locations from your Fountain context. Props are added manually, then flow through the same continuity and planning pipeline.
+                Import an existing script or click Scan, and Wryda automatically detects characters and locations from your Fountain context.
+                <br />
+                Props are added manually, then flow through the same continuity and planning pipeline.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <StepCaptureCard
