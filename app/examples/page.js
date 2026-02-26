@@ -62,7 +62,7 @@ function StepCaptureCard({ srcCandidates, alt, fallbackLabel, minHeight = "min-h
         <img
           src={activeSource}
           alt={alt}
-          className="h-full w-full object-cover"
+          className="h-full w-full object-contain bg-[#0B0B0B]"
           loading="lazy"
           onError={() => {
             if (sourceIndex < sources.length - 1) {
