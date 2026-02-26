@@ -508,15 +508,16 @@ Rules:
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className="relative w-full max-w-2xl transform overflow-hidden rounded-2xl bg-base-100 shadow-xl transition-all max-h-[90vh] flex flex-col">
+              <Dialog.Panel className="cinema-modal-panel relative w-full max-w-2xl transform overflow-hidden rounded-2xl transition-all max-h-[90vh] flex flex-col">
                 {/* Header */}
-                <div className="border-b border-base-300 px-6 py-4 flex-shrink-0">
+                <div className="cinema-modal-header border-b px-6 py-4 flex-shrink-0">
                   {/* Desktop: Horizontal layout with icon */}
                   <div className="hidden md:flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className={`flex h-10 w-10 items-center justify-center rounded-lg relative overflow-hidden backdrop-blur-lg border-2 ${AGENT_BADGE_THEMES.dialogue.borderClass}`}
                         style={{
                           background: AGENT_BADGE_THEMES.dialogue.gradient,
+                          boxShadow: AGENT_BADGE_THEMES.dialogue.glow,
                         }}
                       >
                         {/* Glass overlay with shine effect */}
@@ -540,7 +541,7 @@ Rules:
                         value={selectedModel}
                         onChange={(e) => handleModelChange(e.target.value)}
                         disabled={isLoading}
-                        className="select select-bordered select-sm max-w-[140px]"
+                        className="select select-bordered select-sm max-w-[140px] cinema-modal-select"
                       >
                         {(() => {
                           const grouped = LLM_MODELS.reduce((acc, model) => {
@@ -593,7 +594,7 @@ Rules:
                       value={selectedModel}
                       onChange={(e) => handleModelChange(e.target.value)}
                       disabled={isLoading}
-                      className="select select-bordered select-sm w-full"
+                      className="select select-bordered select-sm w-full cinema-modal-select"
                     >
                       {(() => {
                         const grouped = LLM_MODELS.reduce((acc, model) => {
@@ -629,7 +630,7 @@ Rules:
                         onChange={(e) => setSceneHeading(e.target.value)}
                         disabled={isLoading}
                         placeholder="e.g., INT. WAREHOUSE - NIGHT"
-                        className="input input-bordered w-full"
+                        className="input input-bordered w-full cinema-modal-input"
                       />
                     </div>
 
@@ -642,7 +643,7 @@ Rules:
                         value={act.toString()}
                         onChange={(e) => setAct(Number(e.target.value))}
                         disabled={isLoading}
-                        className="select select-bordered w-full"
+                        className="select select-bordered w-full cinema-modal-select"
                       >
                         <option value="1">Act 1</option>
                         <option value="2">Act 2</option>
@@ -655,7 +656,7 @@ Rules:
                       <label className="label">
                         <span className="label-text">Characters *</span>
                       </label>
-                      <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto border border-base-300 rounded-lg p-3">
+                      <div className="cinema-modal-surface grid grid-cols-2 gap-2 max-h-32 overflow-y-auto border rounded-lg p-3">
                         {characters && characters.length > 0 ? (
                           characters.map((char) => (
                             <label key={char.id} className="flex items-center gap-2 cursor-pointer">
@@ -685,7 +686,7 @@ Rules:
                         onChange={(e) => setConflict(e.target.value)}
                         disabled={isLoading}
                         placeholder="Describe the conflict, tension, or what's at stake in this dialogue..."
-                        className="textarea textarea-bordered w-full h-24 resize-none"
+                        className="textarea textarea-bordered w-full h-24 resize-none cinema-modal-textarea"
                         required
                       />
                     </div>
@@ -715,7 +716,7 @@ Rules:
                           onChange={(e) => setCustomTone(e.target.value)}
                           disabled={isLoading}
                           placeholder="Describe the tone..."
-                          className="input input-bordered w-full"
+                          className="input input-bordered w-full cinema-modal-input"
                         />
                       )}
                     </div>
@@ -730,7 +731,7 @@ Rules:
                         onChange={(e) => setSubtext(e.target.value)}
                         disabled={isLoading}
                         placeholder="What's really being communicated beneath the surface?"
-                        className="textarea textarea-bordered w-full h-20 resize-none"
+                        className="textarea textarea-bordered w-full h-20 resize-none cinema-modal-textarea"
                       />
                     </div>
 
@@ -745,7 +746,7 @@ Rules:
                         Advanced Options
                       </button>
                       {showAdvanced && (
-                        <div className="mt-2 space-y-4 pl-6 border-l-2 border-base-300">
+                        <div className="mt-2 space-y-4 pl-6 border-l-2 border-[#3F3F46]">
                           <div>
                             <label className="label">
                               <span className="label-text">Character Wants</span>
@@ -755,7 +756,7 @@ Rules:
                               onChange={(e) => setCharacterWants(e.target.value)}
                               disabled={isLoading}
                               placeholder="What does each character want in this dialogue?"
-                              className="textarea textarea-bordered w-full h-20 resize-none"
+                              className="textarea textarea-bordered w-full h-20 resize-none cinema-modal-textarea"
                             />
                           </div>
                           <div>
@@ -767,7 +768,7 @@ Rules:
                               onChange={(e) => setPowerDynamics(e.target.value)}
                               disabled={isLoading}
                               placeholder="Who has power in this scene? How does it shift?"
-                              className="textarea textarea-bordered w-full h-20 resize-none"
+                              className="textarea textarea-bordered w-full h-20 resize-none cinema-modal-textarea"
                             />
                           </div>
                           <div>
@@ -779,14 +780,14 @@ Rules:
                               onChange={(e) => setSpecificLines(e.target.value)}
                               disabled={isLoading}
                               placeholder="Any specific dialogue lines you want to include?"
-                              className="textarea textarea-bordered w-full h-20 resize-none"
+                              className="textarea textarea-bordered w-full h-20 resize-none cinema-modal-textarea"
                             />
                           </div>
                         </div>
                       )}
                     </div>
 
-                    <div className="flex gap-2 justify-end pt-4 border-t border-base-300">
+                    <div className="flex gap-2 justify-end pt-4 border-t border-[#3F3F46]">
                       <button
                         type="button"
                         onClick={onClose}
@@ -814,15 +815,15 @@ Rules:
                   
                   {/* Enhanced Loading Overlay */}
                   {isLoading && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-base-100/90 backdrop-blur-sm z-10">
-                      <div className="flex flex-col items-center gap-4 p-6 bg-base-200 rounded-lg shadow-xl max-w-sm w-full mx-4">
+                    <div className="cinema-modal-loading-overlay absolute inset-0 flex items-center justify-center backdrop-blur-sm z-10">
+                      <div className="cinema-modal-overlay-card flex flex-col items-center gap-4 p-6 rounded-lg shadow-xl max-w-sm w-full mx-4">
                         <Loader2 className="h-10 w-10 animate-spin text-primary" />
                         
                         {/* Two-stage loading indicator with smooth animations */}
                         <div className="flex flex-col items-center gap-2 w-full">
                           <div className="flex items-center gap-2 w-full">
                             {/* Building stage progress bar - CSS handles smooth animation */}
-                            <div className="h-2 flex-1 rounded-full bg-base-300 overflow-hidden">
+                            <div className="h-2 flex-1 rounded-full bg-[#2A2A2A] overflow-hidden">
                               <div 
                                 className={`h-full rounded-full transition-all duration-[2000ms] ease-out ${
                                   loadingStage === 'building' || loadingStage === 'generating' 
@@ -832,12 +833,12 @@ Rules:
                               />
                             </div>
                             {/* Generating stage progress bar - CSS handles smooth animation */}
-                            <div className="h-2 flex-1 rounded-full bg-base-300 overflow-hidden">
+                            <div className="h-2 flex-1 rounded-full bg-[#2A2A2A] overflow-hidden">
                               <div 
                                 className={`h-full rounded-full transition-all duration-500 ease-out ${
                                   loadingStage === 'generating' 
                                     ? 'bg-primary w-full' 
-                                    : 'bg-base-300 w-0'
+                                    : 'bg-[#2A2A2A] w-0'
                                 }`}
                               />
                             </div>

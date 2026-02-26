@@ -738,15 +738,16 @@ export default function RewriteModal({
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className="relative w-full max-w-md transform overflow-hidden rounded-2xl bg-base-100 shadow-xl transition-all">
+              <Dialog.Panel className="cinema-modal-panel relative w-full max-w-md transform overflow-hidden rounded-2xl transition-all">
                 {/* Header */}
-                <div className="border-b border-base-300 px-6 py-4">
+                <div className="cinema-modal-header border-b px-6 py-4">
                   {/* Desktop: Horizontal layout with icon */}
                   <div className="hidden md:flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className={`flex h-10 w-10 items-center justify-center rounded-lg relative overflow-hidden backdrop-blur-lg border-2 ${AGENT_BADGE_THEMES.rewrite.borderClass}`}
                         style={{
                           background: AGENT_BADGE_THEMES.rewrite.gradient,
+                          boxShadow: AGENT_BADGE_THEMES.rewrite.glow,
                         }}
                       >
                         {/* Glass overlay with shine effect */}
@@ -770,7 +771,7 @@ export default function RewriteModal({
                         value={selectedModel}
                         onChange={(e) => handleModelChange(e.target.value)}
                         disabled={isLoading}
-                        className="select select-bordered select-sm max-w-[140px]"
+                        className="select select-bordered select-sm max-w-[140px] cinema-modal-select"
                       >
                         {(() => {
                           const grouped = LLM_MODELS.reduce((acc, model) => {
@@ -823,7 +824,7 @@ export default function RewriteModal({
                       value={selectedModel}
                       onChange={(e) => handleModelChange(e.target.value)}
                       disabled={isLoading}
-                      className="select select-bordered select-sm w-full"
+                      className="select select-bordered select-sm w-full cinema-modal-select"
                     >
                       {(() => {
                         const grouped = LLM_MODELS.reduce((acc, model) => {
@@ -872,7 +873,7 @@ export default function RewriteModal({
                       <button
                         onClick={() => setShowCustomInput(true)}
                         disabled={isLoading}
-                        className="btn btn-ghost btn-block gap-2 border border-base-300"
+                        className="btn btn-ghost btn-block gap-2 border border-[#3F3F46]"
                       >
                         <Edit3 className="h-4 w-4" />
                         <span className="text-xs">Custom rewrite...</span>
@@ -892,7 +893,7 @@ export default function RewriteModal({
                           onChange={(e) => setCustomPrompt(e.target.value)}
                           disabled={isLoading}
                           placeholder="e.g., make this more suspenseful, add internal monologue, improve pacing..."
-                          className="textarea textarea-bordered w-full h-24 resize-none"
+                          className="textarea textarea-bordered w-full h-24 resize-none cinema-modal-textarea"
                           style={{ fontSize: '16px' }}
                           autoFocus
                         />
@@ -932,15 +933,15 @@ export default function RewriteModal({
                   
                   {/* Enhanced Loading Overlay */}
                   {isLoading && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-base-100/90 backdrop-blur-sm z-10">
-                      <div className="flex flex-col items-center gap-4 p-6 bg-base-200 rounded-lg shadow-xl max-w-sm w-full mx-4">
+                    <div className="cinema-modal-loading-overlay absolute inset-0 flex items-center justify-center backdrop-blur-sm z-10">
+                      <div className="cinema-modal-overlay-card flex flex-col items-center gap-4 p-6 rounded-lg shadow-xl max-w-sm w-full mx-4">
                         <Loader2 className="h-10 w-10 animate-spin text-primary" />
                         
                         {/* Two-stage loading indicator with smooth animations */}
                         <div className="flex flex-col items-center gap-2 w-full">
                           <div className="flex items-center gap-2 w-full">
                             {/* Building stage progress bar - CSS handles smooth animation */}
-                            <div className="h-2 flex-1 rounded-full bg-base-300 overflow-hidden">
+                            <div className="h-2 flex-1 rounded-full bg-[#2A2A2A] overflow-hidden">
                               <div 
                                 className={`h-full rounded-full transition-all duration-[2000ms] ease-out ${
                                   loadingStage === 'building' || loadingStage === 'generating' 
@@ -950,12 +951,12 @@ export default function RewriteModal({
                               />
                             </div>
                             {/* Generating stage progress bar - CSS handles smooth animation */}
-                            <div className="h-2 flex-1 rounded-full bg-base-300 overflow-hidden">
+                            <div className="h-2 flex-1 rounded-full bg-[#2A2A2A] overflow-hidden">
                               <div 
                                 className={`h-full rounded-full transition-all duration-500 ease-out ${
                                   loadingStage === 'generating' 
                                     ? 'bg-primary w-full' 
-                                    : 'bg-base-300 w-0'
+                                    : 'bg-[#2A2A2A] w-0'
                                 }`}
                               />
                             </div>

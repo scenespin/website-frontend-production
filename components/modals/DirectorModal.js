@@ -584,15 +584,16 @@ Rules:
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className="relative w-full max-w-2xl transform overflow-hidden rounded-2xl bg-base-100 shadow-xl transition-all max-h-[90vh] flex flex-col">
+              <Dialog.Panel className="cinema-modal-panel relative w-full max-w-2xl transform overflow-hidden rounded-2xl transition-all max-h-[90vh] flex flex-col">
                 {/* Header */}
-                <div className="border-b border-base-300 px-6 py-4 flex-shrink-0">
+                <div className="cinema-modal-header border-b px-6 py-4 flex-shrink-0">
                   {/* Desktop: Horizontal layout with icon */}
                   <div className="hidden md:flex items-center justify-between">
                     <div className="flex items-center gap-3">
                       <div className={`flex h-10 w-10 items-center justify-center rounded-lg relative overflow-hidden backdrop-blur-lg border-2 ${AGENT_BADGE_THEMES.director.borderClass}`}
                         style={{
                           background: AGENT_BADGE_THEMES.director.gradient,
+                          boxShadow: AGENT_BADGE_THEMES.director.glow,
                         }}
                       >
                         {/* Glass overlay with shine effect */}
@@ -616,7 +617,7 @@ Rules:
                         value={selectedModel}
                         onChange={(e) => handleModelChange(e.target.value)}
                         disabled={isLoading}
-                        className="select select-bordered select-sm max-w-[140px]"
+                        className="select select-bordered select-sm max-w-[140px] cinema-modal-select"
                       >
                         {(() => {
                           const grouped = LLM_MODELS.reduce((acc, model) => {
@@ -669,7 +670,7 @@ Rules:
                       value={selectedModel}
                       onChange={(e) => handleModelChange(e.target.value)}
                       disabled={isLoading}
-                      className="select select-bordered select-sm w-full"
+                      className="select select-bordered select-sm w-full cinema-modal-select"
                     >
                       {(() => {
                         const grouped = LLM_MODELS.reduce((acc, model) => {
@@ -716,7 +717,7 @@ Rules:
 
                     {/* Scene Forms */}
                     {scenes.map((scene, index) => (
-                      <div key={index} className="border border-base-300 rounded-lg p-4 space-y-4">
+                      <div key={index} className="cinema-modal-surface border rounded-lg p-4 space-y-4">
                         <div className="flex items-center justify-between mb-2">
                           <h4 className="font-semibold text-base-content">Scene {index + 1}</h4>
                         </div>
@@ -731,7 +732,7 @@ Rules:
                             onChange={(e) => updateScene(index, 'location', e.target.value)}
                             disabled={isLoading}
                             placeholder="e.g., INT. WAREHOUSE - NIGHT or EXT. PARK - DAY"
-                            className="input input-bordered w-full"
+                            className="input input-bordered w-full cinema-modal-input"
                             autoFocus={index === 0 && !scene.location}
                           />
                           <label className="label">
@@ -750,7 +751,7 @@ Rules:
                             onChange={(e) => updateScene(index, 'scenario', e.target.value)}
                             disabled={isLoading}
                             placeholder="What happens in this scene? Describe the action, characters, and key events."
-                            className="textarea textarea-bordered w-full h-24 resize-none"
+                            className="textarea textarea-bordered w-full h-24 resize-none cinema-modal-textarea"
                           />
                         </div>
 
@@ -763,13 +764,13 @@ Rules:
                             onChange={(e) => updateScene(index, 'direction', e.target.value)}
                             disabled={isLoading}
                             placeholder="Tone, pacing, visual style, camera direction, etc."
-                            className="textarea textarea-bordered w-full h-20 resize-none"
+                            className="textarea textarea-bordered w-full h-20 resize-none cinema-modal-textarea"
                           />
                         </div>
                       </div>
                     ))}
 
-                    <div className="flex gap-2 justify-end pt-4 border-t border-base-300">
+                    <div className="flex gap-2 justify-end pt-4 border-t border-[#3F3F46]">
                       <button
                         type="button"
                         onClick={onClose}
@@ -797,15 +798,15 @@ Rules:
                   
                   {/* Enhanced Loading Overlay */}
                   {isLoading && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-base-100/90 backdrop-blur-sm z-10">
-                      <div className="flex flex-col items-center gap-4 p-6 bg-base-200 rounded-lg shadow-xl max-w-sm w-full mx-4">
+                    <div className="cinema-modal-loading-overlay absolute inset-0 flex items-center justify-center backdrop-blur-sm z-10">
+                      <div className="cinema-modal-overlay-card flex flex-col items-center gap-4 p-6 rounded-lg shadow-xl max-w-sm w-full mx-4">
                         <Loader2 className="h-10 w-10 animate-spin text-primary" />
                         
                         {/* Two-stage loading indicator with smooth animations */}
                         <div className="flex flex-col items-center gap-2 w-full">
                           <div className="flex items-center gap-2 w-full">
                             {/* Building stage progress bar - CSS handles smooth animation */}
-                            <div className="h-2 flex-1 rounded-full bg-base-300 overflow-hidden">
+                            <div className="h-2 flex-1 rounded-full bg-[#2A2A2A] overflow-hidden">
                               <div 
                                 className={`h-full rounded-full transition-all duration-[2000ms] ease-out ${
                                   loadingStage === 'building' || loadingStage === 'generating' 
@@ -815,12 +816,12 @@ Rules:
                               />
                             </div>
                             {/* Generating stage progress bar - CSS handles smooth animation */}
-                            <div className="h-2 flex-1 rounded-full bg-base-300 overflow-hidden">
+                            <div className="h-2 flex-1 rounded-full bg-[#2A2A2A] overflow-hidden">
                               <div 
                                 className={`h-full rounded-full transition-all duration-500 ease-out ${
                                   loadingStage === 'generating' 
                                     ? 'bg-primary w-full' 
-                                    : 'bg-base-300 w-0'
+                                    : 'bg-[#2A2A2A] w-0'
                                 }`}
                               />
                             </div>

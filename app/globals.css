@@ -211,6 +211,54 @@ progress::-webkit-progress-value {
   opacity: 0.9;
 }
 
+/* ===== CINEMA MODAL SURFACE TOKENS ===== */
+.cinema-modal-panel {
+  background: #141414;
+  border: 1px solid #3F3F46;
+  box-shadow: 0 24px 48px rgba(0, 0, 0, 0.45);
+}
+
+.cinema-modal-header {
+  background: #141414;
+  border-color: #3F3F46;
+}
+
+.cinema-modal-surface {
+  background: #1F1F1F;
+  border-color: #3F3F46;
+}
+
+.cinema-modal-input,
+.cinema-modal-select,
+.cinema-modal-textarea {
+  background: #1F1F1F !important;
+  border-color: #3F3F46 !important;
+  color: #FFFFFF !important;
+}
+
+.cinema-modal-input::placeholder,
+.cinema-modal-select::placeholder,
+.cinema-modal-textarea::placeholder {
+  color: #808080 !important;
+}
+
+.cinema-modal-input:focus,
+.cinema-modal-select:focus,
+.cinema-modal-textarea:focus {
+  border-color: #DC143C !important;
+  box-shadow: 0 0 0 2px rgba(220, 20, 60, 0.2);
+  outline: none;
+}
+
+.cinema-modal-loading-overlay {
+  background: rgba(10, 10, 10, 0.92);
+}
+
+.cinema-modal-overlay-card {
+  background: #141414;
+  border: 1px solid #3F3F46;
+}
+
 /* ===== CLEAN EDITOR SCROLLBARS ===== */
 /* Hide scrollbars for editor textarea while keeping functionality */
 .editor-textarea-clean {
