@@ -67,7 +67,7 @@ export default function HowItWorksPage() {
                   How It Works
                 </h1>
                 <p className="text-base sm:text-lg md:text-xl text-gray-300 max-w-xl mb-6 md:mb-8">
-                  Start with writing, keep your creative context intact, and connect AI visuals without losing the story behind them.
+                  Start with writing, then carry the same story intent through CREATE, PRODUCE, and DIRECT.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3">
                   <Link
@@ -169,7 +169,7 @@ export default function HowItWorksPage() {
                     </span>
                   </div>
                   <p className="text-lg text-gray-300 leading-relaxed">
-                    Start with the page. In Create, you build script context first, then connect supporting characters, locations, and props so everything stays grounded in your screenplay.
+                    Start with the page. In Create, you build story and screenplay context first, then connect supporting characters, locations, and props.
                   </p>
                   
                   {/* Import & Smart Detection Section */}
@@ -251,7 +251,7 @@ export default function HowItWorksPage() {
                     </span>
                   </div>
                   <p className="text-lg text-gray-300 leading-relaxed">
-                    Turn screenplay context into reusable references. The Production Hub helps you generate character, location, and prop sets while preserving continuity and intent.
+                    Turn screenplay context into reusable references. The Production Hub generates character, location, and prop sets that stay tied to your script decisions.
                   </p>
                   
                   {/* Transform Your Creation Assets Section */}
@@ -347,7 +347,7 @@ export default function HowItWorksPage() {
                     </span>
                   </div>
                   <p className="text-lg text-gray-300 leading-relaxed">
-                    Extend approved writing and references into visual planning workflows. Scene Builder helps stage scene intent into coherent shot progressions.
+                    Extend approved writing and references into visual planning workflows. Scene Builder helps stage scene intent into coherent shot progressions for execution.
                   </p>
                   <div className="space-y-3 pt-2">
                     <div className="flex items-start gap-3">

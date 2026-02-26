@@ -52,7 +52,7 @@ export default function SignUpPage() {
                 {selectedPlan.signupSubheadline || "Join a professional, screenplay-native workspace for faster drafts, sharper rewrites, and stronger pages."}
               </p>
               <p className="text-sm text-gray-400 mt-2">
-                Keep writing, concept notes, and AI-generated visuals connected in one workflow so creative intent does not get lost between tools.
+                Keep writing, concept notes, and generated visuals aligned in one screenplay-native workflow.
               </p>
             </div>
 
@@ -232,7 +232,7 @@ export default function SignUpPage() {
                 Organize production assets with screenplay continuity, then export what you need or extend in Scene Builder.
               </p>
               <p className="text-sm font-semibold text-white">
-                Build faster with less creative context loss
+                Move faster while keeping story intent intact
               </p>
             </div>
 

@@ -209,7 +209,7 @@ export default function Page() {
               <div className="bg-[#141414] border border-[#DC143C]/30 rounded-lg p-6">
                 <h3 className="text-xl font-bold mb-3 text-[#DC143C]">Why this workflow is different</h3>
                 <p className="text-gray-300 mb-4">
-                  Wryda treats visuals as part of story development, not isolated assets. Each image can stay connected to the writing and creative choices that produced it, so you can iterate faster without losing context.
+                  Wryda keeps screenplay decisions as the source of truth. Visual outputs are generated from that story foundation, so iteration stays aligned instead of drifting into disconnected assets.
                 </p>
                 <div className="mt-4 pt-4 border-t border-[#3F3F46]">
                   <p className="text-sm font-semibold text-gray-300 mb-2">Best For:</p>
@@ -234,7 +234,7 @@ export default function Page() {
                 Keep creative context across assets
               </h2>
               <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto">
-                From first concept to final selections, stay organized.
+                Carry one story intent across characters, locations, and props.
               </p>
             </div>
 
@@ -410,7 +410,7 @@ export default function Page() {
                 Core capabilities in one workspace
               </h2>
               <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto">
-                Use only what you need today, then expand your workflow as your project grows.
+                Built around screenplay development first, with connected production support when you need it.
               </p>
             </div>
 
@@ -533,7 +533,7 @@ export default function Page() {
               If this problem feels familiar, build with us.
             </h2>
             <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto mb-6 md:mb-8">
-              Join early access to help shape a better way to organize story ideas and AI visuals without losing creative context.
+              Join early access to help shape a writer-first platform where ideas, writing, and visuals stay aligned.
             </p>
             <Link
               href="/sign-up"
