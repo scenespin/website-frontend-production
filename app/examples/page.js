@@ -22,6 +22,12 @@ const step2CaptureSources = {
 };
 const step1CaptureSource = captureCandidates("/examples/captures/cap_s1_script_capture_01");
 const step3AgentsCaptureSource = captureCandidates("/examples/captures/cap_s3_agents_capture_01");
+const step3AgentsOutputSources = [
+  captureCandidates("/examples/captures/cap_s3_agents_output_01"),
+  captureCandidates("/examples/captures/cap_s3_agents_output_02"),
+  captureCandidates("/examples/captures/cap_s3_agents_output_03"),
+  captureCandidates("/examples/captures/cap_s3_agents_output_04"),
+];
 const step3CaptureSources = {
   characterReference: captureCandidates("/examples/captures/cap_s3_character_reference_01"),
   clothingInput: captureCandidates("/examples/captures/cap_s3_clothing_input_01"),
@@ -88,6 +94,43 @@ function StepCaptureCard({ srcCandidates, alt, fallbackLabel, onOpen }) {
         </div>
       ) : null}
     </button>
+  );
+}
+
+function AgentsMiniCaptureCard({ srcCandidates, alt, fallbackLabel }) {
+  const sources = Array.isArray(srcCandidates) ? srcCandidates : [srcCandidates];
+  const [sourceIndex, setSourceIndex] = useState(0);
+  const [hasError, setHasError] = useState(false);
+  const activeSource = sources[sourceIndex];
+
+  useEffect(() => {
+    setSourceIndex(0);
+    setHasError(false);
+  }, [sources.join("|")]);
+
+  return (
+    <div className="relative w-full aspect-video overflow-hidden rounded-lg border border-[#2F2F2F] bg-[#0B0B0B]">
+      {!hasError && activeSource ? (
+        <img
+          src={activeSource}
+          alt={alt}
+          className="h-full w-full object-cover scale-[1.08]"
+          loading="lazy"
+          onError={() => {
+            if (sourceIndex < sources.length - 1) {
+              setSourceIndex((index) => index + 1);
+              return;
+            }
+            setHasError(true);
+          }}
+        />
+      ) : null}
+      {hasError ? (
+        <div className="absolute inset-0 flex items-center justify-center p-3">
+          <p className="text-xs text-gray-500 text-center">{fallbackLabel}</p>
+        </div>
+      ) : null}
+    </div>
   );
 }
 
@@ -195,7 +238,7 @@ Not everything.`;
             <div className="text-center mb-8">
               <h2 className="text-3xl md:text-4xl font-bold mb-3">Script → Agents → Visuals → Shots</h2>
               <p className="text-gray-300 max-w-3xl mx-auto">
-                A writing-first flow: shape the story, refine with AI, then carry continuity into visual planning and shot decisions.
+                A writing-first flow: shape the story, refine with AI, then carry continuity into planning and shot decisions.
               </p>
             </div>
 
@@ -269,6 +312,16 @@ Not everything.`;
                 <div className="rounded-lg border border-[#2F2F2F] bg-[#0E0E0E] px-3 py-2 text-sm text-gray-300">
                   Revision options you can apply directly to the working script.
                 </div>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
+                {step3AgentsOutputSources.map((sources, index) => (
+                  <AgentsMiniCaptureCard
+                    key={`agents-mini-${index + 1}`}
+                    srcCandidates={sources}
+                    alt={`AI agent output example ${index + 1}`}
+                    fallbackLabel={`Agent output ${index + 1}`}
+                  />
+                ))}
               </div>
             </div>
 
