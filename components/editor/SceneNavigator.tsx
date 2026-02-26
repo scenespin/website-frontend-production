@@ -41,6 +41,11 @@ export default function SceneNavigator({ currentLine, onSceneClick, className = 
     );
     const isInitializing = loadPhase === 'resolving-id' || loadPhase === 'loading-structure';
     const hasSceneLoadError = loadPhase === 'error' || Boolean(screenplay?.error);
+
+    const requestStructureReload = () => {
+        window.dispatchEvent(new CustomEvent('refreshScenes'));
+        window.dispatchEvent(new CustomEvent('reloadScreenplayStructure'));
+    };
     
     // 🔥 FIX: Add timeout fallback - if initialization takes more than 10 seconds, show empty state
     // This prevents infinite loading spinner if API calls hang
@@ -246,7 +251,7 @@ export default function SceneNavigator({ currentLine, onSceneClick, className = 
                 <button
                     type="button"
                     className="btn btn-xs btn-outline"
-                    onClick={() => window.dispatchEvent(new CustomEvent('refreshScenes'))}
+                    onClick={requestStructureReload}
                 >
                     Refresh Scene Load
                 </button>
@@ -266,7 +271,7 @@ export default function SceneNavigator({ currentLine, onSceneClick, className = 
                 <button
                     type="button"
                     className="btn btn-xs btn-outline"
-                    onClick={() => window.dispatchEvent(new CustomEvent('refreshScenes'))}
+                    onClick={requestStructureReload}
                 >
                     Retry Scene Load
                 </button>

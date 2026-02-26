@@ -1278,6 +1278,23 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         // 🔥 FIX #3: Only depend on stable values - use refs inside handler instead
     }, [screenplayId, getToken, buildRelationshipsFromScenes]);
 
+    // Allow retry surfaces to request a full structure reload
+    // (scenes + characters + locations + assets), not only scenes.
+    useEffect(() => {
+        if (!screenplayId) return;
+
+        const handleReloadScreenplayStructure = () => {
+            console.log('[ScreenplayContext] 🔄 Full structure reload requested');
+            forceReloadRef.current = true;
+            setReloadTrigger(prev => prev + 1);
+        };
+
+        window.addEventListener('reloadScreenplayStructure', handleReloadScreenplayStructure);
+        return () => {
+            window.removeEventListener('reloadScreenplayStructure', handleReloadScreenplayStructure);
+        };
+    }, [screenplayId]);
+
     // 🔥 FIX: Reset initialization guard when user changes (logout/login)
     const previousUserIdRef = useRef<string | null>(null);
     useEffect(() => {
@@ -1374,13 +1391,39 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         }
                     };
                     
-                    // Load scenes, characters, locations, and assets in parallel
-                    const [scenesData, charactersData, locationsData, assetsData] = await Promise.all([
+                    // Load scenes, characters, locations, and assets in parallel.
+                    // Use allSettled so a transient failure in one endpoint doesn't blank everything.
+                    const [scenesResult, charactersResult, locationsResult, assetsResult] = await Promise.allSettled([
                         listScenesWithRetry(),
-                        listCharacters(screenplayId, getToken, 'creation'), // 🔥 FIX: Creation section should ONLY see Creation images (not Production Hub images)
-                        listLocations(screenplayId, getToken, 'creation'), // 🔥 FIX: Creation section should ONLY see Creation images (not Production Hub images)
-                        api.assetBank.list(screenplayId, 'creation').catch(() => ({ assets: [] })) // 🔥 FIX: Creation section should ONLY see Creation images (not Production Hub images)
+                        listCharacters(screenplayId, getToken, 'creation'), // Creation section should only see creation images
+                        listLocations(screenplayId, getToken, 'creation'), // Creation section should only see creation images
+                        api.assetBank.list(screenplayId, 'creation') // Creation section should only see creation images
                     ]);
+
+                    if (scenesResult.status !== 'fulfilled') {
+                        throw scenesResult.reason;
+                    }
+
+                    const scenesData = scenesResult.value;
+                    const charactersData = charactersResult.status === 'fulfilled'
+                        ? charactersResult.value
+                        : charactersRef.current;
+                    const locationsData = locationsResult.status === 'fulfilled'
+                        ? locationsResult.value
+                        : locationsRef.current;
+                    const assetsData = assetsResult.status === 'fulfilled'
+                        ? assetsResult.value
+                        : { assets: assetsRef.current };
+
+                    if (charactersResult.status !== 'fulfilled') {
+                        console.warn('[ScreenplayContext] ⚠️ Failed to load characters during init; preserving existing state', charactersResult.reason);
+                    }
+                    if (locationsResult.status !== 'fulfilled') {
+                        console.warn('[ScreenplayContext] ⚠️ Failed to load locations during init; preserving existing state', locationsResult.reason);
+                    }
+                    if (assetsResult.status !== 'fulfilled') {
+                        console.warn('[ScreenplayContext] ⚠️ Failed to load assets during init; preserving existing state', assetsResult.reason);
+                    }
                     
                     console.log('[ScreenplayContext] 📦 Raw API response:', {
                         scenes: scenesData.length,

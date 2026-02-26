@@ -1012,13 +1012,16 @@ export async function listScenes(
   
   const response = await fetch(`/api/screenplays/${screenplayId}/scenes`, {
     headers: {
-      'Authorization': `Bearer ${token}`
-    }
+      'Authorization': `Bearer ${token}`,
+      'Cache-Control': 'no-cache, no-store, must-revalidate',
+      'Pragma': 'no-cache'
+    },
+    cache: 'no-store'
   });
 
   if (!response.ok) {
-    const error = await response.json();
-    const listError: any = new Error(error.message || 'Failed to list scenes');
+    const errorPayload = await response.json().catch(() => ({ message: 'Failed to list scenes' }));
+    const listError: any = new Error(errorPayload.message || 'Failed to list scenes');
     listError.statusCode = response.status;
     throw listError;
   }

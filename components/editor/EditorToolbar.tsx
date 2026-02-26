@@ -334,7 +334,9 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
     const savedCursorPositionRef = useRef<number | null>(null);
     const [isRescanning, setIsRescanning] = useState(false); // 🔥 NEW: Re-scan state
     const [rescanCooldown, setRescanCooldown] = useState(false); // Cooldown to prevent rapid re-clicks
-    const isSceneStructureReady = loadPhase ? loadPhase === 'ready' : (!isLoading && hasInitializedFromDynamoDB);
+    const isSceneStructureReady = loadPhase
+        ? (loadPhase === 'ready' || (loadPhase === 'error' && hasInitializedFromDynamoDB))
+        : (!isLoading && hasInitializedFromDynamoDB);
     
     // 🔥 NEW: Sync fullscreen state with browser fullscreen events
     useEffect(() => {
