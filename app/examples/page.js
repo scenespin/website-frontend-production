@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import config from "@/config";
@@ -8,7 +8,6 @@ import Footer from "@/components/Footer";
 import logo from "@/app/icon.png";
 import { ShowcaseGallery } from "@/components/showcase/ShowcaseGallery";
 import { useShowcaseStatus } from "@/hooks/useShowcase";
-import { mediaShowcaseContent } from "@/lib/mediaShowcaseContent";
 
 const captureCandidates = (basePath) => [
   `${basePath}.jpg`,
@@ -95,11 +94,6 @@ function StepCaptureCard({ srcCandidates, alt, fallbackLabel, onOpen }) {
 export default function ExamplesPage() {
   const { data: status } = useShowcaseStatus();
   const [lightboxImage, setLightboxImage] = useState(null);
-  const [activeMediaTabId, setActiveMediaTabId] = useState(mediaShowcaseContent.tabs[0].id);
-  const activeMediaTab = useMemo(
-    () => mediaShowcaseContent.tabs.find((tab) => tab.id === activeMediaTabId) || mediaShowcaseContent.tabs[0],
-    [activeMediaTabId]
-  );
   const fountainDemoSnippet = `Title: The Last Witness
 
 INT. INTERROGATION ROOM - NIGHT
@@ -439,100 +433,6 @@ Not everything.`;
                 showTitle={true}
               />
             </div>
-          </div>
-        </section>
-
-        {/* Media Deep Dive Tabs */}
-        <section className="pt-2 pb-10 border-t border-[#1E1E1E]">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-6">
-              <h2 className="text-2xl md:text-3xl font-bold mb-3">Media Deep Dive</h2>
-              <p className="text-gray-300 max-w-3xl mx-auto">
-                Explore workflow details by mode. These tabs are secondary drill-down views on top of the script-first flow above.
-              </p>
-            </div>
-
-            <div className="flex flex-wrap justify-center gap-2 mb-8">
-              {mediaShowcaseContent.tabs.map((tab) => {
-                const active = tab.id === activeMediaTabId;
-                return (
-                  <button
-                    key={tab.id}
-                    type="button"
-                    onClick={() => setActiveMediaTabId(tab.id)}
-                    className={`px-3 py-2 rounded-md text-sm border transition-colors ${
-                      active
-                        ? "bg-[#DC143C]/20 text-[#F28BA0] border-[#DC143C]/50"
-                        : "bg-[#111111] text-gray-300 border-[#3F3F46] hover:border-[#DC143C]/40 hover:text-white"
-                    }`}
-                  >
-                    {tab.label}
-                  </button>
-                );
-              })}
-            </div>
-
-            <div className="rounded-xl border border-[#3F3F46] bg-[#111111] p-5 md:p-6 mb-8">
-              <h3 className="text-xl md:text-2xl font-semibold mb-3">{activeMediaTab.headline}</h3>
-              <p className="text-gray-300 mb-4">{activeMediaTab.howItWorks}</p>
-
-              <div className="mb-4">
-                <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Sample flow</p>
-                <ol className="space-y-2 text-sm text-gray-300 list-decimal list-inside">
-                  {activeMediaTab.sampleFlow.map((step) => (
-                    <li key={step}>{step}</li>
-                  ))}
-                </ol>
-              </div>
-
-              <div>
-                <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Output strip</p>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                  {activeMediaTab.outputCaptions.map((caption) => (
-                    <div key={caption} className="rounded-lg border border-[#2F2F2F] bg-[#0E0E0E] px-3 py-2 text-sm text-gray-300">
-                      {caption}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {activeMediaTab.supportingLine && (
-                <p className="text-sm text-gray-400 mt-4">{activeMediaTab.supportingLine}</p>
-              )}
-            </div>
-
-            {activeMediaTab.id === "references" ? (
-              <div className="space-y-10">
-                <ShowcaseGallery 
-                  contentType="characters"
-                  columns={4}
-                  title="Character Reference Examples"
-                  showTitle={true}
-                />
-                <ShowcaseGallery 
-                  contentType="locations"
-                  columns={3}
-                  title="Location Planning Examples"
-                  showTitle={true}
-                />
-                <ShowcaseGallery 
-                  contentType="props"
-                  columns={4}
-                  title="Prop Continuity Examples"
-                  showTitle={true}
-                />
-              </div>
-            ) : (
-              <div>
-                <ShowcaseGallery
-                  contentType="all"
-                  limit={6}
-                  columns={3}
-                  title="Demo Showcase Strip"
-                  showTitle={true}
-                />
-              </div>
-            )}
           </div>
         </section>
 
