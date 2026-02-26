@@ -112,10 +112,10 @@ export default function Page() {
                   Join Early Access
                 </Link>
                 <Link
-                  href="/how-it-works"
+                  href="/examples"
                   className="inline-flex items-center justify-center px-6 py-3 md:px-8 md:py-4 bg-[#141414] border border-[#3F3F46] text-white font-semibold rounded-lg hover:bg-[#1F1F1F] transition-colors text-base md:text-lg min-h-[44px] w-full sm:w-auto"
                 >
-                  See How It Works
+                  View Examples
                 </Link>
               </div>
 
