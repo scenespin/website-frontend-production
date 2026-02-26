@@ -210,7 +210,7 @@ Not everything.`;
                 Write directly in Wryda with a screenplay-first workflow, then paste, import, or scan when bringing in existing pages. Your script stays the source of truth for character, location, prop, and shot planning.
               </p>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-                <div className="rounded-lg border border-[#2F2F2F] bg-[#0D0D0D] p-4">
+                <div className="rounded-lg border border-[#2F2F2F] bg-[#0D0D0D] p-4 aspect-video overflow-auto">
                   <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Scene excerpt</p>
                   <pre className="text-xs sm:text-sm text-gray-200 whitespace-pre-wrap">{fountainDemoSnippet}</pre>
                 </div>
