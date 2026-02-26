@@ -453,7 +453,7 @@ export function LocationDetailModal({
         await fetch(`${BACKEND_API_URL}/api/media/delete-by-s3-key`, {
           method: 'POST',
           headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ s3Key: background.s3Key })
+          body: JSON.stringify({ s3Key: background.s3Key, screenplayId })
         });
       } catch {
         /* non-fatal */
@@ -1584,7 +1584,7 @@ export function LocationDetailModal({
                                                   'Authorization': `Bearer ${token}`,
                                                   'Content-Type': 'application/json',
                                                 },
-                                                body: JSON.stringify({ s3Key: variation.s3Key }),
+                                                body: JSON.stringify({ s3Key: variation.s3Key, screenplayId }),
                                               });
                                               console.log('[LocationDetailModal] ✅ Media Library deletion successful');
                                             } catch (mediaError: any) {
