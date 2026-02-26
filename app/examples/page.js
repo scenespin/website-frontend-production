@@ -207,7 +207,7 @@ Not everything.`;
             <div className="rounded-xl border border-[#3F3F46] bg-[#111111] p-5 md:p-6 mb-6">
               <h3 className="text-xl font-semibold mb-3">1) Start With the Script</h3>
               <p className="text-sm text-gray-300 mb-4">
-                Write directly in Wryda with a screenplay-first workflow, then paste, import, or scan when bringing in existing pages. Your script stays the source of truth for character, location, prop, and shot planning.
+                Write directly in Wryda with a screenplay-first workflow. Your script stays the source of truth for character, location, prop, and shot planning.
               </p>
               <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                 <div className="rounded-lg border border-[#2F2F2F] bg-[#0D0D0D] p-4 aspect-video overflow-auto">
@@ -226,7 +226,7 @@ Not everything.`;
             <div className="rounded-xl border border-[#3F3F46] bg-[#111111] p-5 md:p-6 mb-6">
               <h3 className="text-xl font-semibold mb-3">2) Auto-Detect Story Elements</h3>
               <p className="text-sm text-gray-300 mb-4">
-                Wryda reads your script and automatically detects core story entities from Fountain context.
+                Import an existing script or click Scan, and Wryda automatically detects characters and locations from your Fountain context.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <StepCaptureCard
@@ -256,19 +256,19 @@ Not everything.`;
             <div className="rounded-xl border border-[#3F3F46] bg-[#111111] p-5 md:p-6 mb-6">
               <h3 className="text-xl font-semibold mb-3">3) Character Workflow (Virtual Try-On)</h3>
               <p className="text-sm text-gray-300 mb-4">
-                Demonstrate one hero character through the complete wardrobe pipeline from baseline reference to final generated pose set.
+                Keep one character identity locked while testing wardrobe changes and generating production-ready pose outputs.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                 <StepCaptureCard
                   srcCandidates={step3CaptureSources.characterReference}
                   alt="Character reference image used for identity lock"
-                  fallbackLabel="Character reference image"
+                  fallbackLabel="Reference image"
                   onOpen={(src, alt) => setLightboxImage({ src, alt })}
                 />
                 <StepCaptureCard
                   srcCandidates={step3CaptureSources.clothingInput}
                   alt="Clothing input image used for virtual try-on"
-                  fallbackLabel="Clothing input image"
+                  fallbackLabel="Clothing reference"
                   onOpen={(src, alt) => setLightboxImage({ src, alt })}
                 />
                 <StepCaptureCard
@@ -287,7 +287,7 @@ Not everything.`;
               <div className="rounded-lg border border-[#2F2F2F] bg-[#0D0D0D] p-4 mt-3">
                 <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Prompt snippet</p>
                 <p className="text-sm text-gray-300">
-                  Base identity prompt + outfit add-on prompt. Keep identity fixed and change wardrobe only.
+                  Base identity prompt + outfit add-on: black hoodie, light jacket (see image), blue eyes.
                 </p>
               </div>
             </div>
@@ -295,13 +295,13 @@ Not everything.`;
             <div className="rounded-xl border border-[#3F3F46] bg-[#111111] p-5 md:p-6 mb-6">
               <h3 className="text-xl font-semibold mb-3">4) Location Workflow</h3>
               <p className="text-sm text-gray-300 mb-4">
-                Build location continuity from one reference through angle coverage, background variants, and a detail plate for close-up texture.
+                Turn one location reference into cinematic coverage with alternate angles, mood variants, and close-up texture detail.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                 <StepCaptureCard
                   srcCandidates={step4CaptureSources.locationReference}
                   alt="Location reference image used for continuity"
-                  fallbackLabel="Location reference"
+                  fallbackLabel="Reference image"
                   onOpen={(src, alt) => setLightboxImage({ src, alt })}
                 />
                 <StepCaptureCard
@@ -328,13 +328,13 @@ Not everything.`;
             <div className="rounded-xl border border-[#3F3F46] bg-[#111111] p-5 md:p-6 mb-6">
               <h3 className="text-xl font-semibold mb-3">5) Prop Workflow</h3>
               <p className="text-sm text-gray-300 mb-4">
-                Capture prop continuity with one reference, practical angle coverage, and one macro detail pass for storytelling inserts.
+                Build prop continuity fast with one reference, multi-angle outputs, and a macro detail pass for key story inserts.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <StepCaptureCard
                   srcCandidates={step5CaptureSources.propReference}
                   alt="Prop reference image for continuity"
-                  fallbackLabel="Prop reference"
+                  fallbackLabel="Reference image"
                   onOpen={(src, alt) => setLightboxImage({ src, alt })}
                 />
                 <StepCaptureCard
