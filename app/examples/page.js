@@ -603,9 +603,9 @@ Not everything.`;
         <section className="pt-2 pb-12">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-8">
-              <h2 className="text-3xl md:text-4xl font-bold mb-4">8) Video Handoff Proof</h2>
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">8) Final Video-Ready Handoff</h2>
               <p className="text-gray-300 max-w-3xl mx-auto">
-                Use approved first frames, shot intent, and dialogue context as a provider-agnostic handoff into your preferred video workflow.
+                Move from approved story frames to final video outcomes with a clean, provider-agnostic handoff built for speed and creative control.
               </p>
             </div>
 
@@ -633,7 +633,7 @@ Not everything.`;
               />
             </div>
             <p className="text-xs text-gray-500 mt-3 text-center">
-              Current captures may be sample-era UI, but the handoff flow shown here is the exact intended workflow.
+              A clear handoff path from approved story visuals to production-ready video execution.
             </p>
           </div>
         </section>
