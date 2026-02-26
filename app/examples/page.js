@@ -6,7 +6,6 @@ import Image from "next/image";
 import config from "@/config";
 import Footer from "@/components/Footer";
 import logo from "@/app/icon.png";
-import { ShowcaseGallery } from "@/components/showcase/ShowcaseGallery";
 import { useShowcaseStatus } from "@/hooks/useShowcase";
 
 const captureCandidates = (basePath) => [
@@ -69,6 +68,20 @@ const step7CaptureSources = {
   sceneBuilder: captureCandidates("/examples/captures/cap_s7_scenebuilder_capture_01"),
   shotBoard: captureCandidates("/examples/captures/cap_s7_shotboard_capture_01"),
   teaser: captureCandidates("/examples/captures/cap_s7_teaser_capture_01"),
+};
+const step8CaptureSources = {
+  firstFrameHandoff: [
+    ...captureCandidates("/examples/captures/cap_s8_video_first_frame_handoff_01"),
+    ...step7CaptureSources.teaser,
+  ],
+  providerSelection: [
+    ...captureCandidates("/examples/captures/cap_s8_video_provider_selection_01"),
+    ...step7CaptureSources.shotBoard,
+  ],
+  sampleOutput: [
+    ...captureCandidates("/examples/captures/cap_s8_video_sample_output_01"),
+    ...step7CaptureSources.sceneBuilder,
+  ],
 };
 
 function StepCaptureCard({ srcCandidates, alt, fallbackLabel, itemKey, onOpen }) {
@@ -192,6 +205,9 @@ export default function ExamplesPage() {
       { key: "s7_scene_builder", srcCandidates: step7CaptureSources.sceneBuilder, alt: "Scene Builder view showing shot sequence and planning context" },
       { key: "s7_shot_board", srcCandidates: step7CaptureSources.shotBoard, alt: "Shot Board view showing shot variants and continuity planning" },
       { key: "s7_teaser", srcCandidates: step7CaptureSources.teaser, alt: "End-result teaser frame from generated sequence" },
+      { key: "s8_video_first_frame_handoff", srcCandidates: step8CaptureSources.firstFrameHandoff, alt: "First frame handoff prepared from approved teaser frame" },
+      { key: "s8_video_provider_selection", srcCandidates: step8CaptureSources.providerSelection, alt: "Model and provider selection screen for video handoff" },
+      { key: "s8_video_sample_output", srcCandidates: step8CaptureSources.sampleOutput, alt: "Sample video output preview from handoff workflow" },
     ],
     []
   );
@@ -583,36 +599,42 @@ Not everything.`;
           </div>
         </section>
 
-        {/* Final Generated Library (Live) */}
+        {/* Video Handoff Proof */}
         <section className="pt-2 pb-12">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-8">
-              <h2 className="text-3xl md:text-4xl font-bold mb-4">Final Generated Library (Live)</h2>
+              <h2 className="text-3xl md:text-4xl font-bold mb-4">8) Video Handoff Proof</h2>
               <p className="text-gray-300 max-w-3xl mx-auto">
-                These galleries are loaded from the demo account and should reflect your strongest curated outputs for each category.
+                Use approved first frames, shot intent, and dialogue context as a provider-agnostic handoff into your preferred video workflow.
               </p>
             </div>
 
-            <div className="space-y-10">
-              <ShowcaseGallery 
-                contentType="characters"
-                columns={4}
-                title="Character Reference Examples"
-                showTitle={true}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <StepCaptureCard
+                srcCandidates={step8CaptureSources.firstFrameHandoff}
+                itemKey="s8_video_first_frame_handoff"
+                alt="First frame handoff prepared from approved teaser frame"
+                fallbackLabel="First frame handoff"
+                onOpen={openLightbox}
               />
-              <ShowcaseGallery 
-                contentType="locations"
-                columns={3}
-                title="Location Planning Examples"
-                showTitle={true}
+              <StepCaptureCard
+                srcCandidates={step8CaptureSources.providerSelection}
+                itemKey="s8_video_provider_selection"
+                alt="Model and provider selection screen for video handoff"
+                fallbackLabel="Provider/model selection"
+                onOpen={openLightbox}
               />
-              <ShowcaseGallery 
-                contentType="props"
-                columns={4}
-                title="Prop Continuity Examples"
-                showTitle={true}
+              <StepCaptureCard
+                srcCandidates={step8CaptureSources.sampleOutput}
+                itemKey="s8_video_sample_output"
+                alt="Sample video output preview from handoff workflow"
+                fallbackLabel="Sample output preview"
+                onOpen={openLightbox}
               />
             </div>
+            <p className="text-xs text-gray-500 mt-3 text-center">
+              Current captures may be sample-era UI, but the handoff flow shown here is the exact intended workflow.
+            </p>
           </div>
         </section>
 
