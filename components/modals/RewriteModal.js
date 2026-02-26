@@ -205,21 +205,21 @@ const QUICK_ACTIONS = [
     label: 'Make more concise',
     prompt: 'make this more concise',
     icon: Minus,
-    color: 'btn-primary'
+    color: 'cinema-modal-btn-primary'
   },
   {
     id: 'physical',
     label: 'Add physical detail',
     prompt: 'add more physical detail',
     icon: Plus,
-    color: 'btn-secondary'
+    color: 'cinema-modal-btn-primary'
   },
   {
     id: 'dialogue',
     label: 'Improve dialogue',
     prompt: 'improve the dialogue',
     icon: MessageSquare,
-    color: 'btn-accent'
+    color: 'cinema-modal-btn-primary'
   }
 ];
 
@@ -860,7 +860,7 @@ export default function RewriteModal({
                               key={action.id}
                               onClick={() => handleQuickAction(action)}
                               disabled={isLoading}
-                              className={`btn ${action.color} btn-outline w-full justify-start gap-2`}
+                              className={`btn ${action.color} w-full justify-start gap-2`}
                             >
                               <Icon className="h-4 w-4" />
                               <span className="text-xs">{action.label}</span>
@@ -902,7 +902,7 @@ export default function RewriteModal({
                         <button
                           type="submit"
                           disabled={isLoading || !customPrompt.trim()}
-                          className="btn btn-primary btn-block gap-2"
+                          className="btn cinema-modal-btn-primary btn-block gap-2"
                         >
                           {isLoading ? (
                             <>

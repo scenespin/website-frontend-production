@@ -259,6 +259,17 @@ progress::-webkit-progress-value {
   border: 1px solid #3F3F46;
 }
 
+.cinema-modal-btn-primary {
+  background: #DC143C !important;
+  border-color: #DC143C !important;
+  color: #FFFFFF !important;
+}
+
+.cinema-modal-btn-primary:hover {
+  background: #B01030 !important;
+  border-color: #B01030 !important;
+}
+
 /* ===== CLEAN EDITOR SCROLLBARS ===== */
 /* Hide scrollbars for editor textarea while keeping functionality */
 .editor-textarea-clean {

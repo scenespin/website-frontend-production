@@ -707,7 +707,7 @@ Rules:
                             type="button"
                             onClick={() => setSceneCount(count)}
                             disabled={isLoading}
-                            className={`btn btn-sm ${sceneCount === count ? 'btn-primary' : 'btn-outline'}`}
+                            className={`btn btn-sm ${sceneCount === count ? 'cinema-modal-btn-primary' : 'btn-outline'}`}
                           >
                             {count} Scene{count > 1 ? 's' : ''}
                           </button>
@@ -782,7 +782,7 @@ Rules:
                       <button
                         type="submit"
                         disabled={isLoading || scenes.some(s => !s.location.trim() || !s.scenario.trim())}
-                        className="btn btn-primary btn-sm"
+                        className="btn cinema-modal-btn-primary btn-sm"
                       >
                         {isLoading ? (
                           <>

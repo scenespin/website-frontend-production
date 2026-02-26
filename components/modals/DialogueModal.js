@@ -703,7 +703,7 @@ Rules:
                             type="button"
                             onClick={() => setTone(option)}
                             disabled={isLoading}
-                            className={`btn btn-sm ${tone === option ? 'btn-primary' : 'btn-outline'}`}
+                            className={`btn btn-sm ${tone === option ? 'cinema-modal-btn-primary' : 'btn-outline'}`}
                           >
                             {option.charAt(0).toUpperCase() + option.slice(1)}
                           </button>
@@ -799,7 +799,7 @@ Rules:
                       <button
                         type="submit"
                         disabled={isLoading || !conflict.trim() || selectedCharacters.length === 0}
-                        className="btn btn-primary btn-sm"
+                        className="btn cinema-modal-btn-primary btn-sm"
                       >
                         {isLoading ? (
                           <>

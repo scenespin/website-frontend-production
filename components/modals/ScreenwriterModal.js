@@ -749,7 +749,7 @@ CRITICAL SPACING RULES (Fountain.io spec):
                       <button
                         type="submit"
                         disabled={isLoading || !userPrompt.trim()}
-                        className="btn btn-primary btn-sm"
+                        className="btn cinema-modal-btn-primary btn-sm"
                       >
                         {isLoading ? (
                           <>
