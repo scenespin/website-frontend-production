@@ -45,7 +45,7 @@ const step7CaptureSources = {
   teaser: captureCandidates("/examples/captures/cap_s7_teaser_capture_01"),
 };
 
-function StepCaptureCard({ srcCandidates, alt, fallbackLabel, minHeight = "min-h-[120px]" }) {
+function StepCaptureCard({ srcCandidates, alt, fallbackLabel, onOpen }) {
   const sources = Array.isArray(srcCandidates) ? srcCandidates : [srcCandidates];
   const [sourceIndex, setSourceIndex] = useState(0);
   const [hasError, setHasError] = useState(false);
@@ -57,7 +57,16 @@ function StepCaptureCard({ srcCandidates, alt, fallbackLabel, minHeight = "min-h
   }, [sources.join("|")]);
 
   return (
-    <div className={`relative overflow-hidden rounded-lg border border-[#2F2F2F] bg-gradient-to-br from-[#171717] to-[#0F0F0F] p-0 ${minHeight}`}>
+    <button
+      type="button"
+      className="relative w-full aspect-video overflow-hidden rounded-lg border border-[#2F2F2F] bg-gradient-to-br from-[#171717] to-[#0F0F0F] p-0 text-left"
+      onClick={() => {
+        if (!hasError && activeSource && onOpen) {
+          onOpen(activeSource, alt);
+        }
+      }}
+      disabled={hasError}
+    >
       {!hasError && activeSource ? (
         <img
           src={activeSource}
@@ -78,12 +87,13 @@ function StepCaptureCard({ srcCandidates, alt, fallbackLabel, minHeight = "min-h
           <p className="text-sm text-gray-400 text-center">{fallbackLabel}</p>
         </div>
       ) : null}
-    </div>
+    </button>
   );
 }
 
 export default function ExamplesPage() {
   const { data: status } = useShowcaseStatus();
+  const [lightboxImage, setLightboxImage] = useState(null);
   const [activeMediaTabId, setActiveMediaTabId] = useState(mediaShowcaseContent.tabs[0].id);
   const activeMediaTab = useMemo(
     () => mediaShowcaseContent.tabs.find((tab) => tab.id === activeMediaTabId) || mediaShowcaseContent.tabs[0],
@@ -208,7 +218,7 @@ Not everything.`;
                   srcCandidates={step1CaptureSource}
                   alt="Screenplay workspace showing the active script in Wryda"
                   fallbackLabel="Screenplay workspace capture"
-                  minHeight="min-h-[220px]"
+                  onOpen={(src, alt) => setLightboxImage({ src, alt })}
                 />
               </div>
             </div>
@@ -223,16 +233,19 @@ Not everything.`;
                   srcCandidates={step2CaptureSources.scriptContext}
                   alt="Script context showing interrogation room scene heading and character mentions"
                   fallbackLabel="Script context capture"
+                  onOpen={(src, alt) => setLightboxImage({ src, alt })}
                 />
                 <StepCaptureCard
                   srcCandidates={step2CaptureSources.charactersDetected}
                   alt="Detected characters list showing Mara Voss and Eli Trent"
                   fallbackLabel="Characters detected"
+                  onOpen={(src, alt) => setLightboxImage({ src, alt })}
                 />
                 <StepCaptureCard
                   srcCandidates={step2CaptureSources.locationDetected}
                   alt="Detected location list showing Interrogation Room"
                   fallbackLabel="Location detected"
+                  onOpen={(src, alt) => setLightboxImage({ src, alt })}
                 />
               </div>
               <p className="text-xs text-gray-500 mt-3">
@@ -250,25 +263,25 @@ Not everything.`;
                   srcCandidates={step3CaptureSources.characterReference}
                   alt="Character reference image used for identity lock"
                   fallbackLabel="Character reference image"
-                  minHeight="min-h-[140px]"
+                  onOpen={(src, alt) => setLightboxImage({ src, alt })}
                 />
                 <StepCaptureCard
                   srcCandidates={step3CaptureSources.clothingInput}
                   alt="Clothing input image used for virtual try-on"
                   fallbackLabel="Clothing input image"
-                  minHeight="min-h-[140px]"
+                  onOpen={(src, alt) => setLightboxImage({ src, alt })}
                 />
                 <StepCaptureCard
                   srcCandidates={step3CaptureSources.tryOnResult}
                   alt="Virtual try-on result preserving character identity"
                   fallbackLabel="Virtual try-on result"
-                  minHeight="min-h-[140px]"
+                  onOpen={(src, alt) => setLightboxImage({ src, alt })}
                 />
                 <StepCaptureCard
                   srcCandidates={step3CaptureSources.finalPoses}
                   alt="Final generated character pose set"
                   fallbackLabel="Final generated pose set"
-                  minHeight="min-h-[140px]"
+                  onOpen={(src, alt) => setLightboxImage({ src, alt })}
                 />
               </div>
               <div className="rounded-lg border border-[#2F2F2F] bg-[#0D0D0D] p-4 mt-3">
@@ -289,25 +302,25 @@ Not everything.`;
                   srcCandidates={step4CaptureSources.locationReference}
                   alt="Location reference image used for continuity"
                   fallbackLabel="Location reference"
-                  minHeight="min-h-[140px]"
+                  onOpen={(src, alt) => setLightboxImage({ src, alt })}
                 />
                 <StepCaptureCard
                   srcCandidates={step4CaptureSources.locationAngles}
                   alt="Location angle outputs derived from one reference"
                   fallbackLabel="Location angle outputs"
-                  minHeight="min-h-[140px]"
+                  onOpen={(src, alt) => setLightboxImage({ src, alt })}
                 />
                 <StepCaptureCard
                   srcCandidates={step4CaptureSources.locationBackgrounds}
                   alt="Location background variation outputs"
                   fallbackLabel="Location background outputs"
-                  minHeight="min-h-[140px]"
+                  onOpen={(src, alt) => setLightboxImage({ src, alt })}
                 />
                 <StepCaptureCard
                   srcCandidates={step4CaptureSources.locationXcu}
                   alt="Extreme close-up background detail plate"
                   fallbackLabel="Extreme close-up background plate"
-                  minHeight="min-h-[140px]"
+                  onOpen={(src, alt) => setLightboxImage({ src, alt })}
                 />
               </div>
             </div>
@@ -322,19 +335,19 @@ Not everything.`;
                   srcCandidates={step5CaptureSources.propReference}
                   alt="Prop reference image for continuity"
                   fallbackLabel="Prop reference"
-                  minHeight="min-h-[140px]"
+                  onOpen={(src, alt) => setLightboxImage({ src, alt })}
                 />
                 <StepCaptureCard
                   srcCandidates={step5CaptureSources.propAngles}
                   alt="Prop angle outputs generated from the reference"
                   fallbackLabel="Prop angle outputs"
-                  minHeight="min-h-[140px]"
+                  onOpen={(src, alt) => setLightboxImage({ src, alt })}
                 />
                 <StepCaptureCard
                   srcCandidates={step5CaptureSources.propMacro}
                   alt="Macro detail output for storytelling inserts"
                   fallbackLabel="Macro detail output"
-                  minHeight="min-h-[140px]"
+                  onOpen={(src, alt) => setLightboxImage({ src, alt })}
                 />
               </div>
             </div>
@@ -356,19 +369,19 @@ Not everything.`;
                   srcCandidates={step7CaptureSources.sceneBuilder}
                   alt="Scene Builder view showing shot sequence and planning context"
                   fallbackLabel="Scene Builder preview"
-                  minHeight="min-h-[140px]"
+                  onOpen={(src, alt) => setLightboxImage({ src, alt })}
                 />
                 <StepCaptureCard
                   srcCandidates={step7CaptureSources.shotBoard}
                   alt="Shot Board view showing shot variants and continuity planning"
                   fallbackLabel="Shot Board preview"
-                  minHeight="min-h-[140px]"
+                  onOpen={(src, alt) => setLightboxImage({ src, alt })}
                 />
                 <StepCaptureCard
                   srcCandidates={step7CaptureSources.teaser}
                   alt="End-result teaser frame from generated sequence"
                   fallbackLabel="End-result teaser video"
-                  minHeight="min-h-[140px]"
+                  onOpen={(src, alt) => setLightboxImage({ src, alt })}
                 />
               </div>
             </div>
@@ -520,6 +533,27 @@ Not everything.`;
           </div>
         </section>
       </main>
+
+      {lightboxImage ? (
+        <div
+          className="fixed inset-0 z-[100] bg-black/90 p-4 md:p-8 flex items-center justify-center"
+          onClick={() => setLightboxImage(null)}
+        >
+          <button
+            type="button"
+            className="absolute top-4 right-4 text-white/80 hover:text-white text-sm border border-white/30 rounded px-3 py-1 bg-black/40"
+            onClick={() => setLightboxImage(null)}
+          >
+            Close
+          </button>
+          <img
+            src={lightboxImage.src}
+            alt={lightboxImage.alt}
+            className="max-h-[90vh] max-w-[90vw] object-contain rounded-lg border border-[#2F2F2F] bg-[#0B0B0B]"
+            onClick={(event) => event.stopPropagation()}
+          />
+        </div>
+      ) : null}
 
       <Footer />
     </>
