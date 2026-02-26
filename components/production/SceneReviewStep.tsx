@@ -27,6 +27,7 @@ import { SceneBuilderService } from '@/services/SceneBuilderService';
 import { useAuth } from '@clerk/nextjs';
 import { getCharacterName, getCharacterSource } from './utils/sceneBuilderUtils';
 import { DEFAULT_ELEMENTS_VIDEO_MODEL, getEffectiveElementsVideoDuration } from '@/lib/elementsWorkflowUtils';
+import { isValidImageUrl } from './utils/imageUrlResolver';
 
 // Honest resolution (0237): No resolution selector. Output is 720p (Reliable/LongCat) or 1080p (Premium/VEO) by workflow.
 
@@ -565,7 +566,7 @@ export function SceneReviewStep({
                                   thumbnailUrl = characterThumbnailUrlsMap?.get(thumbnailS3Key);
                                 }
                               }
-                              if (!thumbnailUrl && ref.imageUrl && (ref.imageUrl.startsWith('http') || ref.imageUrl.startsWith('data:'))) {
+                              if (!thumbnailUrl && isValidImageUrl(ref.imageUrl)) {
                                 thumbnailUrl = ref.imageUrl;
                               }
                               return thumbnailUrl ? (
@@ -595,7 +596,7 @@ export function SceneReviewStep({
                                   thumbnailUrl = locationThumbnailUrlsMap?.get(thumbnailS3Key);
                                 }
                               }
-                              if (!thumbnailUrl && shotLocation.imageUrl && (shotLocation.imageUrl.startsWith('http') || shotLocation.imageUrl.startsWith('data:'))) {
+                              if (!thumbnailUrl && isValidImageUrl(shotLocation.imageUrl)) {
                                 thumbnailUrl = shotLocation.imageUrl;
                               }
                               return thumbnailUrl ? (
@@ -645,16 +646,16 @@ export function SceneReviewStep({
                                 if (thumbnailS3Key) displayUrl = propThumbnailUrlsMap?.get(thumbnailS3Key);
                               }
                               if (!displayUrl) displayUrl = propThumbnailUrlsMap?.get(lookupKey);
-                              if (!displayUrl && matchedRef?.imageUrl && (matchedRef.imageUrl.startsWith('http') || matchedRef.imageUrl.startsWith('data:'))) {
+                              if (!displayUrl && isValidImageUrl(matchedRef?.imageUrl)) {
                                 displayUrl = matchedRef.imageUrl;
                               }
-                              if (!displayUrl && matchedImg?.url && (matchedImg.url.startsWith('http') || matchedImg.url.startsWith('data:'))) {
+                              if (!displayUrl && isValidImageUrl(matchedImg?.url)) {
                                 displayUrl = matchedImg.url;
                               }
-                              if (!displayUrl && propWithRefs.baseReference?.s3Key === lookupKey && propWithRefs.baseReference?.imageUrl?.startsWith('http')) {
+                              if (!displayUrl && propWithRefs.baseReference?.s3Key === lookupKey && isValidImageUrl(propWithRefs.baseReference?.imageUrl)) {
                                 displayUrl = propWithRefs.baseReference.imageUrl;
                               }
-                              if (!displayUrl && (prop as { imageUrl?: string }).imageUrl && ((prop as { imageUrl?: string }).imageUrl!.startsWith('http') || (prop as { imageUrl?: string }).imageUrl!.startsWith('data:'))) {
+                              if (!displayUrl && isValidImageUrl((prop as { imageUrl?: string }).imageUrl)) {
                                 displayUrl = (prop as { imageUrl?: string }).imageUrl;
                               }
                               
