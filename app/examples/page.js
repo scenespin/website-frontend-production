@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import config from "@/config";
@@ -71,7 +71,7 @@ const step7CaptureSources = {
   teaser: captureCandidates("/examples/captures/cap_s7_teaser_capture_01"),
 };
 
-function StepCaptureCard({ srcCandidates, alt, fallbackLabel, onOpen }) {
+function StepCaptureCard({ srcCandidates, alt, fallbackLabel, itemKey, onOpen }) {
   const sources = Array.isArray(srcCandidates) ? srcCandidates : [srcCandidates];
   const [sourceIndex, setSourceIndex] = useState(0);
   const [hasError, setHasError] = useState(false);
@@ -87,8 +87,8 @@ function StepCaptureCard({ srcCandidates, alt, fallbackLabel, onOpen }) {
       type="button"
       className="relative w-full aspect-video overflow-hidden rounded-lg border border-[#2F2F2F] bg-gradient-to-br from-[#171717] to-[#0F0F0F] p-0 text-left"
       onClick={() => {
-        if (!hasError && activeSource && onOpen) {
-          onOpen(activeSource, alt);
+        if (!hasError && activeSource && onOpen && itemKey) {
+          onOpen(itemKey, activeSource, alt);
         }
       }}
       disabled={hasError}
@@ -117,7 +117,7 @@ function StepCaptureCard({ srcCandidates, alt, fallbackLabel, onOpen }) {
   );
 }
 
-function AgentsMiniCaptureCard({ srcCandidates, alt, fallbackLabel }) {
+function AgentsMiniCaptureCard({ srcCandidates, alt, fallbackLabel, itemKey, onOpen }) {
   const sources = Array.isArray(srcCandidates) ? srcCandidates : [srcCandidates];
   const [sourceIndex, setSourceIndex] = useState(0);
   const [hasError, setHasError] = useState(false);
@@ -129,7 +129,16 @@ function AgentsMiniCaptureCard({ srcCandidates, alt, fallbackLabel }) {
   }, [sources.join("|")]);
 
   return (
-    <div className="relative w-full aspect-video overflow-hidden rounded-lg border border-[#2F2F2F] bg-[#0B0B0B]">
+    <button
+      type="button"
+      className="relative w-full aspect-video overflow-hidden rounded-lg border border-[#2F2F2F] bg-[#0B0B0B] text-left"
+      onClick={() => {
+        if (!hasError && activeSource && onOpen && itemKey) {
+          onOpen(itemKey, activeSource, alt);
+        }
+      }}
+      disabled={hasError}
+    >
       {!hasError && activeSource ? (
         <img
           src={activeSource}
@@ -150,13 +159,93 @@ function AgentsMiniCaptureCard({ srcCandidates, alt, fallbackLabel }) {
           <p className="text-xs text-gray-500 text-center">{fallbackLabel}</p>
         </div>
       ) : null}
-    </div>
+    </button>
   );
 }
 
 export default function ExamplesPage() {
   const { data: status } = useShowcaseStatus();
-  const [lightboxImage, setLightboxImage] = useState(null);
+  const [lightboxState, setLightboxState] = useState(null);
+  const lightboxItems = useMemo(
+    () => [
+      { key: "s1_script_capture", srcCandidates: step1CaptureSource, alt: "Screenplay workspace showing the active script in Wryda" },
+      { key: "s2_script_context", srcCandidates: step2CaptureSources.scriptContext, alt: "Script context showing interrogation room scene heading and character mentions" },
+      { key: "s2_characters_detected", srcCandidates: step2CaptureSources.charactersDetected, alt: "Detected characters list showing Mara Voss and Eli Trent" },
+      { key: "s2_location_detected", srcCandidates: step2CaptureSources.locationDetected, alt: "Detected location list showing Interrogation Room" },
+      { key: "s3_agents_capture", srcCandidates: step3AgentsCaptureSource, alt: "Story advisor style AI agent response shown alongside screenplay context" },
+      ...step3AgentsOutputCards.map((card, index) => ({
+        key: `s3_agents_output_${index + 1}`,
+        srcCandidates: card.srcCandidates,
+        alt: `${card.label} agent output example`,
+      })),
+      { key: "s4_char_reference", srcCandidates: step3CaptureSources.characterReference, alt: "Character reference image used for identity lock" },
+      { key: "s4_clothing_reference", srcCandidates: step3CaptureSources.clothingInput, alt: "Clothing input image used for virtual try-on" },
+      { key: "s4_tryon_result", srcCandidates: step3CaptureSources.tryOnResult, alt: "Virtual try-on result preserving character identity" },
+      { key: "s4_final_pose", srcCandidates: step3CaptureSources.finalPoses, alt: "Final generated character pose set" },
+      { key: "s5_location_reference", srcCandidates: step4CaptureSources.locationReference, alt: "Location reference image used for continuity" },
+      { key: "s5_location_angles", srcCandidates: step4CaptureSources.locationAngles, alt: "Location angle outputs derived from one reference" },
+      { key: "s5_location_backgrounds", srcCandidates: step4CaptureSources.locationBackgrounds, alt: "Location background variation outputs" },
+      { key: "s5_location_xcu", srcCandidates: step4CaptureSources.locationXcu, alt: "Extreme close-up background detail plate" },
+      { key: "s6_prop_reference", srcCandidates: step5CaptureSources.propReference, alt: "Prop reference image for continuity" },
+      { key: "s6_prop_angles", srcCandidates: step5CaptureSources.propAngles, alt: "Prop angle outputs generated from the reference" },
+      { key: "s6_prop_macro", srcCandidates: step5CaptureSources.propMacro, alt: "Macro detail output for storytelling inserts" },
+      { key: "s7_scene_builder", srcCandidates: step7CaptureSources.sceneBuilder, alt: "Scene Builder view showing shot sequence and planning context" },
+      { key: "s7_shot_board", srcCandidates: step7CaptureSources.shotBoard, alt: "Shot Board view showing shot variants and continuity planning" },
+      { key: "s7_teaser", srcCandidates: step7CaptureSources.teaser, alt: "End-result teaser frame from generated sequence" },
+    ],
+    []
+  );
+  const openLightbox = (itemKey, resolvedSource, alt) => {
+    const itemIndex = lightboxItems.findIndex((item) => item.key === itemKey);
+    if (itemIndex < 0) return;
+    const sourceIndex = lightboxItems[itemIndex].srcCandidates.indexOf(resolvedSource);
+    setLightboxState({
+      itemIndex,
+      sourceIndex: sourceIndex >= 0 ? sourceIndex : 0,
+      alt: alt || lightboxItems[itemIndex].alt,
+    });
+  };
+  const closeLightbox = () => setLightboxState(null);
+  const goToPrevLightboxItem = () => {
+    if (!lightboxState) return;
+    const prevIndex = (lightboxState.itemIndex - 1 + lightboxItems.length) % lightboxItems.length;
+    setLightboxState({
+      itemIndex: prevIndex,
+      sourceIndex: 0,
+      alt: lightboxItems[prevIndex].alt,
+    });
+  };
+  const goToNextLightboxItem = () => {
+    if (!lightboxState) return;
+    const nextIndex = (lightboxState.itemIndex + 1) % lightboxItems.length;
+    setLightboxState({
+      itemIndex: nextIndex,
+      sourceIndex: 0,
+      alt: lightboxItems[nextIndex].alt,
+    });
+  };
+  useEffect(() => {
+    if (!lightboxState) return;
+    const handleKeydown = (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        closeLightbox();
+        return;
+      }
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        goToPrevLightboxItem();
+        return;
+      }
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+        goToNextLightboxItem();
+      }
+    };
+
+    window.addEventListener("keydown", handleKeydown);
+    return () => window.removeEventListener("keydown", handleKeydown);
+  }, [lightboxState, lightboxItems.length]);
   const fountainDemoSnippet = `Title: The Last Witness
 
 INT. INTERROGATION ROOM - NIGHT
@@ -274,9 +363,10 @@ Not everything.`;
                 </div>
                 <StepCaptureCard
                   srcCandidates={step1CaptureSource}
+                  itemKey="s1_script_capture"
                   alt="Screenplay workspace showing the active script in Wryda"
                   fallbackLabel="Screenplay workspace capture"
-                  onOpen={(src, alt) => setLightboxImage({ src, alt })}
+                  onOpen={openLightbox}
                 />
               </div>
             </div>
@@ -289,21 +379,24 @@ Not everything.`;
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <StepCaptureCard
                   srcCandidates={step2CaptureSources.scriptContext}
+                  itemKey="s2_script_context"
                   alt="Script context showing interrogation room scene heading and character mentions"
                   fallbackLabel="Script context capture"
-                  onOpen={(src, alt) => setLightboxImage({ src, alt })}
+                  onOpen={openLightbox}
                 />
                 <StepCaptureCard
                   srcCandidates={step2CaptureSources.charactersDetected}
+                  itemKey="s2_characters_detected"
                   alt="Detected characters list showing Mara Voss and Eli Trent"
                   fallbackLabel="Characters detected"
-                  onOpen={(src, alt) => setLightboxImage({ src, alt })}
+                  onOpen={openLightbox}
                 />
                 <StepCaptureCard
                   srcCandidates={step2CaptureSources.locationDetected}
+                  itemKey="s2_location_detected"
                   alt="Detected location list showing Interrogation Room"
                   fallbackLabel="Location detected"
-                  onOpen={(src, alt) => setLightboxImage({ src, alt })}
+                  onOpen={openLightbox}
                 />
               </div>
               <p className="text-xs text-gray-500 mt-3">
@@ -318,9 +411,10 @@ Not everything.`;
               </p>
               <StepCaptureCard
                 srcCandidates={step3AgentsCaptureSource}
+                itemKey="s3_agents_capture"
                 alt="Story advisor style AI agent response shown alongside screenplay context"
                 fallbackLabel="AI agents workflow capture"
-                onOpen={(src, alt) => setLightboxImage({ src, alt })}
+                onOpen={openLightbox}
               />
               <p className="text-xs text-gray-400 mt-3">
                 Story Advisor (hero): high-level scene guidance to diagnose issues, recommend improvements, and guide the next draft.
@@ -330,8 +424,10 @@ Not everything.`;
                   <div key={agentCard.key} className="rounded-lg border border-[#2F2F2F] bg-[#0E0E0E] p-2">
                     <AgentsMiniCaptureCard
                       srcCandidates={agentCard.srcCandidates}
+                      itemKey={`s3_agents_output_${index + 1}`}
                       alt={`${agentCard.label} agent output example`}
                       fallbackLabel={`Agent output ${index + 1}`}
+                      onOpen={openLightbox}
                     />
                     <p className="text-xs uppercase tracking-wide text-gray-500 mt-2">{agentCard.label}</p>
                     <p className="text-xs text-gray-300 mt-1">{agentCard.description}</p>
@@ -348,27 +444,31 @@ Not everything.`;
               <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                 <StepCaptureCard
                   srcCandidates={step3CaptureSources.characterReference}
+                  itemKey="s4_char_reference"
                   alt="Character reference image used for identity lock"
                   fallbackLabel="Reference image"
-                  onOpen={(src, alt) => setLightboxImage({ src, alt })}
+                  onOpen={openLightbox}
                 />
                 <StepCaptureCard
                   srcCandidates={step3CaptureSources.clothingInput}
+                  itemKey="s4_clothing_reference"
                   alt="Clothing input image used for virtual try-on"
                   fallbackLabel="Clothing reference"
-                  onOpen={(src, alt) => setLightboxImage({ src, alt })}
+                  onOpen={openLightbox}
                 />
                 <StepCaptureCard
                   srcCandidates={step3CaptureSources.tryOnResult}
+                  itemKey="s4_tryon_result"
                   alt="Virtual try-on result preserving character identity"
                   fallbackLabel="Virtual try-on result"
-                  onOpen={(src, alt) => setLightboxImage({ src, alt })}
+                  onOpen={openLightbox}
                 />
                 <StepCaptureCard
                   srcCandidates={step3CaptureSources.finalPoses}
+                  itemKey="s4_final_pose"
                   alt="Final generated character pose set"
                   fallbackLabel="Final generated pose set"
-                  onOpen={(src, alt) => setLightboxImage({ src, alt })}
+                  onOpen={openLightbox}
                 />
               </div>
               <div className="rounded-lg border border-[#2F2F2F] bg-[#0D0D0D] p-4 mt-3">
@@ -387,27 +487,31 @@ Not everything.`;
               <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                 <StepCaptureCard
                   srcCandidates={step4CaptureSources.locationReference}
+                  itemKey="s5_location_reference"
                   alt="Location reference image used for continuity"
                   fallbackLabel="Reference image"
-                  onOpen={(src, alt) => setLightboxImage({ src, alt })}
+                  onOpen={openLightbox}
                 />
                 <StepCaptureCard
                   srcCandidates={step4CaptureSources.locationAngles}
+                  itemKey="s5_location_angles"
                   alt="Location angle outputs derived from one reference"
                   fallbackLabel="Location angle outputs"
-                  onOpen={(src, alt) => setLightboxImage({ src, alt })}
+                  onOpen={openLightbox}
                 />
                 <StepCaptureCard
                   srcCandidates={step4CaptureSources.locationBackgrounds}
+                  itemKey="s5_location_backgrounds"
                   alt="Location background variation outputs"
                   fallbackLabel="Location background outputs"
-                  onOpen={(src, alt) => setLightboxImage({ src, alt })}
+                  onOpen={openLightbox}
                 />
                 <StepCaptureCard
                   srcCandidates={step4CaptureSources.locationXcu}
+                  itemKey="s5_location_xcu"
                   alt="Extreme close-up background detail plate"
                   fallbackLabel="Extreme close-up background plate"
-                  onOpen={(src, alt) => setLightboxImage({ src, alt })}
+                  onOpen={openLightbox}
                 />
               </div>
             </div>
@@ -420,21 +524,24 @@ Not everything.`;
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <StepCaptureCard
                   srcCandidates={step5CaptureSources.propReference}
+                  itemKey="s6_prop_reference"
                   alt="Prop reference image for continuity"
                   fallbackLabel="Reference image"
-                  onOpen={(src, alt) => setLightboxImage({ src, alt })}
+                  onOpen={openLightbox}
                 />
                 <StepCaptureCard
                   srcCandidates={step5CaptureSources.propAngles}
+                  itemKey="s6_prop_angles"
                   alt="Prop angle outputs generated from the reference"
                   fallbackLabel="Prop angle outputs"
-                  onOpen={(src, alt) => setLightboxImage({ src, alt })}
+                  onOpen={openLightbox}
                 />
                 <StepCaptureCard
                   srcCandidates={step5CaptureSources.propMacro}
+                  itemKey="s6_prop_macro"
                   alt="Macro detail output for storytelling inserts"
                   fallbackLabel="Macro detail output"
-                  onOpen={(src, alt) => setLightboxImage({ src, alt })}
+                  onOpen={openLightbox}
                 />
               </div>
             </div>
@@ -447,21 +554,24 @@ Not everything.`;
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <StepCaptureCard
                   srcCandidates={step7CaptureSources.sceneBuilder}
+                  itemKey="s7_scene_builder"
                   alt="Scene Builder view showing shot sequence and planning context"
                   fallbackLabel="Scene Builder preview"
-                  onOpen={(src, alt) => setLightboxImage({ src, alt })}
+                  onOpen={openLightbox}
                 />
                 <StepCaptureCard
                   srcCandidates={step7CaptureSources.shotBoard}
+                  itemKey="s7_shot_board"
                   alt="Shot Board view showing shot variants and continuity planning"
                   fallbackLabel="Shot Board preview"
-                  onOpen={(src, alt) => setLightboxImage({ src, alt })}
+                  onOpen={openLightbox}
                 />
                 <StepCaptureCard
                   srcCandidates={step7CaptureSources.teaser}
+                  itemKey="s7_teaser"
                   alt="End-result teaser frame from generated sequence"
                   fallbackLabel="End-result teaser video"
-                  onOpen={(src, alt) => setLightboxImage({ src, alt })}
+                  onOpen={openLightbox}
                 />
               </div>
               <p className="text-xs text-gray-500 mt-3">
@@ -523,24 +633,60 @@ Not everything.`;
         </section>
       </main>
 
-      {lightboxImage ? (
+      {lightboxState ? (
         <div
           className="fixed inset-0 z-[100] bg-black/90 p-4 md:p-8 flex items-center justify-center"
-          onClick={() => setLightboxImage(null)}
+          onClick={closeLightbox}
         >
           <button
             type="button"
+            className="absolute left-4 md:left-6 top-1/2 -translate-y-1/2 text-white/90 hover:text-white text-3xl leading-none border border-white/30 rounded-full h-10 w-10 bg-black/40"
+            onClick={(event) => {
+              event.stopPropagation();
+              goToPrevLightboxItem();
+            }}
+            aria-label="Previous image"
+          >
+            ‹
+          </button>
+          <button
+            type="button"
+            className="absolute right-4 md:right-6 top-1/2 -translate-y-1/2 text-white/90 hover:text-white text-3xl leading-none border border-white/30 rounded-full h-10 w-10 bg-black/40"
+            onClick={(event) => {
+              event.stopPropagation();
+              goToNextLightboxItem();
+            }}
+            aria-label="Next image"
+          >
+            ›
+          </button>
+          <button
+            type="button"
             className="absolute top-4 right-4 text-white/80 hover:text-white text-sm border border-white/30 rounded px-3 py-1 bg-black/40"
-            onClick={() => setLightboxImage(null)}
+            onClick={closeLightbox}
           >
             Close
           </button>
           <img
-            src={lightboxImage.src}
-            alt={lightboxImage.alt}
+            src={lightboxItems[lightboxState.itemIndex]?.srcCandidates[lightboxState.sourceIndex] || ""}
+            alt={lightboxState.alt}
             className="max-h-[90vh] max-w-[90vw] object-contain rounded-lg border border-[#2F2F2F] bg-[#0B0B0B]"
             onClick={(event) => event.stopPropagation()}
+            onError={() => {
+              const currentItem = lightboxItems[lightboxState.itemIndex];
+              if (!currentItem) return;
+              if (lightboxState.sourceIndex < currentItem.srcCandidates.length - 1) {
+                setLightboxState((previous) =>
+                  previous
+                    ? { ...previous, sourceIndex: previous.sourceIndex + 1 }
+                    : previous
+                );
+              }
+            }}
           />
+          <p className="absolute bottom-4 text-xs text-white/70 tracking-wide">
+            {lightboxState.itemIndex + 1} / {lightboxItems.length}
+          </p>
         </div>
       ) : null}
 
