@@ -22,6 +22,7 @@ const step2CaptureSources = {
   locationDetected: captureCandidates("/examples/captures/cap_s2c_location_detected_01"),
 };
 const step1CaptureSource = captureCandidates("/examples/captures/cap_s1_script_capture_01");
+const step3AgentsCaptureSource = captureCandidates("/examples/captures/cap_s3_agents_capture_01");
 const step3CaptureSources = {
   characterReference: captureCandidates("/examples/captures/cap_s3_character_reference_01"),
   clothingInput: captureCandidates("/examples/captures/cap_s3_clothing_input_01"),
@@ -198,9 +199,9 @@ Not everything.`;
         <section className="pt-4 pb-14 border-t border-[#1E1E1E]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-8">
-              <h2 className="text-3xl md:text-4xl font-bold mb-3">Script → References → Generated Assets</h2>
+              <h2 className="text-3xl md:text-4xl font-bold mb-3">Script → Agents → Visuals → Shots</h2>
               <p className="text-gray-300 max-w-3xl mx-auto">
-                A complete screenplay-first flow: write the scene, extract production entities, establish references, and carry everything into visual planning.
+                A writing-first flow: shape the story, refine with AI, then carry continuity into visual planning and shot decisions.
               </p>
             </div>
 
@@ -254,9 +255,33 @@ Not everything.`;
             </div>
 
             <div className="rounded-xl border border-[#3F3F46] bg-[#111111] p-5 md:p-6 mb-6">
-              <h3 className="text-xl font-semibold mb-3">3) Character Workflow (Virtual Try-On)</h3>
+              <h3 className="text-xl font-semibold mb-3">3) Wryda AI Agents</h3>
               <p className="text-sm text-gray-300 mb-4">
-                Keep one character identity locked while testing wardrobe changes and generating production-ready pose outputs.
+                Analyze, edit, and extend scenes with AI while keeping your screenplay context intact.
+              </p>
+              <StepCaptureCard
+                srcCandidates={step3AgentsCaptureSource}
+                alt="Story advisor style AI agent response shown alongside screenplay context"
+                fallbackLabel="AI agents workflow capture"
+                onOpen={(src, alt) => setLightboxImage({ src, alt })}
+              />
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
+                <div className="rounded-lg border border-[#2F2F2F] bg-[#0E0E0E] px-3 py-2 text-sm text-gray-300">
+                  Structure and clarity passes for scene intent and momentum.
+                </div>
+                <div className="rounded-lg border border-[#2F2F2F] bg-[#0E0E0E] px-3 py-2 text-sm text-gray-300">
+                  Dialogue refinement for voice, tension, and pacing.
+                </div>
+                <div className="rounded-lg border border-[#2F2F2F] bg-[#0E0E0E] px-3 py-2 text-sm text-gray-300">
+                  Revision options you can apply directly to the working script.
+                </div>
+              </div>
+            </div>
+
+            <div className="rounded-xl border border-[#3F3F46] bg-[#111111] p-5 md:p-6 mb-6">
+              <h3 className="text-xl font-semibold mb-3">4) Character Workflow (Virtual Try-On)</h3>
+              <p className="text-sm text-gray-300 mb-4">
+                Keep one character identity locked while testing wardrobe references and generating production-ready outputs.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                 <StepCaptureCard
@@ -293,9 +318,9 @@ Not everything.`;
             </div>
 
             <div className="rounded-xl border border-[#3F3F46] bg-[#111111] p-5 md:p-6 mb-6">
-              <h3 className="text-xl font-semibold mb-3">4) Location Workflow</h3>
+              <h3 className="text-xl font-semibold mb-3">5) Location Workflow</h3>
               <p className="text-sm text-gray-300 mb-4">
-                Turn one location reference into cinematic coverage with alternate angles, mood variants, and close-up texture detail.
+                Turn one location reference into cinematic coverage with angle variants, mood passes, and close-up texture detail.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                 <StepCaptureCard
@@ -326,9 +351,9 @@ Not everything.`;
             </div>
 
             <div className="rounded-xl border border-[#3F3F46] bg-[#111111] p-5 md:p-6 mb-6">
-              <h3 className="text-xl font-semibold mb-3">5) Prop Workflow</h3>
+              <h3 className="text-xl font-semibold mb-3">6) Prop Workflow</h3>
               <p className="text-sm text-gray-300 mb-4">
-                Build prop continuity fast with one reference, multi-angle outputs, and a macro detail pass for key story inserts.
+                Build prop continuity with two story-critical props using reference, angle variants, and macro detail outputs.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <StepCaptureCard
@@ -352,17 +377,10 @@ Not everything.`;
               </div>
             </div>
 
-            <div className="rounded-xl border border-[#3F3F46] bg-[#111111] p-5 md:p-6 mb-6">
-              <h3 className="text-xl font-semibold mb-3">6) Final Generated Library (Live)</h3>
-              <p className="text-sm text-gray-300 mb-4">
-                Live demo-account outputs from one coherent screenplay world: character poses, location angles/backgrounds, and prop continuity renders.
-              </p>
-            </div>
-
             <div className="rounded-xl border border-[#3F3F46] bg-[#111111] p-5 md:p-6">
-              <h3 className="text-xl font-semibold mb-3">7) Direct Workflow</h3>
+              <h3 className="text-xl font-semibold mb-3">7) Shots (Scene Builder + Shot Board)</h3>
               <p className="text-sm text-gray-300 mb-4">
-                Scene Builder and Shot Board connect this same script context to shot-level planning and execution.
+                Carry the same script context into shot-level planning, compare options, and lock visual intent before generation.
               </p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <StepCaptureCard
@@ -384,6 +402,9 @@ Not everything.`;
                   onOpen={(src, alt) => setLightboxImage({ src, alt })}
                 />
               </div>
+              <p className="text-xs text-gray-500 mt-3">
+                Model-agnostic by design: take approved shots into your preferred video workflow.
+              </p>
             </div>
           </div>
         </section>
