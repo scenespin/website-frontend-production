@@ -54,41 +54,40 @@ export default function ProvenanceLedgerPage() {
       </header>
 
       <main className="bg-[#0A0A0A] text-white min-h-screen">
-        <section className="py-16 md:py-20 bg-gradient-to-b from-[#141414] to-[#0A0A0A]">
-          <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-black border border-[#DC143C]/30 text-sm mb-6">
-              <span className="font-semibold text-gray-300">Writer-First Trust</span>
-            </div>
-            <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight mb-6">
-              Wryda Provenance Ledger
-            </h1>
-            <p className="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto mb-8">
-              Keep AI assistance optional and writer-directed, while preserving an auditable record of accepted AI-assisted actions for disclosure workflows.
-            </p>
-          </div>
-        </section>
-
-        <section className="py-6">
+        <section className="py-8 md:py-10 bg-gradient-to-b from-[#141414] to-[#0A0A0A]">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-6">
-              <h2 className="text-xl font-bold mb-3">In-Product Provenance View</h2>
-              <p className="text-sm text-gray-300 mb-4">
-                A live view of Wryda Provenance Ledger tracking AI-assisted actions and disclosure-ready export controls.
-              </p>
+            <div className="bg-[#141414] border border-[#3F3F46] rounded-xl p-5 md:p-6">
+              <div className="text-center mb-5 md:mb-6">
+                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-black border border-[#DC143C]/30 text-sm mb-4">
+                  <span className="font-semibold text-gray-300">Writer-First Trust</span>
+                </div>
+                <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight mb-4">
+                  Wryda Provenance Ledger
+                </h1>
+                <p className="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto">
+                  Keep AI assistance optional and writer-directed, while preserving an auditable record of accepted AI-assisted actions for disclosure workflows.
+                </p>
+              </div>
 
-              <div className="rounded-lg border border-[#3F3F46] bg-[#0E0E0E] aspect-[16/9] overflow-hidden relative">
-                <Image
-                  src={SCREENSHOT_SRC}
-                  alt="AI Disclosure panel showing provenance events and lock/export controls"
-                  fill
-                  className="object-cover"
-                />
+              <div className="rounded-lg border border-[#3F3F46] bg-[#0E0E0E] p-3 md:p-4">
+                <h2 className="text-xl font-bold mb-2">In-Product Provenance View</h2>
+                <p className="text-sm text-gray-300 mb-4">
+                  A live view of Wryda Provenance Ledger tracking AI-assisted actions and disclosure-ready export controls.
+                </p>
+                <div className="rounded-lg border border-[#3F3F46] bg-[#0E0E0E] aspect-[16/9] overflow-hidden relative">
+                  <Image
+                    src={SCREENSHOT_SRC}
+                    alt="AI Disclosure panel showing provenance events and lock/export controls"
+                    fill
+                    className="object-cover"
+                  />
+                </div>
               </div>
             </div>
           </div>
         </section>
 
-        <section className="py-10">
+        <section className="pb-8 md:pb-9">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 grid grid-cols-1 md:grid-cols-2 gap-6">
             <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-6">
               <h2 className="text-xl font-bold mb-3">What it captures</h2>
@@ -124,7 +123,7 @@ export default function ProvenanceLedgerPage() {
           </div>
         </section>
 
-        <section className="py-16">
+        <section className="py-10 md:py-12">
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <Link
               href="/sign-up"
