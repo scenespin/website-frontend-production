@@ -22,11 +22,31 @@ const step2CaptureSources = {
 };
 const step1CaptureSource = captureCandidates("/examples/captures/cap_s1_script_capture_01");
 const step3AgentsCaptureSource = captureCandidates("/examples/captures/cap_s3_agents_capture_01");
-const step3AgentsOutputSources = [
-  captureCandidates("/examples/captures/cap_s3_agents_output_01"),
-  captureCandidates("/examples/captures/cap_s3_agents_output_02"),
-  captureCandidates("/examples/captures/cap_s3_agents_output_03"),
-  captureCandidates("/examples/captures/cap_s3_agents_output_04"),
+const step3AgentsOutputCards = [
+  {
+    key: "director",
+    label: "Director",
+    description: "Translate story intent into clear visual direction and shot emphasis.",
+    srcCandidates: captureCandidates("/examples/captures/cap_s3_agents_output_01"),
+  },
+  {
+    key: "dialogue",
+    label: "Dialogue",
+    description: "Sharpen voice, subtext, and pacing while preserving character intent.",
+    srcCandidates: captureCandidates("/examples/captures/cap_s3_agents_output_02"),
+  },
+  {
+    key: "screenwriter",
+    label: "Screenwriter",
+    description: "Strengthen structure, scene momentum, and page-level clarity.",
+    srcCandidates: captureCandidates("/examples/captures/cap_s3_agents_output_03"),
+  },
+  {
+    key: "rewrite",
+    label: "Rewrite",
+    description: "Generate alternate passes quickly for tone, brevity, or dramatic impact.",
+    srcCandidates: captureCandidates("/examples/captures/cap_s3_agents_output_04"),
+  },
 ];
 const step3CaptureSources = {
   characterReference: captureCandidates("/examples/captures/cap_s3_character_reference_01"),
@@ -302,25 +322,20 @@ Not everything.`;
                 fallbackLabel="AI agents workflow capture"
                 onOpen={(src, alt) => setLightboxImage({ src, alt })}
               />
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-3">
-                <div className="rounded-lg border border-[#2F2F2F] bg-[#0E0E0E] px-3 py-2 text-sm text-gray-300">
-                  Structure and clarity passes for scene intent and momentum.
-                </div>
-                <div className="rounded-lg border border-[#2F2F2F] bg-[#0E0E0E] px-3 py-2 text-sm text-gray-300">
-                  Dialogue refinement for voice, tension, and pacing.
-                </div>
-                <div className="rounded-lg border border-[#2F2F2F] bg-[#0E0E0E] px-3 py-2 text-sm text-gray-300">
-                  Revision options you can apply directly to the working script.
-                </div>
-              </div>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mt-3">
-                {step3AgentsOutputSources.map((sources, index) => (
-                  <AgentsMiniCaptureCard
-                    key={`agents-mini-${index + 1}`}
-                    srcCandidates={sources}
-                    alt={`AI agent output example ${index + 1}`}
-                    fallbackLabel={`Agent output ${index + 1}`}
-                  />
+              <p className="text-xs text-gray-400 mt-3">
+                Story Advisor (hero): high-level scene guidance to diagnose issues, recommend improvements, and guide the next draft.
+              </p>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3 mt-3">
+                {step3AgentsOutputCards.map((agentCard, index) => (
+                  <div key={agentCard.key} className="rounded-lg border border-[#2F2F2F] bg-[#0E0E0E] p-2">
+                    <AgentsMiniCaptureCard
+                      srcCandidates={agentCard.srcCandidates}
+                      alt={`${agentCard.label} agent output example`}
+                      fallbackLabel={`Agent output ${index + 1}`}
+                    />
+                    <p className="text-xs uppercase tracking-wide text-gray-500 mt-2">{agentCard.label}</p>
+                    <p className="text-xs text-gray-300 mt-1">{agentCard.description}</p>
+                  </div>
                 ))}
               </div>
             </div>

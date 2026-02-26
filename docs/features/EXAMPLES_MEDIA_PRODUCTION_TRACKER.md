@@ -147,6 +147,17 @@ You do not need 5 separate giant screenshots.
 - Slot: `S3_AGENTS_OUTPUT_STRIP` (optional)
 - Filename: `cap_s3_agents_output_strip_01.jpg`
 
+### Current page implementation (4 mini slots, no lightbox)
+- `cap_s3_agents_output_01.jpg` -> Director
+- `cap_s3_agents_output_02.jpg` -> Dialogue
+- `cap_s3_agents_output_03.jpg` -> Screenwriter
+- `cap_s3_agents_output_04.jpg` -> Rewrite
+
+Each mini card includes:
+- agent name
+- one-line function description
+- zoomed preview image (non-clickable)
+
 Pass/fail:
 - PASS: one glance shows script -> AI-assisted output and agent choice context.
 - FAIL: pure text wall, no clear "before/after" relation, or no agent UI context.
@@ -340,7 +351,7 @@ Extension support on `/examples`:
 - `cap_s2a_script_context_01.jpg`
 - `cap_s2b_characters_detected_01.jpg`
 - `cap_s2c_location_detected_01.jpg`
-- `cap_s3_agents_capture_01.jpg`
+- `cap_s3_agents_capture_01.png`
 - `cap_s3_agents_output_strip_01.jpg` (optional)
 - `cap_s3_character_reference_01.jpg`
 - `cap_s3_clothing_input_01.jpg`
