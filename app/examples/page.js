@@ -1,6 +1,6 @@
 'use client';
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import config from "@/config";
@@ -10,47 +10,67 @@ import { ShowcaseGallery } from "@/components/showcase/ShowcaseGallery";
 import { useShowcaseStatus } from "@/hooks/useShowcase";
 import { mediaShowcaseContent } from "@/lib/mediaShowcaseContent";
 
+const captureCandidates = (basePath) => [
+  `${basePath}.jpg`,
+  `${basePath}.jpeg`,
+  `${basePath}.png`,
+];
+
 const step2CaptureSources = {
-  scriptContext: "/examples/captures/cap_s2a_script_context_01.jpg",
-  charactersDetected: "/examples/captures/cap_s2b_characters_detected_01.jpg",
-  locationDetected: "/examples/captures/cap_s2c_location_detected_01.jpg",
+  scriptContext: captureCandidates("/examples/captures/cap_s2a_script_context_01"),
+  charactersDetected: captureCandidates("/examples/captures/cap_s2b_characters_detected_01"),
+  locationDetected: captureCandidates("/examples/captures/cap_s2c_location_detected_01"),
 };
-const step1CaptureSource = "/examples/captures/cap_s1_script_capture_01.jpg";
+const step1CaptureSource = captureCandidates("/examples/captures/cap_s1_script_capture_01");
 const step3CaptureSources = {
-  characterReference: "/examples/captures/cap_s3_character_reference_01.jpg",
-  clothingInput: "/examples/captures/cap_s3_clothing_input_01.jpg",
-  tryOnResult: "/examples/captures/cap_s3_tryon_result_01.jpg",
-  finalPoses: "/examples/captures/cap_s3_final_poses_01.jpg",
+  characterReference: captureCandidates("/examples/captures/cap_s3_character_reference_01"),
+  clothingInput: captureCandidates("/examples/captures/cap_s3_clothing_input_01"),
+  tryOnResult: captureCandidates("/examples/captures/cap_s3_tryon_result_01"),
+  finalPoses: captureCandidates("/examples/captures/cap_s3_final_poses_01"),
 };
 const step4CaptureSources = {
-  locationReference: "/examples/captures/cap_s4_location_reference_01.jpg",
-  locationAngles: "/examples/captures/cap_s4_location_angles_01.jpg",
-  locationBackgrounds: "/examples/captures/cap_s4_location_backgrounds_01.jpg",
-  locationXcu: "/examples/captures/cap_s4_location_xcu_01.jpg",
+  locationReference: captureCandidates("/examples/captures/cap_s4_location_reference_01"),
+  locationAngles: captureCandidates("/examples/captures/cap_s4_location_angles_01"),
+  locationBackgrounds: captureCandidates("/examples/captures/cap_s4_location_backgrounds_01"),
+  locationXcu: captureCandidates("/examples/captures/cap_s4_location_xcu_01"),
 };
 const step5CaptureSources = {
-  propReference: "/examples/captures/cap_s5_prop_reference_01.jpg",
-  propAngles: "/examples/captures/cap_s5_prop_angles_01.jpg",
-  propMacro: "/examples/captures/cap_s5_prop_macro_01.jpg",
+  propReference: captureCandidates("/examples/captures/cap_s5_prop_reference_01"),
+  propAngles: captureCandidates("/examples/captures/cap_s5_prop_angles_01"),
+  propMacro: captureCandidates("/examples/captures/cap_s5_prop_macro_01"),
 };
 const step7CaptureSources = {
-  sceneBuilder: "/examples/captures/cap_s7_scenebuilder_capture_01.jpg",
-  shotBoard: "/examples/captures/cap_s7_shotboard_capture_01.jpg",
-  teaser: "/examples/captures/cap_s7_teaser_capture_01.jpg",
+  sceneBuilder: captureCandidates("/examples/captures/cap_s7_scenebuilder_capture_01"),
+  shotBoard: captureCandidates("/examples/captures/cap_s7_shotboard_capture_01"),
+  teaser: captureCandidates("/examples/captures/cap_s7_teaser_capture_01"),
 };
 
-function StepCaptureCard({ src, alt, fallbackLabel, minHeight = "min-h-[120px]" }) {
+function StepCaptureCard({ srcCandidates, alt, fallbackLabel, minHeight = "min-h-[120px]" }) {
+  const sources = Array.isArray(srcCandidates) ? srcCandidates : [srcCandidates];
+  const [sourceIndex, setSourceIndex] = useState(0);
   const [hasError, setHasError] = useState(false);
+  const activeSource = sources[sourceIndex];
+
+  useEffect(() => {
+    setSourceIndex(0);
+    setHasError(false);
+  }, [sources.join("|")]);
 
   return (
     <div className={`relative overflow-hidden rounded-lg border border-[#2F2F2F] bg-gradient-to-br from-[#171717] to-[#0F0F0F] p-0 ${minHeight}`}>
-      {!hasError ? (
+      {!hasError && activeSource ? (
         <img
-          src={src}
+          src={activeSource}
           alt={alt}
           className="h-full w-full object-cover"
           loading="lazy"
-          onError={() => setHasError(true)}
+          onError={() => {
+            if (sourceIndex < sources.length - 1) {
+              setSourceIndex((index) => index + 1);
+              return;
+            }
+            setHasError(true);
+          }}
         />
       ) : null}
       {hasError ? (
@@ -185,7 +205,7 @@ Not everything.`;
                   <pre className="text-xs sm:text-sm text-gray-200 whitespace-pre-wrap">{fountainDemoSnippet}</pre>
                 </div>
                 <StepCaptureCard
-                  src={step1CaptureSource}
+                  srcCandidates={step1CaptureSource}
                   alt="Screenplay workspace showing the active script in Wryda"
                   fallbackLabel="Screenplay workspace capture"
                   minHeight="min-h-[220px]"
@@ -200,17 +220,17 @@ Not everything.`;
               </p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <StepCaptureCard
-                  src={step2CaptureSources.scriptContext}
+                  srcCandidates={step2CaptureSources.scriptContext}
                   alt="Script context showing interrogation room scene heading and character mentions"
                   fallbackLabel="Script context capture"
                 />
                 <StepCaptureCard
-                  src={step2CaptureSources.charactersDetected}
+                  srcCandidates={step2CaptureSources.charactersDetected}
                   alt="Detected characters list showing Mara Voss and Eli Trent"
                   fallbackLabel="Characters detected"
                 />
                 <StepCaptureCard
-                  src={step2CaptureSources.locationDetected}
+                  srcCandidates={step2CaptureSources.locationDetected}
                   alt="Detected location list showing Interrogation Room"
                   fallbackLabel="Location detected"
                 />
@@ -227,25 +247,25 @@ Not everything.`;
               </p>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                 <StepCaptureCard
-                  src={step3CaptureSources.characterReference}
+                  srcCandidates={step3CaptureSources.characterReference}
                   alt="Character reference image used for identity lock"
                   fallbackLabel="Character reference image"
                   minHeight="min-h-[140px]"
                 />
                 <StepCaptureCard
-                  src={step3CaptureSources.clothingInput}
+                  srcCandidates={step3CaptureSources.clothingInput}
                   alt="Clothing input image used for virtual try-on"
                   fallbackLabel="Clothing input image"
                   minHeight="min-h-[140px]"
                 />
                 <StepCaptureCard
-                  src={step3CaptureSources.tryOnResult}
+                  srcCandidates={step3CaptureSources.tryOnResult}
                   alt="Virtual try-on result preserving character identity"
                   fallbackLabel="Virtual try-on result"
                   minHeight="min-h-[140px]"
                 />
                 <StepCaptureCard
-                  src={step3CaptureSources.finalPoses}
+                  srcCandidates={step3CaptureSources.finalPoses}
                   alt="Final generated character pose set"
                   fallbackLabel="Final generated pose set"
                   minHeight="min-h-[140px]"
@@ -266,25 +286,25 @@ Not everything.`;
               </p>
               <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
                 <StepCaptureCard
-                  src={step4CaptureSources.locationReference}
+                  srcCandidates={step4CaptureSources.locationReference}
                   alt="Location reference image used for continuity"
                   fallbackLabel="Location reference"
                   minHeight="min-h-[140px]"
                 />
                 <StepCaptureCard
-                  src={step4CaptureSources.locationAngles}
+                  srcCandidates={step4CaptureSources.locationAngles}
                   alt="Location angle outputs derived from one reference"
                   fallbackLabel="Location angle outputs"
                   minHeight="min-h-[140px]"
                 />
                 <StepCaptureCard
-                  src={step4CaptureSources.locationBackgrounds}
+                  srcCandidates={step4CaptureSources.locationBackgrounds}
                   alt="Location background variation outputs"
                   fallbackLabel="Location background outputs"
                   minHeight="min-h-[140px]"
                 />
                 <StepCaptureCard
-                  src={step4CaptureSources.locationXcu}
+                  srcCandidates={step4CaptureSources.locationXcu}
                   alt="Extreme close-up background detail plate"
                   fallbackLabel="Extreme close-up background plate"
                   minHeight="min-h-[140px]"
@@ -299,19 +319,19 @@ Not everything.`;
               </p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <StepCaptureCard
-                  src={step5CaptureSources.propReference}
+                  srcCandidates={step5CaptureSources.propReference}
                   alt="Prop reference image for continuity"
                   fallbackLabel="Prop reference"
                   minHeight="min-h-[140px]"
                 />
                 <StepCaptureCard
-                  src={step5CaptureSources.propAngles}
+                  srcCandidates={step5CaptureSources.propAngles}
                   alt="Prop angle outputs generated from the reference"
                   fallbackLabel="Prop angle outputs"
                   minHeight="min-h-[140px]"
                 />
                 <StepCaptureCard
-                  src={step5CaptureSources.propMacro}
+                  srcCandidates={step5CaptureSources.propMacro}
                   alt="Macro detail output for storytelling inserts"
                   fallbackLabel="Macro detail output"
                   minHeight="min-h-[140px]"
@@ -333,19 +353,19 @@ Not everything.`;
               </p>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
                 <StepCaptureCard
-                  src={step7CaptureSources.sceneBuilder}
+                  srcCandidates={step7CaptureSources.sceneBuilder}
                   alt="Scene Builder view showing shot sequence and planning context"
                   fallbackLabel="Scene Builder preview"
                   minHeight="min-h-[140px]"
                 />
                 <StepCaptureCard
-                  src={step7CaptureSources.shotBoard}
+                  srcCandidates={step7CaptureSources.shotBoard}
                   alt="Shot Board view showing shot variants and continuity planning"
                   fallbackLabel="Shot Board preview"
                   minHeight="min-h-[140px]"
                 />
                 <StepCaptureCard
-                  src={step7CaptureSources.teaser}
+                  srcCandidates={step7CaptureSources.teaser}
                   alt="End-result teaser frame from generated sequence"
                   fallbackLabel="End-result teaser video"
                   minHeight="min-h-[140px]"
