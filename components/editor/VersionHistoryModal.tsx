@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
-import { X, GitBranch, ExternalLink, RotateCcw, Loader2, HelpCircle, Save, Undo2, Info, ChevronDown, ChevronUp } from 'lucide-react';
+import { X, GitBranch, ExternalLink, RotateCcw, Loader2, HelpCircle, Save, Info, ChevronDown, ChevronUp } from 'lucide-react';
 import { useAuth } from '@clerk/nextjs';
 import { useEditor } from '@/contexts/EditorContext';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
@@ -385,7 +385,7 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
 
             setContent(content, true);
             toast.success(
-                `Restored! Your screenplay is now at: "${commitToRestore.message.split('\n')[0]}"\n\nPress Ctrl+Z to undo if needed.`,
+                `Restored! Your screenplay is now at: "${commitToRestore.message.split('\n')[0]}".`,
                 { duration: 6000 }
             );
             setCommitToRestore(null);
@@ -626,20 +626,18 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
                                                     Clicking <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-[#DC143C] text-white rounded text-xs font-medium">
                                                     <RotateCcw className="h-3 w-3" /> Restore</span> replaces your current 
                                                     screenplay with that older version. It's like going back in time to when you 
-                                                    saved that backup. <strong className="text-white">Your current work will be replaced</strong>, but don't worry — you can undo it!
+                                                    saved that backup. <strong className="text-white">Your current work will be replaced.</strong>
                                                 </p>
                                             </div>
                                             
-                                            {/* Undo Info - Important! */}
+                                            {/* Restore note */}
                                             <div className="bg-green-900/20 border border-green-700/50 rounded-lg p-3">
                                                 <h4 className="font-semibold text-green-400 flex items-center gap-2 mb-2">
-                                                    <Undo2 className="h-4 w-4" />
-                                                    Changed Your Mind? Just Undo!
+                                                    <Info className="h-4 w-4" />
+                                                    Important
                                                 </h4>
                                                 <p className="text-sm text-gray-300 leading-relaxed">
-                                                    If you restore an old version and realize you want your newer work back, 
-                                                    just press <kbd className="px-2 py-1 bg-[#1F1F1F] border border-[#3F3F46] rounded text-xs font-mono text-white">Ctrl+Z</kbd> (or <kbd className="px-2 py-1 bg-[#1F1F1F] border border-[#3F3F46] rounded text-xs font-mono text-white">Cmd+Z</kbd> on Mac) 
-                                                    to undo the restore. <strong className="text-white">This works as long as you haven't closed or refreshed the page.</strong>
+                                                    Restoring replaces the current screenplay content with the selected backup.
                                                 </p>
                                             </div>
                                             
@@ -664,7 +662,7 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
                                     <div className="px-6 py-2 bg-[#141414] border-b border-[#3F3F46]">
                                         <p className="text-xs text-gray-300 flex items-center gap-2">
                                             <Info className="h-3 w-3 text-[#DC143C]" />
-                                            Click <strong className="text-white">Restore</strong> to go back to a saved version. Don't worry — you can always undo with Ctrl+Z!
+                                            Click <strong className="text-white">Restore</strong> to go back to a saved version.
                                             <button 
                                                 onClick={() => setShowHelp(true)} 
                                                 className="text-[#DC143C] hover:text-[#DC143C]/80 hover:underline ml-auto flex items-center gap-1"
@@ -799,7 +797,7 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
                                                                 className="tooltip tooltip-left"
                                                                 data-tip={
                                                                     canManageGitHub
-                                                                        ? 'Replace your current screenplay with this version (you can undo with Ctrl+Z)'
+                                                                        ? 'Replace your current screenplay with this version.'
                                                                         : 'Only the director can run backups and restores.'
                                                                 }
                                                             >
@@ -826,12 +824,12 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
                                     )}
                                 </div>
                                 
-                                {/* Footer with undo reminder */}
+                                {/* Footer */}
                                 {commits.length > 0 && (
                                     <div className="px-6 py-3 border-t border-[#3F3F46] bg-[#141414]">
                                         <p className="text-xs text-gray-400 flex items-center justify-center gap-2">
-                                            <Undo2 className="h-3 w-3 text-[#DC143C]" />
-                                            Remember: You can always undo a restore with <kbd className="px-2 py-1 bg-[#1F1F1F] border border-[#3F3F46] rounded text-xs font-mono text-white">Ctrl+Z</kbd> (or <kbd className="px-2 py-1 bg-[#1F1F1F] border border-[#3F3F46] rounded text-xs font-mono text-white">Cmd+Z</kbd>)
+                                            <Info className="h-3 w-3 text-[#DC143C]" />
+                                            Restoring will replace your current screenplay with the selected backup.
                                         </p>
                                     </div>
                                 )}
@@ -878,11 +876,9 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
                                 
                                 <div className="bg-green-900/20 border border-green-700/50 rounded-lg p-3">
                                     <p className="flex items-start gap-2 text-sm">
-                                        <Undo2 className="h-4 w-4 mt-0.5 text-green-400 shrink-0" />
+                                        <Info className="h-4 w-4 mt-0.5 text-green-400 shrink-0" />
                                         <span>
-                                            <strong className="text-white">Don't worry!</strong> You can undo this restore by pressing{' '}
-                                            <kbd className="px-2 py-1 bg-[#1F1F1F] border border-[#3F3F46] rounded text-xs font-mono text-white">Ctrl+Z</kbd> (or <kbd className="px-2 py-1 bg-[#1F1F1F] border border-[#3F3F46] rounded text-xs font-mono text-white">Cmd+Z</kbd> on Mac) 
-                                            as long as you don't close or refresh the page.
+                                            <strong className="text-white">Important:</strong> Restoring will replace your current screenplay with this saved backup.
                                         </span>
                                     </p>
                                 </div>
