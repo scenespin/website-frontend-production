@@ -156,7 +156,7 @@ function AgentsMiniCaptureCard({ srcCandidates, alt, fallbackLabel, itemKey, onO
         <img
           src={activeSource}
           alt={alt}
-          className="h-full w-full object-cover scale-[1.08]"
+          className="h-full w-full object-cover object-top scale-[1.08]"
           loading="lazy"
           onError={() => {
             if (sourceIndex < sources.length - 1) {
