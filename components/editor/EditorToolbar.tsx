@@ -36,16 +36,64 @@ interface EditorToolbarProps {
 function GitHubSaveButton() {
     const { getToken } = useAuth();
     const { state } = useEditor();
-    const { screenplayId } = useScreenplay();
+    const { screenplayId, isOwner } = useScreenplay();
     const [saving, setSaving] = useState(false);
     const [showModal, setShowModal] = useState(false);
     const [showSetup, setShowSetup] = useState(false);
     const [commitMessage, setCommitMessage] = useState('');
+    const [contextLoading, setContextLoading] = useState(false);
+    const [canonicalConfigured, setCanonicalConfigured] = useState(false);
+    const [ownerGitHubConnected, setOwnerGitHubConnected] = useState(false);
+
+    const loadGitHubContext = async () => {
+        if (!screenplayId || !screenplayId.startsWith('screenplay_')) {
+            setCanonicalConfigured(false);
+            setOwnerGitHubConnected(false);
+            return;
+        }
+        setContextLoading(true);
+        try {
+            const backendToken = await getToken({ template: 'wryda-backend' });
+            if (!backendToken) {
+                throw new Error('Unable to authenticate with backend. Please sign in again.');
+            }
+            const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://backend.wryda.ai';
+            const response = await fetch(`${backendUrl}/api/github/screenplay/context?screenplayId=${encodeURIComponent(screenplayId)}`, {
+                headers: {
+                    Authorization: `Bearer ${backendToken}`
+                }
+            });
+            const payload = await response.json().catch(() => null);
+            if (!response.ok || !payload?.success) {
+                throw new Error(payload?.message || 'Failed to load GitHub context');
+            }
+            setCanonicalConfigured(Boolean(payload.canonicalConfigured));
+            setOwnerGitHubConnected(Boolean(payload.ownerGitHubConnected));
+        } catch (error) {
+            console.error('[GitHub Save] Failed to load context:', error);
+            setCanonicalConfigured(false);
+            setOwnerGitHubConnected(false);
+        } finally {
+            setContextLoading(false);
+        }
+    };
+
+    useEffect(() => {
+        void loadGitHubContext();
+    }, [screenplayId]);
 
     const handleSaveClick = () => {
-        const githubConfigStr = localStorage.getItem('screenplay_github_config');
-        
-        if (!githubConfigStr) {
+        if (!isOwner) {
+            toast.error('Only the director can run backups and restores.');
+            return;
+        }
+
+        if (!canonicalConfigured) {
+            toast.error('GitHub is not configured for this screenplay yet.');
+            return;
+        }
+
+        if (!ownerGitHubConnected) {
             setShowSetup(true);
             return;
         }
@@ -56,15 +104,10 @@ function GitHubSaveButton() {
     };
 
     const handleSave = async () => {
-        const githubConfigStr = localStorage.getItem('screenplay_github_config');
-        if (!githubConfigStr) return;
+        if (!isOwner) return;
 
         try {
             setSaving(true);
-            const rawConfig = JSON.parse(githubConfigStr) as { owner?: string; repo?: string; branch?: string };
-            if (!rawConfig.owner || !rawConfig.repo) {
-                throw new Error('GitHub repository is not configured. Reconnect GitHub to continue.');
-            }
             if (!screenplayId || !screenplayId.startsWith('screenplay_')) {
                 throw new Error('A valid screenplay ID is required before saving to GitHub.');
             }
@@ -85,10 +128,7 @@ function GitHubSaveButton() {
                 body: JSON.stringify({
                     screenplayId,
                     content: state.content,
-                    message,
-                    owner: rawConfig.owner,
-                    repo: rawConfig.repo,
-                    branch: rawConfig.branch || 'main'
+                    message
                 })
             });
             const payload = await response.json().catch(() => null);
@@ -112,16 +152,28 @@ function GitHubSaveButton() {
             // Check if this is an authentication error (expired/revoked token)
             const errorMessage = error.message || '';
             const errorCode = error.errorCode || '';
-            if (
+            if (errorCode === 'OWNER_GITHUB_NOT_CONNECTED') {
+                toast.error(
+                    'Director GitHub connection is required for backups. Ask the project owner to reconnect GitHub.',
+                    { duration: 9000 }
+                );
+                setShowModal(false);
+            } else if (
+                errorCode === 'CANONICAL_GITHUB_CONFIG_MISSING' ||
+                errorCode === 'CANONICAL_REPO_MISMATCH'
+            ) {
+                toast.error(
+                    'This screenplay is not mapped to a canonical GitHub repository yet. Please have the director configure GitHub for this screenplay.',
+                    { duration: 9000 }
+                );
+                setShowModal(false);
+            } else if (
                 errorMessage.includes('Bad credentials') ||
                 errorMessage.includes('401') ||
                 errorMessage.includes('Unauthorized') ||
                 errorCode === 'GITHUB_TOKEN_EXPIRED' ||
                 errorCode === 'GITHUB_NOT_CONNECTED'
             ) {
-                // Clear the invalid token
-                localStorage.removeItem('screenplay_github_config');
-                
                 toast.error(
                     'Your GitHub connection has expired. Please reconnect to save backups.',
                     { duration: 8000 }
@@ -143,16 +195,27 @@ function GitHubSaveButton() {
         window.location.href = '/api/github/auth';
     };
 
-    // Check if GitHub is connected
-    const isConnected = typeof window !== 'undefined' && !!localStorage.getItem('screenplay_github_config');
+    // Only directors can run GitHub backup actions in director-only mode.
+    if (!isOwner) {
+        return null;
+    }
+
+    const isConnected = canonicalConfigured && ownerGitHubConnected;
+    const tooltipText = contextLoading
+        ? 'Checking GitHub backup status...'
+        : isConnected
+            ? 'Save a backup • Creates a new version you can restore later'
+            : !canonicalConfigured
+                ? 'GitHub is not configured for this screenplay yet'
+                : 'Director GitHub connection required';
 
     return (
         <>
             {/* GitHub Save Button */}
-            <div className="hidden md:block tooltip tooltip-bottom" data-tip={isConnected ? "Save a backup • Creates a new version you can restore later" : "Connect GitHub to save backups"}>
+            <div className="hidden md:block tooltip tooltip-bottom" data-tip={tooltipText}>
                 <button
                     onClick={handleSaveClick}
-                    disabled={saving}
+                    disabled={saving || contextLoading}
                     className="px-2 py-2 bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:text-[#DC143C] rounded text-xs font-semibold min-w-[40px] min-h-[40px] flex flex-col items-center justify-center transition-colors"
                 >
                     {saving ? (
@@ -161,7 +224,7 @@ function GitHubSaveButton() {
                             <span className="text-[9px] hidden sm:inline">SAVING...</span>
                         </>
                     ) : (
-                        <>
+                        <> 
                             <span className="text-base">😈</span>
                             <span className="text-[9px] hidden sm:inline">BACKUP</span>
                         </>
@@ -261,7 +324,7 @@ function GitHubSaveButton() {
                             <svg className="w-5 h-5 text-[#DC143C]" fill="currentColor" viewBox="0 0 24 24">
                                 <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
                             </svg>
-                            Connect GitHub
+                            Connect Director GitHub
                         </h3>
                         
                         <div className="space-y-3 text-sm text-gray-300 mb-4">
@@ -940,24 +1003,17 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                 <div className="h-8 w-px bg-base-300 mx-2"></div>
                 
                 {/* Version History */}
-                {onOpenVersionHistory && (() => {
-                    const githubConfigStr = typeof window !== 'undefined' ? localStorage.getItem('screenplay_github_config') : null;
-                    const hasGitHub = !!githubConfigStr;
-                    
-                    if (!hasGitHub) return null;
-                    
-                    return (
-                        <div className="tooltip tooltip-bottom" data-tip="Version History • View commit history">
-                            <button
-                                onClick={onOpenVersionHistory}
-                                className="px-2 py-2 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-w-[40px] min-h-[40px] flex flex-col items-center justify-center transition-colors"
-                            >
-                                <span className="text-base">🕒</span>
-                                <span className="text-[9px] hidden sm:inline">HIST</span>
-                            </button>
-                        </div>
-                    );
-                })()}
+                {onOpenVersionHistory && canViewScript && (
+                    <div className="tooltip tooltip-bottom" data-tip="Version History • View commit history">
+                        <button
+                            onClick={onOpenVersionHistory}
+                            className="px-2 py-2 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-w-[40px] min-h-[40px] flex flex-col items-center justify-center transition-colors"
+                        >
+                            <span className="text-base">🕒</span>
+                            <span className="text-[9px] hidden sm:inline">HIST</span>
+                        </button>
+                    </div>
+                )}
                 
                 {/* Feature 0111: Save Backup to GitHub - Actually commits to GitHub */}
                 <GitHubSaveButton />

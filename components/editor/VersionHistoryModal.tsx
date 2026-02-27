@@ -33,7 +33,7 @@ interface GitHubRepoConfig {
 export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryModalProps) {
     const { getToken } = useAuth();
     const { state, setContent } = useEditor();
-    const { screenplayId } = useScreenplay();
+    const { screenplayId, isOwner } = useScreenplay();
     const [commits, setCommits] = useState<Commit[]>([]);
     const [loading, setLoading] = useState(false);
     const [restoring, setRestoring] = useState<string | null>(null);
@@ -41,47 +41,100 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
     const [branch, setBranch] = useState<string>('main');
     const [showHelp, setShowHelp] = useState(false);
     const [disconnecting, setDisconnecting] = useState(false);
+    const [contextLoading, setContextLoading] = useState(false);
+    const [contextMessage, setContextMessage] = useState<string | null>(null);
+    const [ownerGitHubConnected, setOwnerGitHubConnected] = useState(false);
+    const [canManageGitHub, setCanManageGitHub] = useState(false);
     
     // Restore confirmation modal state
     const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
     const [commitToRestore, setCommitToRestore] = useState<Commit | null>(null);
     const [confirmText, setConfirmText] = useState('');
-    // Load GitHub config on mount
+    // Load canonical screenplay GitHub context from backend (source of truth).
     useEffect(() => {
-        if (isOpen) {
-            try {
-                const configStr = localStorage.getItem('screenplay_github_config');
-                if (configStr) {
-                    const config = JSON.parse(configStr);
-                    setGithubConfig({
-                        owner: config.owner,
-                        repo: config.repo
-                    });
-                }
-            } catch (err) {
-                console.error('[VersionHistory] Failed to load GitHub config:', err);
-            }
+        if (!isOpen || !screenplayId) return;
+        if (!screenplayId.startsWith('screenplay_')) {
+            setGithubConfig(null);
+            setContextMessage('A valid screenplay is required to view version history.');
+            return;
         }
-    }, [isOpen]);
+
+        const loadGitHubContext = async () => {
+            setContextLoading(true);
+            try {
+                const token = await getToken({ template: 'wryda-backend' });
+                if (!token) {
+                    throw new Error('Unable to authenticate with backend. Please sign in again.');
+                }
+                const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://backend.wryda.ai';
+                const response = await fetch(
+                    `${backendUrl}/api/github/screenplay/context?screenplayId=${encodeURIComponent(screenplayId)}`,
+                    {
+                        headers: {
+                            Authorization: `Bearer ${token}`
+                        }
+                    }
+                );
+                const payload = await response.json().catch(() => null);
+                if (!response.ok || !payload?.success) {
+                    throw new Error(payload?.message || 'Failed to load GitHub context');
+                }
+
+                const hasCanonicalRepo = Boolean(payload?.canonicalConfigured && payload?.repoOwner && payload?.repoName);
+                const ownerConnected = Boolean(payload?.ownerGitHubConnected);
+                setOwnerGitHubConnected(ownerConnected);
+                setCanManageGitHub(Boolean(payload?.canManageGitHub) && Boolean(isOwner));
+
+                if (hasCanonicalRepo) {
+                    setGithubConfig({
+                        owner: String(payload.repoOwner),
+                        repo: String(payload.repoName)
+                    });
+                    if (!ownerConnected) {
+                        setContextMessage('Director GitHub connection is required to load version history.');
+                    } else {
+                        setContextMessage(null);
+                    }
+                } else {
+                    setGithubConfig(null);
+                    setContextMessage('GitHub is not configured for this screenplay yet. Ask the director to configure it.');
+                }
+            } catch (err: any) {
+                console.error('[VersionHistory] Failed to load screenplay GitHub context:', err);
+                setGithubConfig(null);
+                setContextMessage(err?.message || 'Failed to load GitHub context.');
+            } finally {
+                setContextLoading(false);
+            }
+        };
+
+        void loadGitHubContext();
+    }, [isOpen, screenplayId, getToken, isOwner]);
     
     // Fetch commits when modal opens
     useEffect(() => {
-        if (isOpen && githubConfig) {
+        if (isOpen && githubConfig && ownerGitHubConnected) {
             fetchCommits();
         }
-    }, [isOpen, githubConfig]);
+    }, [isOpen, githubConfig, ownerGitHubConnected]);
     
     // State for showing expired token message
     const [tokenExpired, setTokenExpired] = useState(false);
     
     const handleReconnectGitHub = () => {
-        // Clear invalid token
-        localStorage.removeItem('screenplay_github_config');
+        if (!canManageGitHub) {
+            toast.error('Only the director can manage GitHub connection for this screenplay.');
+            return;
+        }
         // Use full-page navigation so browser follows redirect chain to github.com.
         window.location.href = '/api/github/auth';
     };
 
     const handleDisconnectGitHub = async () => {
+        if (!canManageGitHub) {
+            toast.error('Only the director can manage GitHub connection for this screenplay.');
+            return;
+        }
         setDisconnecting(true);
         try {
             const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://backend.wryda.ai';
@@ -96,26 +149,28 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
                 headers: authHeader ? { Authorization: authHeader } : undefined,
             });
 
-            // Even if backend disconnect fails, clear local config so user can reconnect cleanly.
+            // Even if backend disconnect fails, keep UI in a reconnectable state.
             if (!response.ok) {
                 const payload = await response.json().catch(() => null);
                 console.warn('[VersionHistory] Backend disconnect failed:', payload || response.status);
             }
 
-            localStorage.removeItem('screenplay_github_config');
             setGithubConfig(null);
             setCommits([]);
             setTokenExpired(false);
             setShowHelp(false);
+            setOwnerGitHubConnected(false);
+            setContextMessage('Director GitHub connection is required to load version history.');
             toast.success('GitHub disconnected. Reconnect to continue backups and version history.');
         } catch (error) {
             console.error('[VersionHistory] Disconnect failed:', error);
-            localStorage.removeItem('screenplay_github_config');
             setGithubConfig(null);
             setCommits([]);
             setTokenExpired(false);
             setShowHelp(false);
-            toast.success('Local GitHub connection cleared. Reconnect to continue.');
+            setOwnerGitHubConnected(false);
+            setContextMessage('Director GitHub connection is required to load version history.');
+            toast.error('Failed to disconnect GitHub cleanly. Please retry.');
         } finally {
             setDisconnecting(false);
         }
@@ -161,7 +216,16 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
             // Check if this is an authentication error
             const errorMessage = error.message || '';
             const errorCode = error.errorCode || '';
-            if (
+            if (errorCode === 'OWNER_GITHUB_NOT_CONNECTED') {
+                setTokenExpired(false);
+                toast.error('Director GitHub connection is required to view version history.');
+            } else if (
+                errorCode === 'CANONICAL_GITHUB_CONFIG_MISSING' ||
+                errorCode === 'CANONICAL_REPO_MISMATCH'
+            ) {
+                setTokenExpired(false);
+                toast.error('GitHub repository is not configured for this screenplay yet. Ask the director to configure it.');
+            } else if (
                 errorMessage.includes('Bad credentials') ||
                 errorMessage.includes('401') ||
                 errorMessage.includes('Unauthorized') ||
@@ -216,7 +280,9 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
             const payload = await response.json().catch(() => null);
 
             if (!response.ok || !payload?.success) {
-                throw new Error(payload?.message || 'Failed to restore version from backend');
+                const backendError = new Error(payload?.message || 'Failed to restore version from backend');
+                (backendError as Error & { errorCode?: string }).errorCode = payload?.errorCode;
+                throw backendError;
             } else {
                 content = payload.content;
             }
@@ -230,7 +296,17 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
             onClose();
         } catch (error: any) {
             console.error('[VersionHistory] Failed to restore:', error);
-            toast.error(`Failed to restore version: ${error.message || 'Unknown error'}`);
+            const errorCode = error?.errorCode || '';
+            if (errorCode === 'OWNER_GITHUB_NOT_CONNECTED') {
+                toast.error('Director GitHub connection is required to restore versions.');
+            } else if (
+                errorCode === 'CANONICAL_GITHUB_CONFIG_MISSING' ||
+                errorCode === 'CANONICAL_REPO_MISMATCH'
+            ) {
+                toast.error('GitHub repository is not configured for this screenplay yet.');
+            } else {
+                toast.error(`Failed to restore version: ${error.message || 'Unknown error'}`);
+            }
         } finally {
             setRestoring(null);
         }
@@ -310,10 +386,20 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
                                             </button>
                                         </div>
                                     </div>
-                                    <div className="px-6 py-8 text-center">
+                                    <div className="px-6 py-8 text-center space-y-4">
                                         <p className="text-gray-400">
-                                            GitHub is not connected. Connect GitHub to view version history.
+                                            {contextLoading
+                                                ? 'Loading GitHub version history context...'
+                                                : (contextMessage || 'GitHub is not configured for this screenplay.')}
                                         </p>
+                                        {!contextLoading && canManageGitHub && !ownerGitHubConnected && (
+                                            <button
+                                                onClick={handleReconnectGitHub}
+                                                className="btn gap-2 bg-[#DC143C] hover:bg-[#DC143C]/80 text-white border-none"
+                                            >
+                                                Reconnect GitHub
+                                            </button>
+                                        )}
                                     </div>
                                 </Dialog.Panel>
                             </Transition.Child>
@@ -370,14 +456,16 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
                                         </div>
                                     </div>
                                     <div className="flex items-center gap-2">
-                                        <button
-                                            onClick={handleDisconnectGitHub}
-                                            disabled={disconnecting}
-                                            className="btn btn-ghost btn-sm text-xs text-gray-300 hover:text-white border border-[#3F3F46] hover:border-[#52525B]"
-                                            title="Disconnect GitHub account"
-                                        >
-                                            {disconnecting ? 'Disconnecting...' : 'Disconnect'}
-                                        </button>
+                                        {canManageGitHub && (
+                                            <button
+                                                onClick={handleDisconnectGitHub}
+                                                disabled={disconnecting}
+                                                className="btn btn-ghost btn-sm text-xs text-gray-300 hover:text-white border border-[#3F3F46] hover:border-[#52525B]"
+                                                title="Disconnect GitHub account"
+                                            >
+                                                {disconnecting ? 'Disconnecting...' : 'Disconnect'}
+                                            </button>
+                                        )}
                                         <button 
                                             onClick={() => setShowHelp(!showHelp)} 
                                             className="btn btn-ghost btn-sm btn-circle text-gray-400 hover:text-white"
@@ -499,19 +587,44 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
                                             <div>
                                                 <p className="text-white font-medium">GitHub Connection Expired</p>
                                                 <p className="text-sm text-gray-400 mt-1 max-w-sm mx-auto">
-                                                    Your connection to GitHub has expired. This happens sometimes for security reasons. 
-                                                    Please reconnect to view your version history and save new backups.
+                                                    {canManageGitHub
+                                                        ? 'Your connection to GitHub has expired. This happens sometimes for security reasons. Please reconnect to view your version history and save new backups.'
+                                                        : 'The director GitHub connection has expired. Ask the director to reconnect to view version history and backups.'}
                                                 </p>
                                             </div>
-                                            <button
-                                                onClick={handleReconnectGitHub}
-                                                className="btn gap-2 bg-[#DC143C] hover:bg-[#DC143C]/80 text-white border-none"
-                                            >
-                                                <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
-                                                    <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                                            {canManageGitHub && (
+                                                <button
+                                                    onClick={handleReconnectGitHub}
+                                                    className="btn gap-2 bg-[#DC143C] hover:bg-[#DC143C]/80 text-white border-none"
+                                                >
+                                                    <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 24 24">
+                                                        <path d="M12 0c-6.626 0-12 5.373-12 12 0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23.957-.266 1.983-.399 3.003-.404 1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576 4.765-1.589 8.199-6.086 8.199-11.386 0-6.627-5.373-12-12-12z"/>
+                                                    </svg>
+                                                    Reconnect GitHub
+                                                </button>
+                                            )}
+                                        </div>
+                                    ) : !ownerGitHubConnected ? (
+                                        <div className="text-center py-12 space-y-4">
+                                            <div className="w-16 h-16 mx-auto bg-yellow-900/20 border border-yellow-700/50 rounded-full flex items-center justify-center">
+                                                <svg className="h-8 w-8 text-yellow-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
                                                 </svg>
-                                                Reconnect GitHub
-                                            </button>
+                                            </div>
+                                            <div>
+                                                <p className="text-white font-medium">Director GitHub Connection Required</p>
+                                                <p className="text-sm text-gray-400 mt-1 max-w-sm mx-auto">
+                                                    {contextMessage || 'The director must reconnect GitHub to load version history.'}
+                                                </p>
+                                            </div>
+                                            {canManageGitHub && (
+                                                <button
+                                                    onClick={handleReconnectGitHub}
+                                                    className="btn gap-2 bg-[#DC143C] hover:bg-[#DC143C]/80 text-white border-none"
+                                                >
+                                                    Reconnect GitHub
+                                                </button>
+                                            )}
                                         </div>
                                     ) : commits.length === 0 ? (
                                         <div className="text-center py-12 space-y-4">
@@ -577,11 +690,18 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
                                                                     </a>
                                                                 </div>
                                                             )}
-                                                            <div className="tooltip tooltip-left" data-tip="Replace your current screenplay with this version (you can undo with Ctrl+Z)">
+                                                            <div
+                                                                className="tooltip tooltip-left"
+                                                                data-tip={
+                                                                    canManageGitHub
+                                                                        ? 'Replace your current screenplay with this version (you can undo with Ctrl+Z)'
+                                                                        : 'Only the director can run backups and restores.'
+                                                                }
+                                                            >
                                                                 <button
-                                                                    onClick={() => handleRestoreClick(commit)}
-                                                                    disabled={restoring === commit.sha}
-                                                                    className="btn btn-sm gap-1 bg-[#DC143C] hover:bg-[#DC143C]/80 text-white border-none"
+                                                                    onClick={() => canManageGitHub && handleRestoreClick(commit)}
+                                                                    disabled={restoring === commit.sha || !canManageGitHub}
+                                                                    className="btn btn-sm gap-1 bg-[#DC143C] hover:bg-[#DC143C]/80 text-white border-none disabled:opacity-50 disabled:cursor-not-allowed"
                                                                 >
                                                                     {restoring === commit.sha ? (
                                                                         <Loader2 className="h-4 w-4 animate-spin" />

@@ -150,7 +150,6 @@ function periodicCommitMessage(title: string, atMs: number): string {
 }
 
 async function commit(
-  config: StoredGitHubConfig,
   screenplayId: string,
   content: string,
   message: string
@@ -163,10 +162,7 @@ async function commit(
     body: JSON.stringify({
       screenplayId,
       content,
-      message,
-      owner: config.owner,
-      repo: config.repo,
-      branch: config.branch || 'main'
+      message
     })
   });
 
@@ -233,11 +229,6 @@ async function runPeriodicBackup(
     return { status: 'empty_content', reason: 'Content is empty' };
   }
 
-  const config = getStoredGitHubConfig();
-  if (!config) {
-    return { status: 'not_connected', reason: 'GitHub config missing/invalid' };
-  }
-
   if (options.enforceCooldown) {
     const lastCommittedAt = getLastCommittedAt(input.screenplayId);
     if (lastCommittedAt && options.now - lastCommittedAt < PERIODIC_BACKUP_COOLDOWN_MS) {
@@ -255,7 +246,7 @@ async function runPeriodicBackup(
   const message = periodicCommitMessage(input.title, options.now);
 
   try {
-    await commit(config, input.screenplayId, input.content, message);
+    await commit(input.screenplayId, input.content, message);
     setLastCommittedHash(input.screenplayId, nextHash);
     setLastCommittedAt(input.screenplayId, options.now);
     clearPending(input.screenplayId);

@@ -197,60 +197,67 @@ export default function EditorWorkspace() {
         
         setIsSaving(true);
         try {
-            // Feature 0111: Check if GitHub is configured in localStorage
-            const githubConfigStr = localStorage.getItem('screenplay_github_config');
-            
-            if (githubConfigStr) {
-                const githubConfig = JSON.parse(githubConfigStr);
-                
-                if (githubConfig.owner && githubConfig.repo) {
-                    toast.info('Saving to GitHub...');
-                    if (!screenplayId || !screenplayId.startsWith('screenplay_')) {
-                        throw new Error('A valid screenplay ID is required before saving to GitHub.');
-                    }
-                    const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://backend.wryda.ai';
-                    const backendToken = await getToken({ template: 'wryda-backend' });
-                    if (!backendToken) {
-                        throw new Error('Unable to authenticate with backend. Please sign in again.');
-                    }
+            if (!screenplayId || !screenplayId.startsWith('screenplay_')) {
+                throw new Error('A valid screenplay ID is required before manual save.');
+            }
+            const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://backend.wryda.ai';
+            const backendToken = await getToken({ template: 'wryda-backend' });
+            if (!backendToken) {
+                throw new Error('Unable to authenticate with backend. Please sign in again.');
+            }
 
-                    const response = await fetch(`${backendUrl}/api/github/screenplay/save`, {
-                        method: 'POST',
-                        headers: {
-                            'Content-Type': 'application/json',
-                            Authorization: `Bearer ${backendToken}`
-                        },
-                        body: JSON.stringify({
-                            screenplayId,
-                            content: state.content,
-                            message: `Manual save: ${state.title}`,
-                            owner: githubConfig.owner,
-                            repo: githubConfig.repo,
-                            branch: githubConfig.branch || 'main'
-                        })
-                    });
-                    const payload = await response.json().catch(() => null);
-                    if (!response.ok || !payload?.success) {
-                        throw new Error(payload?.message || 'GitHub save failed');
+            // Director-only GitHub writes: check canonical screenplay GitHub context from backend.
+            let canSaveToGitHub = false;
+            if (screenplay.isOwner) {
+                try {
+                    const contextResponse = await fetch(
+                        `${backendUrl}/api/github/screenplay/context?screenplayId=${encodeURIComponent(screenplayId)}`,
+                        { headers: { Authorization: `Bearer ${backendToken}` } }
+                    );
+                    const contextPayload = await contextResponse.json().catch(() => null);
+                    if (contextResponse.ok && contextPayload?.success) {
+                        canSaveToGitHub = Boolean(
+                            contextPayload.canonicalConfigured && contextPayload.ownerGitHubConnected
+                        );
                     }
-                    if (screenplayId?.startsWith('screenplay_')) {
-                        markPeriodicGitHubBackupCheckpoint(screenplayId, state.content);
-                    }
-                    
-                    toast.success('✅ Saved to GitHub!');
-                } else {
-                    throw new Error('GitHub configuration incomplete');
+                } catch (contextError) {
+                    console.warn('[EditorWorkspace] Failed to load screenplay GitHub context:', contextError);
                 }
+            }
+
+            if (canSaveToGitHub) {
+                toast.info('Saving to GitHub...');
+                const response = await fetch(`${backendUrl}/api/github/screenplay/save`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        Authorization: `Bearer ${backendToken}`
+                    },
+                    body: JSON.stringify({
+                        screenplayId,
+                        content: state.content,
+                        message: `Manual save: ${state.title}`
+                    })
+                });
+                const payload = await response.json().catch(() => null);
+                if (!response.ok || !payload?.success) {
+                    throw new Error(payload?.message || 'GitHub save failed');
+                }
+                markPeriodicGitHubBackupCheckpoint(screenplayId, state.content);
+                toast.success('✅ Saved to GitHub!');
             } else {
-                // No GitHub - save to localStorage only (also auto-saves to DynamoDB every 30s)
+                // Fallback: local cache (DynamoDB autosave remains active independently).
                 localStorage.setItem('screenplay_draft', JSON.stringify({
                     content: state.content,
                     title: state.title,
                     author: state.author,
                     lastSaved: new Date().toISOString()
                 }));
-                
-                toast.success('✅ Saved locally!');
+                if (!screenplay.isOwner) {
+                    toast.success('✅ Saved locally (director handles GitHub backups).');
+                } else {
+                    toast.success('✅ Saved locally!');
+                }
             }
         } catch (error: any) {
             console.error('[EditorWorkspace] Manual save failed:', error);
