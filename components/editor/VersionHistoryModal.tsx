@@ -45,6 +45,7 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
     const [contextMessage, setContextMessage] = useState<string | null>(null);
     const [ownerGitHubConnected, setOwnerGitHubConnected] = useState(false);
     const [canManageGitHub, setCanManageGitHub] = useState(false);
+    const [provisioning, setProvisioning] = useState(false);
     
     // Restore confirmation modal state
     const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
@@ -132,6 +133,66 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
         }
         // Use full-page navigation so browser follows redirect chain to github.com.
         window.location.href = '/api/github/auth';
+    };
+
+    const handleProvisionGitHub = async () => {
+        if (!canManageGitHub) {
+            toast.error('Only the director can configure GitHub for this screenplay.');
+            return;
+        }
+        if (!screenplayId || !screenplayId.startsWith('screenplay_')) {
+            toast.error('A valid screenplay is required to configure GitHub.');
+            return;
+        }
+        if (!ownerGitHubConnected) {
+            handleReconnectGitHub();
+            return;
+        }
+
+        setProvisioning(true);
+        try {
+            const token = await getToken({ template: 'wryda-backend' });
+            if (!token) {
+                throw new Error('Unable to authenticate with backend. Please sign in again.');
+            }
+            const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://backend.wryda.ai';
+            const response = await fetch(`${backendUrl}/api/github/screenplay/provision`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`
+                },
+                body: JSON.stringify({ screenplayId })
+            });
+            const payload = await response.json().catch(() => null);
+            if (!response.ok || !payload?.success) {
+                const backendError = new Error(payload?.message || 'Failed to configure GitHub repository');
+                (backendError as Error & { errorCode?: string }).errorCode = payload?.errorCode;
+                throw backendError;
+            }
+
+            setGithubConfig({
+                owner: String(payload.repoOwner),
+                repo: String(payload.repoName)
+            });
+            setOwnerGitHubConnected(Boolean(payload.ownerGitHubConnected));
+            setContextMessage(null);
+            toast.success(
+                payload.status === 'already_configured'
+                    ? 'GitHub repository mapping is already configured for this screenplay.'
+                    : 'GitHub repository configured for this screenplay.'
+            );
+        } catch (error: any) {
+            const errorCode = error?.errorCode || '';
+            if (errorCode === 'OWNER_GITHUB_NOT_CONNECTED') {
+                toast.error('Director GitHub connection is required. Please reconnect GitHub first.');
+                handleReconnectGitHub();
+            } else {
+                toast.error(`Failed to configure GitHub: ${error?.message || 'Unknown error'}`);
+            }
+        } finally {
+            setProvisioning(false);
+        }
     };
 
     const handleDisconnectGitHub = async () => {
@@ -398,10 +459,11 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
                                         </p>
                                         {!contextLoading && canManageGitHub && !githubConfig && (
                                             <button
-                                                onClick={handleReconnectGitHub}
+                                                onClick={ownerGitHubConnected ? handleProvisionGitHub : handleReconnectGitHub}
+                                                disabled={provisioning}
                                                 className="btn gap-2 bg-[#DC143C] hover:bg-[#DC143C]/80 text-white border-none"
                                             >
-                                                Configure GitHub
+                                                {provisioning ? 'Configuring...' : 'Configure GitHub'}
                                             </button>
                                         )}
                                         {!contextLoading && canManageGitHub && githubConfig && !ownerGitHubConnected && (

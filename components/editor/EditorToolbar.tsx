@@ -44,6 +44,7 @@ function GitHubSaveButton() {
     const [contextLoading, setContextLoading] = useState(false);
     const [canonicalConfigured, setCanonicalConfigured] = useState(false);
     const [ownerGitHubConnected, setOwnerGitHubConnected] = useState(false);
+    const [provisioning, setProvisioning] = useState(false);
 
     const loadGitHubContext = async () => {
         if (!screenplayId || !screenplayId.startsWith('screenplay_')) {
@@ -82,16 +83,71 @@ function GitHubSaveButton() {
         void loadGitHubContext();
     }, [screenplayId]);
 
-    const handleSaveClick = () => {
+    const handleProvisionGitHub = async (): Promise<boolean> => {
+        if (!screenplayId || !screenplayId.startsWith('screenplay_')) {
+            toast.error('A valid screenplay is required to configure GitHub.');
+            return false;
+        }
+        if (!ownerGitHubConnected) {
+            setShowSetup(true);
+            return false;
+        }
+
+        setProvisioning(true);
+        try {
+            const backendToken = await getToken({ template: 'wryda-backend' });
+            if (!backendToken) {
+                throw new Error('Unable to authenticate with backend. Please sign in again.');
+            }
+            const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://backend.wryda.ai';
+            const response = await fetch(`${backendUrl}/api/github/screenplay/provision`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${backendToken}`
+                },
+                body: JSON.stringify({ screenplayId })
+            });
+            const payload = await response.json().catch(() => null);
+            if (!response.ok || !payload?.success) {
+                const backendError = new Error(payload?.message || 'Failed to configure GitHub repository');
+                (backendError as Error & { errorCode?: string }).errorCode = payload?.errorCode;
+                throw backendError;
+            }
+
+            setCanonicalConfigured(true);
+            setOwnerGitHubConnected(Boolean(payload.ownerGitHubConnected));
+            toast.success(
+                payload.status === 'already_configured'
+                    ? 'GitHub repository mapping is already configured for this screenplay.'
+                    : 'GitHub repository configured for this screenplay.'
+            );
+            return true;
+        } catch (error: any) {
+            if (error?.errorCode === 'OWNER_GITHUB_NOT_CONNECTED') {
+                setShowSetup(true);
+                toast.error('Director GitHub connection is required. Reconnect GitHub first.');
+                return false;
+            }
+            toast.error(`Failed to configure GitHub: ${error?.message || 'Unknown error'}`);
+            return false;
+        } finally {
+            setProvisioning(false);
+        }
+    };
+
+    const handleSaveClick = async () => {
         if (!isOwner) {
             toast.error('Only the director can run backups and restores.');
             return;
         }
 
         if (!canonicalConfigured) {
-            toast.error('GitHub is not configured for this screenplay yet. Connect Director GitHub to configure it.');
-            setShowSetup(true);
-            return;
+            const configured = await handleProvisionGitHub();
+            if (!configured) {
+                toast.error('GitHub is not configured for this screenplay yet. Connect Director GitHub to configure it.');
+                return;
+            }
         }
 
         if (!ownerGitHubConnected) {
@@ -216,13 +272,13 @@ function GitHubSaveButton() {
             <div className="hidden md:block tooltip tooltip-bottom" data-tip={tooltipText}>
                 <button
                     onClick={handleSaveClick}
-                    disabled={saving || contextLoading}
+                    disabled={saving || contextLoading || provisioning}
                     className="px-2 py-2 bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:text-[#DC143C] rounded text-xs font-semibold min-w-[40px] min-h-[40px] flex flex-col items-center justify-center transition-colors"
                 >
-                    {saving ? (
+                    {saving || provisioning ? (
                         <>
                             <span className="loading loading-spinner loading-xs"></span>
-                            <span className="text-[9px] hidden sm:inline">SAVING...</span>
+                            <span className="text-[9px] hidden sm:inline">{provisioning ? 'CONFIG...' : 'SAVING...'}</span>
                         </>
                     ) : (
                         <> 
