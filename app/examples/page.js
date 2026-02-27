@@ -595,6 +595,7 @@ Not everything.`;
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-8">
               <h2 className="text-3xl md:text-4xl font-bold mb-4">8) Final Video-Ready Handoff</h2>
+              <p className="text-sm uppercase tracking-wide text-gray-400 mb-2">One click to first frame.</p>
               <p className="text-gray-300 max-w-3xl mx-auto">
                 Move from approved story frames to final video outcomes with a clean, provider-agnostic handoff built for speed, creative control, and compatibility with your own provider.
               </p>
