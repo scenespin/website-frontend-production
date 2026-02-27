@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
 import { X, GitBranch, ExternalLink, RotateCcw, Loader2, HelpCircle, Save, Undo2, Info, ChevronDown, ChevronUp } from 'lucide-react';
@@ -46,11 +46,17 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
     const [ownerGitHubConnected, setOwnerGitHubConnected] = useState(false);
     const [canManageGitHub, setCanManageGitHub] = useState(false);
     const [provisioning, setProvisioning] = useState(false);
+    const autoProvisionAttemptedRef = useRef(false);
     
     // Restore confirmation modal state
     const [showRestoreConfirm, setShowRestoreConfirm] = useState(false);
     const [commitToRestore, setCommitToRestore] = useState<Commit | null>(null);
     const [confirmText, setConfirmText] = useState('');
+    // Reset one-time auto-provision attempt when modal/session target changes.
+    useEffect(() => {
+        autoProvisionAttemptedRef.current = false;
+    }, [isOpen, screenplayId]);
+
     // Load canonical screenplay GitHub context from backend (source of truth).
     useEffect(() => {
         if (!isOpen || !screenplayId) return;
@@ -98,11 +104,22 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
                     }
                 } else {
                     setGithubConfig(null);
-                    setContextMessage(
-                        Boolean(payload?.canManageGitHub)
-                            ? 'GitHub is not configured for this screenplay yet. Click Configure GitHub to map this screenplay.'
-                            : 'GitHub is not configured for this screenplay yet. Ask the director to configure it.'
-                    );
+                    const isDirector = Boolean(payload?.canManageGitHub) && Boolean(isOwner);
+                    if (isDirector && ownerConnected && !autoProvisionAttemptedRef.current) {
+                        autoProvisionAttemptedRef.current = true;
+                        setContextMessage('Configuring GitHub for this screenplay...');
+                        await handleProvisionGitHub({
+                            announceSuccess: false,
+                            canManageOverride: isDirector,
+                            ownerConnectedOverride: ownerConnected
+                        });
+                    } else {
+                        setContextMessage(
+                            isDirector
+                                ? 'GitHub is not configured for this screenplay yet. It will be configured automatically on first backup/history use.'
+                                : 'GitHub is not configured for this screenplay yet. Ask the director to configure it.'
+                        );
+                    }
                 }
             } catch (err: any) {
                 console.error('[VersionHistory] Failed to load screenplay GitHub context:', err);
@@ -135,18 +152,25 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
         window.location.href = '/api/github/auth';
     };
 
-    const handleProvisionGitHub = async () => {
-        if (!canManageGitHub) {
+    const handleProvisionGitHub = async (options?: {
+        announceSuccess?: boolean;
+        canManageOverride?: boolean;
+        ownerConnectedOverride?: boolean;
+    }): Promise<boolean> => {
+        const announceSuccess = options?.announceSuccess !== false;
+        const canManage = options?.canManageOverride ?? canManageGitHub;
+        const ownerConnected = options?.ownerConnectedOverride ?? ownerGitHubConnected;
+        if (!canManage) {
             toast.error('Only the director can configure GitHub for this screenplay.');
-            return;
+            return false;
         }
         if (!screenplayId || !screenplayId.startsWith('screenplay_')) {
             toast.error('A valid screenplay is required to configure GitHub.');
-            return;
+            return false;
         }
-        if (!ownerGitHubConnected) {
+        if (!ownerConnected) {
             handleReconnectGitHub();
-            return;
+            return false;
         }
 
         setProvisioning(true);
@@ -177,11 +201,14 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
             });
             setOwnerGitHubConnected(Boolean(payload.ownerGitHubConnected));
             setContextMessage(null);
-            toast.success(
-                payload.status === 'already_configured'
-                    ? 'GitHub repository mapping is already configured for this screenplay.'
-                    : 'GitHub repository configured for this screenplay.'
-            );
+            if (announceSuccess) {
+                toast.success(
+                    payload.status === 'already_configured'
+                        ? 'GitHub repository mapping is already configured for this screenplay.'
+                        : 'GitHub repository configured for this screenplay.'
+                );
+            }
+            return true;
         } catch (error: any) {
             const errorCode = error?.errorCode || '';
             if (errorCode === 'OWNER_GITHUB_NOT_CONNECTED') {
@@ -190,6 +217,7 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
             } else {
                 toast.error(`Failed to configure GitHub: ${error?.message || 'Unknown error'}`);
             }
+            return false;
         } finally {
             setProvisioning(false);
         }
@@ -457,15 +485,6 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
                                                 ? 'Loading GitHub version history context...'
                                                 : (contextMessage || 'GitHub is not configured for this screenplay.')}
                                         </p>
-                                        {!contextLoading && canManageGitHub && !githubConfig && (
-                                            <button
-                                                onClick={ownerGitHubConnected ? handleProvisionGitHub : handleReconnectGitHub}
-                                                disabled={provisioning}
-                                                className="btn gap-2 bg-[#DC143C] hover:bg-[#DC143C]/80 text-white border-none"
-                                            >
-                                                {provisioning ? 'Configuring...' : 'Configure GitHub'}
-                                            </button>
-                                        )}
                                         {!contextLoading && canManageGitHub && githubConfig && !ownerGitHubConnected && (
                                             <button
                                                 onClick={handleReconnectGitHub}
