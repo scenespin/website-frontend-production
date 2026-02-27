@@ -2,6 +2,7 @@
 
 import { useEffect, useRef } from 'react';
 import { useSearchParams } from 'next/navigation';
+import { useAuth } from '@clerk/nextjs';
 import { toast } from 'sonner';
 import { syncAIAuditLedgerToGitHub } from '@/utils/aiDisclosureStorage';
 
@@ -23,6 +24,7 @@ interface StoredGitHubConfig {
  */
 export default function GitHubOAuthHandler({ screenplayId }: { screenplayId?: string | null }) {
     const searchParams = useSearchParams();
+    const { getToken } = useAuth();
     const hasProcessedRef = useRef(false);
 
     useEffect(() => {
@@ -54,7 +56,41 @@ export default function GitHubOAuthHandler({ screenplayId }: { screenplayId?: st
                     return;
                 }
 
+                let canonicalOwner = '';
+                let canonicalRepo = '';
+                let canonicalConfigured = false;
+                if (screenplayId && screenplayId.startsWith('screenplay_')) {
+                    try {
+                        const backendToken = await getToken({ template: 'wryda-backend' });
+                        const backendUrl = process.env.NEXT_PUBLIC_BACKEND_URL || 'https://backend.wryda.ai';
+                        const contextResponse = await fetch(
+                            `${backendUrl}/api/github/screenplay/context?screenplayId=${encodeURIComponent(screenplayId)}`,
+                            {
+                                headers: backendToken
+                                    ? { Authorization: `Bearer ${backendToken}` }
+                                    : undefined
+                            }
+                        );
+                        const contextPayload = await contextResponse.json().catch(() => null);
+                        if (contextResponse.ok && contextPayload?.success) {
+                            canonicalConfigured = Boolean(contextPayload.canonicalConfigured);
+                            canonicalOwner = typeof contextPayload.repoOwner === 'string' ? contextPayload.repoOwner : '';
+                            canonicalRepo = typeof contextPayload.repoName === 'string' ? contextPayload.repoName : '';
+                        }
+                    } catch (contextError) {
+                        console.warn('[GitHub OAuth] Unable to load screenplay canonical GitHub context:', contextError);
+                    }
+                }
+
                 let selected = repositories[0];
+                if (canonicalConfigured && canonicalOwner && canonicalRepo) {
+                    const canonicalMatch = repositories.find((repo) =>
+                        repo.owner === canonicalOwner && repo.name === canonicalRepo
+                    );
+                    if (canonicalMatch) {
+                        selected = canonicalMatch;
+                    }
+                }
                 try {
                     const existingRaw = localStorage.getItem('screenplay_github_config');
                     if (existingRaw) {
@@ -80,6 +116,34 @@ export default function GitHubOAuthHandler({ screenplayId }: { screenplayId?: st
                     branch: 'main'
                 };
                 localStorage.setItem('screenplay_github_config', JSON.stringify(githubConfig));
+
+                if (screenplayId && screenplayId.startsWith('screenplay_') && !canonicalConfigured) {
+                    try {
+                        const response = await fetch(`/api/screenplays/${encodeURIComponent(screenplayId)}`, {
+                            method: 'PUT',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({
+                                github_config: {
+                                    owner: githubConfig.owner,
+                                    repo: githubConfig.repo,
+                                    connected: true,
+                                    last_synced_at: new Date().toISOString()
+                                }
+                            })
+                        });
+
+                        if (!response.ok) {
+                            const err = await response.json().catch(() => null);
+                            throw new Error(err?.message || err?.error || 'Failed to persist screenplay GitHub config');
+                        }
+                    } catch (persistError: any) {
+                        console.error('[GitHub OAuth] Failed to persist screenplay GitHub config:', persistError);
+                        toast.error(`GitHub connected, but screenplay mapping failed: ${persistError?.message || 'Unknown error'}`);
+                        return;
+                    }
+                }
 
                 toast.success(`GitHub connected: ${selected.owner}/${selected.name}`);
 
@@ -120,7 +184,7 @@ export default function GitHubOAuthHandler({ screenplayId }: { screenplayId?: st
         }
 
         cleanupQueryParams();
-    }, [searchParams, screenplayId]);
+    }, [searchParams, screenplayId, getToken]);
 
     // This component renders nothing - it just handles OAuth callback completion.
     return null;

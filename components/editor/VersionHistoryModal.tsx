@@ -97,7 +97,11 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
                     }
                 } else {
                     setGithubConfig(null);
-                    setContextMessage('GitHub is not configured for this screenplay yet. Ask the director to configure it.');
+                    setContextMessage(
+                        Boolean(payload?.canManageGitHub)
+                            ? 'GitHub is not configured for this screenplay yet. Click Configure GitHub to map this screenplay.'
+                            : 'GitHub is not configured for this screenplay yet. Ask the director to configure it.'
+                    );
                 }
             } catch (err: any) {
                 console.error('[VersionHistory] Failed to load screenplay GitHub context:', err);
@@ -392,7 +396,15 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
                                                 ? 'Loading GitHub version history context...'
                                                 : (contextMessage || 'GitHub is not configured for this screenplay.')}
                                         </p>
-                                        {!contextLoading && canManageGitHub && !ownerGitHubConnected && (
+                                        {!contextLoading && canManageGitHub && !githubConfig && (
+                                            <button
+                                                onClick={handleReconnectGitHub}
+                                                className="btn gap-2 bg-[#DC143C] hover:bg-[#DC143C]/80 text-white border-none"
+                                            >
+                                                Configure GitHub
+                                            </button>
+                                        )}
+                                        {!contextLoading && canManageGitHub && githubConfig && !ownerGitHubConnected && (
                                             <button
                                                 onClick={handleReconnectGitHub}
                                                 className="btn gap-2 bg-[#DC143C] hover:bg-[#DC143C]/80 text-white border-none"

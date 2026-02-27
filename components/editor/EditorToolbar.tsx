@@ -89,7 +89,8 @@ function GitHubSaveButton() {
         }
 
         if (!canonicalConfigured) {
-            toast.error('GitHub is not configured for this screenplay yet.');
+            toast.error('GitHub is not configured for this screenplay yet. Connect Director GitHub to configure it.');
+            setShowSetup(true);
             return;
         }
 
