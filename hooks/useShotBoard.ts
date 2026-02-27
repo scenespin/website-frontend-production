@@ -136,11 +136,12 @@ export function useShotBoard(screenplayId: string, enabled: boolean = true): Use
       if (metadata.isFullScene) continue;
       
       // Must have shotNumber to be useful
-      const shotNumber = metadata.shotNumber;
-      if (shotNumber === undefined || shotNumber === null) continue;
+      const shotNumber = Number(metadata.shotNumber);
+      if (!Number.isFinite(shotNumber)) continue;
       
       // Must have sceneId and sceneNumber
-      if (!metadata.sceneId || metadata.sceneNumber === undefined) continue;
+      const sceneNumber = Number(metadata.sceneNumber);
+      if (!metadata.sceneId || !Number.isFinite(sceneNumber)) continue;
 
       // Exclude association-only copies (Video Gen duplicate into video folder); Shots tab = Scene Builder first frames only
       if (metadata.isFirstFrame && metadata.source !== 'video-gen-association') {
@@ -176,9 +177,10 @@ export function useShotBoard(screenplayId: string, enabled: boolean = true): Use
     for (const firstFrame of firstFrames) {
       const metadata = (firstFrame as any).metadata || {};
       const sceneId = metadata.sceneId;
-      const sceneNumber = metadata.sceneNumber;
-      const shotNumber = metadata.shotNumber;
-      const timestamp = metadata.timestamp || '';
+      const sceneNumber = Number(metadata.sceneNumber);
+      const shotNumber = Number(metadata.shotNumber);
+      const timestamp = typeof metadata.timestamp === 'string' ? metadata.timestamp : String(metadata.timestamp || '');
+      if (!sceneId || !Number.isFinite(sceneNumber) || !Number.isFinite(shotNumber)) continue;
       const sceneHeading = metadata.sceneName || `Scene ${sceneNumber}`;
 
       // Get or create scene entry
@@ -251,10 +253,10 @@ export function useShotBoard(screenplayId: string, enabled: boolean = true): Use
       if (videoKeysMatchedToFirstFrame.has(videoKey)) continue;
       const metadata = (video as any).metadata || {};
       const sceneId = metadata.sceneId;
-      const sceneNumber = metadata.sceneNumber ?? 1;
-      const shotNumber = metadata.shotNumber;
-      const timestamp = metadata.timestamp || '';
-      if (!sceneId || shotNumber === undefined) continue;
+      const sceneNumber = Number(metadata.sceneNumber ?? 1);
+      const shotNumber = Number(metadata.shotNumber);
+      const timestamp = typeof metadata.timestamp === 'string' ? metadata.timestamp : String(metadata.timestamp || '');
+      if (!sceneId || !Number.isFinite(sceneNumber) || !Number.isFinite(shotNumber)) continue;
       const sceneHeading = metadata.sceneName || `Scene ${sceneNumber}`;
       const sceneKey = `${sceneId}-${sceneNumber}`;
       if (!sceneMap.has(sceneKey)) {
@@ -292,7 +294,7 @@ export function useShotBoard(screenplayId: string, enabled: boolean = true): Use
 
       for (const [shotNumber, variations] of sceneData.shotsMap) {
         // Sort variations by timestamp (newest first)
-        variations.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
+        variations.sort((a, b) => String(b.timestamp || '').localeCompare(String(a.timestamp || '')));
 
         // Collect S3 keys for presigned URLs
         for (const variation of variations) {

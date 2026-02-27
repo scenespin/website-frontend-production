@@ -49,16 +49,22 @@ async function getAuthToken(getToken: (options?: { template?: string }) => Promi
 
 /** Page size when fetching all pages (shot board / link library). Backend max is 200. */
 const MEDIA_LIST_PAGE_SIZE = 100;
+/** Guardrails for fetchAllPages loops to prevent runaway pagination in degraded backends. */
+const FETCH_ALL_MAX_PAGES = 20;
+const FETCH_ALL_MAX_MS = 8000;
 
 /**
  * Map backend file shape to frontend MediaFile (single place for consistency).
  */
 function mapBackendFileToMediaFile(file: any): MediaFile {
+  const rawFileType = typeof file.fileType === 'string' && file.fileType.trim().length > 0
+    ? file.fileType
+    : 'application/octet-stream';
   return {
     id: file.fileId,
     fileName: file.fileName,
     s3Key: file.s3Key,
-    fileType: detectFileType(file.fileType),
+    fileType: detectFileType(rawFileType),
     mediaFileType: file.mediaFileType,
     fileSize: file.fileSize,
     storageType: (file.storageType || 'local') as 'local' | 'google-drive' | 'dropbox' | 'wryda-temp',
@@ -122,14 +128,50 @@ export function useMediaFiles(
 
       const allBackendFiles: any[] = [];
       let nextToken: string | undefined;
+      let pagesFetched = 0;
+      const startedAt = Date.now();
 
       do {
+        if (fetchAllPages && pagesFetched >= FETCH_ALL_MAX_PAGES) {
+          console.warn('[useMediaFiles] fetchAllPages page budget reached - returning partial results', {
+            screenplayId,
+            entityType,
+            pagesFetched,
+            filesCollected: allBackendFiles.length,
+          });
+          break;
+        }
+        if (fetchAllPages && Date.now() - startedAt >= FETCH_ALL_MAX_MS) {
+          console.warn('[useMediaFiles] fetchAllPages time budget reached - returning partial results', {
+            screenplayId,
+            entityType,
+            elapsedMs: Date.now() - startedAt,
+            filesCollected: allBackendFiles.length,
+          });
+          break;
+        }
+
         const params = buildParams(nextToken);
         const response = await fetch(`/api/media/list?${params.toString()}`, {
           headers: { Authorization: `Bearer ${token}` },
         });
 
         if (!response.ok) {
+          // Soft-fail on server-side media degradation for scene/standalone fetch-all surfaces.
+          if (
+            fetchAllPages &&
+            (entityType === 'scene' || entityType === 'standalone-video') &&
+            response.status >= 500
+          ) {
+            console.warn('[useMediaFiles] server error during fetchAllPages; returning partial/empty data', {
+              screenplayId,
+              entityType,
+              status: response.status,
+              pagesFetched,
+              filesCollected: allBackendFiles.length,
+            });
+            break;
+          }
           if (response.status === 404) {
             if (allBackendFiles.length === 0) {
               console.warn('[useMediaFiles] No files found (404):', { screenplayId, folderId, entityType, entityId });
@@ -148,9 +190,10 @@ export function useMediaFiles(
         }
 
         const data: MediaFileListResponse = await response.json();
-        const batch = data.files || [];
+        const batch = Array.isArray(data.files) ? data.files : [];
         allBackendFiles.push(...batch);
         nextToken = data.nextToken;
+        pagesFetched += 1;
       } while (fetchAllPages && entityType && nextToken);
 
       // Filter out archived/expired (Feature 0200)
@@ -984,6 +1027,9 @@ export function useInitializeFolders(screenplayId: string) {
  * Detect file type from MIME type or filename
  */
 function detectFileType(fileType: string): 'video' | 'image' | 'audio' | 'other' {
+  if (!fileType || typeof fileType !== 'string') {
+    return 'other';
+  }
   const lowerType = fileType.toLowerCase();
   
   if (lowerType.startsWith('video/') || lowerType.includes('video')) {
