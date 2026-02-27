@@ -446,7 +446,7 @@ Not everything.`;
             </div>
 
             <div className="rounded-xl border border-[#3F3F46] bg-[#111111] p-5 md:p-6 mb-6">
-              <h3 className="text-xl font-semibold mb-3">4) Character Workflow (Virtual Try-On)</h3>
+              <h3 className="text-xl font-semibold mb-3">4) Characters (Clothing References)</h3>
               <p className="text-sm text-gray-300 mb-4">
                 Keep one character identity locked while testing wardrobe references and generating production-ready outputs.
               </p>
@@ -489,7 +489,7 @@ Not everything.`;
             </div>
 
             <div className="rounded-xl border border-[#3F3F46] bg-[#111111] p-5 md:p-6 mb-6">
-              <h3 className="text-xl font-semibold mb-3">5) Location Workflow</h3>
+              <h3 className="text-xl font-semibold mb-3">5) Locations (Angles, Backgrounds, Close-Ups)</h3>
               <p className="text-sm text-gray-300 mb-4">
                 Turn one location reference into cinematic coverage with angle variants, mood passes, and close-up texture detail.
               </p>
@@ -526,7 +526,7 @@ Not everything.`;
             </div>
 
             <div className="rounded-xl border border-[#3F3F46] bg-[#111111] p-5 md:p-6 mb-6">
-              <h3 className="text-xl font-semibold mb-3">6) Prop Workflow</h3>
+              <h3 className="text-xl font-semibold mb-3">6) Props</h3>
               <p className="text-sm text-gray-300 mb-4">
                 Build prop continuity with two story-critical props using reference, angle variants, and macro detail outputs.
               </p>
