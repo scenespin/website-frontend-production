@@ -372,7 +372,7 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
     // Use prop if provided, otherwise use context
     const effectivePreviewMode = isPreviewMode !== undefined ? isPreviewMode : contextPreviewMode;
     const handleTogglePreview = onTogglePreview || (() => setIsPreviewMode(!contextPreviewMode));
-    const { canEditScript, rescanScript, currentUserRole, permissionsLoading, isOwner, isLoading, hasInitializedFromDynamoDB, loadPhase } = useScreenplay();
+    const { canEditScript, canViewScript, rescanScript, currentUserRole, permissionsLoading, isOwner, isLoading, hasInitializedFromDynamoDB, loadPhase } = useScreenplay();
     
     // Feature 0133: Fix writer role save buttons - ensure canEditScript is true for writer role
     // Logic:
