@@ -339,7 +339,10 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
     const handleRestoreClick = (commit: Commit) => {
         setCommitToRestore(commit);
         setConfirmText('');
-        setShowRestoreConfirm(true);
+        // Defer opening by one frame to avoid click-through closing on the backdrop.
+        requestAnimationFrame(() => {
+            setShowRestoreConfirm(true);
+        });
     };
     
     // Actually perform the restore after confirmation
@@ -831,8 +834,12 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
                 {/* Restore Confirmation Modal */}
                 {showRestoreConfirm && commitToRestore && (
                     <div className="fixed inset-0 z-[60] flex items-center justify-center p-4">
-                        <div className="absolute inset-0 bg-black/60" onClick={handleCancelRestore} />
-                        <div className="relative bg-[#0A0A0A] border border-[#3F3F46] rounded-2xl shadow-2xl max-w-md w-full p-6 animate-in zoom-in-95 duration-200">
+                        <div className="absolute inset-0 bg-black/60" onMouseDown={handleCancelRestore} />
+                        <div
+                            className="relative bg-[#0A0A0A] border border-[#3F3F46] rounded-2xl shadow-2xl max-w-md w-full p-6 animate-in zoom-in-95 duration-200"
+                            onMouseDown={(e) => e.stopPropagation()}
+                            onClick={(e) => e.stopPropagation()}
+                        >
                             {/* Warning Icon */}
                             <div className="flex justify-center mb-4">
                                 <div className="w-16 h-16 rounded-full bg-yellow-900/20 border border-yellow-700/50 flex items-center justify-center">
