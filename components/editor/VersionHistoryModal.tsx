@@ -416,10 +416,9 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
     };
 
     const handleDialogClose = () => {
-        // While the restore confirm is open, consume parent dialog close events
-        // so input focus/clicks inside the confirm cannot dismiss the whole modal.
+        // While the restore confirm is open, ignore parent dialog close events.
+        // The confirm overlay manages its own cancel/close behavior.
         if (showRestoreConfirm) {
-            handleCancelRestore();
             return;
         }
         onClose();
