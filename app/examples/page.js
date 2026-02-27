@@ -70,18 +70,9 @@ const step7CaptureSources = {
   teaser: captureCandidates("/examples/captures/cap_s7_teaser_capture_01"),
 };
 const step8CaptureSources = {
-  firstFrameHandoff: [
-    ...captureCandidates("/examples/captures/cap_s8_video_first_frame_handoff_01"),
-    ...step7CaptureSources.teaser,
-  ],
-  providerSelection: [
-    ...captureCandidates("/examples/captures/cap_s8_video_provider_selection_01"),
-    ...step7CaptureSources.shotBoard,
-  ],
-  sampleOutput: [
-    ...captureCandidates("/examples/captures/cap_s8_video_sample_output_01"),
-    ...step7CaptureSources.sceneBuilder,
-  ],
+  firstFrameHandoff: captureCandidates("/examples/captures/cap_s8_video_first_frame_handoff_01"),
+  providerSelection: captureCandidates("/examples/captures/cap_s8_video_provider_selection_01"),
+  sampleOutput: captureCandidates("/examples/captures/cap_s8_video_sample_output_01"),
 };
 
 function StepCaptureCard({ srcCandidates, alt, fallbackLabel, itemKey, onOpen }) {
