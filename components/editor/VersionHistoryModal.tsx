@@ -414,6 +414,16 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
         setCommitToRestore(null);
         setConfirmText('');
     };
+
+    const handleDialogClose = () => {
+        // While the restore confirm is open, consume parent dialog close events
+        // so input focus/clicks inside the confirm cannot dismiss the whole modal.
+        if (showRestoreConfirm) {
+            handleCancelRestore();
+            return;
+        }
+        onClose();
+    };
     
     const formatDate = (dateString: string): string => {
         const date = new Date(dateString);
@@ -508,7 +518,7 @@ export default function VersionHistoryModal({ isOpen, onClose }: VersionHistoryM
     
     return (
         <Transition appear show={isOpen} as={Fragment}>
-            <Dialog as="div" className="relative z-50" onClose={onClose}>
+            <Dialog as="div" className="relative z-50" onClose={handleDialogClose}>
                 <Transition.Child
                     as={Fragment}
                     enter="ease-out duration-300"
