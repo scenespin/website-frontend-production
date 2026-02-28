@@ -147,12 +147,9 @@ export default function SignUpPage() {
                     <div className="flex items-center gap-2 mb-1">
                       <Video className="w-4 h-4 text-[#DC143C]" />
                       <h4 className="font-semibold text-white">DIRECT</h4>
-                      <span className="text-xs font-semibold text-gray-400 bg-[#0A0A0A] px-2 py-0.5 rounded-full">
-                        Beta
-                      </span>
                     </div>
                     <ul className="text-sm text-gray-300 space-y-1 ml-6">
-                      <li>• Scene Builder (Beta)</li>
+                      <li>• Scene Builder</li>
                       <li>• Move selected visuals into planning workflows</li>
                     </ul>
                   </div>

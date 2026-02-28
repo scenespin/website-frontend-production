@@ -36,7 +36,6 @@ import { useState, useEffect } from 'react';
 import { useDrawer } from '@/contexts/DrawerContext';
 import { useCredits } from '@/contexts/CreditsContext';
 import { useProjectCreationModal } from '@/contexts/ProjectCreationModalContext';
-import { useRouter } from 'next/navigation';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { getCurrentScreenplayId } from '@/utils/clerkMetadata';
 
@@ -46,7 +45,6 @@ export default function Navigation() {
   const { credits, loading: loadingCredits } = useCredits();
   const pathname = usePathname();
   const searchParams = useSearchParams();
-  const router = useRouter();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [openDropdown, setOpenDropdown] = useState(null); // Track which mobile accordion is open
   const { openDrawer } = useDrawer();
@@ -131,7 +129,7 @@ export default function Navigation() {
     {
       name: 'Direct',
       icon: Film,
-      href: '/coming-soon',
+      href: '/direct',
       // Mobile-only sub-items (for accordion)
       subItems: [
         { name: 'Scene Builder', href: '/direct?tab=scene-builder', icon: Clapperboard, description: 'Script-based scene generation' },
@@ -310,12 +308,7 @@ export default function Navigation() {
                   <div className="space-y-1">
                     <button
                       onClick={() => {
-                        if (item.name === 'Direct') {
-                          router.push('/coming-soon');
-                          setMobileMenuOpen(false);
-                        } else {
-                          setOpenDropdown(openDropdown === item.name ? null : item.name);
-                        }
+                        setOpenDropdown(openDropdown === item.name ? null : item.name);
                       }}
                       className={`flex items-center justify-between gap-3 px-4 py-3 rounded-lg transition-colors w-full min-h-[44px] ${
                         isParentActive(item)

@@ -64,7 +64,7 @@ export default function Page() {
               <Link href="/compare" className="text-sm text-gray-300 hover:text-white transition-colors">
                 Compare
               </Link>
-              <Link href="#pricing" className="text-sm text-gray-300 hover:text-white transition-colors">
+              <Link href="/pricing" className="text-sm text-gray-300 hover:text-white transition-colors">
                 Pricing
               </Link>
               <div className="flex items-center">
@@ -470,9 +470,9 @@ export default function Page() {
 
               <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-6 hover:border-[#DC143C]/50 transition-colors">
                 <div className="text-3xl mb-3">☁️</div>
-                <h3 className="text-lg font-bold mb-2">Cloud Backup</h3>
+                <h3 className="text-lg font-bold mb-2">Cloud Media Storage</h3>
                 <p className="text-sm text-gray-300">
-                  Automatic backup to Google Drive and Dropbox. Your screenplays and project files are always safe.
+                  Google Drive and Dropbox store generated media (images, video, audio), while screenplay drafts and provenance-linked writing history stay in GitHub-backed script versioning.
                 </p>
               </div>
             </div>

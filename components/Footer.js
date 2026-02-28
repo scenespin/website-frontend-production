@@ -32,11 +32,6 @@ export default function Footer() {
             <h3 className="text-sm font-semibold text-white mb-4">Quick Links</h3>
             <ul className="space-y-2">
               <li>
-                <Link href="/how-it-works" className="text-sm text-gray-400 hover:text-white transition-colors">
-                  How It Works
-                </Link>
-              </li>
-              <li>
                 <Link href="/features" className="text-sm text-gray-400 hover:text-white transition-colors">
                   Features
                 </Link>
@@ -52,7 +47,7 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/#pricing" className="text-sm text-gray-400 hover:text-white transition-colors">
+                <Link href="/pricing" className="text-sm text-gray-400 hover:text-white transition-colors">
                   Pricing
                 </Link>
               </li>

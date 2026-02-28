@@ -268,10 +268,10 @@ export default function ComparePage() {
 
                   {/* Video Generation */}
                   <tr className="border-b border-[#3F3F46]">
-                    <td className="p-4 font-semibold bg-[#141414]">Scene Builder <span className="text-xs text-yellow-400">(Coming Soon)</span></td>
+                    <td className="p-4 font-semibold bg-[#141414]">Scene Builder</td>
                     <td className="p-4 text-center border-l-2 border-[#DC143C]">
                       <span className="text-[#DC143C] font-bold">✓ In Platform</span>
-                      <div className="text-xs text-gray-400 mt-1">Planned screenplay-linked scene generation workflow</div>
+                      <div className="text-xs text-gray-400 mt-1">Screenplay-linked scene generation workflow</div>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
                       <span className="text-gray-500">No</span>

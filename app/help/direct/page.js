@@ -2,7 +2,6 @@ import Link from "next/link";
 import Image from "next/image";
 import { getSEOTags } from "@/libs/seo";
 import config from "@/config";
-import ComingSoonBadge from "@/components/ComingSoonBadge";
 import logo from "@/app/icon.png";
 
 export const metadata = getSEOTags({
@@ -34,7 +33,6 @@ export default function DirectHelp() {
       <main className="max-w-4xl mx-auto px-8 py-16 bg-[#0A0A0A] text-[#FFFFFF]">
         <div className="flex items-center gap-3 mb-4">
           <h1 className="text-4xl font-extrabold text-[#FFFFFF]">🎞️ Direct</h1>
-          <ComingSoonBadge size="md" />
         </div>
         <p className="text-xl opacity-80 mb-12 text-[#B3B3B3]">
           After writing and producing, use Direct when you&apos;re ready to review, organize, and control your production. Scene Builder and Shot Board put first frames and videos in one place.

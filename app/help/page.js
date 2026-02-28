@@ -3,7 +3,6 @@ import Image from "next/image";
 import { getSEOTags } from "@/libs/seo";
 import config from "@/config";
 import logo from "@/app/icon.png";
-import ComingSoonBadge from "@/components/ComingSoonBadge";
 
 export const metadata = getSEOTags({
   title: `Help Center | ${config.appName}`,
@@ -156,23 +155,18 @@ export default function HelpCenter() {
               "Turn screenplay into images and video"
             ]}
           />
-          <div className="relative">
-            <HelpSectionCard
-              href="/help/direct"
-              icon="🎞️"
-              title="Direct"
-              description="Review, organize, and control your production"
-              features={[
-                "Scene Builder interface",
-                "Shot Board view of all first frames and videos",
-                "Review generated videos",
-                "Organize your production"
-              ]}
-            />
-            <div className="absolute top-4 right-4">
-              <ComingSoonBadge size="sm" />
-            </div>
-          </div>
+          <HelpSectionCard
+            href="/help/direct"
+            icon="🎞️"
+            title="Direct"
+            description="Review, organize, and control your production"
+            features={[
+              "Scene Builder interface",
+              "Shot Board view of all first frames and videos",
+              "Review generated videos",
+              "Organize your production"
+            ]}
+          />
           <HelpSectionCard
             href="/help/faq"
             icon="❓"
