@@ -589,6 +589,7 @@ export interface MediaCloudSyncStatus {
   cloudSyncEligible?: boolean;
   cloudSyncAttempts: number;
   cloudSyncLastError: string | null;
+  cloudSyncErrorCode?: string | null;
   cloudSyncUpdatedAt: string | null;
   cloudStorageLocation: string | null;
   cloudFileId: string | null;
