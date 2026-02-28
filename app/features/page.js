@@ -334,7 +334,7 @@ export default function Features() {
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span><strong className="text-gray-300">Auto-Save:</strong> Continuous cloud persistence with manual GitHub checkpoint support</span>
+                    <span><strong className="text-gray-300">Auto-Save:</strong> GitHub-backed screenplay saving and revision history</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
@@ -355,7 +355,7 @@ export default function Features() {
               <FeatureCard
                 icon="📜"
                 title="Version History"
-                description="Track screenplay revisions over time and restore earlier drafts confidently. Optional GitHub checkpoints add extra backup control."
+                description="Track screenplay revisions over time and restore earlier drafts confidently with GitHub-backed history."
               />
               <FeatureCard
                 icon="⚡"

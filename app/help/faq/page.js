@@ -49,7 +49,7 @@ export default function FAQHelp() {
                   <strong>What's FREE (no credits required):</strong>
                 </p>
                 <ul className="list-disc list-inside space-y-1 mb-3 ml-4">
-                  <li>Automatic cloud saving and version history (optional GitHub checkpoints)</li>
+                  <li>GitHub-backed screenplay saving and version history</li>
                   <li>Upload character outfits & references</li>
                   <li>Upload location shots & backgrounds</li>
                   <li>Upload props (cars, objects, etc.)</li>

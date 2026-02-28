@@ -361,7 +361,7 @@ export default function WritingHelp() {
               <div className="card-body">
                 <h3 className="font-bold mb-3 text-[#DC143C]">Auto-Save</h3>
                 <ul className="space-y-2 text-sm text-[#B3B3B3]">
-                  <li>• <strong className="text-[#FFFFFF]">Auto-save</strong> - Saves shortly after you stop typing, with secure cloud persistence for your screenplay</li>
+                  <li>• <strong className="text-[#FFFFFF]">Auto-save</strong> - Saves shortly after you stop typing and writes screenplay revisions to GitHub-backed history</li>
                   <li>• <strong className="text-[#FFFFFF]">Manual save</strong> - <kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">Ctrl+S</kbd> / <kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">⌘+S</kbd> for immediate save</li>
                   <li>• <strong className="text-[#FFFFFF]">Save status indicator</strong> - See when your work is saved</li>
                 </ul>
@@ -386,13 +386,13 @@ export default function WritingHelp() {
 
             <div className="card bg-[#141414] border border-white/10">
               <div className="card-body">
-                <h3 className="font-bold mb-3 text-[#DC143C]">GitHub Integration (Optional)</h3>
+                <h3 className="font-bold mb-3 text-[#DC143C]">GitHub-Backed Screenplay History</h3>
                 <p className="text-sm text-[#B3B3B3] mb-4">
-                  GitHub is optional. Your screenplay remains auto-saved in the app, and GitHub can be used for additional revision checkpoints.
+                  Screenplay saving and revision history are GitHub-backed so draft checkpoints and restores stay reliable over time.
                 </p>
                 <ul className="space-y-2 text-sm text-[#B3B3B3]">
-                  <li>• <strong className="text-[#FFFFFF]">Connect to GitHub</strong> - Link your repository from the toolbar when you want git-backed history</li>
-                  <li>• <strong className="text-[#FFFFFF]">Save checkpoints</strong> - Create GitHub commit snapshots for key draft milestones</li>
+                  <li>• <strong className="text-[#FFFFFF]">Git-backed revisions</strong> - Each screenplay save contributes to restorable history</li>
+                  <li>• <strong className="text-[#FFFFFF]">Checkpoint confidence</strong> - Restore previous draft states through the History workflow</li>
                   <li>• <strong className="text-[#FFFFFF]">Restore options</strong> - Use History to review and restore previous versions</li>
                 </ul>
               </div>
@@ -400,13 +400,13 @@ export default function WritingHelp() {
 
             <div className="card bg-[#141414] border border-white/10">
               <div className="card-body">
-                <h3 className="font-bold mb-3 text-[#DC143C]">Cloud Backup</h3>
+                <h3 className="font-bold mb-3 text-[#DC143C]">Cloud Media Storage</h3>
                 <p className="text-sm text-[#B3B3B3] mb-4">
-                  Your screenplay auto-saves to secure app cloud storage. Google Drive and Dropbox are available for production assets and media.
+                  Cloud storage integrations are for production media assets (images and video), not screenplay draft history.
                 </p>
                 <ul className="space-y-2 text-sm text-[#B3B3B3]">
-                  <li>• <strong className="text-[#FFFFFF]">Screenplay</strong> - Auto-saved to secure cloud with optional GitHub checkpoints</li>
-                  <li>• <strong className="text-[#FFFFFF]">Production assets</strong> - Google Drive and Dropbox integration for media and files</li>
+                  <li>• <strong className="text-[#FFFFFF]">Media assets</strong> - Google Drive and Dropbox integration for image/video files</li>
+                  <li>• <strong className="text-[#FFFFFF]">Screenplay drafts</strong> - Managed through GitHub-backed version history</li>
                 </ul>
               </div>
             </div>

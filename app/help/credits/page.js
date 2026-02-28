@@ -44,8 +44,7 @@ export default function CreditsHelp() {
             <ul className="space-y-2 text-[#B3B3B3]">
               <li>• Professional screenplay editor (Fountain format)</li>
               <li>• AI writing workflow access (run passes when available in your plan)</li>
-              <li>• Automatic cloud saving and version history</li>
-              <li>• Optional GitHub export and revision checkpoints</li>
+              <li>• GitHub-backed screenplay saving and version history</li>
               <li>• Character, location, and prop banks</li>
             </ul>
           </div>
