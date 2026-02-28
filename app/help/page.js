@@ -140,7 +140,7 @@ export default function HelpCenter() {
               "Smart Tab - Scene heading navigation (Tab or button on mobile)",
               "@ Quick Link - Fast character/location linking",
               "Fountain format support",
-              "GitHub version control"
+              "Automatic cloud saving with optional GitHub export"
             ]}
           />
           <HelpSectionCard

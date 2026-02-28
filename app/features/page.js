@@ -334,7 +334,11 @@ export default function Features() {
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span><strong className="text-gray-300">Auto-Save:</strong> Saves every 2s locally, 60s to cloud</span>
+                    <span><strong className="text-gray-300">Auto-Save:</strong> Continuous cloud persistence with manual GitHub checkpoint support</span>
+                  </li>
+                  <li className="flex items-start gap-2">
+                    <span className="text-[#DC143C]">✓</span>
+                    <span><strong className="text-gray-300">Version History:</strong> Browse revisions and restore previous drafts in one click</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
@@ -347,6 +351,11 @@ export default function Features() {
                 icon="🤝"
                 title="Real-Time Collaboration"
                 description="See collaborators' cursors as they edit. Multi-user editing with automatic sync across all screens. Work together seamlessly—no conflicts."
+              />
+              <FeatureCard
+                icon="📜"
+                title="Version History"
+                description="Track screenplay revisions over time and restore earlier drafts confidently. Optional GitHub checkpoints add extra backup control."
               />
               <FeatureCard
                 icon="⚡"

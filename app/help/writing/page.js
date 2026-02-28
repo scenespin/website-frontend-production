@@ -361,7 +361,7 @@ export default function WritingHelp() {
               <div className="card-body">
                 <h3 className="font-bold mb-3 text-[#DC143C]">Auto-Save</h3>
                 <ul className="space-y-2 text-sm text-[#B3B3B3]">
-                  <li>• <strong className="text-[#FFFFFF]">Auto-save</strong> - Saves shortly after you stop typing; screenplay also syncs to the cloud on an interval</li>
+                  <li>• <strong className="text-[#FFFFFF]">Auto-save</strong> - Saves shortly after you stop typing, with secure cloud persistence for your screenplay</li>
                   <li>• <strong className="text-[#FFFFFF]">Manual save</strong> - <kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">Ctrl+S</kbd> / <kbd className="kbd kbd-sm bg-[#1F1F1F] text-[#FFFFFF] border-white/10">⌘+S</kbd> for immediate save</li>
                   <li>• <strong className="text-[#FFFFFF]">Save status indicator</strong> - See when your work is saved</li>
                 </ul>
@@ -372,7 +372,7 @@ export default function WritingHelp() {
               <div className="card-body">
                 <h3 className="font-bold mb-3 text-[#DC143C]">Version History</h3>
                 <p className="text-sm text-[#B3B3B3] mb-4">
-                  Every save creates a version snapshot. Access your complete editing history.
+                  Every save creates a version snapshot. Access your complete editing history, and restore any prior state when needed.
                 </p>
                 <ul className="space-y-2 text-sm text-[#B3B3B3]">
                   <li>• <strong className="text-[#FFFFFF]">Access Version History</strong> - Click "History" in top toolbar</li>
@@ -386,14 +386,14 @@ export default function WritingHelp() {
 
             <div className="card bg-[#141414] border border-white/10">
               <div className="card-body">
-                <h3 className="font-bold mb-3 text-[#DC143C]">GitHub Integration</h3>
+                <h3 className="font-bold mb-3 text-[#DC143C]">GitHub Integration (Optional)</h3>
                 <p className="text-sm text-[#B3B3B3] mb-4">
-                  Optional GitHub export for backup and version history.
+                  GitHub is optional. Your screenplay remains auto-saved in the app, and GitHub can be used for additional revision checkpoints.
                 </p>
                 <ul className="space-y-2 text-sm text-[#B3B3B3]">
-                  <li>• <strong className="text-[#FFFFFF]">Connect to GitHub</strong> - Link your repository from the toolbar</li>
-                  <li>• <strong className="text-[#FFFFFF]">Export to GitHub</strong> - Manually save a backup to your repo when you want</li>
-                  <li>• <strong className="text-[#FFFFFF]">Version History</strong> - View and restore from GitHub commits via the History button</li>
+                  <li>• <strong className="text-[#FFFFFF]">Connect to GitHub</strong> - Link your repository from the toolbar when you want git-backed history</li>
+                  <li>• <strong className="text-[#FFFFFF]">Save checkpoints</strong> - Create GitHub commit snapshots for key draft milestones</li>
+                  <li>• <strong className="text-[#FFFFFF]">Restore options</strong> - Use History to review and restore previous versions</li>
                 </ul>
               </div>
             </div>
@@ -402,10 +402,10 @@ export default function WritingHelp() {
               <div className="card-body">
                 <h3 className="font-bold mb-3 text-[#DC143C]">Cloud Backup</h3>
                 <p className="text-sm text-[#B3B3B3] mb-4">
-                  Your screenplay auto-saves to the app&apos;s cloud. Google Drive and Dropbox are available for production assets and media.
+                  Your screenplay auto-saves to secure app cloud storage. Google Drive and Dropbox are available for production assets and media.
                 </p>
                 <ul className="space-y-2 text-sm text-[#B3B3B3]">
-                  <li>• <strong className="text-[#FFFFFF]">Screenplay</strong> - Auto-saved to secure cloud; optional GitHub export for backup</li>
+                  <li>• <strong className="text-[#FFFFFF]">Screenplay</strong> - Auto-saved to secure cloud with optional GitHub checkpoints</li>
                   <li>• <strong className="text-[#FFFFFF]">Production assets</strong> - Google Drive and Dropbox integration for media and files</li>
                 </ul>
               </div>
@@ -873,7 +873,7 @@ export default function WritingHelp() {
                   <strong className="text-[#FFFFFF]">Track Characters</strong> - Characters are automatically detected and tracked
                 </li>
                 <li>
-                  <strong className="text-[#FFFFFF]">Save & Export</strong> - Your work auto-saves every 2 seconds. Export to PDF when ready
+                  <strong className="text-[#FFFFFF]">Save & Export</strong> - Your work auto-saves continuously. Export to PDF when ready.
                 </li>
               </ol>
             </div>

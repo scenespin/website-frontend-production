@@ -49,7 +49,7 @@ export default function FAQHelp() {
                   <strong>What's FREE (no credits required):</strong>
                 </p>
                 <ul className="list-disc list-inside space-y-1 mb-3 ml-4">
-                  <li>GitHub revision system</li>
+                  <li>Automatic cloud saving and version history (optional GitHub checkpoints)</li>
                   <li>Upload character outfits & references</li>
                   <li>Upload location shots & backgrounds</li>
                   <li>Upload props (cars, objects, etc.)</li>
@@ -203,7 +203,7 @@ export default function FAQHelp() {
 
         {/* Navigation */}
         <div className="flex gap-4 justify-between mt-12">
-          <Link href="/help/production" className="btn btn-ghost">← Production</Link>
+          <Link href="/help/direct" className="btn btn-ghost">← Direct</Link>
           <Link href="/help" className="btn btn-primary">Back to Help Center</Link>
         </div>
       </main>
