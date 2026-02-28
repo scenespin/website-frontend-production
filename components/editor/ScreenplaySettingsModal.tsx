@@ -33,10 +33,12 @@ export default function ScreenplaySettingsModal({ isOpen, onClose, screenplayId:
   const [description, setDescription] = useState('');
   const [genre, setGenre] = useState('');
   const [cloudStorageProvider, setCloudStorageProvider] = useState<'google-drive' | 'dropbox' | null>(null);
+  const [deleteFromCloudWhenDeletingInApp, setDeleteFromCloudWhenDeletingInApp] = useState(true);
+  const [isSyncingBacklog, setIsSyncingBacklog] = useState(false);
   
   // Check storage connections
   const { googleDrive, dropbox, isLoading: connectionsLoading } = useStorageConnections();
-  const { data: cloudSyncStatuses = [] } = useMediaCloudSyncStatuses(screenplayId || '', isOpen && !!screenplayId);
+  const { data: cloudSyncStatuses = [], refetch: refetchCloudSyncStatuses } = useMediaCloudSyncStatuses(screenplayId || '', isOpen && !!screenplayId);
   const cloudSyncSummary = cloudSyncStatuses.reduce(
     (acc, item) => {
       acc.total += 1;
@@ -68,6 +70,24 @@ export default function ScreenplaySettingsModal({ isOpen, onClose, screenplayId:
         setDescription(screenplayData.description || '');
         setGenre(screenplayData.metadata?.genre || '');
         setCloudStorageProvider(screenplayData.cloudStorageProvider || null);
+      }
+
+      const token = await getToken({ template: 'wryda-backend' });
+      if (token) {
+        const accountResponse = await fetch('/api/account/profile', {
+          headers: {
+            'Authorization': `Bearer ${token}`,
+          },
+        });
+
+        if (accountResponse.ok) {
+          const accountPayload = await accountResponse.json();
+          const profile = accountPayload?.data ?? accountPayload;
+          const pref = profile?.delete_from_cloud_when_deleting_in_app;
+          if (typeof pref === 'boolean') {
+            setDeleteFromCloudWhenDeletingInApp(pref);
+          }
+        }
       }
     } catch (error) {
       console.error('[ScreenplaySettingsModal] Failed to fetch screenplay:', error);
@@ -107,6 +127,23 @@ export default function ScreenplaySettingsModal({ isOpen, onClose, screenplayId:
         },
         getToken
       );
+
+      const token = await getToken({ template: 'wryda-backend' });
+      if (token) {
+        const settingsResponse = await fetch('/api/account/settings', {
+          method: 'PUT',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            delete_from_cloud_when_deleting_in_app: deleteFromCloudWhenDeletingInApp,
+          }),
+        });
+        if (!settingsResponse.ok) {
+          throw new Error(`Failed to update cloud delete preference (${settingsResponse.status})`);
+        }
+      }
       
       // 🔥 FIX 3: Add delay for DynamoDB consistency (like Media Library pattern)
       // This ensures the update is fully processed before we dispatch the event
@@ -129,6 +166,66 @@ export default function ScreenplaySettingsModal({ isOpen, onClose, screenplayId:
       toast.error('Failed to update settings. Please try again.');
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleSyncAllPendingNow = async () => {
+    if (!screenplayId) {
+      toast.error('No screenplay loaded');
+      return;
+    }
+
+    setIsSyncingBacklog(true);
+    try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) throw new Error('Not authenticated');
+
+      let totalProcessed = 0;
+      let totalSynced = 0;
+      let totalFailed = 0;
+      let totalSkipped = 0;
+      let hasMore = true;
+      let rounds = 0;
+
+      while (hasMore && rounds < 10) {
+        rounds += 1;
+        const response = await fetch('/api/media/retry-cloud-sync-all', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            screenplayId,
+            limit: 100,
+          }),
+        });
+
+        if (!response.ok) {
+          const errorBody = await response.json().catch(() => ({}));
+          throw new Error(errorBody.error || `Cloud sync backlog run failed (${response.status})`);
+        }
+
+        const payload = await response.json();
+        totalProcessed += Number(payload.processed || 0);
+        totalSynced += Number(payload.synced || 0);
+        totalFailed += Number(payload.failed || 0);
+        totalSkipped += Number(payload.skipped || 0);
+        hasMore = Boolean(payload.hasMore) && Number(payload.processed || 0) > 0;
+      }
+
+      await Promise.all([
+        refetchCloudSyncStatuses(),
+      ]);
+
+      toast.success('Cloud sync backlog run completed', {
+        description: `Processed ${totalProcessed} files • Synced ${totalSynced} • Failed ${totalFailed} • Skipped ${totalSkipped}`,
+      });
+    } catch (error: any) {
+      console.error('[ScreenplaySettingsModal] Sync all pending failed:', error);
+      toast.error(`Failed to sync pending files: ${error.message}`);
+    } finally {
+      setIsSyncingBacklog(false);
     }
   };
 
@@ -335,8 +432,33 @@ export default function ScreenplaySettingsModal({ isOpen, onClose, screenplayId:
                 <p className="text-xs text-[#808080] mt-2">
                   When enabled, files will automatically upload to your cloud storage using the screenplay folder structure
                 </p>
+                <div className="mt-3 p-3 rounded-lg border border-[#3F3F46] bg-[#141414] space-y-2">
+                  <label className="flex items-center justify-between gap-3">
+                    <div>
+                      <div className="text-xs font-semibold text-[#E4E4E7]">Delete from cloud when deleting in app</div>
+                      <div className="text-xs text-[#A1A1AA]">If disabled, app deletes keep cloud copies.</div>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={deleteFromCloudWhenDeletingInApp}
+                      onChange={(e) => setDeleteFromCloudWhenDeletingInApp(e.target.checked)}
+                      disabled={isSaving}
+                      className="w-4 h-4 text-[#DC143C] focus:ring-[#DC143C] bg-[#141414] border-[#3F3F46] rounded"
+                    />
+                  </label>
+                </div>
                 <div className="mt-3 p-3 rounded-lg border border-[#3F3F46] bg-[#141414]">
-                  <div className="text-xs font-semibold text-[#E4E4E7] mb-1">Cloud Sync Summary</div>
+                  <div className="flex items-center justify-between gap-2 mb-1">
+                    <div className="text-xs font-semibold text-[#E4E4E7]">Cloud Sync Summary</div>
+                    <button
+                      type="button"
+                      onClick={handleSyncAllPendingNow}
+                      disabled={isSaving || isLoading || isSyncingBacklog || cloudSyncSummary.pending === 0}
+                      className="text-xs px-2 py-1 rounded bg-[#1F1F1F] border border-[#3F3F46] text-[#E4E4E7] hover:bg-[#2A2A2A] disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {isSyncingBacklog ? 'Syncing...' : 'Sync all pending now'}
+                    </button>
+                  </div>
                   <div className="text-xs text-[#B3B3B3]">
                     Synced: {cloudSyncSummary.synced} / {cloudSyncSummary.total}
                     {' • '}Syncing: {cloudSyncSummary.syncing}
