@@ -45,10 +45,21 @@ export default function ScreenplaySettingsModal({ isOpen, onClose, screenplayId:
       if (item.cloudSyncStatus === 'synced') acc.synced += 1;
       if (item.cloudSyncStatus === 'failed') acc.failed += 1;
       if (item.cloudSyncStatus === 'syncing') acc.syncing += 1;
-      if (item.cloudSyncStatus === 'pending' || item.cloudSyncStatus === 'skipped') acc.pending += 1;
+      if (item.cloudSyncStatus === 'pending' || item.cloudSyncStatus === 'skipped') {
+        acc.pending += 1;
+        const syncEligible = item.cloudSyncEligible ?? (
+          typeof item.s3Key === 'string' &&
+          (item.s3Key.startsWith('temp/') || item.s3Key.startsWith('permanent/'))
+        );
+        if (syncEligible) {
+          acc.pendingSyncable += 1;
+        } else {
+          acc.pendingNonSyncable += 1;
+        }
+      }
       return acc;
     },
-    { total: 0, synced: 0, failed: 0, syncing: 0, pending: 0 }
+    { total: 0, synced: 0, failed: 0, syncing: 0, pending: 0, pendingSyncable: 0, pendingNonSyncable: 0 }
   );
 
   useEffect(() => {
@@ -453,7 +464,7 @@ export default function ScreenplaySettingsModal({ isOpen, onClose, screenplayId:
                     <button
                       type="button"
                       onClick={handleSyncAllPendingNow}
-                      disabled={isSaving || isLoading || isSyncingBacklog || cloudSyncSummary.pending === 0}
+                      disabled={isSaving || isLoading || isSyncingBacklog || cloudSyncSummary.pendingSyncable === 0}
                       className="text-xs px-2 py-1 rounded bg-[#1F1F1F] border border-[#3F3F46] text-[#E4E4E7] hover:bg-[#2A2A2A] disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                       {isSyncingBacklog ? 'Syncing...' : 'Sync all pending now'}
@@ -463,6 +474,8 @@ export default function ScreenplaySettingsModal({ isOpen, onClose, screenplayId:
                     Synced: {cloudSyncSummary.synced} / {cloudSyncSummary.total}
                     {' • '}Syncing: {cloudSyncSummary.syncing}
                     {' • '}Pending: {cloudSyncSummary.pending}
+                    {' • '}Pending (syncable): {cloudSyncSummary.pendingSyncable}
+                    {' • '}Pending (non-syncable): {cloudSyncSummary.pendingNonSyncable}
                     {' • '}Failed: {cloudSyncSummary.failed}
                   </div>
                 </div>

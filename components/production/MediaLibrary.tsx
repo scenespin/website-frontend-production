@@ -1901,10 +1901,21 @@ export default function MediaLibrary({
         if (item.cloudSyncStatus === 'synced') acc.synced += 1;
         if (item.cloudSyncStatus === 'failed') acc.failed += 1;
         if (item.cloudSyncStatus === 'syncing') acc.syncing += 1;
-        if (item.cloudSyncStatus === 'pending' || item.cloudSyncStatus === 'skipped') acc.pending += 1;
+        if (item.cloudSyncStatus === 'pending' || item.cloudSyncStatus === 'skipped') {
+          acc.pending += 1;
+          const syncEligible = item.cloudSyncEligible ?? (
+            typeof item.s3Key === 'string' &&
+            (item.s3Key.startsWith('temp/') || item.s3Key.startsWith('permanent/'))
+          );
+          if (syncEligible) {
+            acc.pendingSyncable += 1;
+          } else {
+            acc.pendingNonSyncable += 1;
+          }
+        }
         return acc;
       },
-      { total: 0, synced: 0, failed: 0, syncing: 0, pending: 0 }
+      { total: 0, synced: 0, failed: 0, syncing: 0, pending: 0, pendingSyncable: 0, pendingNonSyncable: 0 }
     );
   }, [mediaCloudSyncStatuses]);
 
@@ -2161,6 +2172,8 @@ export default function MediaLibrary({
                     Synced {cloudSyncSummary.synced}/{cloudSyncSummary.total}
                     {' • '}Syncing {cloudSyncSummary.syncing}
                     {' • '}Pending {cloudSyncSummary.pending}
+                    {' • '}Pending syncable {cloudSyncSummary.pendingSyncable}
+                    {' • '}Pending non-syncable {cloudSyncSummary.pendingNonSyncable}
                     {' • '}Failed {cloudSyncSummary.failed}
                   </div>
                 )}

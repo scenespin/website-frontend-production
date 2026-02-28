@@ -586,6 +586,7 @@ export interface MediaCloudSyncStatus {
   fileName: string;
   s3Key: string;
   cloudSyncStatus: CloudSyncStatusValue;
+  cloudSyncEligible?: boolean;
   cloudSyncAttempts: number;
   cloudSyncLastError: string | null;
   cloudSyncUpdatedAt: string | null;
