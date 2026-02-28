@@ -34,12 +34,15 @@ export async function POST(req) {
           { status: 500 }
         );
       }
-      await sendContactAutoReply({
+      const autoReplySent = await sendContactAutoReply({
         type: "inquiry",
         email: payload.email,
         name: payload.name || undefined,
       });
-      return NextResponse.json({ ok: true });
+      if (!autoReplySent) {
+        console.warn("[Contact API] Inquiry submitted but auto-reply failed:", payload.email);
+      }
+      return NextResponse.json({ ok: true, autoReplySent });
     }
 
     if (type === "support") {
@@ -64,11 +67,14 @@ export async function POST(req) {
           { status: 500 }
         );
       }
-      await sendContactAutoReply({
+      const autoReplySent = await sendContactAutoReply({
         type: "support",
         email: payload.email,
       });
-      return NextResponse.json({ ok: true });
+      if (!autoReplySent) {
+        console.warn("[Contact API] Support submitted but auto-reply failed:", payload.email);
+      }
+      return NextResponse.json({ ok: true, autoReplySent });
     }
 
     return NextResponse.json({ error: "Invalid type." }, { status: 400 });

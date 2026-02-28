@@ -10,6 +10,7 @@
  * 3. Add RESEND_API_KEY to environment variables
  * 4. Verify domain (optional, but recommended for production)
  */
+import { sendEmail } from "@/libs/resend";
 
 /**
  * Send voice consent expiration warning
@@ -304,8 +305,7 @@ export async function sendRevocationConfirmation(email, name, profilesDeleted) {
  */
 export async function sendContactToSupport(payload) {
   try {
-    const RESEND_API_KEY = process.env.RESEND_API_KEY;
-    if (!RESEND_API_KEY) {
+    if (!process.env.RESEND_API_KEY) {
       console.warn('[Email] RESEND_API_KEY not configured - contact not sent');
       return false;
     }
@@ -336,27 +336,14 @@ export async function sendContactToSupport(payload) {
         <pre style="background: #f5f5f5; padding: 16px; border-radius: 8px; white-space: pre-wrap;">${text.replace(/</g, '&lt;').replace(/>/g, '&gt;')}</pre>
       </div>
     `;
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: fromEmail,
-        to: [supportEmail],
-        replyTo: payload.email,
-        subject,
-        html,
-        text,
-      }),
+    const result = await sendEmail({
+      to: [supportEmail],
+      subject,
+      text,
+      html,
+      from: fromEmail,
+      replyTo: payload.email,
     });
-    if (!response.ok) {
-      const err = await response.text();
-      console.error('[Email] Contact to support failed:', err);
-      return false;
-    }
-    const result = await response.json();
     console.log('[Email] Contact sent to support:', result.id);
     return true;
   } catch (error) {
@@ -373,12 +360,12 @@ export async function sendContactToSupport(payload) {
  */
 export async function sendContactAutoReply(payload) {
   try {
-    const RESEND_API_KEY = process.env.RESEND_API_KEY;
-    if (!RESEND_API_KEY) {
+    if (!process.env.RESEND_API_KEY) {
       console.warn('[Email] RESEND_API_KEY not configured - auto-reply not sent');
       return false;
     }
     const fromEmail = process.env.EMAIL_FROM || 'Wryda.ai <noreply@wryda.ai>';
+    const supportEmail = process.env.SUPPORT_EMAIL || 'support@wryda.ai';
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://wryda.ai';
     const helpUrl = `${siteUrl}/help`;
     const faqUrl = `${siteUrl}/help/faq`;
@@ -402,25 +389,14 @@ export async function sendContactAutoReply(payload) {
       </body>
       </html>
     `;
-    const response = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: {
-        Authorization: `Bearer ${RESEND_API_KEY}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        from: fromEmail,
-        to: [payload.email],
-        subject,
-        html,
-      }),
+    const result = await sendEmail({
+      to: [payload.email],
+      subject,
+      text: `Hi,\n\nThank you for reaching out. We've received your message and will get back to you within 1-2 business days.\n\nOur support hours are Monday-Friday, 9am-5pm ET.\n\nIf your request is urgent, reply to this email and we'll do our best to prioritize it.\n\n- The Wryda.ai Team`,
+      html,
+      from: fromEmail,
+      replyTo: supportEmail,
     });
-    if (!response.ok) {
-      const err = await response.text();
-      console.error('[Email] Contact auto-reply failed:', err);
-      return false;
-    }
-    const result = await response.json();
     console.log('[Email] Contact auto-reply sent to', payload.email, result.id);
     return true;
   } catch (error) {

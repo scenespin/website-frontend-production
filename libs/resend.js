@@ -17,11 +17,12 @@ const resend = new Resend(process.env.RESEND_API_KEY);
  * @param {string} params.text - The plain text content of the email.
  * @param {string} params.html - The HTML content of the email.
  * @param {string} [params.replyTo] - The email address to set as the "Reply-To" address.
+ * @param {string} [params.from] - Optional custom sender. Defaults to config.resend.fromAdmin.
  * @returns {Promise<Object>} A Promise that resolves with the email sending result data.
  */
-export const sendEmail = async ({ to, subject, text, html, replyTo }) => {
+export const sendEmail = async ({ to, subject, text, html, replyTo, from }) => {
   const { data, error } = await resend.emails.send({
-    from: config.resend.fromAdmin,
+    from: from || config.resend.fromAdmin,
     to,
     subject,
     text,
