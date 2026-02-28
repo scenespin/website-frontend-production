@@ -9,7 +9,6 @@ import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import ButtonSignin from "@/components/ButtonSignin";
-import ComingSoonBadge from "@/components/ComingSoonBadge";
 
 export default function Page() {
   const { user, isLoaded } = useUser();
@@ -97,7 +96,7 @@ export default function Page() {
               </h1>
 
               <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-gray-300 max-w-4xl mx-auto mb-4 md:mb-5 px-4">
-                Wryda is a professional, screenplay-native workspace for faster drafts, sharper rewrites, and stronger pages, while keeping you in full creative control and carrying your story seamlessly into visual planning and video.
+                Write in a true screenplay environment, revise with full-context AI, and extend to production when it serves the story.
               </p>
 
               {/* CTAs */}
@@ -106,13 +105,13 @@ export default function Page() {
                   href="/sign-up"
                   className="inline-flex items-center justify-center px-6 py-3 md:px-8 md:py-4 bg-[#DC143C] text-white font-semibold rounded-lg hover:bg-[#B01030] transition-colors text-base md:text-lg min-h-[44px] w-full sm:w-auto"
                 >
-                  Join Early Access
+                  Start Writing Free
                 </Link>
                 <Link
                   href="/examples"
                   className="inline-flex items-center justify-center px-6 py-3 md:px-8 md:py-4 bg-[#141414] border border-[#3F3F46] text-white font-semibold rounded-lg hover:bg-[#1F1F1F] transition-colors text-base md:text-lg min-h-[44px] w-full sm:w-auto"
                 >
-                  View Examples
+                  See Real Workflows
                 </Link>
               </div>
 
@@ -126,8 +125,8 @@ export default function Page() {
                         <path d="M8 5v14l11-7z" />
                       </svg>
                     </div>
-                    <h3 className="text-xl font-bold mb-2">Product Walkthrough Coming Soon</h3>
-                    <p className="text-gray-400 text-sm">We are documenting the workflow as we build. Join early access for first-look demos.</p>
+                    <h3 className="text-xl font-bold mb-2">Workflow Preview</h3>
+                    <p className="text-gray-400 text-sm">See how writing-first development carries from screenplay pages into production-ready workflows.</p>
                   </div>
                 </div>
               </div>
@@ -206,7 +205,7 @@ export default function Page() {
               <div className="bg-[#141414] border border-[#DC143C]/30 rounded-lg p-6">
                 <h3 className="text-xl font-bold mb-3 text-[#DC143C]">Why this workflow is different</h3>
                 <p className="text-gray-300 mb-4">
-                  Wryda keeps screenplay decisions as the source of truth. Visual outputs are generated from that story foundation, so iteration stays aligned instead of drifting into disconnected assets.
+                  Most tools force a tradeoff between writing depth and production utility. Wryda keeps writing as the core workflow, then extends into continuity and shot planning only when needed.
                 </p>
                 <div className="mt-4 pt-4 border-t border-[#3F3F46]">
                   <p className="text-sm font-semibold text-gray-300 mb-2">Best For:</p>
@@ -216,7 +215,7 @@ export default function Page() {
                     <span className="px-3 py-1 bg-[#0A0A0A] border border-[#3F3F46] rounded-full text-xs text-gray-300">Pre-Production Planning</span>
                     <span className="px-3 py-1 bg-[#0A0A0A] border border-[#3F3F46] rounded-full text-xs text-gray-300">Visual Concept Iteration</span>
                   </div>
-                  <p className="text-xs text-gray-500 mt-2 italic">Built for screenplay-first workflows that connect writing, visual ideation, and planning.</p>
+                  <p className="text-xs text-gray-500 mt-2 italic">Built for screenwriters who want professional writing software first, with optional production extension in the same workflow.</p>
                 </div>
               </div>
             </div>
@@ -228,10 +227,10 @@ export default function Page() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12 md:mb-16 px-4">
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 md:mb-4">
-                Keep creative context across assets
+                Continuity that stays connected to the script
               </h2>
               <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto">
-                Carry one story intent across characters, locations, and props.
+                When you are ready to extend beyond writing, keep characters, locations, and props aligned to story intent.
               </p>
             </div>
 
@@ -241,7 +240,7 @@ export default function Page() {
                 <div className="text-4xl mb-4">👤</div>
                 <h3 className="text-lg md:text-xl font-bold mb-3">Characters</h3>
                 <p className="text-gray-300">
-                  Track character intent, look direction, and visual iterations together.
+                  Maintain identity continuity across references and generated variations.
                 </p>
               </div>
 
@@ -250,7 +249,7 @@ export default function Page() {
                 <div className="text-4xl mb-4">📍</div>
                 <h3 className="text-lg md:text-xl font-bold mb-3">Locations</h3>
                 <p className="text-gray-300">
-                  Organize location concepts with narrative context and scene relevance.
+                  Build angle and background coverage without losing scene context.
                 </p>
               </div>
 
@@ -259,7 +258,7 @@ export default function Page() {
                 <div className="text-4xl mb-4">🎬</div>
                 <h3 className="text-lg md:text-xl font-bold mb-3">Props</h3>
                 <p className="text-gray-300">
-                  Keep prop references tied to story function, not just image files.
+                  Preserve object continuity for story-critical details across shots.
                 </p>
               </div>
             </div>
@@ -274,7 +273,7 @@ export default function Page() {
                 How It Works
               </h2>
               <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto">
-                Capture ideas, align visuals, and move forward with clarity.
+                Write first. Extend when needed.
               </p>
             </div>
 
@@ -285,7 +284,7 @@ export default function Page() {
                 </div>
                 <h3 className="text-xl font-bold mb-3">Write</h3>
                 <p className="text-gray-300">
-                  Start with your screenplay or concept notes. Build story direction in a workspace designed for writing-first development.
+                  Draft in a screenplay-native environment with Fountain support and full creative control.
                 </p>
               </div>
 
@@ -295,7 +294,7 @@ export default function Page() {
                 </div>
                 <h3 className="text-xl font-bold mb-3">Produce</h3>
                 <p className="text-gray-300">
-                  Generate and organize visual references while keeping each output connected to its creative intent.
+                  Generate and organize continuity assets from approved script context when visual planning adds value.
                 </p>
               </div>
 
@@ -303,12 +302,9 @@ export default function Page() {
                 <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#DC143C] text-white text-2xl font-bold mb-6">
                   3
                 </div>
-                <h3 className="text-xl font-bold mb-3 flex items-center justify-center gap-2">
-                  Direct
-                  <ComingSoonBadge size="sm" />
-                </h3>
+                <h3 className="text-xl font-bold mb-3">Direct</h3>
                 <p className="text-gray-300">
-                  Extend selected scenes into visual planning workflows when you are ready for pitching and prep.
+                  Carry approved context into shot planning and first-frame handoff workflows.
                 </p>
               </div>
             </div>
@@ -323,7 +319,7 @@ export default function Page() {
                 AI Writing Agents
               </h2>
               <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto mb-2">
-                Specialized writing support inside your screenplay workflow
+                Script-aware support that stays grounded in narrative intent and page-level craft
               </p>
             </div>
 
@@ -337,7 +333,7 @@ export default function Page() {
                     <span className="px-2 py-1 bg-[#DC143C] text-white text-xs font-semibold rounded">Unique</span>
                   </div>
                   <p className="text-lg text-gray-300 mb-4">
-                    Reads your <strong className="text-white">entire screenplay</strong>. Analyzes structure across all acts, tracks character arcs throughout, identifies plot holes and inconsistencies.
+                    Reads your <strong className="text-white">entire screenplay</strong>. Analyzes structure across acts, tracks character arcs throughout, and identifies plot holes and inconsistencies.
                   </p>
                   <p className="text-sm text-gray-400 italic mb-4">Built to review full-script context so feedback stays coherent across scenes.</p>
                   <ul className="space-y-2 text-sm text-gray-300">
@@ -407,7 +403,7 @@ export default function Page() {
                 Core capabilities in one workspace
               </h2>
               <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto">
-                Built around screenplay development first, with connected production support when you need it.
+                Everything you need to write first, with connected production workflows when you are ready.
               </p>
             </div>
 
@@ -488,10 +484,10 @@ export default function Page() {
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12 md:mb-16 px-4">
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 md:mb-4">
-                Everything is Free. You Only Pay for Credits.
+                Start Free. Scale When You Generate.
               </h2>
               <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto">
-                Simple access model: core workflow is available early, and usage scales with credits.
+                Core writing features are available from day one. Credits apply when you run generation workflows.
               </p>
             </div>
 
@@ -500,7 +496,7 @@ export default function Page() {
                 <h3 className="text-xl md:text-2xl font-bold mb-2">Free Tier</h3>
                 <p className="text-base md:text-lg text-gray-300">50 credits to start + 10 credits/month</p>
                 <p className="text-xs md:text-sm text-gray-400 mt-2">Everything unlocked</p>
-                <p className="text-xs md:text-sm text-gray-500 mt-1">Early supporters help shape roadmap priorities.</p>
+                <p className="text-xs md:text-sm text-gray-500 mt-1">Upgrade for volume, not access.</p>
               </div>
               <div className="flex justify-center">
                 <Link
@@ -527,16 +523,16 @@ export default function Page() {
         <section className="py-20 bg-[#0A0A0A]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 md:mb-4">
-              If this problem feels familiar, build with us.
+              Ready to write your next screenplay in a true pro workflow?
             </h2>
             <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto mb-6 md:mb-8">
-              Join early access to help shape a writer-first platform where ideas, writing, and visuals stay aligned.
+              Start with writing, use AI when it helps, and extend to production when it serves the story.
             </p>
             <Link
               href="/sign-up"
               className="inline-flex items-center justify-center px-6 py-3 md:px-8 md:py-4 bg-[#DC143C] text-white font-semibold rounded-lg hover:bg-[#B01030] transition-colors text-base md:text-lg min-h-[44px] w-full sm:w-auto max-w-xs"
             >
-              Become a Founding Supporter
+              Start Writing Free
             </Link>
           </div>
         </section>
