@@ -219,7 +219,7 @@ export function getMediaFileDisplayUrl(
 ): string | null {
   const st = file.storageType || 'local';
   if (st === 'google-drive') {
-    const cloudFileId = file.metadata?.cloudFileId ?? file.id;
+    const cloudFileId = file.metadata?.cloudFileId;
     if (!cloudFileId) return null;
     return `https://drive.google.com/uc?export=view&id=${cloudFileId}`;
   }
@@ -239,5 +239,19 @@ export function getMediaFileDisplayUrl(
 
 /** Get Dropbox path for a file (for preview-url API). */
 export function getDropboxPath(file: MediaFile): string {
-  return file.metadata?.cloudFilePath ?? (file as { path?: string }).path ?? file.id;
+  const metadataPath = file.metadata?.cloudFilePath;
+  if (typeof metadataPath === 'string' && metadataPath.startsWith('/')) {
+    return metadataPath;
+  }
+
+  const filePath = (file as { path?: string }).path;
+  if (typeof filePath === 'string' && filePath.startsWith('/')) {
+    return filePath;
+  }
+
+  if (typeof file.id === 'string' && file.id.startsWith('/')) {
+    return file.id;
+  }
+
+  return '';
 }

@@ -59,6 +59,7 @@ import {
 import { ImageViewer, type ImageItem } from './ImageViewer';
 import { useQueryClient } from '@tanstack/react-query';
 import { Folder, FolderOpen } from 'lucide-react';
+import { getMediaFileDisplayUrl, getDropboxPath } from './utils/imageUrlResolver';
 
 // ============================================================================
 // VIDEO THUMBNAIL COMPONENT
@@ -452,10 +453,12 @@ export default function MediaLibrary({
           // Frontend expects: { id, fileName, fileUrl, fileType (enum), fileSize, storageType, uploadedAt }
           allFiles = await Promise.all(
             backendFiles.map(async (file: any) => {
-              // Generate presigned URL for S3 files (more reliable than direct S3 URL)
+              const storageType = (file.storageType || 'local') as 'local' | 'google-drive' | 'dropbox' | 'wryda-temp';
+              // Generate presigned URL only for S3-backed rows.
+              // Cloud-backed rows should resolve via provider-specific URL paths.
               let fileUrl = file.s3Url;
-              
-              if (file.s3Key) {
+
+              if ((storageType === 'local' || storageType === 'wryda-temp') && file.s3Key) {
                 try {
                   const presignedResponse = await fetch('/api/s3/download-url', {
                     method: 'POST',
@@ -477,6 +480,29 @@ export default function MediaLibrary({
                   console.warn('[MediaLibrary] Failed to get presigned URL, using direct S3 URL:', error);
                 }
               }
+
+              if (storageType === 'google-drive') {
+                const cloudFileId = file.metadata?.cloudFileId;
+                fileUrl = cloudFileId
+                  ? `https://drive.google.com/uc?export=view&id=${cloudFileId}`
+                  : '';
+              }
+
+              if (storageType === 'dropbox') {
+                const dropboxPath = getDropboxPath({
+                  id: file.fileId,
+                  fileName: file.fileName,
+                  s3Key: file.s3Key || '',
+                  fileType: detectFileType(file.fileType),
+                  fileSize: file.fileSize || 0,
+                  storageType: 'dropbox',
+                  uploadedAt: file.createdAt || new Date().toISOString(),
+                  metadata: file.metadata,
+                } as MediaFile);
+                fileUrl = dropboxPath
+                  ? `/api/media/file?provider=dropbox&path=${encodeURIComponent(dropboxPath)}`
+                  : '';
+              }
               
               return {
                 id: file.fileId,                    // Map fileId → id
@@ -484,11 +510,11 @@ export default function MediaLibrary({
                 fileUrl,                            // Use presigned URL if available
                 fileType: detectFileType(file.fileType),  // Convert MIME type to enum
                 fileSize: file.fileSize,
-                storageType: 'local' as const,      // S3 files are 'local' storage type
+                storageType,                        // Preserve backend storage source
                 uploadedAt: file.createdAt,         // Map createdAt → uploadedAt
                 expiresAt: undefined,               // Not applicable for S3 files
                 thumbnailUrl: undefined,            // Will be generated client-side for videos
-                s3Key: file.s3Key,                  // Store S3 key for generating fresh presigned URLs (bucket is private)
+                s3Key: file.s3Key || '',            // Keep optional S3 key for local files
                 metadata: file.metadata,            // Feature 0174: Include metadata for thumbnail filtering
                 thumbnailS3Key: file.metadata?.thumbnailS3Key, // Feature 0174: Thumbnail S3 key
               };
@@ -666,8 +692,8 @@ export default function MediaLibrary({
       // Fallback to deprecated fileUrl if available (for backward compatibility during transition)
       return file.fileUrl;
     }
-    // Cloud storage files use their original URLs
-    return file.fileUrl;
+    // Cloud storage files resolve through provider-specific URL rules.
+    return getMediaFileDisplayUrl(file) || file.fileUrl;
   };
 
   // 🔥 Feature 0200: Filter out files with expired/broken presigned URLs
@@ -679,12 +705,7 @@ export default function MediaLibrary({
     }
     
     const filtered = displayFiles.filter(file => {
-      // Cloud storage files are always valid (they have original URLs)
-      if (file.storageType === 'google-drive' || file.storageType === 'dropbox') {
-        return !!file.fileUrl; // Only filter if no fileUrl at all
-      }
-      
-      // For S3 files, check if we have a valid presigned URL
+      // For all files, resolve URL by storage type and keep only renderable rows.
       const useThumbnail = viewMode === 'grid' && !!file.thumbnailS3Key;
       const fileUrl = getFileUrl(file, useThumbnail);
       
@@ -1205,13 +1226,18 @@ export default function MediaLibrary({
         
         if (file.fileType === 'image' || file.fileType === 'video' || file.fileType === 'audio') {
           if (file.storageType === 'google-drive') {
+            const cloudFileId = file.metadata?.cloudFileId;
+            if (!cloudFileId) {
+              toast.error('Google Drive file ID is missing for this media item');
+              return;
+            }
             // Google Drive: Use direct view URL for images, direct download for videos/audio
             if (file.fileType === 'image') {
-              previewUrl = `https://drive.google.com/uc?export=view&id=${file.id}`;
+              previewUrl = `https://drive.google.com/uc?export=view&id=${cloudFileId}`;
             } else {
               // For videos/audio, get download URL from backend
               try {
-                const response = await fetch(`/api/storage/download/google-drive/${file.id}`, {
+                const response = await fetch(`/api/storage/download/google-drive/${cloudFileId}`, {
                   headers: {
                     'Authorization': `Bearer ${token}`,
                   },
@@ -1222,12 +1248,16 @@ export default function MediaLibrary({
                 }
               } catch (error) {
                 console.warn('[MediaLibrary] Failed to get Google Drive download URL');
-                previewUrl = `https://drive.google.com/uc?export=download&id=${file.id}`;
+                previewUrl = `https://drive.google.com/uc?export=download&id=${cloudFileId}`;
               }
             }
           } else if (file.storageType === 'dropbox') {
             // Dropbox: Get temporary preview link from backend (JSON endpoint)
-            const dropboxPath = file.metadata?.cloudFilePath ?? (file as { path?: string }).path ?? file.id;
+            const dropboxPath = getDropboxPath(file);
+            if (!dropboxPath) {
+              toast.error('Dropbox file path is missing for this media item');
+              return;
+            }
             try {
               const response = await fetch(
                 `/api/storage/preview-url/dropbox?path=${encodeURIComponent(dropboxPath)}`,
@@ -1356,7 +1386,11 @@ export default function MediaLibrary({
         }
         if (file.storageType === 'dropbox') {
           // Dropbox: use preview-url endpoint (returns JSON { downloadUrl }); download endpoint streams binary
-          const dropboxPath = file.metadata?.cloudFilePath ?? (file as { path?: string }).path ?? file.id;
+          const dropboxPath = getDropboxPath(file);
+          if (!dropboxPath) {
+            toast.error('Dropbox file path is missing for this media item');
+            return;
+          }
           const response = await fetch(
             `/api/storage/preview-url/dropbox?path=${encodeURIComponent(dropboxPath)}`,
             { headers: { 'Authorization': `Bearer ${token}` } }
@@ -1369,8 +1403,13 @@ export default function MediaLibrary({
             return;
           }
         } else {
+          const cloudFileId = file.metadata?.cloudFileId;
+          if (!cloudFileId) {
+            toast.error('Google Drive file ID is missing for this media item');
+            return;
+          }
           // Google Drive: download endpoint streams binary
-          const response = await fetch(`/api/storage/download/${file.storageType}/${file.id}`, {
+          const response = await fetch(`/api/storage/download/${file.storageType}/${cloudFileId}`, {
             headers: { 'Authorization': `Bearer ${token}` },
           });
           if (!response.ok) {

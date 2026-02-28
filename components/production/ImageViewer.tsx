@@ -101,7 +101,7 @@ export function ImageViewer({
     }
     
     // If URL exists and looks valid, use it
-    if (image.url && image.url.startsWith('http')) {
+    if (image.url && (image.url.startsWith('http://') || image.url.startsWith('https://') || image.url.startsWith('/') || image.url.startsWith('data:'))) {
       return image.url;
     }
     
