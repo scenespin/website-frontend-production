@@ -870,7 +870,7 @@ export default function WritingHelp() {
                   <strong className="text-[#FFFFFF]">Ask AI for Help</strong> - Click the AI icon in the toolbar to access any of the 5 writing agents
                 </li>
                 <li>
-                  <strong className="text-[#FFFFFF]">Track Characters</strong> - Characters are automatically detected and tracked
+                  <strong className="text-[#FFFFFF]">Track Characters & Locations</strong> - Characters and locations are automatically detected and tracked
                 </li>
                 <li>
                   <strong className="text-[#FFFFFF]">Save & Export</strong> - Your work auto-saves continuously. Export to PDF when ready.

@@ -63,7 +63,7 @@ export default function ProductionHelp() {
 
         {/* Scene Builder */}
         <section className="mb-12">
-          <h2 className="text-3xl font-bold mb-4 text-[#FFFFFF]">Scene Builder (Motion Picture Technology)</h2>
+          <h2 className="text-3xl font-bold mb-4 text-[#FFFFFF]">Scene Builder</h2>
           <p className="mb-6 text-[#B3B3B3]">
             <strong className="badge bg-[#DC143C] text-[#FFFFFF] border-none">UNIQUE FEATURE</strong> - Generate complete scenes directly from your screenplay. 
             Not available in any other platform.
