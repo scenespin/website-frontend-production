@@ -1,27 +1,21 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { S3Client } from '@aws-sdk/client-s3';
-import { createPresignedPost } from '@aws-sdk/s3-presigned-post';
-import { randomUUID } from 'crypto';
-
-const S3_BUCKET = process.env.S3_BUCKET_NAME || process.env.S3_BUCKET || 'screenplay-assets-043309365215';
-const AWS_REGION = process.env.AWS_REGION || 'us-east-1';
 
 // Prevent stale presign responses from being cached by edge/browser layers.
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 export const fetchCache = 'force-no-store';
 
-const s3Client = new S3Client({ region: AWS_REGION });
+const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
 
 export async function GET(request: Request) {
   try {
     const authHeader = request.headers.get('authorization');
     const token = authHeader?.replace('Bearer ', '');
     
-    const { userId: clerkUserId } = await auth();
+    const { userId } = await auth();
     
-    if (!token || !clerkUserId) {
+    if (!token || !userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -29,7 +23,6 @@ export async function GET(request: Request) {
     const fileName = searchParams.get('fileName');
     const fileType = searchParams.get('fileType');
     const fileSize = searchParams.get('fileSize');
-    const screenplayId = searchParams.get('screenplayId') || 'default';
     const assetId = searchParams.get('assetId');
     
     if (!fileName || !fileType || !assetId) {
@@ -47,59 +40,31 @@ export async function GET(request: Request) {
       }, { status: 413 });
     }
 
-    // Generate S3 key matching the backend pattern (same as characters)
-    // Format: temp/images/{userId}/{screenplayId}/assets/{assetId}/{timestamp}_{uuid}.{ext}
-    const timestamp = Date.now();
-    const detectedExt = (() => {
-      const mimeToExt: Record<string, string> = {
-        'image/jpeg': '.jpeg',
-        'image/jpg': '.jpg',
-        'image/png': '.png',
-        'image/webp': '.webp',
-        'image/gif': '.gif',
-        'image/svg+xml': '.svg',
-      };
-      const fromMime = mimeToExt[fileType.toLowerCase()];
-      if (fromMime) return fromMime;
-      const fromName = fileName.toLowerCase().match(/\.[a-z0-9]+$/)?.[0] || '.jpg';
-      return fromName === '.jpe' ? '.jpeg' : fromName;
-    })();
-    const uuid = randomUUID().replace(/-/g, '').substring(0, 16);
-    
-    const s3Key = `temp/images/${clerkUserId}/${screenplayId}/assets/${assetId}/${timestamp}_${uuid}${detectedExt}`;
-    
-    // Validate s3Key length (S3 max is 1024 bytes)
-    if (s3Key.length > 1024) {
-      return NextResponse.json({ 
-        error: 'Generated S3 key is too long. Please use a shorter filename.' 
-      }, { status: 400 });
-    }
-    
-    const { url, fields } = await createPresignedPost(s3Client, {
-      Bucket: S3_BUCKET,
-      Key: s3Key,
-      Expires: 3600, // 1 hour
-      Conditions: [
-        ['content-length-range', 0, MAX_FILE_SIZE],
-      ],
-      Fields: {
-        'Content-Type': fileType,
-        'x-amz-meta-userid': clerkUserId,
-        'x-amz-meta-screenplayid': screenplayId.toString(),
-        'x-amz-meta-assetid': assetId.toString(),
-        'x-amz-meta-uploadedat': new Date().toISOString(),
-        'x-amz-meta-originalfilename': fileName,
-        'x-amz-meta-filetype': 'image',
+    const uploadUrl = `${BACKEND_API_URL}/api/s3/upload-url?` +
+      `fileName=${encodeURIComponent(fileName)}` +
+      `&entityType=asset` +
+      `&entityId=${encodeURIComponent(assetId)}` +
+      `&contentType=${encodeURIComponent(fileType)}`;
+
+    const backendResponse = await fetch(uploadUrl, {
+      method: 'GET',
+      headers: {
+        Authorization: `Bearer ${token}`,
       },
+      cache: 'no-store',
     });
-    
-    console.log(`[AssetUpload] Generated pre-signed POST for user ${clerkUserId}: ${s3Key}`);
-    
+
+    const responsePayload = await backendResponse.json().catch(() => null);
+    if (!backendResponse.ok || !responsePayload) {
+      return NextResponse.json(
+        responsePayload || { error: 'Failed to get upload URL' },
+        { status: backendResponse.status || 500 }
+      );
+    }
+
     return NextResponse.json({
       success: true,
-      url,
-      fields,
-      s3Key,
+      ...responsePayload,
       contentType: fileType,
       expiresIn: 3600,
       message: 'Pre-signed POST generated successfully'
