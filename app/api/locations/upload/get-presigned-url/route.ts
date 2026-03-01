@@ -43,14 +43,26 @@ export async function GET(request: Request) {
     }
 
     const timestamp = Date.now();
-    const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_').substring(0, 50);
+    const detectedExt = (() => {
+      const mimeToExt: Record<string, string> = {
+        'image/jpeg': '.jpeg',
+        'image/jpg': '.jpg',
+        'image/png': '.png',
+        'image/webp': '.webp',
+        'image/gif': '.gif',
+        'image/svg+xml': '.svg',
+      };
+      const fromMime = mimeToExt[fileType.toLowerCase()];
+      if (fromMime) return fromMime;
+      const fromName = fileName.toLowerCase().match(/\.[a-z0-9]+$/)?.[0] || '.jpg';
+      return fromName === '.jpe' ? '.jpeg' : fromName;
+    })();
     const uuid = randomUUID().replace(/-/g, '').substring(0, 16);
     
-    let s3Key = `temp/images/${clerkUserId}/${screenplayId}/locations/${locationId}/uploads/${timestamp}_${uuid}${sanitizedFileName.match(/\.[^.]+$/) || '.jpg'}`;
+    let s3Key = `temp/images/${clerkUserId}/${screenplayId}/locations/${locationId}/uploads/${timestamp}_${uuid}${detectedExt}`;
     
     if (s3Key.length > 1024) {
-      const ext = sanitizedFileName.match(/\.[^.]+$/) || '.jpg';
-      s3Key = `temp/images/${clerkUserId}/${screenplayId}/locations/${locationId}/${timestamp}_${uuid}${ext}`;
+      s3Key = `temp/images/${clerkUserId}/${screenplayId}/locations/${locationId}/${timestamp}_${uuid}${detectedExt}`;
     }
     
     const { url, fields } = await createPresignedPost(s3Client, {

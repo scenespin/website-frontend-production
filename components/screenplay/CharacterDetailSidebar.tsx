@@ -9,7 +9,6 @@ import { useEditor } from '@/contexts/EditorContext'
 import { ImageGallery } from '@/components/images/ImageGallery'
 import { ImageSourceDialog } from '@/components/images/ImageSourceDialog'
 import { ImagePromptModal } from '@/components/images/ImagePromptModal'
-import { StorageDecisionModal } from '@/components/storage/StorageDecisionModal'
 import { useAuth } from '@clerk/nextjs'
 import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
@@ -127,8 +126,6 @@ export default function CharacterDetailSidebar({
   const [showImagePromptModal, setShowImagePromptModal] = useState(false)
   const [pendingImages, setPendingImages] = useState<Array<{ imageUrl: string; s3Key: string; angle?: string; prompt?: string; modelUsed?: string }>>([])
   const [uploading, setUploading] = useState(false)
-  const [showStorageModal, setShowStorageModal] = useState(false)
-  const [selectedAsset, setSelectedAsset] = useState<{url: string; s3Key: string; name: string; type: 'image' | 'video' | 'attachment'} | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   
   // 🔥 FIX: Use ref to track latest characters to avoid stale closures in async functions
@@ -252,11 +249,11 @@ export default function CharacterDetailSidebar({
     }
   }, [character?.id]) // Only run when character.id changes (on mount or when switching characters)
 
-  // 🔥 FIX: Refetch character data after StorageDecisionModal closes (like MediaLibrary refetches files)
+  // Sync from latest context after modal close actions
   // This ensures the UI reflects the latest character data, including newly uploaded images
   // EXACT WORKING PATTERN from before - just sync from context, no cache invalidation here
   useEffect(() => {
-    if (!showStorageModal && character?.id) {
+    if (character?.id) {
       // Modal just closed - sync from context (which should have been updated by the upload)
       // Add small delay to ensure DynamoDB consistency (like MediaLibrary does)
       const syncCharacter = async () => {
@@ -274,7 +271,7 @@ export default function CharacterDetailSidebar({
       };
       syncCharacter();
     }
-  }, [showStorageModal, character?.id]) // Remove characters from deps, use ref instead
+  }, [character?.id]) // Remove characters from deps, use ref instead
 
   const handleSave = async () => {
     if (!formData.name.trim()) return
@@ -363,9 +360,6 @@ export default function CharacterDetailSidebar({
     }
 
     setUploading(true);
-    
-    // Track initial image count to identify newly uploaded images
-    const initialImageCount = character?.images?.length || 0;
     
     try {
       const token = await getToken({ template: 'wryda-backend' });
@@ -555,20 +549,6 @@ export default function CharacterDetailSidebar({
           
           toast.success(`${fileArray.length} image${fileArray.length > 1 ? 's' : ''} ready - will be added when character is created`);
           
-          // 🔥 FIX: Show storage modal for first uploaded image during creation
-          // Images are in temporary S3 storage, user can choose to save permanently
-          if (transformedImages.length > 0) {
-            const firstImage = transformedImages[0];
-            if (firstImage.s3Key && firstImage.imageUrl) {
-              setSelectedAsset({
-                url: firstImage.imageUrl,
-                s3Key: firstImage.s3Key,
-                name: fileArray[0].name,
-                type: 'image'
-              });
-              setShowStorageModal(true);
-            }
-          }
         } else if (lastEnrichedCharacter && character) {
           // Existing character - backend already updated character, use enriched character data
           const enrichedCharacter = lastEnrichedCharacter;
@@ -650,45 +630,6 @@ export default function CharacterDetailSidebar({
 
           toast.success(`${fileArray.length} image${fileArray.length > 1 ? 's' : ''} uploaded successfully`);
 
-          // Step 5: Show StorageDecisionModal for first newly uploaded image
-          // If replaceBase, show first image (the replaced headshot)
-          // If additional references, find the newly uploaded image by comparing with initial images
-          if (transformedImages.length > 0) {
-            let imageToShow;
-            if (replaceBase) {
-              // For headshot replacement, show the first image (the new headshot)
-              imageToShow = transformedImages[0];
-            } else {
-              // For additional references, find the first image that wasn't in the initial set
-              // Compare by s3Key to identify newly uploaded images
-              const initialS3Keys = new Set(
-                (character?.images || []).slice(0, initialImageCount).map((img: any) => 
-                  img.metadata?.s3Key || img.s3Key
-                ).filter(Boolean)
-              );
-              
-              // Find first image that's not in the initial set
-              imageToShow = transformedImages.find((img: any) => {
-                const imgS3Key = img.metadata?.s3Key || img.s3Key;
-                return imgS3Key && !initialS3Keys.has(imgS3Key);
-              });
-              
-              // Fallback to last image if no new image found
-              if (!imageToShow) {
-                imageToShow = transformedImages[transformedImages.length - 1];
-              }
-            }
-            
-            if (imageToShow) {
-              setSelectedAsset({
-                url: imageToShow.imageUrl,
-                s3Key: imageToShow.metadata?.s3Key || imageToShow.s3Key,
-                name: fileArray[0].name,
-                type: 'image'
-              });
-              setShowStorageModal(true);
-            }
-          }
         }
 
     } catch (error: any) {
@@ -1401,14 +1342,6 @@ export default function CharacterDetailSidebar({
                 toast.success('Image generated - will be uploaded when character is created');
               }
 
-              // Show StorageDecisionModal
-              setSelectedAsset({
-                url: downloadUrl,
-                s3Key: s3Key,
-                name: 'generated-headshot.png',
-                type: 'image'
-              });
-              setShowStorageModal(true);
             } catch (error: any) {
               toast.error(`Failed to upload image: ${error.message}`);
             } finally {
@@ -1419,26 +1352,6 @@ export default function CharacterDetailSidebar({
         />
         )}
 
-        {/* StorageDecisionModal */}
-        {showStorageModal && selectedAsset && (
-          <StorageDecisionModal
-            isOpen={showStorageModal}
-            onClose={() => {
-              setShowStorageModal(false);
-              setSelectedAsset(null);
-            }}
-            assetType="image"
-            assetName={selectedAsset.name}
-            s3TempUrl={selectedAsset.url}
-            s3Key={selectedAsset.s3Key}
-            fileSize={undefined}
-            metadata={{
-              entityType: 'character',
-              entityId: character?.id || 'new',
-              entityName: formData.name || 'Character'
-            }}
-          />
-        )}
       </motion.div>
     </>
   )

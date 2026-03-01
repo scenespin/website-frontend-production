@@ -76,11 +76,26 @@ export async function GET(request: Request) {
     // Generate S3 key matching the backend pattern
     // Format: temp/images/{userId}/{screenplayId}/characters/{characterId}/{timestamp}.jpg
     const timestamp = Date.now();
-    const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_').substring(0, 50);
-    const ext = sanitizedFileName.match(/\.[^.]+$/) || '.jpg';
+    const detectedExt = (() => {
+      const mimeToExt: Record<string, string> = {
+        'image/jpeg': '.jpeg',
+        'image/jpg': '.jpg',
+        'image/png': '.png',
+        'image/webp': '.webp',
+        'image/gif': '.gif',
+        'image/svg+xml': '.svg',
+      };
+      const fromMime = mimeToExt[fileType.toLowerCase()];
+      if (fromMime) return fromMime;
+
+      const fromName = fileName.toLowerCase().match(/\.[a-z0-9]+$/)?.[0] || '.jpg';
+      // Normalize odd-but-common ".jpe" to ".jpeg" so downstream image handling stays consistent.
+      if (fromName === '.jpe') return '.jpeg';
+      return fromName;
+    })();
     const uuid = randomUUID().replace(/-/g, '').substring(0, 16);
     
-    const s3Key = `temp/images/${clerkUserId}/${screenplayId}/characters/${characterId}/${timestamp}_${uuid}${ext}`;
+    const s3Key = `temp/images/${clerkUserId}/${screenplayId}/characters/${characterId}/${timestamp}_${uuid}${detectedExt}`;
     
     // Validate s3Key length (S3 max is 1024 bytes)
     if (s3Key.length > 1024) {

@@ -45,11 +45,23 @@ export async function GET(request: Request) {
     // Generate S3 key matching the backend pattern (same as characters)
     // Format: temp/images/{userId}/{screenplayId}/assets/{assetId}/{timestamp}_{uuid}.{ext}
     const timestamp = Date.now();
-    const sanitizedFileName = fileName.replace(/[^a-zA-Z0-9.-]/g, '_').substring(0, 50);
-    const ext = sanitizedFileName.match(/\.[^.]+$/) || '.jpg';
+    const detectedExt = (() => {
+      const mimeToExt: Record<string, string> = {
+        'image/jpeg': '.jpeg',
+        'image/jpg': '.jpg',
+        'image/png': '.png',
+        'image/webp': '.webp',
+        'image/gif': '.gif',
+        'image/svg+xml': '.svg',
+      };
+      const fromMime = mimeToExt[fileType.toLowerCase()];
+      if (fromMime) return fromMime;
+      const fromName = fileName.toLowerCase().match(/\.[a-z0-9]+$/)?.[0] || '.jpg';
+      return fromName === '.jpe' ? '.jpeg' : fromName;
+    })();
     const uuid = randomUUID().replace(/-/g, '').substring(0, 16);
     
-    const s3Key = `temp/images/${clerkUserId}/${screenplayId}/assets/${assetId}/${timestamp}_${uuid}${ext}`;
+    const s3Key = `temp/images/${clerkUserId}/${screenplayId}/assets/${assetId}/${timestamp}_${uuid}${detectedExt}`;
     
     // Validate s3Key length (S3 max is 1024 bytes)
     if (s3Key.length > 1024) {
