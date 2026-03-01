@@ -100,7 +100,7 @@ export async function GET(request: Request) {
     // Validate s3Key length (S3 max is 1024 bytes)
     if (s3Key.length > 1024) {
       // If still too long, use shorter path
-      const shortS3Key = `temp/images/${clerkUserId}/${screenplayId}/characters/${characterId}/${timestamp}_${uuid}${ext}`;
+      const shortS3Key = `temp/images/${clerkUserId}/${screenplayId}/characters/${characterId}/${timestamp}_${uuid}${detectedExt}`;
       if (shortS3Key.length > 1024) {
         return NextResponse.json({ 
           error: 'Generated S3 key is too long. Please use a shorter filename.' 
