@@ -4,7 +4,7 @@ import { S3Client } from '@aws-sdk/client-s3';
 import { createPresignedPost } from '@aws-sdk/s3-presigned-post';
 import { randomUUID } from 'crypto';
 
-const S3_BUCKET = process.env.S3_BUCKET || 'screenplay-assets-043309365215';
+const S3_BUCKET = process.env.S3_BUCKET_NAME || process.env.S3_BUCKET || 'screenplay-assets-043309365215';
 const AWS_REGION = process.env.AWS_REGION || 'us-east-1';
 
 // Initialize S3 client

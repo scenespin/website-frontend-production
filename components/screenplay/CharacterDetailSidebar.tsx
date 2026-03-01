@@ -430,7 +430,34 @@ export default function CharacterDetailSidebar({
 
         console.log(`[CharacterDetailSidebar] ✅ Uploaded to S3: ${s3Key}`);
 
-        // Step 3: Register the uploaded image with the character via backend (only if character exists)
+        // Step 3: Verify upload is readable through backend before mutating character state.
+        // This prevents saving broken s3Keys when an upload appears successful but object lookup fails.
+        const presignedUrlResponse = await fetch(
+          `/api/s3/download-url`,
+          {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              s3Key,
+              expiresIn: 3600,
+            }),
+          }
+        );
+
+        if (!presignedUrlResponse.ok) {
+          const errorData = await presignedUrlResponse.json().catch(() => ({}));
+          throw new Error(errorData.error || `Failed to verify uploaded image: ${presignedUrlResponse.status}`);
+        }
+
+        const { downloadUrl } = await presignedUrlResponse.json();
+        if (!downloadUrl) {
+          throw new Error('Failed to verify uploaded image URL');
+        }
+
+        // Step 4: Register the uploaded image with the character via backend (only if character exists)
         // 🔥 FIX: If creating, skip registration and store in pendingImages instead
         if (character && !isCreating) {
           const registerResponse = await fetch(
@@ -456,72 +483,18 @@ export default function CharacterDetailSidebar({
           const registerData = await registerResponse.json();
           lastEnrichedCharacter = registerData.data;
         } else if (isCreating) {
-          // 🔥 FIX: During creation, generate presigned URL for display and store in pendingImages
-          try {
-            const presignedUrlResponse = await fetch(
-              `/api/s3/download-url`,
-              {
-                method: 'POST',
-                headers: {
-                  'Authorization': `Bearer ${token}`,
-                  'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                  s3Key,
-                  expiresIn: 3600,
-                }),
-              }
-            );
-            
-            if (presignedUrlResponse.ok) {
-              const { downloadUrl } = await presignedUrlResponse.json();
-              // Store in pendingImages for later registration after character creation
-              if (!lastEnrichedCharacter) {
-                lastEnrichedCharacter = { images: [] };
-              }
-              lastEnrichedCharacter.images.push({
-                imageUrl: downloadUrl,
-                s3Key: s3Key,
-                createdAt: new Date().toISOString(),
-                metadata: {
-                  s3Key: s3Key
-                }
-              });
-            } else {
-              // Fallback: use S3 URL directly
-              const S3_BUCKET = process.env.NEXT_PUBLIC_S3_BUCKET || 'screenplay-assets-043309365215';
-              const AWS_REGION = process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1';
-              const s3Url = `https://${S3_BUCKET}.s3.${AWS_REGION}.amazonaws.com/${s3Key}`;
-              if (!lastEnrichedCharacter) {
-                lastEnrichedCharacter = { images: [] };
-              }
-              lastEnrichedCharacter.images.push({
-                imageUrl: s3Url,
-                s3Key: s3Key,
-                createdAt: new Date().toISOString(),
-                metadata: {
-                  s3Key: s3Key
-                }
-              });
-            }
-          } catch (urlError) {
-            console.warn('[CharacterDetailSidebar] Failed to get presigned URL, using S3 URL:', urlError);
-            // Fallback: use S3 URL directly
-            const S3_BUCKET = process.env.NEXT_PUBLIC_S3_BUCKET || 'screenplay-assets-043309365215';
-            const AWS_REGION = process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1';
-            const s3Url = `https://${S3_BUCKET}.s3.${AWS_REGION}.amazonaws.com/${s3Key}`;
-            if (!lastEnrichedCharacter) {
-              lastEnrichedCharacter = { images: [] };
-            }
-            lastEnrichedCharacter.images.push({
-              imageUrl: s3Url,
-              s3Key: s3Key,
-              createdAt: new Date().toISOString(),
-              metadata: {
-                s3Key: s3Key
-              }
-            });
+          // During creation, use verified presigned URL for display and store in pendingImages.
+          if (!lastEnrichedCharacter) {
+            lastEnrichedCharacter = { images: [] };
           }
+          lastEnrichedCharacter.images.push({
+            imageUrl: downloadUrl,
+            s3Key: s3Key,
+            createdAt: new Date().toISOString(),
+            metadata: {
+              s3Key: s3Key
+            }
+          });
         }
         
         // Add delay between uploads to allow DynamoDB eventual consistency
