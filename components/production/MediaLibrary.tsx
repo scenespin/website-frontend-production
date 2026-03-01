@@ -25,8 +25,7 @@ import {
   Eye,
   FileAudio,
   CheckSquare,
-  Square,
-  RefreshCw
+  Square
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -52,9 +51,7 @@ import {
   usePresignedUrl,
   useBulkPresignedUrls,
   useMediaFolderTree,
-  useDeleteFolder,
-  useMediaCloudSyncStatuses,
-  useRetryMediaCloudSync
+  useDeleteFolder
 } from '@/hooks/useMediaLibrary';
 import { ImageViewer, type ImageItem } from './ImageViewer';
 import { useQueryClient } from '@tanstack/react-query';
@@ -244,10 +241,6 @@ export default function MediaLibrary({
   // Local error state for mutations (upload/delete)
   const [mutationError, setMutationError] = useState<string | null>(null);
   
-  // Sync state
-  const [isSyncing, setIsSyncing] = useState(false);
-  const [syncProgress, setSyncProgress] = useState<{ current: number; total: number; fileName: string } | null>(null);
-  
   // Mobile long-press menu state
   const [longPressMenuFile, setLongPressMenuFile] = useState<MediaFile | null>(null);
   const [longPressMenuPosition, setLongPressMenuPosition] = useState<{ x: number; y: number } | null>(null);
@@ -301,14 +294,10 @@ export default function MediaLibrary({
     data: storageQuota,
     isLoading: quotaLoading 
   } = useStorageQuota();
-  const isScreenplayProject = !!projectId && projectId.startsWith('screenplay_');
-  const { data: mediaCloudSyncStatuses = [] } = useMediaCloudSyncStatuses(projectId, isScreenplayProject);
-
   // Mutations
   const uploadMediaMutation = useUploadMedia(projectId);
   const deleteMediaMutation = useDeleteMedia(projectId);
   const deleteFolderMutation = useDeleteFolder(projectId);
-  const retryCloudSyncMutation = useRetryMediaCloudSync(projectId);
   
   // Query client for on-demand presigned URL fetching
   const queryClient = useQueryClient();
@@ -328,10 +317,6 @@ export default function MediaLibrary({
   const [showSettingsModal, setShowSettingsModal] = useState(false);
   
   // Check if any providers are connected
-  const hasConnectedProviders = (cloudConnections as CloudStorageConnection[]).some(
-    c => c.connected && (c.provider === 'google-drive' || c.provider === 'dropbox')
-  );
-
   // ============================================================================
   // API CALLS
   // ============================================================================
@@ -1513,149 +1498,6 @@ export default function MediaLibrary({
     setLongPressMenuPosition(null);
   };
 
-  /**
-   * 🔥 NEW: Sync single file to cloud storage
-   */
-  const handleSyncFileToCloud = async (fileId: string) => {
-    if (!projectId) {
-      toast.error('Project ID required');
-      return;
-    }
-
-    const activeConnection = (cloudConnections as CloudStorageConnection[]).find(
-      c => c.connected && (c.provider === 'google-drive' || c.provider === 'dropbox')
-    );
-
-    if (!activeConnection) {
-      toast.error('No cloud storage connection found. Please connect Google Drive or Dropbox first.');
-      return;
-    }
-
-    try {
-      const token = await getToken({ template: 'wryda-backend' });
-      if (!token) throw new Error('Not authenticated');
-
-      const response = await fetch('/api/storage/sync-file-to-cloud', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          screenplayId: projectId,
-          fileId,
-          provider: activeConnection.provider
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || error.message || 'Failed to sync file');
-      }
-
-      const result = await response.json();
-
-      if (result.success) {
-        toast.success('File synced to cloud storage successfully');
-        await refetchFiles();
-        queryClient.invalidateQueries({ queryKey: ['media', 'files', projectId] });
-      } else {
-        toast.error(result.error || 'Failed to sync file');
-      }
-
-    } catch (error: any) {
-      console.error('[MediaLibrary] Sync file error:', error);
-      toast.error(`Failed to sync file: ${error.message}`);
-    }
-  };
-
-  const handleRetryCloudSync = async (file: MediaFile) => {
-    if (!projectId) {
-      toast.error('Project ID required');
-      return;
-    }
-
-    try {
-      const result = await retryCloudSyncMutation.mutateAsync({
-        fileId: file.id,
-        s3Key: file.s3Key,
-      });
-
-      if (result.cloudSyncStatus === 'synced') {
-        toast.success('Cloud sync retry succeeded');
-      } else if (result.cloudSyncStatus === 'syncing') {
-        toast.success('Cloud sync retry started');
-      } else {
-        toast.error(result.error || `Retry completed with status: ${result.cloudSyncStatus}`);
-      }
-    } catch (error: any) {
-      toast.error(`Cloud sync retry failed: ${error.message}`);
-    }
-  };
-
-  /**
-   * 🔥 NEW: Sync folder to cloud storage
-   */
-  const handleSyncFolderToCloud = async (folderId: string) => {
-    if (!projectId) {
-      toast.error('Project ID required');
-      return;
-    }
-
-    const activeConnection = (cloudConnections as CloudStorageConnection[]).find(
-      c => c.connected && (c.provider === 'google-drive' || c.provider === 'dropbox')
-    );
-
-    if (!activeConnection) {
-      toast.error('No cloud storage connection found. Please connect Google Drive or Dropbox first.');
-      return;
-    }
-
-    try {
-      const token = await getToken({ template: 'wryda-backend' });
-      if (!token) throw new Error('Not authenticated');
-
-      const response = await fetch('/api/storage/sync-folder-to-cloud', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          screenplayId: projectId,
-          folderId,
-          provider: activeConnection.provider
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.error || error.message || 'Failed to sync folder');
-      }
-
-      const result = await response.json();
-
-      if (result.success) {
-        toast.success(`Successfully synced ${result.syncedFiles} file${result.syncedFiles === 1 ? '' : 's'} from folder to cloud storage`, {
-          description: result.failedFiles > 0 
-            ? `${result.failedFiles} file${result.failedFiles === 1 ? '' : 's'} failed to sync`
-            : undefined
-        });
-        await refetchFiles();
-        queryClient.invalidateQueries({ queryKey: ['media', 'files', projectId] });
-        queryClient.invalidateQueries({ queryKey: ['media', 'folders', projectId] });
-      } else {
-        toast.error(`Sync completed with errors: ${result.failedFiles} file${result.failedFiles === 1 ? '' : 's'} failed`, {
-          description: result.errors.length > 0 ? result.errors[0].error : undefined
-        });
-      }
-
-    } catch (error: any) {
-      console.error('[MediaLibrary] Sync folder error:', error);
-      toast.error(`Failed to sync folder: ${error.message}`);
-    }
-  };
-
   const handleConnectDrive = async (storageType: 'google-drive' | 'dropbox') => {
     try {
       const token = await getToken({ template: 'wryda-backend' });
@@ -1884,85 +1726,6 @@ export default function MediaLibrary({
     return true;
   });
 
-  const cloudSyncStatusByFileId = useMemo(() => {
-    const statusMap = new Map<string, (typeof mediaCloudSyncStatuses)[number]>();
-    mediaCloudSyncStatuses.forEach((item) => {
-      if (item.fileId) {
-        statusMap.set(item.fileId, item);
-      }
-    });
-    return statusMap;
-  }, [mediaCloudSyncStatuses]);
-
-  const cloudSyncSummary = useMemo(() => {
-    return mediaCloudSyncStatuses.reduce(
-      (acc, item) => {
-        acc.total += 1;
-        if (item.cloudSyncStatus === 'synced') acc.synced += 1;
-        if (item.cloudSyncStatus === 'failed') acc.failed += 1;
-        if (item.cloudSyncStatus === 'syncing') acc.syncing += 1;
-        if (item.cloudSyncStatus === 'pending' || item.cloudSyncStatus === 'skipped') {
-          acc.pending += 1;
-          const syncEligible = item.cloudSyncEligible ?? (
-            typeof item.s3Key === 'string' &&
-            (item.s3Key.startsWith('temp/') || item.s3Key.startsWith('permanent/'))
-          );
-          if (syncEligible) {
-            acc.pendingSyncable += 1;
-          } else {
-            acc.pendingNonSyncable += 1;
-          }
-        }
-        return acc;
-      },
-      { total: 0, synced: 0, failed: 0, syncing: 0, pending: 0, pendingSyncable: 0, pendingNonSyncable: 0 }
-    );
-  }, [mediaCloudSyncStatuses]);
-
-  const getCloudSyncPillClass = (status?: string) => {
-    switch (status) {
-      case 'synced':
-        return 'border-emerald-600/40 bg-emerald-700/20 text-emerald-300';
-      case 'failed':
-        return 'border-red-600/40 bg-red-700/20 text-red-300';
-      case 'syncing':
-        return 'border-sky-600/40 bg-sky-700/20 text-sky-300';
-      case 'skipped':
-      case 'pending':
-      default:
-        return 'border-amber-600/40 bg-amber-700/20 text-amber-300';
-    }
-  };
-
-  const getCloudSyncLabel = (status?: string) => {
-    switch (status) {
-      case 'synced':
-        return 'Synced';
-      case 'failed':
-        return 'Failed';
-      case 'syncing':
-        return 'Syncing';
-      case 'skipped':
-        return 'Skipped';
-      default:
-        return 'Pending';
-    }
-  };
-
-  const getCloudStatusForFile = (file: MediaFile) => {
-    const fromStatusQuery = cloudSyncStatusByFileId.get(file.id);
-    if (fromStatusQuery) return fromStatusQuery;
-    if (file.cloudSyncStatus) {
-      return {
-        fileId: file.id,
-        fileName: file.fileName,
-        s3Key: file.s3Key || '',
-        cloudSyncStatus: file.cloudSyncStatus,
-      };
-    }
-    return null;
-  };
-
   const formatFileSize = (bytes: number): string => {
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
@@ -2167,16 +1930,6 @@ export default function MediaLibrary({
                 <div className="text-xs mt-1 opacity-80">
                   Files automatically save to: <span className="font-mono">/Wryda Screenplays/{screenplayData.title || 'Screenplay'}/...</span>
                 </div>
-                {cloudSyncSummary.total > 0 && (
-                  <div className="text-xs mt-2 opacity-90">
-                    Synced {cloudSyncSummary.synced}/{cloudSyncSummary.total}
-                    {' • '}Syncing {cloudSyncSummary.syncing}
-                    {' • '}Pending {cloudSyncSummary.pending}
-                    {' • '}Pending syncable {cloudSyncSummary.pendingSyncable}
-                    {' • '}Pending non-syncable {cloudSyncSummary.pendingNonSyncable}
-                    {' • '}Failed {cloudSyncSummary.failed}
-                  </div>
-                )}
               </div>
               <button
                 onClick={() => setShowSettingsModal(true)}
@@ -2490,20 +2243,6 @@ export default function MediaLibrary({
                                 className="bg-[#0A0A0A] border border-[#3F3F46] shadow-lg backdrop-blur-none"
                                 style={{ backgroundColor: '#0A0A0A' }}
                               >
-                                {/* Sync to Cloud option - only show if cloud providers are connected */}
-                                {hasConnectedProviders && (
-                                  <DropdownMenuItem 
-                                    onClick={async (e) => {
-                                      e.stopPropagation();
-                                      console.log('[MediaLibrary] Sync folder to Cloud onClick for folder:', folder.id);
-                                      await handleSyncFolderToCloud(folder.id);
-                                    }}
-                                    className="text-[#8B5CF6] hover:bg-[#8B5CF6]/10 hover:text-[#8B5CF6] cursor-pointer focus:bg-[#8B5CF6]/10 focus:text-[#8B5CF6]"
-                                  >
-                                    <Cloud className="w-4 h-4 mr-2" />
-                                    Sync to Cloud
-                                  </DropdownMenuItem>
-                                )}
                                 {/* Delete folder option */}
                                 <DropdownMenuItem 
                                   onClick={async (e) => {
@@ -2730,15 +2469,6 @@ export default function MediaLibrary({
                             <span>{formatTimeRemaining(file.expiresAt)}</span>
                           </div>
                         )}
-                        {(() => {
-                          const statusItem = getCloudStatusForFile(file);
-                          if (!statusItem) return null;
-                          return (
-                            <div className={`hidden md:inline-flex items-center mt-1 text-[11px] px-2 py-0.5 rounded-full border ${getCloudSyncPillClass(statusItem.cloudSyncStatus)}`}>
-                              {getCloudSyncLabel(statusItem.cloudSyncStatus)}
-                            </div>
-                          );
-                        })()}
                       </div>
 
                       {/* Actions Menu - Hidden on mobile (use long-press instead), shown on tablet+ */}
@@ -2784,51 +2514,6 @@ export default function MediaLibrary({
                               <Download className="w-4 h-4 mr-2 text-[#808080]" />
                               Download
                             </DropdownMenuItem>
-                            {(() => {
-                              const statusItem = getCloudStatusForFile(file);
-                              if (!statusItem) return null;
-                              return (
-                                <DropdownMenuItem
-                                  onClick={(e) => e.stopPropagation()}
-                                  className={`cursor-default focus:bg-transparent ${getCloudSyncPillClass(statusItem.cloudSyncStatus)}`}
-                                >
-                                  <Cloud className="w-4 h-4 mr-2" />
-                                  Cloud Sync: {getCloudSyncLabel(statusItem.cloudSyncStatus)}
-                                </DropdownMenuItem>
-                              );
-                            })()}
-                            {/* 🔥 NEW: Sync to Cloud option - only show for local files */}
-                            {(file.storageType === 'local' || file.storageType === 'wryda-temp') && file.s3Key && hasConnectedProviders && (
-                              <DropdownMenuItem 
-                                onClick={async (e) => {
-                                  e.stopPropagation();
-                                  console.log('[MediaLibrary] Sync to Cloud onClick for file:', file.id);
-                                  await handleSyncFileToCloud(file.id);
-                                }}
-                                className="text-[#8B5CF6] hover:bg-[#8B5CF6]/10 hover:text-[#8B5CF6] cursor-pointer focus:bg-[#8B5CF6]/10 focus:text-[#8B5CF6]"
-                              >
-                                <Cloud className="w-4 h-4 mr-2" />
-                                Sync to Cloud
-                              </DropdownMenuItem>
-                            )}
-                            {(() => {
-                              const statusItem = getCloudStatusForFile(file);
-                              if (!statusItem || (statusItem.cloudSyncStatus !== 'failed' && statusItem.cloudSyncStatus !== 'skipped')) {
-                                return null;
-                              }
-                              return (
-                                <DropdownMenuItem
-                                  onClick={async (e) => {
-                                    e.stopPropagation();
-                                    await handleRetryCloudSync(file);
-                                  }}
-                                  className="text-amber-300 hover:bg-amber-500/10 hover:text-amber-200 cursor-pointer focus:bg-amber-500/10 focus:text-amber-200"
-                                >
-                                  <RefreshCw className={`w-4 h-4 mr-2 ${retryCloudSyncMutation.isPending ? 'animate-spin' : ''}`} />
-                                  Retry Cloud Sync
-                                </DropdownMenuItem>
-                              );
-                            })()}
                             <DropdownMenuItem 
                               onClick={(e) => {
                                 e.stopPropagation();
@@ -2959,41 +2644,6 @@ export default function MediaLibrary({
                   <Download className="w-5 h-5 text-[#808080]" />
                   <span>Download</span>
                 </button>
-                {(longPressMenuFile.storageType === 'local' || longPressMenuFile.storageType === 'wryda-temp') && longPressMenuFile.s3Key && hasConnectedProviders && (
-                  <button
-                    onClick={async () => {
-                      if (longPressMenuFile) {
-                        await handleSyncFileToCloud(longPressMenuFile.id);
-                        closeLongPressMenu();
-                      }
-                    }}
-                    className="w-full flex items-center gap-3 p-4 bg-[#141414] hover:bg-[#1F1F1F] rounded-lg text-[#8B5CF6] transition-colors"
-                  >
-                    <Cloud className="w-5 h-5" />
-                    <span>Sync to Cloud</span>
-                  </button>
-                )}
-                {(() => {
-                  if (!longPressMenuFile) return null;
-                  const statusItem = cloudSyncStatusByFileId.get(longPressMenuFile.id);
-                  if (!statusItem || (statusItem.cloudSyncStatus !== 'failed' && statusItem.cloudSyncStatus !== 'skipped')) {
-                    return null;
-                  }
-                  return (
-                    <button
-                      onClick={async () => {
-                        if (longPressMenuFile) {
-                          await handleRetryCloudSync(longPressMenuFile);
-                          closeLongPressMenu();
-                        }
-                      }}
-                      className="w-full flex items-center gap-3 p-4 bg-[#141414] hover:bg-amber-500/10 rounded-lg text-amber-300 transition-colors"
-                    >
-                      <RefreshCw className={`w-5 h-5 ${retryCloudSyncMutation.isPending ? 'animate-spin' : ''}`} />
-                      <span>Retry Cloud Sync</span>
-                    </button>
-                  );
-                })()}
                 <button
                   onClick={async () => {
                     if (longPressMenuFile && confirm('Are you sure you want to delete this file?')) {

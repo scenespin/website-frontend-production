@@ -5,7 +5,6 @@ import { useAuth } from '@clerk/nextjs';
 import { getScreenplay, updateScreenplay } from '@/utils/screenplayStorage';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useStorageConnections } from '@/hooks/useStorageConnections';
-import { useMediaCloudSyncStatuses } from '@/hooks/useMediaLibrary';
 import { X, Settings, Loader2, Cloud, ExternalLink } from 'lucide-react';
 import { toast } from 'sonner';
 import Link from 'next/link';
@@ -34,33 +33,9 @@ export default function ScreenplaySettingsModal({ isOpen, onClose, screenplayId:
   const [genre, setGenre] = useState('');
   const [cloudStorageProvider, setCloudStorageProvider] = useState<'google-drive' | 'dropbox' | null>(null);
   const [deleteFromCloudWhenDeletingInApp, setDeleteFromCloudWhenDeletingInApp] = useState(true);
-  const [isSyncingBacklog, setIsSyncingBacklog] = useState(false);
   
   // Check storage connections
   const { googleDrive, dropbox, isLoading: connectionsLoading } = useStorageConnections();
-  const { data: cloudSyncStatuses = [], refetch: refetchCloudSyncStatuses } = useMediaCloudSyncStatuses(screenplayId || '', isOpen && !!screenplayId);
-  const cloudSyncSummary = cloudSyncStatuses.reduce(
-    (acc, item) => {
-      acc.total += 1;
-      if (item.cloudSyncStatus === 'synced') acc.synced += 1;
-      if (item.cloudSyncStatus === 'failed') acc.failed += 1;
-      if (item.cloudSyncStatus === 'syncing') acc.syncing += 1;
-      if (item.cloudSyncStatus === 'pending' || item.cloudSyncStatus === 'skipped') {
-        acc.pending += 1;
-        const syncEligible = item.cloudSyncEligible ?? (
-          typeof item.s3Key === 'string' &&
-          (item.s3Key.startsWith('temp/') || item.s3Key.startsWith('permanent/'))
-        );
-        if (syncEligible) {
-          acc.pendingSyncable += 1;
-        } else {
-          acc.pendingNonSyncable += 1;
-        }
-      }
-      return acc;
-    },
-    { total: 0, synced: 0, failed: 0, syncing: 0, pending: 0, pendingSyncable: 0, pendingNonSyncable: 0 }
-  );
 
   useEffect(() => {
     if (isOpen && screenplayId) {
@@ -177,66 +152,6 @@ export default function ScreenplaySettingsModal({ isOpen, onClose, screenplayId:
       toast.error('Failed to update settings. Please try again.');
     } finally {
       setIsSaving(false);
-    }
-  };
-
-  const handleSyncAllPendingNow = async () => {
-    if (!screenplayId) {
-      toast.error('No screenplay loaded');
-      return;
-    }
-
-    setIsSyncingBacklog(true);
-    try {
-      const token = await getToken({ template: 'wryda-backend' });
-      if (!token) throw new Error('Not authenticated');
-
-      let totalProcessed = 0;
-      let totalSynced = 0;
-      let totalFailed = 0;
-      let totalSkipped = 0;
-      let hasMore = true;
-      let rounds = 0;
-
-      while (hasMore && rounds < 10) {
-        rounds += 1;
-        const response = await fetch('/api/media/retry-cloud-sync-all', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            screenplayId,
-            limit: 100,
-          }),
-        });
-
-        if (!response.ok) {
-          const errorBody = await response.json().catch(() => ({}));
-          throw new Error(errorBody.error || `Cloud sync backlog run failed (${response.status})`);
-        }
-
-        const payload = await response.json();
-        totalProcessed += Number(payload.processed || 0);
-        totalSynced += Number(payload.synced || 0);
-        totalFailed += Number(payload.failed || 0);
-        totalSkipped += Number(payload.skipped || 0);
-        hasMore = Boolean(payload.hasMore) && Number(payload.processed || 0) > 0;
-      }
-
-      await Promise.all([
-        refetchCloudSyncStatuses(),
-      ]);
-
-      toast.success('Cloud sync backlog run completed', {
-        description: `Processed ${totalProcessed} files • Synced ${totalSynced} • Failed ${totalFailed} • Skipped ${totalSkipped}`,
-      });
-    } catch (error: any) {
-      console.error('[ScreenplaySettingsModal] Sync all pending failed:', error);
-      toast.error(`Failed to sync pending files: ${error.message}`);
-    } finally {
-      setIsSyncingBacklog(false);
     }
   };
 
@@ -457,27 +372,6 @@ export default function ScreenplaySettingsModal({ isOpen, onClose, screenplayId:
                       className="w-4 h-4 text-[#DC143C] focus:ring-[#DC143C] bg-[#141414] border-[#3F3F46] rounded"
                     />
                   </label>
-                </div>
-                <div className="mt-3 p-3 rounded-lg border border-[#3F3F46] bg-[#141414]">
-                  <div className="flex items-center justify-between gap-2 mb-1">
-                    <div className="text-xs font-semibold text-[#E4E4E7]">Cloud Sync Summary</div>
-                    <button
-                      type="button"
-                      onClick={handleSyncAllPendingNow}
-                      disabled={isSaving || isLoading || isSyncingBacklog || cloudSyncSummary.pendingSyncable === 0}
-                      className="text-xs px-2 py-1 rounded bg-[#1F1F1F] border border-[#3F3F46] text-[#E4E4E7] hover:bg-[#2A2A2A] disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {isSyncingBacklog ? 'Syncing...' : 'Sync all pending now'}
-                    </button>
-                  </div>
-                  <div className="text-xs text-[#B3B3B3]">
-                    Synced: {cloudSyncSummary.synced} / {cloudSyncSummary.total}
-                    {' • '}Syncing: {cloudSyncSummary.syncing}
-                    {' • '}Pending: {cloudSyncSummary.pending}
-                    {' • '}Pending (syncable): {cloudSyncSummary.pendingSyncable}
-                    {' • '}Pending (non-syncable): {cloudSyncSummary.pendingNonSyncable}
-                    {' • '}Failed: {cloudSyncSummary.failed}
-                  </div>
                 </div>
               </div>
             </>
