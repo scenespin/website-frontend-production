@@ -411,6 +411,7 @@ export default function LocationDetailSidebar({
           `&screenplayId=${encodeURIComponent(screenplayId)}` +
           `&locationId=${encodeURIComponent(locationId)}`,
           {
+            cache: 'no-store',
             headers: {
               'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json'

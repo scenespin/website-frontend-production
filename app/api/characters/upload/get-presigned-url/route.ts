@@ -7,6 +7,11 @@ import { randomUUID } from 'crypto';
 const S3_BUCKET = process.env.S3_BUCKET_NAME || process.env.S3_BUCKET || 'screenplay-assets-043309365215';
 const AWS_REGION = process.env.AWS_REGION || 'us-east-1';
 
+// Prevent stale presign responses from being cached by edge/browser layers.
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
+export const fetchCache = 'force-no-store';
+
 // Initialize S3 client
 const s3Client = new S3Client({ region: AWS_REGION });
 

@@ -406,6 +406,7 @@ export default function AssetDetailSidebar({
           `&screenplayId=${encodeURIComponent(screenplayId)}` +
           `&assetId=${encodeURIComponent(assetId)}`,
           {
+            cache: 'no-store',
             headers: {
               'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json'

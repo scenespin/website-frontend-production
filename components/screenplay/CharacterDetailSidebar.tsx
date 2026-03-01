@@ -384,6 +384,7 @@ export default function CharacterDetailSidebar({
           `&screenplayId=${encodeURIComponent(screenplayId)}` +
           `&characterId=${encodeURIComponent(characterId)}`,
           {
+            cache: 'no-store',
             headers: {
               'Authorization': `Bearer ${token}`,
               'Content-Type': 'application/json'

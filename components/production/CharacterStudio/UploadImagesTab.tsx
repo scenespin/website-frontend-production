@@ -101,6 +101,7 @@ export function UploadImagesTab({
           const presignedResponse = await fetch(
             `/api/video/upload/get-presigned-url?fileName=${encodeURIComponent(file.name)}&fileType=image&fileSize=${file.size}&projectId=${encodeURIComponent(screenplayId)}`,
             {
+              cache: 'no-store',
               headers: { Authorization: `Bearer ${token}` }
             }
           );
