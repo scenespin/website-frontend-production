@@ -1643,25 +1643,37 @@ export function ShotConfigurationStep({
                           })()}
                         </>
                       )}
-                      {!uploadedFirstFrameUrl && isOverrideAllowed && (
-                        <div className="mt-4 pt-3 border-t border-[#3F3F46]">
-                          <div className="flex items-center gap-2 mb-3">
-                            <input
-                              type="checkbox"
-                              id={`first-frame-override-${shotSlot}`}
-                              checked={firstFrameOverrideEnabledFromContext}
-                              onChange={(e) => {
-                                const isChecked = e.target.checked;
-                                actions.updateFirstFrameOverrideEnabled(shotSlot, isChecked);
-                                if (!isChecked) actions.updateFirstFramePromptOverride(shotSlot, '');
-                              }}
-                              className="w-4 h-4 rounded border-[#3F3F46] bg-[#1A1A1A] text-[#DC143C] focus:ring-2 focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer"
-                            />
-                            <label htmlFor={`first-frame-override-${shotSlot}`} className="text-xs font-medium text-[#FFFFFF] cursor-pointer">Override First Frame</label>
-                          </div>
-                          {(firstFrameOverrideEnabledFromContext || !!finalFirstFramePromptOverride) && (
-                            <div className="space-y-3 mt-3">
-                              {(() => {
+                    </>
+                  }
+                />
+              )}
+            </>
+          )}
+
+          {/* Override First Frame – moved outside !uploadedFirstFrameUrl so user can remove when uploaded */}
+          {isOverrideAllowed && (
+            <div className="mt-4 pt-3 border-t border-[#3F3F46]">
+                      <div className="flex items-center gap-2 mb-3">
+                        <input
+                          type="checkbox"
+                          id={`first-frame-override-${shotSlot}`}
+                          checked={firstFrameOverrideEnabledFromContext || !!uploadedFirstFrameUrl}
+                          onChange={(e) => {
+                            const isChecked = e.target.checked;
+                            actions.updateFirstFrameOverrideEnabled(shotSlot, isChecked);
+                            if (!isChecked) {
+                              actions.updateFirstFramePromptOverride(shotSlot, '');
+                              actions.updateUploadedFirstFrame(shotSlot, null);
+                            }
+                          }}
+                          className="w-4 h-4 rounded border-[#3F3F46] bg-[#1A1A1A] text-[#DC143C] focus:ring-2 focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer"
+                        />
+                        <label htmlFor={`first-frame-override-${shotSlot}`} className="text-xs font-medium text-[#FFFFFF] cursor-pointer">Override First Frame</label>
+                      </div>
+                      {(firstFrameOverrideEnabledFromContext || !!finalFirstFramePromptOverride || !!uploadedFirstFrameUrl) && (
+                        <div className="space-y-3 mt-3">
+                          {/* Available Variables – only when generating (not when uploading) */}
+                          {firstFrameMode === 'generate' && (() => {
                                 const availableVariables: Array<{ label: string; variable: string; type: 'character' | 'location' | 'prop' }> = [];
                                 const allShotCharacters = new Set<string>();
                                 explicitCharacters.forEach(charId => allShotCharacters.add(charId));
@@ -1738,16 +1750,115 @@ export function ShotConfigurationStep({
                                   </div>
                                 );
                               })()}
-                              <label className="block text-[10px] text-[#808080] mb-1.5">First Frame Prompt (Image Model)</label>
-                              <textarea
-                                ref={firstFrameTextareaRef}
-                                value={finalFirstFramePromptOverride || ''}
-                                onChange={(e) => finalOnFirstFramePromptOverrideChange(shotSlot, e.target.value)}
-                                placeholder="Enter custom prompt for first frame generation. Use variables like {{character1}}, {{location}}, {{prop1}} to include references."
-                                rows={3}
-                                className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none font-mono"
-                              />
-                              {firstFrameOverrideEnabledFromContext && !finalFirstFramePromptOverride?.trim() && !uploadedFirstFrameUrl && (
+
+                              {/* First Frame Source – Generate vs Upload (for all shots when override allowed) */}
+                              <div className="mb-3">
+                                <label className="block text-[10px] text-[#808080] mb-2 font-medium">
+                                  First Frame Source:
+                                </label>
+                                <div className="flex gap-4">
+                                  <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                      type="radio"
+                                      name={`first-frame-mode-${shotSlot}`}
+                                      value="generate"
+                                      checked={firstFrameMode === 'generate'}
+                                      onChange={() => handleFirstFrameModeChange('generate')}
+                                      className="w-4 h-4 border-[#3F3F46] bg-[#1A1A1A] text-[#DC143C] focus:ring-2 focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer"
+                                    />
+                                    <span className="text-xs text-[#FFFFFF]">Generate First Frame</span>
+                                  </label>
+                                  <label className="flex items-center gap-2 cursor-pointer">
+                                    <input
+                                      type="radio"
+                                      name={`first-frame-mode-${shotSlot}`}
+                                      value="upload"
+                                      checked={firstFrameMode === 'upload'}
+                                      onChange={() => handleFirstFrameModeChange('upload')}
+                                      className="w-4 h-4 border-[#3F3F46] bg-[#1A1A1A] text-[#DC143C] focus:ring-2 focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer"
+                                    />
+                                    <span className="text-xs text-[#FFFFFF]">Upload First Frame</span>
+                                  </label>
+                                </div>
+                              </div>
+
+                              {/* Upload First Frame UI (when mode is 'upload') */}
+                              {firstFrameMode === 'upload' && (
+                                <div className="mb-3">
+                                  <label className="block text-[10px] text-[#808080] mb-1.5">
+                                    Upload First Frame Image:
+                                  </label>
+                                  {uploadedFirstFrameUrl ? (
+                                    <div className="relative">
+                                      <img
+                                        src={uploadedFirstFrameUrl}
+                                        alt="Uploaded first frame"
+                                        className="w-full h-32 object-cover rounded border border-[#3F3F46]"
+                                      />
+                                      <button
+                                        type="button"
+                                        onClick={handleRemoveUploadedFirstFrame}
+                                        className="absolute top-2 right-2 p-1.5 bg-[#1A1A1A] border border-[#3F3F46] rounded hover:bg-[#2A2A2A] hover:border-[#DC143C] transition-colors"
+                                        title="Remove uploaded first frame"
+                                      >
+                                        <X className="w-4 h-4 text-[#FFFFFF]" />
+                                      </button>
+                                    </div>
+                                  ) : (
+                                    <div className="border-2 border-dashed border-[#3F3F46] rounded bg-[#0A0A0A] p-4">
+                                      <input
+                                        ref={fileInputRef}
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={handleFileInputChange}
+                                        className="hidden"
+                                        disabled={isUploadingFirstFrame}
+                                      />
+                                      <button
+                                        type="button"
+                                        onClick={() => fileInputRef.current?.click()}
+                                        disabled={isUploadingFirstFrame}
+                                        className={cn(
+                                          'w-full flex flex-col items-center justify-center gap-2 py-4 px-4 rounded transition-colors',
+                                          isUploadingFirstFrame
+                                            ? 'bg-[#1A1A1A] border border-[#3F3F46] cursor-not-allowed'
+                                            : 'bg-[#1A1A1A] border border-[#3F3F46] hover:bg-[#2A2A2A] hover:border-[#DC143C] cursor-pointer'
+                                        )}
+                                      >
+                                        {isUploadingFirstFrame ? (
+                                          <>
+                                            <Loader2 className="w-5 h-5 text-[#DC143C] animate-spin" />
+                                            <span className="text-xs text-[#808080]">Uploading...</span>
+                                          </>
+                                        ) : (
+                                          <>
+                                            <Upload className="w-5 h-5 text-[#808080]" />
+                                            <span className="text-xs text-[#FFFFFF]">Choose Image</span>
+                                            <span className="text-[10px] text-[#808080]">Any size (auto-compressed if needed)</span>
+                                          </>
+                                        )}
+                                      </button>
+                                    </div>
+                                  )}
+                                  <div className="text-[10px] text-[#808080] italic mt-1">
+                                    Upload your own first frame image. It will appear in the Shot Board and can be used for video generation.
+                                  </div>
+                                </div>
+                              )}
+
+                              {/* First Frame Prompt (when generate mode) */}
+                              {firstFrameMode === 'generate' && (
+                                <>
+                                  <label className="block text-[10px] text-[#808080] mb-1.5">First Frame Prompt (Image Model)</label>
+                                  <textarea
+                                    ref={firstFrameTextareaRef}
+                                    value={finalFirstFramePromptOverride || ''}
+                                    onChange={(e) => finalOnFirstFramePromptOverrideChange(shotSlot, e.target.value)}
+                                    placeholder="Enter custom prompt for first frame generation. Use variables like {{character1}}, {{location}}, {{prop1}} to include references."
+                                    rows={3}
+                                    className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none font-mono"
+                                  />
+                                  {firstFrameOverrideEnabledFromContext && !finalFirstFramePromptOverride?.trim() && !uploadedFirstFrameUrl && (
                                 <div className="mt-2 p-3 bg-[#2A1A0A] border border-[#DC6B3C] rounded">
                                   <div className="flex items-start gap-2">
                                     <svg className="w-4 h-4 text-[#DC6B3C] mt-0.5 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
@@ -1762,17 +1873,13 @@ export function ShotConfigurationStep({
                                   </div>
                                 </div>
                               )}
-                              <div className="text-[10px] text-[#808080] italic mt-2">This prompt will be used instead of the auto-generated prompt. Only references with variables will be included.</div>
+                                  <div className="text-[10px] text-[#808080] italic mt-2">This prompt will be used instead of the auto-generated prompt. Only references with variables will be included.</div>
+                                </>
+                              )}
                             </div>
                           )}
                         </div>
                       )}
-                    </>
-                  }
-                />
-              )}
-            </>
-          )}
 
           {/* Video Generation Selection – only when dialogue shot has video opt-in. */}
           {onVideoTypeChange && isDialogueShot && videoOptInForThisShot && (
