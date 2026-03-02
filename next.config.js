@@ -18,6 +18,9 @@ const nextConfig = {
   // CDN & Performance Optimization
   compress: true, // Enable gzip/brotli compression
   
+  // Externalize heavy server packages to reduce deployment file count (avoids 15k file limit)
+  serverExternalPackages: ['mongoose', 'mongodb', 'stripe', 'nodemailer', 'resend'],
+  
   // Enable larger body size for API routes (for video uploads)
   experimental: {
     serverActions: {
