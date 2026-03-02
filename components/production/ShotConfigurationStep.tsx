@@ -468,7 +468,7 @@ export function ShotConfigurationStep({
       }
     }
     
-    // Validate screenplayId and sceneId before upload (required for Shot Board visibility)
+    // Validate screenplayId before upload (required for presigned URL path)
     if (!screenplayId || screenplayId.trim() === '') {
       console.error('[ShotConfigurationStep] screenplayId is missing:', {
         projectId,
@@ -476,12 +476,6 @@ export function ShotConfigurationStep({
         shotSlot
       });
       toast.error('Project ID is required for upload. Please refresh the page and try again.');
-      return;
-    }
-    const sceneId = sceneAnalysisResult?.sceneId;
-    if (!sceneId) {
-      console.error('[ShotConfigurationStep] sceneId is missing - cannot register for Shot Board:', { shotSlot });
-      toast.error('Scene context is required. Please ensure scene analysis has completed and try again.');
       return;
     }
     
@@ -598,87 +592,10 @@ export function ShotConfigurationStep({
         throw new Error(`S3 upload failed: ${s3Response.status} ${s3Response.statusText}. Please try again.`);
       }
 
-      // Brief delay so S3 object is visible before register (avoids 404 from eventual consistency)
+      // Brief delay so S3 object is visible before download URL (avoids 404 from eventual consistency)
       await new Promise(resolve => setTimeout(resolve, 300));
 
-      // Step 3: Register media in Media Library (JSON body, not FormData)
-      // Pass scene context (entityType, sceneId, sceneNumber, shotNumber) so first frame appears on Shot Board
-      // sceneId already validated above
-      
-      // Get sceneNumber from screenplay context (same pattern as SceneBuilderPanel)
-      let sceneNumber: number | undefined;
-      if (sceneId && scenes) {
-        const selectedScene = scenes.find((s: any) => s.id === sceneId);
-        if (selectedScene) {
-          sceneNumber = selectedScene.number;
-        }
-        // Fallback: use 1 when scene not found (avoids file at root + missing entityType for Shot Board)
-        if (sceneNumber === undefined && sceneId) {
-          sceneNumber = 1;
-        }
-      }
-      
-      const shotNumber = shot.slot;
-      
-      // Generate timestamp for folder organization (matches backend pattern)
-      const generateTimestamp = () => {
-        const now = new Date();
-        const year = now.getFullYear();
-        const month = String(now.getMonth() + 1).padStart(2, '0');
-        const day = String(now.getDate()).padStart(2, '0');
-        const hours = String(now.getHours()).padStart(2, '0');
-        const minutes = String(now.getMinutes()).padStart(2, '0');
-        const seconds = String(now.getSeconds()).padStart(2, '0');
-        return `${year}${month}${day}-${hours}${minutes}${seconds}`;
-      };
-      
-      const timestamp = generateTimestamp();
-      
-      // Diagnostic: log scene context (helps debug "file at root" when folder creation skipped)
-      console.log('[ShotConfigurationStep] Registering user first frame with scene context:', {
-        sceneId: sceneId ?? 'MISSING',
-        sceneNumber: sceneNumber ?? 'MISSING',
-        shotNumber,
-        timestamp,
-        hasScenes: !!scenes,
-        scenesCount: scenes?.length ?? 0,
-      });
-      
-      // lineText/lineType for Shot Board display (dialogue/action text under thumbnail)
-      const lineText = (shot.dialogueBlock?.dialogue || shot.narrationBlock?.text || shot.description || '').trim().slice(0, 500);
-      const lineType = shot.type === 'dialogue' ? 'dialogue' : shot.type === 'action' ? 'action' : 'establishing';
-
-      const registerResponse = await fetch('/api/media/register', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          s3Key,
-          fileName: file.name,
-          fileType: fileType,
-          fileSize: file.size,
-          screenplayId,
-          isUserFirstFrame: true,
-          sceneId: sceneId,
-          sceneNumber: sceneNumber,
-          shotNumber: shotNumber,
-          timestamp: timestamp,
-          ...(lineText ? { lineText, lineType } : {})
-        })
-      });
-      
-      if (!registerResponse.ok) {
-        const errBody = await registerResponse.text().catch(() => '');
-        const errMsg = registerResponse.status === 404
-          ? 'File not yet visible in storage. Please wait a moment and try again.'
-          : `Failed to register media: ${registerResponse.statusText}`;
-        console.error('[ShotConfigurationStep] Failed to register media:', { status: registerResponse.status, body: errBody?.slice(0, 200) });
-        throw new Error(errMsg);
-      }
-      
-      // Step 4: Get download URL (JSON body, not FormData)
+      // Step 3: Get download URL for preview (registration deferred until workflow execution - avoids orphans if user cancels/changes)
       const downloadResponse = await fetch('/api/s3/download-url', {
         method: 'POST',
         headers: {
@@ -695,8 +612,8 @@ export function ShotConfigurationStep({
       const { downloadUrl } = await downloadResponse.json();
       const imageUrl = downloadUrl || `https://screenplay-assets-043309365215.s3.us-east-1.amazonaws.com/${s3Key}`;
       
-      // Store in context (this will automatically clear all first-frame-related selections)
-      actions.updateUploadedFirstFrame(shotSlot, imageUrl);
+      // Store in context (URL for preview; s3Key for deferred registration at workflow execution)
+      actions.updateUploadedFirstFrame(shotSlot, imageUrl, s3Key);
       
       toast.success('First frame uploaded successfully!');
     } catch (error: any) {
@@ -707,7 +624,7 @@ export function ShotConfigurationStep({
     } finally {
       setIsUploadingFirstFrame(false);
     }
-  }, [screenplayId, getToken, shotSlot, actions, projectId, sceneAnalysisResult, shot, scenes]);
+  }, [screenplayId, getToken, shotSlot, actions, projectId]);
   
   // Handle file input change
   const handleFileInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {

@@ -131,7 +131,9 @@ export interface SceneBuilderState {
   videoPromptOverrideEnabled: Record<number, boolean>; // 🔥 NEW: Per-shot checkbox state for video prompt override
   
   // Uploaded First Frames State
-  uploadedFirstFrames: Record<number, string>; // Per-shot uploaded first frame URLs
+  uploadedFirstFrames: Record<number, string>; // Per-shot uploaded first frame URLs (for preview)
+  /** S3 keys for user-uploaded first frames. Used at workflow execution to register (deferred until run). */
+  uploadedFirstFramesS3Keys: Record<number, string>;
   
   // Workflow Override State
   shotWorkflowOverrides: Record<number, string>;
@@ -250,7 +252,8 @@ export interface SceneBuilderActions {
   
   // Uploaded First Frames Actions
   setUploadedFirstFrames: (frames: Record<number, string>) => void;
-  updateUploadedFirstFrame: (shotSlot: number, firstFrameUrl: string | null) => void;
+  /** @param s3Key - Optional. When provided with firstFrameUrl, stored for deferred registration at workflow execution. */
+  updateUploadedFirstFrame: (shotSlot: number, firstFrameUrl: string | null, s3Key?: string) => void;
   
   // Workflow Override Actions
   setShotWorkflowOverrides: (overrides: Record<number, string>) => void;
@@ -372,6 +375,7 @@ function getInitialSceneBuilderState(): SceneBuilderState {
     firstFrameOverrideEnabled: {},
     videoPromptOverrideEnabled: {},
     uploadedFirstFrames: {},
+    uploadedFirstFramesS3Keys: {},
     shotWorkflowOverrides: {},
     shotCameraAngles: {},
     shotDurations: {},
@@ -1168,16 +1172,22 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
     
     // Uploaded First Frames Actions
     setUploadedFirstFrames: useCallback((frames) => {
-      setState(prev => ({ ...prev, uploadedFirstFrames: frames }));
+      setState(prev => ({
+        ...prev,
+        uploadedFirstFrames: frames,
+        uploadedFirstFramesS3Keys: {} // Clear S3 keys when bulk-setting frames (no keys available)
+      }));
     }, []),
     
-    updateUploadedFirstFrame: useCallback((shotSlot, firstFrameUrl) => {
+    updateUploadedFirstFrame: useCallback((shotSlot, firstFrameUrl, s3Key?: string) => {
       setState(prev => {
         if (firstFrameUrl === null) {
-          // Remove the entry if null
+          // Remove both URL and s3Key when clearing
           const newFrames = { ...prev.uploadedFirstFrames };
+          const newS3Keys = { ...prev.uploadedFirstFramesS3Keys };
           delete newFrames[shotSlot];
-          return { ...prev, uploadedFirstFrames: newFrames };
+          delete newS3Keys[shotSlot];
+          return { ...prev, uploadedFirstFrames: newFrames, uploadedFirstFramesS3Keys: newS3Keys };
         } else {
           // 🔥 OPTION 1: Clear all first-frame-related selections when uploading
           // This ensures consistent workflow output: same first frame + same settings = same result
@@ -1209,8 +1219,7 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
             delete newReferenceModels[shotSlot];
           }
           
-          return {
-            ...prev,
+          const updates: Partial<SceneBuilderState> = {
             uploadedFirstFrames: {
               ...prev.uploadedFirstFrames,
               [shotSlot]: firstFrameUrl
@@ -1221,6 +1230,13 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
             firstFramePromptOverrides: newFirstFrameOverrides,
             selectedReferenceShotModels: newReferenceModels
           };
+          if (s3Key !== undefined) {
+            updates.uploadedFirstFramesS3Keys = {
+              ...prev.uploadedFirstFramesS3Keys,
+              [shotSlot]: s3Key
+            };
+          }
+          return { ...prev, ...updates };
         }
       });
     }, []),
