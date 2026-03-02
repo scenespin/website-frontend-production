@@ -296,8 +296,13 @@ export function useShotBoard(screenplayId: string, enabled: boolean = true): Use
       const shots: ShotBoardShot[] = [];
 
       for (const [shotNumber, variations] of sceneData.shotsMap) {
-        // Sort variations by timestamp (newest first)
-        variations.sort((a, b) => String(b.timestamp || '').localeCompare(String(a.timestamp || '')));
+        // Sort variations: user uploads first (show "Custom"), then by timestamp (newest first)
+        variations.sort((a, b) => {
+          const aUser = a.firstFrame.metadata?.isUserFirstFrame === true ? 1 : 0;
+          const bUser = b.firstFrame.metadata?.isUserFirstFrame === true ? 1 : 0;
+          if (aUser !== bUser) return bUser - aUser;
+          return String(b.timestamp || '').localeCompare(String(a.timestamp || ''));
+        });
 
         // Collect S3 keys for presigned URLs
         for (const variation of variations) {

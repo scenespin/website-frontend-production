@@ -468,7 +468,7 @@ export function ShotConfigurationStep({
       }
     }
     
-    // Validate screenplayId before upload
+    // Validate screenplayId and sceneId before upload (required for Shot Board visibility)
     if (!screenplayId || screenplayId.trim() === '') {
       console.error('[ShotConfigurationStep] screenplayId is missing:', {
         projectId,
@@ -476,6 +476,12 @@ export function ShotConfigurationStep({
         shotSlot
       });
       toast.error('Project ID is required for upload. Please refresh the page and try again.');
+      return;
+    }
+    const sceneId = sceneAnalysisResult?.sceneId;
+    if (!sceneId) {
+      console.error('[ShotConfigurationStep] sceneId is missing - cannot register for Shot Board:', { shotSlot });
+      toast.error('Scene context is required. Please ensure scene analysis has completed and try again.');
       return;
     }
     
@@ -597,7 +603,7 @@ export function ShotConfigurationStep({
 
       // Step 3: Register media in Media Library (JSON body, not FormData)
       // Pass scene context (entityType, sceneId, sceneNumber, shotNumber) so first frame appears on Shot Board
-      const sceneId = sceneAnalysisResult?.sceneId;
+      // sceneId already validated above
       
       // Get sceneNumber from screenplay context (same pattern as SceneBuilderPanel)
       let sceneNumber: number | undefined;
@@ -2088,11 +2094,13 @@ export function ShotConfigurationStep({
           )}
 
           {/* Single separator then Aspect ratio + Estimated Cost (fewer lines under Add Dialogue Video) */}
-          {/* Hide aspect ratio and cost when user uploaded first frame – no generation, so no config needed */}
+          {/* Show aspect ratio: always for action; for dialogue with uploaded first frame, show when video opted in (match custom upload) */}
           <div className="border-t border-[#3F3F46]">
-            {onAspectRatioChange && !state.useElementsForVideo?.[shot.slot] && !uploadedFirstFrameUrl && (
+            {onAspectRatioChange && !state.useElementsForVideo?.[shot.slot] && (!uploadedFirstFrameUrl || (uploadedFirstFrameUrl && isDialogueShot && videoOptInForThisShot)) && (
               <div className="pt-2">
-                <label className="block text-[10px] text-[#808080] mb-1.5">Output aspect ratio (image &amp; video)</label>
+                <label className="block text-[10px] text-[#808080] mb-1.5">
+                  {uploadedFirstFrameUrl && isDialogueShot ? 'Video aspect ratio (match your upload)' : 'Output aspect ratio (image &amp; video)'}
+                </label>
                 <AspectRatioSelector
                   value={shotAspectRatio || '16:9'}
                   onChange={(value) => finalOnAspectRatioChange(shot.slot, value as '16:9' | '9:16' | '1:1' | '21:9' | '9:21')}
