@@ -23,11 +23,12 @@ export async function GET(request: Request) {
     const fileName = searchParams.get('fileName');
     const fileType = searchParams.get('fileType');
     const fileSize = searchParams.get('fileSize');
+    const screenplayId = searchParams.get('screenplayId');
     const locationId = searchParams.get('locationId');
     
-    if (!fileName || !fileType || !locationId) {
+    if (!fileName || !fileType || !locationId || !screenplayId) {
       return NextResponse.json({ 
-        error: 'Missing required parameters: fileName, fileType, locationId' 
+        error: 'Missing required parameters: fileName, fileType, screenplayId, locationId' 
       }, { status: 400 });
     }
 
@@ -44,6 +45,7 @@ export async function GET(request: Request) {
       `fileName=${encodeURIComponent(fileName)}` +
       `&entityType=location` +
       `&entityId=${encodeURIComponent(locationId)}` +
+      `&screenplayId=${encodeURIComponent(screenplayId)}` +
       `&contentType=${encodeURIComponent(fileType)}`;
 
     const backendResponse = await fetch(uploadUrl, {
