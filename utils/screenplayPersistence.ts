@@ -506,14 +506,29 @@ export class ScreenplayPersistenceManager {
   
   /**
    * Transform characters from app format to API format
+   * CRITICAL: referenceImages must be s3Keys, NOT imageUrls (presigned URLs expire and cause KeyTooLongError)
    */
   private transformCharactersToAPI(characters: Character[]): APICharacter[] {
-    return characters.map(char => ({
-      id: char.id,
-      name: char.name,
-      description: char.description,
-      referenceImages: char.images?.map(img => img.imageUrl) || []
-    }));
+    return characters.map(char => {
+      const extractS3Key = (img: any): string | null => {
+        if (img.metadata?.s3Key) return img.metadata.s3Key;
+        if (img.s3Key) return img.s3Key;
+        if (img.imageUrl && (img.imageUrl.includes('temp/') || img.imageUrl.includes('timeline/'))) {
+          const m = img.imageUrl.match(/(temp\/[^?]+|timeline\/[^?]+)/);
+          return m?.[1] ?? null;
+        }
+        return null;
+      };
+      const referenceImages = (char.images || [])
+        .map(extractS3Key)
+        .filter((k): k is string => k !== null && k.length <= 1024);
+      return {
+        id: char.id,
+        name: char.name,
+        description: char.description,
+        referenceImages
+      };
+    });
   }
   
   /**
@@ -539,14 +554,29 @@ export class ScreenplayPersistenceManager {
   
   /**
    * Transform locations from app format to API format
+   * CRITICAL: referenceImages must be s3Keys, NOT imageUrls (presigned URLs expire and cause KeyTooLongError)
    */
   private transformLocationsToAPI(locations: Location[]): APILocation[] {
-    return locations.map(loc => ({
-      id: loc.id,
-      name: loc.name,
-      description: loc.description,
-      referenceImages: loc.images?.map(img => img.imageUrl) || []
-    }));
+    return locations.map(loc => {
+      const extractS3Key = (img: any): string | null => {
+        if (img.metadata?.s3Key) return img.metadata.s3Key;
+        if (img.s3Key) return img.s3Key;
+        if (img.imageUrl && (img.imageUrl.includes('temp/') || img.imageUrl.includes('timeline/'))) {
+          const m = img.imageUrl.match(/(temp\/[^?]+|timeline\/[^?]+)/);
+          return m?.[1] ?? null;
+        }
+        return null;
+      };
+      const referenceImages = (loc.images || [])
+        .map(extractS3Key)
+        .filter((k): k is string => k !== null && k.length <= 1024);
+      return {
+        id: loc.id,
+        name: loc.name,
+        description: loc.description,
+        referenceImages
+      };
+    });
   }
   
   /**

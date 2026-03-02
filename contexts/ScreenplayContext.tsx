@@ -497,23 +497,32 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 // 🔥 FIX: Use images array from backend (with presigned URLs and s3Keys) instead of referenceImages
                 // 🔥 FIX: Preserve angle metadata from existing character state by matching s3Key
                 // 🔥 CRITICAL FIX: Preserve ALL metadata from API (including source, poseId, etc.) for proper image filtering
-                images: (char.images || []).map((img: any) => {
-                    const s3Key = img.s3Key;
-                    const preservedAngle = s3Key ? angleMap.get(s3Key) : undefined;
-                    // Use angle from backend response if available, otherwise use preserved angle
-                    const angle = img.angle || img.metadata?.angle || preservedAngle;
-                    
-                    return {
-                        imageUrl: img.imageUrl || img.url || '',
+                // 🔥 FALLBACK: When API returns referenceImages but not enriched images (e.g. raw DynamoDB response),
+                // build images from referenceImages so character board/sidebar don't lose image data on re-load
+                images: (char.images && char.images.length > 0)
+                    ? (char.images as any[]).map((img: any) => {
+                        const s3Key = img.s3Key || img.metadata?.s3Key;
+                        const preservedAngle = s3Key ? angleMap.get(s3Key) : undefined;
+                        const angle = img.angle || img.metadata?.angle || preservedAngle;
+                        return {
+                            imageUrl: img.imageUrl || img.url || '',
+                            description: '',
+                            metadata: {
+                                ...(img.metadata || {}),
+                                s3Key: s3Key,
+                                angle: angle
+                            }
+                        };
+                    })
+                    : (char.referenceImages || []).map((s3Key: string) => ({
+                        imageUrl: '', // Resolved by proxy/presigned fetch when needed
                         description: '',
                         metadata: {
-                            // Preserve ALL metadata from API response (source, poseId, poseName, outfitName, etc.)
-                            ...(img.metadata || {}),
-                            s3Key: s3Key, // Ensure s3Key is set (may be in metadata or top-level)
-                            angle: angle // Preserve angle metadata from existing state or backend response
+                            s3Key,
+                            source: 'user-upload',
+                            createdIn: 'creation'
                         }
-                    };
-                }),
+                    })),
                 customFields: [],
                 createdAt: char.created_at || new Date().toISOString(),
                 updatedAt: char.updated_at || new Date().toISOString()
