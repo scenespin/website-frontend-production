@@ -632,6 +632,10 @@ export function ShotConfigurationStep({
         scenesCount: scenes?.length ?? 0,
       });
       
+      // lineText/lineType for Shot Board display (dialogue/action text under thumbnail)
+      const lineText = (shot.dialogueBlock?.dialogue || shot.narrationBlock?.text || shot.description || '').trim().slice(0, 500);
+      const lineType = shot.type === 'dialogue' ? 'dialogue' : shot.type === 'action' ? 'action' : 'establishing';
+
       const registerResponse = await fetch('/api/media/register', {
         method: 'POST',
         headers: {
@@ -648,7 +652,8 @@ export function ShotConfigurationStep({
           sceneId: sceneId,
           sceneNumber: sceneNumber,
           shotNumber: shotNumber,
-          timestamp: timestamp
+          timestamp: timestamp,
+          ...(lineText ? { lineText, lineType } : {})
         })
       });
       
@@ -1339,9 +1344,9 @@ export function ShotConfigurationStep({
             </div>
           </div>
 
-          {/* When first frame uploaded: show image + lip-sync options only (no ref selection). Otherwise show full config. */}
+          {/* When first frame uploaded: show ONLY image + remove + lip-sync checkbox (hide Character, Location, Props, Motion Direction). */}
           {uploadedFirstFrameUrl && isDialogueShot && !isOverrideAllowed ? (
-            /* Compact view: uploaded image + remove + lip-sync options */
+            /* Compact view: uploaded image + remove + lip-sync checkbox only */
             <div className="pb-3 border-b border-[#3F3F46] space-y-3">
               <div>
                 <label className="block text-xs font-medium text-[#FFFFFF] mb-2">Uploaded first frame</label>
@@ -1361,94 +1366,36 @@ export function ShotConfigurationStep({
                   </button>
                 </div>
               </div>
-              <ShotConfigurationPanel
-                activeTab="basic"
-                isDialogueShot={true}
-                shot={shot}
-                sceneAnalysisResult={sceneAnalysisResult}
-                shotMappings={shotMappings}
-                hasPronouns={hasPronouns}
-                explicitCharacters={explicitCharacters}
-                singularPronounCharacters={singularPronounCharacters}
-                pluralPronounCharacters={pluralPronounCharacters}
-                selectedLocationReferences={finalSelectedLocationReferences}
-                onLocationAngleChange={finalOnLocationAngleChange}
-                isLocationAngleRequired={isLocationAngleRequired}
-                needsLocationAngle={needsLocationAngle}
-                locationOptOuts={finalLocationOptOuts}
-                onLocationOptOutChange={finalOnLocationOptOutChange}
-                locationDescriptions={finalLocationDescriptions}
-                onLocationDescriptionChange={finalOnLocationDescriptionChange}
-                renderCharacterControlsOnly={() => null}
-                renderCharacterImagesOnly={() => null}
-                pronounInfo={pronounInfo}
-                allCharacters={allCharacters}
-                selectedCharactersForShots={finalSelectedCharactersForShots}
-                onCharactersForShotChange={finalOnCharactersForShotChange}
-                onPronounMappingChange={finalOnPronounMappingChange}
-                characterHeadshots={finalCharacterHeadshots}
-                loadingHeadshots={loadingHeadshots}
-                selectedCharacterReferences={finalSelectedCharacterReferences}
-                characterOutfits={finalCharacterOutfits}
-                onCharacterReferenceChange={finalOnCharacterReferenceChange}
-                onCharacterOutfitChange={finalOnCharacterOutfitChange}
-                characterThumbnailS3KeyMap={characterThumbnailS3KeyMap}
-                characterThumbnailUrlsMap={characterThumbnailUrlsMap}
-                selectedReferenceFullImageUrlsMap={selectedReferenceFullImageUrlsMap}
-                visibleHeadshotFullImageUrlsMap={visibleHeadshotFullImageUrlsMap}
-                locationThumbnailS3KeyMap={locationThumbnailS3KeyMap}
-                locationThumbnailUrlsMap={locationThumbnailUrlsMap}
-                locationFullImageUrlsMap={locationFullImageUrlsMap}
-                selectedDialogueQuality={finalSelectedDialogueQuality}
-                selectedDialogueWorkflow={finalSelectedDialogueWorkflow}
-                onDialogueQualityChange={finalOnDialogueQualityChange}
-                onDialogueWorkflowChange={finalOnDialogueWorkflowChange}
-                dialogueWorkflowPrompt={finalDialogueWorkflowPrompt}
-                onDialogueWorkflowPromptChange={finalOnDialogueWorkflowPromptChange}
-                narrationOverride={finalNarrationOverride}
-                onNarrationOverrideChange={(_, text) => actions.updateNarrationOverride(shotSlot, text)}
-                narratorCharacterId={finalNarratorCharacterId}
-                onNarrationNarratorChange={(_, characterId) => actions.updateNarrationNarratorCharacterId(shotSlot, characterId)}
-                offFrameShotType={finalOffFrameShotType}
-                offFrameListenerCharacterId={finalOffFrameListenerCharacterId}
-                offFrameGroupCharacterIds={finalOffFrameGroupCharacterIds}
-                offFrameSceneContextPrompt={finalOffFrameSceneContextPrompt}
-                onOffFrameSceneContextPromptChange={(_, prompt) => actions.updateOffFrameSceneContextPrompt(shotSlot, prompt)}
-                offFrameVideoPromptAdditive={finalOffFrameVideoPromptAdditive}
-                onOffFrameVideoPromptAdditiveChange={(_, prompt) => actions.updateOffFrameVideoPromptAdditive(shotSlot, prompt)}
-                lipSyncVideoPromptAdditive={finalLipSyncVideoPromptAdditive}
-                onLipSyncVideoPromptAdditiveChange={(_, prompt) => actions.updateLipSyncVideoPromptAdditive(shotSlot, prompt)}
-                onOffFrameShotTypeChange={(_, shotType) => actions.updateOffFrameShotType(shotSlot, shotType)}
-                onOffFrameListenerCharacterIdChange={(_, id) => actions.updateOffFrameListenerCharacterId(shotSlot, id)}
-                onOffFrameGroupCharacterIdsChange={(_, ids) => actions.updateOffFrameGroupCharacterIds(shotSlot, ids)}
-                pronounExtrasPrompts={shotPronounExtrasPrompts}
-                onPronounExtrasPromptChange={finalOnPronounExtrasPromptChange}
-                sceneProps={finalSceneProps}
-                propsToShots={finalPropsToShots}
-                onPropsToShotsChange={finalOnPropsToShotsChange}
-                shotProps={finalShotProps}
-                onPropDescriptionChange={finalOnPropDescriptionChange}
-                onPropImageChange={finalOnPropImageChange}
-                shotWorkflowOverride={shotWorkflowOverride}
-                onShotWorkflowOverrideChange={finalOnShotWorkflowOverrideChange}
-                propThumbnailS3KeyMap={finalPropThumbnailS3KeyMap}
-                propThumbnailUrlsMap={propThumbnailUrlsMap}
-                showDialogueWorkflowSection={videoOptInForThisShot}
-                onAddDialogueVideoClick={() => actions.updateGenerateVideoForShot(shotSlot, true)}
-                onCollapseDialogueVideo={() => actions.updateGenerateVideoForShot(shotSlot, false)}
-                motionDirectionPrompt={state.motionDirectionPrompt[shotSlot] || ''}
-                onMotionDirectionChange={(value) => actions.updateMotionDirectionPrompt(shotSlot, value)}
-                showMotionDirection={isDialogueShot && !isSceneVoiceover}
-                selectedElementsForVideo={state.selectedElementsForVideo[shotSlot] || []}
-                onSelectedElementsForShotChange={(elementIds) => actions.updateSelectedElementsForShot(shotSlot, elementIds)}
-                elementsMaxSelect={VEO_MAX_ELEMENTS}
-                elementsVideoPrompt={state.videoPromptOverrides[shot.slot] ?? ''}
-                onElementsVideoPromptChange={(value) => actions.updateVideoPromptOverride(shot.slot, value)}
-                elementsVideoDuration={state.elementsVideoDurations[shot.slot]}
-                onElementsVideoDurationChange={(seconds) => actions.updateElementsVideoDuration(shot.slot, seconds)}
-                renderAfterReferenceSelection={null}
-                renderBeforeDialogueVideo={null}
-              />
+              {/* Lip-sync checkbox only – no Character, Location, Props, Motion Direction */}
+              <div className="py-3">
+                {!videoOptInForThisShot ? (
+                  <>
+                    <label className="flex items-center gap-2 cursor-pointer group">
+                      <input
+                        type="checkbox"
+                        checked={false}
+                        onChange={() => actions.updateGenerateVideoForShot(shotSlot, true)}
+                        className="w-4 h-4 rounded border-[#3F3F46] bg-[#1A1A1A] text-[#DC143C] focus:ring-2 focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer"
+                      />
+                      <span className="text-xs font-medium text-[#FFFFFF] group-hover:text-[#E5E7EB]">Add lip-sync video for this shot</span>
+                    </label>
+                    <p className="text-[10px] text-[#808080] mt-1 ml-6">First frame only by default. Check to include video and see cost.</p>
+                  </>
+                ) : (
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-[#FFFFFF]">Dialogue Video (LIP SYNC)</span>
+                    <label className="flex items-center gap-1 cursor-pointer text-[10px] text-[#808080] hover:text-[#FFFFFF] transition-colors">
+                      <input
+                        type="checkbox"
+                        checked={true}
+                        onChange={() => actions.updateGenerateVideoForShot(shotSlot, false)}
+                        className="w-3.5 h-3.5 rounded border-[#3F3F46] bg-[#1A1A1A] text-[#DC143C] focus:ring-2 focus:ring-[#DC143C] cursor-pointer"
+                      />
+                      <span>Uncheck to remove video (first frame only)</span>
+                    </label>
+                  </div>
+                )}
+              </div>
             </div>
           ) : !uploadedFirstFrameUrl ? (
             <>
@@ -2130,8 +2077,8 @@ export function ShotConfigurationStep({
               </div>
             )}
 
-            {/* Cost Calculator - Explicit: first frame only vs first frame + video. Elements to Video adds video cost (no first frame). Hide when uploaded first frame (0 cost). */}
-            {pricing && !uploadedFirstFrameUrl && (
+            {/* Cost Calculator - Show when: no upload (full cost) OR uploaded first frame + video/Elements (video cost). Hide when uploaded first frame only (0 cost). */}
+            {pricing && (!uploadedFirstFrameUrl || (uploadedFirstFrameUrl && (videoOptInForThisShot || !!state.useElementsForVideo?.[shot.slot]))) && (
               <div className="pt-3">
                 <div className="text-xs font-medium text-[#FFFFFF] mb-2">Estimated Cost</div>
                 <div className="space-y-2">
