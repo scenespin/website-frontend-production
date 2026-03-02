@@ -1312,11 +1312,23 @@ export function ShotConfigurationStep({
                   </button>
                 </div>
               </div>
-              {/* Voice selector: required for lip-sync; first frame provides visual, character provides voice */}
+              {/* Voice: explicit character shows read-only label; pronoun shows dropdown */}
               {(() => {
+                const hasExplicitCharacter = !!shot.characterId;
+                if (hasExplicitCharacter) {
+                  const charName = getCharacterName(shot.characterId, allCharacters, sceneAnalysisResult);
+                  return (
+                    <div className="py-2">
+                      <label className="block text-xs font-medium text-[#FFFFFF] mb-1.5">Voice for this shot</label>
+                      <p className="text-xs text-[#E5E7EB] py-2">
+                        Voice: {charName} (speaking character)
+                      </p>
+                      <p className="text-[10px] text-[#808080] mt-1">To change the voice, update the character's voice in production, or change the character in the script.</p>
+                    </div>
+                  );
+                }
                 const sceneChars = getCharacterSource(allCharacters, sceneAnalysisResult);
-                const effectiveVoiceCharId = shot.characterId
-                  || singularPronounCharacters?.[0]
+                const effectiveVoiceCharId = singularPronounCharacters?.[0]
                   || explicitCharacters?.[0]
                   || (pluralPronounCharacters?.[0] as string | undefined);
                 const dialogueChar = shot.dialogueBlock?.character?.trim();
