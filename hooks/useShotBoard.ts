@@ -27,12 +27,13 @@ export interface ShotVariation {
     fileId: string;
     s3Key: string;
     fileName: string;
-    /** Optional metadata from media file (e.g. providerId for Shots tab label). */
+    /** Optional metadata from media file (e.g. providerId for Shots tab label, isUserFirstFrame for Custom badge). */
     metadata?: {
       providerId?: string;
       aspectRatio?: string;
       lineText?: string;
       lineType?: string;
+      isUserFirstFrame?: boolean;
     };
   };
   video?: {
