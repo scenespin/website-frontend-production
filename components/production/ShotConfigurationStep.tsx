@@ -1882,6 +1882,71 @@ export function ShotConfigurationStep({
                         </div>
                       )}
 
+          {/* Upload first frame for dialogue shots (lip-sync) — no Override section, so we expose upload here.
+              Shown regardless of video opt-in so users can upload first frame only (appears in Shot Board). */}
+          {isDialogueShot && !isOverrideAllowed && (
+            <div className="pt-3 pb-3 border-t border-[#3F3F46]">
+              <label className="block text-xs font-medium text-[#FFFFFF] mb-2">Use your own first frame</label>
+              <p className="text-[10px] text-[#808080] mb-2">
+                {videoOptInForThisShot
+                  ? 'Upload an image to use as the first frame for lip-sync video. The auto-generated prompt will still guide the video.'
+                  : 'Upload an image to use as the first frame. It will appear in the Shot Board. Check "Add lip-sync video" above to generate video from it.'}
+              </p>
+              {uploadedFirstFrameUrl ? (
+                <div className="relative">
+                  <img
+                    src={uploadedFirstFrameUrl}
+                    alt="Uploaded first frame"
+                    className="w-full h-32 object-cover rounded border border-[#3F3F46]"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleRemoveUploadedFirstFrame}
+                    className="absolute top-2 right-2 p-1.5 bg-[#1A1A1A] border border-[#3F3F46] rounded hover:bg-[#2A2A2A] hover:border-[#DC143C] transition-colors"
+                    title="Remove uploaded first frame"
+                  >
+                    <X className="w-4 h-4 text-[#FFFFFF]" />
+                  </button>
+                </div>
+              ) : (
+                <div className="border-2 border-dashed border-[#3F3F46] rounded bg-[#0A0A0A] p-4">
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleFileInputChange}
+                    className="hidden"
+                    disabled={isUploadingFirstFrame}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploadingFirstFrame}
+                    className={cn(
+                      'w-full flex flex-col items-center justify-center gap-2 py-4 px-4 rounded transition-colors',
+                      isUploadingFirstFrame
+                        ? 'bg-[#1A1A1A] border border-[#3F3F46] cursor-not-allowed'
+                        : 'bg-[#1A1A1A] border border-[#3F3F46] hover:bg-[#2A2A2A] hover:border-[#DC143C] cursor-pointer'
+                    )}
+                  >
+                    {isUploadingFirstFrame ? (
+                      <>
+                        <Loader2 className="w-5 h-5 text-[#DC143C] animate-spin" />
+                        <span className="text-xs text-[#808080]">Uploading...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-5 h-5 text-[#808080]" />
+                        <span className="text-xs text-[#FFFFFF]">Choose Image</span>
+                        <span className="text-[10px] text-[#808080]">Any size (auto-compressed if needed)</span>
+                      </>
+                    )}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Video Generation Selection – only when dialogue shot has video opt-in. */}
           {onVideoTypeChange && isDialogueShot && videoOptInForThisShot && (
             <>

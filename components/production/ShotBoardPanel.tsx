@@ -182,8 +182,8 @@ function ShotCell({
         <div className="absolute top-1 left-1 bg-[#DC143C] text-white text-[10px] font-bold px-1.5 py-0.5 rounded">
           #{shot.shotNumber}
         </div>
-        {/* Image provider label (same style as production hub) — only when providerId present */}
-        {currentVariation.firstFrame.metadata?.providerId && (() => {
+        {/* Image provider label — hide for user uploads (show "Custom" or model name for AI-generated) */}
+        {!currentVariation.firstFrame.metadata?.isUserFirstFrame && currentVariation.firstFrame.metadata?.providerId && (() => {
           const tagText = formatProviderTag(currentVariation.firstFrame.metadata?.providerId);
           if (!tagText) return null;
           return (
@@ -192,7 +192,13 @@ function ShotCell({
             </div>
           );
         })()}
-        {aspectRatioLabel ? (
+        {currentVariation.firstFrame.metadata?.isUserFirstFrame ? (
+          <div className="absolute bottom-1 right-1 px-1.5 py-0.5 text-white text-[10px] rounded bg-black/70 backdrop-blur-sm">
+            Custom
+          </div>
+        ) : null}
+        {/* Aspect ratio — hide for user uploads (we don't know it); show for AI-generated */}
+        {!currentVariation.firstFrame.metadata?.isUserFirstFrame && aspectRatioLabel ? (
           <div className="absolute bottom-1 left-1 px-1.5 py-0.5 text-white text-[10px] rounded bg-black/70 backdrop-blur-sm">
             {aspectRatioLabel}
           </div>

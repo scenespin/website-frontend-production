@@ -213,11 +213,13 @@ export function useShotBoard(screenplayId: string, enabled: boolean = true): Use
         aspectRatio?: string;
         lineText?: string;
         lineType?: string;
+        isUserFirstFrame?: boolean;
       } = {};
       if (firstFrameMeta.providerId) firstFrameMetadata.providerId = firstFrameMeta.providerId;
       if (typeof firstFrameMeta.aspectRatio === 'string' && firstFrameMeta.aspectRatio.trim().length > 0) {
         firstFrameMetadata.aspectRatio = firstFrameMeta.aspectRatio.trim();
       }
+      if (firstFrameMeta.isUserFirstFrame === true) firstFrameMetadata.isUserFirstFrame = true;
       if (typeof firstFrameMeta.lineText === 'string' && firstFrameMeta.lineText.trim().length > 0) {
         firstFrameMetadata.lineText = firstFrameMeta.lineText.trim();
       }
@@ -230,7 +232,7 @@ export function useShotBoard(screenplayId: string, enabled: boolean = true): Use
           fileId: firstFrame.id || '',
           s3Key: firstFrame.s3Key || '',
           fileName: firstFrame.fileName || '',
-          ...((firstFrameMetadata.providerId || firstFrameMetadata.aspectRatio || firstFrameMetadata.lineText || firstFrameMetadata.lineType) && { metadata: firstFrameMetadata })
+          ...((firstFrameMetadata.providerId || firstFrameMetadata.aspectRatio || firstFrameMetadata.lineText || firstFrameMetadata.lineType || firstFrameMetadata.isUserFirstFrame) && { metadata: firstFrameMetadata })
         }
       };
 
