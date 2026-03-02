@@ -199,6 +199,7 @@ export function CharacterBankPanel({
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
+          'X-Update-Source': 'production-hub',
         },
         body: JSON.stringify(apiUpdates),
       });

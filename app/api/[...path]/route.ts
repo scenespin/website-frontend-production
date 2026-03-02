@@ -160,6 +160,10 @@ async function forwardRequest(
     if (clerkSessionId) {
       headers['X-Clerk-Session-Id'] = clerkSessionId;
     }
+    const updateSource = request.headers.get('x-update-source') || request.headers.get('X-Update-Source');
+    if (updateSource) {
+      headers['X-Update-Source'] = updateSource;
+    }
     
     console.error(`[API Proxy] 📤 Forwarding with Content-Type: ${isMultipart ? 'auto (multipart)' : (headers['Content-Type'] || 'none')}`);
     

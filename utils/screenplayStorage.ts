@@ -745,21 +745,26 @@ export async function bulkUpsertCharacters(
 
 /**
  * Update a character
+ * @param source - Optional. Sent as X-Update-Source header for backend logging (e.g. 'creation', 'creation-image-upload')
  */
 export async function updateCharacter(
   screenplayId: string,
   characterId: string,
   updates: Partial<Omit<Character, 'id'>>,
-  getToken: ReturnType<typeof useAuth>['getToken']
+  getToken: ReturnType<typeof useAuth>['getToken'],
+  options?: { source?: string }
 ): Promise<Character> {
   const token = await getToken({ template: 'wryda-backend' });
-  
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    'Authorization': `Bearer ${token}`,
+  };
+  if (options?.source) {
+    headers['X-Update-Source'] = options.source;
+  }
   const response = await fetch(`/api/screenplays/${screenplayId}/characters/${characterId}`, {
     method: 'PUT',
-    headers: {
-      'Content-Type': 'application/json',
-      'Authorization': `Bearer ${token}`
-    },
+    headers,
     body: JSON.stringify(updates)
   });
 

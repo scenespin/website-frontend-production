@@ -134,6 +134,10 @@ export async function PUT(
       'Authorization': `Bearer ${token}`,
       'Content-Type': 'application/json',
     };
+    const updateSource = request.headers.get('x-update-source') || request.headers.get('X-Update-Source');
+    if (updateSource) {
+      backendHeaders['X-Update-Source'] = updateSource;
+    }
 
     const response = await fetch(url, {
       method: 'PUT',

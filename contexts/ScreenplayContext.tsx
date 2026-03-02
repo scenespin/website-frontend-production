@@ -2797,7 +2797,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         poseReferences: apiUpdates.poseReferences ? `${apiUpdates.poseReferences.length} items` : 'not included'
                     }
                 });
-                const updatedCharacter = await apiUpdateCharacter(screenplayId, id, apiUpdates, getToken);
+                const updatedCharacter = await apiUpdateCharacter(screenplayId, id, apiUpdates, getToken, { source: 'creation' });
                 console.log('[ScreenplayContext] 📥 Received updated character from API:', { characterId: id, arcStatus: (updatedCharacter as any)?.arcStatus });
                 
                 // 🔥 FIX: Update local state with the actual response from DynamoDB to ensure consistency
