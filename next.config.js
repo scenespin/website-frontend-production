@@ -2,8 +2,8 @@
 const nextConfig = {
   reactStrictMode: true,
   
-  // Enable source maps for better error debugging (shows unminified errors)
-  productionBrowserSourceMaps: true,
+  // Disable production source maps to reduce deployment size (fixes Vercel "internal error" during Deploying outputs)
+  productionBrowserSourceMaps: false,
   
   // Force new build ID to invalidate cache
   generateBuildId: async () => {

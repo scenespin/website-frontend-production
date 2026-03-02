@@ -260,16 +260,9 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     // 🔥 CRITICAL FIX: Do NOT load from localStorage on mount!
     // DynamoDB is the source of truth - localStorage is just a write cache for performance
     // Loading from localStorage first causes race conditions where stale data overwrites fresh edits
-    const [characters, setCharacters] = useState<Character[]>(() => {
-        console.log('[ScreenplayContext] 🏗️ INITIAL STATE: Creating empty characters array');
-        return [];
-    });
-    const [locations, setLocations] = useState<Location[]>(() => {
-        console.log('[ScreenplayContext] 🏗️ INITIAL STATE: Creating empty locations array');
-        return [];
-    });
+    const [characters, setCharacters] = useState<Character[]>(() => []);
+    const [locations, setLocations] = useState<Location[]>(() => []);
     const [assets, setAssets] = useState<Asset[]>(() => {
-        console.log('[ScreenplayContext] 🏗️ INITIAL STATE: Creating empty assets array');
         // 🔥 FIX: Load recently created assets from sessionStorage to handle eventual consistency
         // Note: screenplayId is not available in initializer, so we'll load from sessionStorage in useEffect
         return [];
