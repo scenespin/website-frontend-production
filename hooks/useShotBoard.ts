@@ -296,12 +296,11 @@ export function useShotBoard(screenplayId: string, enabled: boolean = true): Use
       const shots: ShotBoardShot[] = [];
 
       for (const [shotNumber, variations] of sceneData.shotsMap) {
-        // Sort variations: user uploads first (show "Custom"), then by timestamp (newest first)
+        // Sort variations: newest first (by timestamp). Same behavior for AI and user uploads.
         variations.sort((a, b) => {
-          const aUser = a.firstFrame.metadata?.isUserFirstFrame === true ? 1 : 0;
-          const bUser = b.firstFrame.metadata?.isUserFirstFrame === true ? 1 : 0;
-          if (aUser !== bUser) return bUser - aUser;
-          return String(b.timestamp || '').localeCompare(String(a.timestamp || ''));
+          const aKey = String(a.timestamp || '').trim();
+          const bKey = String(b.timestamp || '').trim();
+          return bKey.localeCompare(aKey, undefined, { numeric: true });
         });
 
         // Collect S3 keys for presigned URLs
