@@ -426,28 +426,33 @@ export default function LocationDetailSidebar({
 
         const { url, fields, s3Key } = await presignedResponse.json();
         
-        if (!url || !fields || !s3Key) {
+        if (!url || !s3Key) {
           throw new Error('Invalid response from server');
         }
 
-        // Step 2: Upload directly to S3 using presigned POST
-        const s3FormData = new FormData();
-        
-        // Add all the fields returned from createPresignedPost
-        Object.entries(fields).forEach(([key, value]) => {
-          if (key.toLowerCase() !== 'bucket') {
-            s3FormData.append(key, value as string);
-          }
-        });
-        
-        // Add the file last (must be last field in FormData per AWS requirements)
-        s3FormData.append('file', file);
-        
-        // Upload to S3
-        const s3UploadResponse = await fetch(url, {
-          method: 'POST',
-          body: s3FormData,
-        });
+        const hasPostFields = fields && Object.keys(fields).length > 0;
+        let s3UploadResponse: globalThis.Response;
+        if (hasPostFields) {
+          const s3FormData = new FormData();
+          Object.entries(fields).forEach(([key, value]) => {
+            if (key.toLowerCase() !== 'bucket') {
+              s3FormData.append(key, value as string);
+            }
+          });
+          s3FormData.append('file', file);
+          s3UploadResponse = await fetch(url, {
+            method: 'POST',
+            body: s3FormData,
+          });
+        } else {
+          s3UploadResponse = await fetch(url, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': file.type || 'application/octet-stream',
+            },
+            body: file,
+          });
+        }
 
         if (!s3UploadResponse.ok) {
           const errorText = await s3UploadResponse.text();
