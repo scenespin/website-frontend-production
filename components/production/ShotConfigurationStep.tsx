@@ -569,7 +569,7 @@ export function ShotConfigurationStep({
       
       // Small delay to ensure presigned URL is fully ready (fixes intermittent 403 errors)
       await new Promise(resolve => setTimeout(resolve, 100));
-      
+
       const s3Response = await fetch(url, {
         method: 'POST',
         body: formData
@@ -585,10 +585,12 @@ export function ShotConfigurationStep({
         });
         throw new Error(`S3 upload failed: ${s3Response.status} ${s3Response.statusText}`);
       }
-      
+
+      // Brief delay so S3 object is visible before register (avoids 404 from eventual consistency)
+      await new Promise(resolve => setTimeout(resolve, 300));
+
       // Step 3: Register media in Media Library (JSON body, not FormData)
-      // 🔥 NEW: Pass scene context for user-uploaded first frames
-      // This creates organized folder structure: User First Frames/Scene_{number}/{timestamp}-shot-{shotNumber}/
+      // Pass scene context (entityType, sceneId, sceneNumber, shotNumber) so first frame appears on Shot Board
       const sceneId = sceneAnalysisResult?.sceneId;
       
       // Get sceneNumber from screenplay context (same pattern as SceneBuilderPanel)
@@ -597,6 +599,10 @@ export function ShotConfigurationStep({
         const selectedScene = scenes.find((s: any) => s.id === sceneId);
         if (selectedScene) {
           sceneNumber = selectedScene.number;
+        }
+        // Fallback: use 1 when scene not found (avoids file at root + missing entityType for Shot Board)
+        if (sceneNumber === undefined && sceneId) {
+          sceneNumber = 1;
         }
       }
       
@@ -616,6 +622,16 @@ export function ShotConfigurationStep({
       
       const timestamp = generateTimestamp();
       
+      // Diagnostic: log scene context (helps debug "file at root" when folder creation skipped)
+      console.log('[ShotConfigurationStep] Registering user first frame with scene context:', {
+        sceneId: sceneId ?? 'MISSING',
+        sceneNumber: sceneNumber ?? 'MISSING',
+        shotNumber,
+        timestamp,
+        hasScenes: !!scenes,
+        scenesCount: scenes?.length ?? 0,
+      });
+      
       const registerResponse = await fetch('/api/media/register', {
         method: 'POST',
         headers: {
@@ -628,7 +644,6 @@ export function ShotConfigurationStep({
           fileType: fileType,
           fileSize: file.size,
           screenplayId,
-          // 🔥 NEW: Scene context for user-uploaded first frames
           isUserFirstFrame: true,
           sceneId: sceneId,
           sceneNumber: sceneNumber,
@@ -638,8 +653,12 @@ export function ShotConfigurationStep({
       });
       
       if (!registerResponse.ok) {
-        console.warn('[ShotConfigurationStep] Failed to register media (non-fatal):', registerResponse.statusText);
-        // Continue anyway - file is in S3
+        const errBody = await registerResponse.text().catch(() => '');
+        const errMsg = registerResponse.status === 404
+          ? 'File not yet visible in storage. Please wait a moment and try again.'
+          : `Failed to register media: ${registerResponse.statusText}`;
+        console.error('[ShotConfigurationStep] Failed to register media:', { status: registerResponse.status, body: errBody?.slice(0, 200) });
+        throw new Error(errMsg);
       }
       
       // Step 4: Get download URL (JSON body, not FormData)
@@ -1408,6 +1427,68 @@ export function ShotConfigurationStep({
                   selectedElementsForVideo={state.selectedElementsForVideo[shotSlot] || []}
                   onSelectedElementsForShotChange={(elementIds) => actions.updateSelectedElementsForShot(shotSlot, elementIds)}
                   elementsMaxSelect={VEO_MAX_ELEMENTS}
+                  renderBeforeDialogueVideo={isDialogueShot && !isOverrideAllowed ? (
+                    <div className="py-3 border-b border-[#3F3F46]">
+                      <label className="block text-xs font-medium text-[#FFFFFF] mb-2">Use your own first frame</label>
+                      <p className="text-[10px] text-[#808080] mb-2">
+                        {videoOptInForThisShot
+                          ? 'Upload an image to use as the first frame for lip-sync video. The auto-generated prompt will still guide the video.'
+                          : 'Upload an image to use as the first frame. It will appear in the Shot Board. Check "Add lip-sync video" below to generate video from it.'}
+                      </p>
+                      {uploadedFirstFrameUrl ? (
+                        <div className="relative">
+                          <img
+                            src={uploadedFirstFrameUrl}
+                            alt="Uploaded first frame"
+                            className="w-full h-32 object-cover rounded border border-[#3F3F46]"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleRemoveUploadedFirstFrame}
+                            className="absolute top-2 right-2 p-1.5 bg-[#1A1A1A] border border-[#3F3F46] rounded hover:bg-[#2A2A2A] hover:border-[#DC143C] transition-colors"
+                            title="Remove uploaded first frame"
+                          >
+                            <X className="w-4 h-4 text-[#FFFFFF]" />
+                          </button>
+                        </div>
+                      ) : (
+                        <div className="border-2 border-dashed border-[#3F3F46] rounded bg-[#0A0A0A] p-4">
+                          <input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="image/*"
+                            onChange={handleFileInputChange}
+                            className="hidden"
+                            disabled={isUploadingFirstFrame}
+                          />
+                          <button
+                            type="button"
+                            onClick={() => fileInputRef.current?.click()}
+                            disabled={isUploadingFirstFrame}
+                            className={cn(
+                              'w-full flex flex-col items-center justify-center gap-2 py-4 px-4 rounded transition-colors',
+                              isUploadingFirstFrame
+                                ? 'bg-[#1A1A1A] border border-[#3F3F46] cursor-not-allowed'
+                                : 'bg-[#1A1A1A] border border-[#3F3F46] hover:bg-[#2A2A2A] hover:border-[#DC143C] cursor-pointer'
+                            )}
+                          >
+                            {isUploadingFirstFrame ? (
+                              <>
+                                <Loader2 className="w-5 h-5 text-[#DC143C] animate-spin" />
+                                <span className="text-xs text-[#808080]">Uploading...</span>
+                              </>
+                            ) : (
+                              <>
+                                <Upload className="w-5 h-5 text-[#808080]" />
+                                <span className="text-xs text-[#FFFFFF]">Choose Image</span>
+                                <span className="text-[10px] text-[#808080]">Any size (auto-compressed if needed)</span>
+                              </>
+                            )}
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ) : undefined}
                   renderAfterReferenceSelection={onReferenceShotModelChange ? (
                     <>
                       <ReferenceShotSelector shotSlot={shot.slot} selectedModel={selectedReferenceShotModels[shot.slot]} onModelChange={finalOnReferenceShotModelChange} />
@@ -1881,71 +1962,6 @@ export function ShotConfigurationStep({
                           )}
                         </div>
                       )}
-
-          {/* Upload first frame for dialogue shots (lip-sync) — no Override section, so we expose upload here.
-              Shown regardless of video opt-in so users can upload first frame only (appears in Shot Board). */}
-          {isDialogueShot && !isOverrideAllowed && (
-            <div className="pt-3 pb-3 border-t border-[#3F3F46]">
-              <label className="block text-xs font-medium text-[#FFFFFF] mb-2">Use your own first frame</label>
-              <p className="text-[10px] text-[#808080] mb-2">
-                {videoOptInForThisShot
-                  ? 'Upload an image to use as the first frame for lip-sync video. The auto-generated prompt will still guide the video.'
-                  : 'Upload an image to use as the first frame. It will appear in the Shot Board. Check "Add lip-sync video" above to generate video from it.'}
-              </p>
-              {uploadedFirstFrameUrl ? (
-                <div className="relative">
-                  <img
-                    src={uploadedFirstFrameUrl}
-                    alt="Uploaded first frame"
-                    className="w-full h-32 object-cover rounded border border-[#3F3F46]"
-                  />
-                  <button
-                    type="button"
-                    onClick={handleRemoveUploadedFirstFrame}
-                    className="absolute top-2 right-2 p-1.5 bg-[#1A1A1A] border border-[#3F3F46] rounded hover:bg-[#2A2A2A] hover:border-[#DC143C] transition-colors"
-                    title="Remove uploaded first frame"
-                  >
-                    <X className="w-4 h-4 text-[#FFFFFF]" />
-                  </button>
-                </div>
-              ) : (
-                <div className="border-2 border-dashed border-[#3F3F46] rounded bg-[#0A0A0A] p-4">
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*"
-                    onChange={handleFileInputChange}
-                    className="hidden"
-                    disabled={isUploadingFirstFrame}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => fileInputRef.current?.click()}
-                    disabled={isUploadingFirstFrame}
-                    className={cn(
-                      'w-full flex flex-col items-center justify-center gap-2 py-4 px-4 rounded transition-colors',
-                      isUploadingFirstFrame
-                        ? 'bg-[#1A1A1A] border border-[#3F3F46] cursor-not-allowed'
-                        : 'bg-[#1A1A1A] border border-[#3F3F46] hover:bg-[#2A2A2A] hover:border-[#DC143C] cursor-pointer'
-                    )}
-                  >
-                    {isUploadingFirstFrame ? (
-                      <>
-                        <Loader2 className="w-5 h-5 text-[#DC143C] animate-spin" />
-                        <span className="text-xs text-[#808080]">Uploading...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Upload className="w-5 h-5 text-[#808080]" />
-                        <span className="text-xs text-[#FFFFFF]">Choose Image</span>
-                        <span className="text-[10px] text-[#808080]">Any size (auto-compressed if needed)</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              )}
-            </div>
-          )}
 
           {/* Video Generation Selection – only when dialogue shot has video opt-in. */}
           {onVideoTypeChange && isDialogueShot && videoOptInForThisShot && (

@@ -150,6 +150,8 @@ interface ShotConfigurationPanelProps {
   isDialogueShot?: boolean; // Whether this is a dialogue shot (for conditional tab labels)
   /** Slot rendered after reference selection (Character, Location, Props) and before Dialogue Workflow (Premium/Standard). Used for Reference Shot model + preview so flow is: ref selection → model → preview → video options. */
   renderAfterReferenceSelection?: React.ReactNode;
+  /** Slot rendered before "Add lip-sync video" (dialogue workflow). Used for "Use your own first frame" upload so users see first-frame option before video opt-in. */
+  renderBeforeDialogueVideo?: React.ReactNode;
   /** When true, show LIP SYNC section (expand area); when false, show "Add Dialogue Video" button only. */
   showDialogueWorkflowSection?: boolean;
   onAddDialogueVideoClick?: () => void;
@@ -249,6 +251,7 @@ export function ShotConfigurationPanel({
   activeTab = 'basic',
   isDialogueShot = false,
   renderAfterReferenceSelection,
+  renderBeforeDialogueVideo,
   showDialogueWorkflowSection = false,
   onAddDialogueVideoClick,
   onCollapseDialogueVideo,
@@ -1893,6 +1896,9 @@ export function ShotConfigurationPanel({
 
       {/* Reference Shot (model + preview) + Override First Frame. Hidden when Elements to Video is on (Feature 0259). */}
       {!useElementsForVideo && renderAfterReferenceSelection}
+
+      {/* Use your own first frame – above "Add lip-sync video" so users see upload option before video opt-in. */}
+      {renderBeforeDialogueVideo}
 
       {/* Feature 0234: Motion Direction – above "+ Add Dialogue Video" per plan. Lip-sync dialogue only. */}
       {showMotionDirection && (
