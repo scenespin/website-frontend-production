@@ -556,6 +556,11 @@ export function ShotConfigurationStep({
       // Small delay to ensure presigned URL is fully ready (fixes intermittent 403 errors)
       await new Promise(resolve => setTimeout(resolve, 150));
 
+      // Root cause fix: file part Content-Type must match policy. If file.type is empty,
+      // browser sends application/octet-stream → policy expects image/* → 403.
+      const blob = file.slice(0, file.size, fileType);
+      const fileToUpload = new File([blob], file.name, { type: fileType });
+
       const doUpload = () => {
         const fd = new FormData();
         Object.entries(fields).forEach(([key, value]) => {
@@ -563,7 +568,7 @@ export function ShotConfigurationStep({
             fd.append(key, value as string);
           }
         });
-        fd.append('file', file);
+        fd.append('file', fileToUpload);
         return fetch(url, { method: 'POST', body: fd });
       };
 

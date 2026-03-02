@@ -656,8 +656,13 @@ export class SceneBuilderService {
       console.error(`${logPrefix || '[SceneBuilderService]'} Available fields:`, Object.keys(fields));
     }
     
+    // Ensure file part Content-Type matches policy (empty file.type → 403)
+    const fileType = fields['Content-Type'] || file.type || 'image/jpeg';
+    const blob = file.slice(0, file.size, fileType);
+    const fileToUpload = new File([blob], file.name, { type: fileType });
+    
     // Add file last (required by S3)
-    formData.append('file', file);
+    formData.append('file', fileToUpload);
     
     const response = await fetch(url, {
       method: 'POST',

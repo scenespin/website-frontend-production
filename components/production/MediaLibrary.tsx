@@ -823,8 +823,13 @@ export default function MediaLibrary({
         console.error('[MediaLibrary] Available fields:', Object.keys(fields));
       }
       
+      // Ensure file part Content-Type matches policy (empty file.type → 403)
+      const fileType = fields['Content-Type'] || file.type || 'image/jpeg';
+      const blob = file.slice(0, file.size, fileType);
+      const fileToUpload = new File([blob], file.name, { type: fileType });
+      
       // Add the file last (must be last field in FormData per AWS requirements)
-      formData.append('file', file);
+      formData.append('file', fileToUpload);
       console.log('[MediaLibrary] Added file:', file.name, `(${file.size} bytes, ${file.type})`);
       console.log('[MediaLibrary] Uploading to URL:', url);
       

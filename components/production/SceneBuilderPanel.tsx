@@ -2374,6 +2374,10 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
           
           const { url, fields, s3Key } = await presignedResponse.json();
           
+          // Ensure file part Content-Type matches policy (empty file.type → 403)
+          const blob = file.slice(0, file.size, fileType);
+          const fileToUpload = new File([blob], file.name, { type: fileType });
+          
           // Upload directly to S3 using FormData POST
           const formData = new FormData();
           Object.entries(fields).forEach(([key, value]) => {
@@ -2381,7 +2385,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
               formData.append(key, value as string);
             }
           });
-          formData.append('file', file); // File must be last
+          formData.append('file', fileToUpload); // File must be last
           
           const s3Response = await fetch(url, { method: 'POST', body: formData });
           if (!s3Response.ok) {
@@ -3038,13 +3042,17 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       
       const { url, fields, s3Key } = await presignedResponse.json();
       
+      // Ensure file part Content-Type matches policy (empty file.type → 403)
+      const blob = file.slice(0, file.size, fileType);
+      const fileToUpload = new File([blob], file.name, { type: fileType });
+      
       const formData = new FormData();
       Object.entries(fields).forEach(([key, value]) => {
         if (key.toLowerCase() !== 'bucket') {
           formData.append(key, value as string);
         }
       });
-      formData.append('file', file);
+      formData.append('file', fileToUpload);
       
       const s3Response = await fetch(url, { method: 'POST', body: formData });
       if (!s3Response.ok) return null;
@@ -3112,6 +3120,10 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
           
           const { url, fields, s3Key } = await presignedResponse.json();
           
+          // Ensure file part Content-Type matches policy (empty file.type → 403)
+          const blob = file.slice(0, file.size, fileType);
+          const fileToUpload = new File([blob], file.name, { type: fileType });
+          
           // Upload directly to S3 using FormData POST
           const formData = new FormData();
           Object.entries(fields).forEach(([key, value]) => {
@@ -3119,7 +3131,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
               formData.append(key, value as string);
             }
           });
-          formData.append('file', file); // File must be last
+          formData.append('file', fileToUpload); // File must be last
           
           const s3Response = await fetch(url, { method: 'POST', body: formData });
           if (!s3Response.ok) {

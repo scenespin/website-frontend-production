@@ -101,6 +101,11 @@ export function useDirectS3Upload() {
       
       if (onProgress) onProgress(30);
       
+      // Ensure file part Content-Type matches policy (empty file.type → 403)
+      const fileType = fields['Content-Type'] || file.type || 'image/jpeg';
+      const blob = file.slice(0, file.size, fileType);
+      const fileToUpload = new File([blob], file.name, { type: fileType });
+      
       // Step 2: Upload directly to S3 using FormData POST (presigned POST)
       // This is the recommended approach for browser uploads - Content-Type is handled
       // as form data, not headers, preventing 403 Forbidden errors
@@ -117,7 +122,7 @@ export function useDirectS3Upload() {
       });
       
       // Add the file last (must be last field in FormData)
-      formData.append('file', file);
+      formData.append('file', fileToUpload);
       
       // Upload using XMLHttpRequest for progress tracking
       const s3Url = await uploadToS3WithProgress(url, formData, (progress) => {
