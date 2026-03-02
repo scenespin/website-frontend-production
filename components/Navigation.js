@@ -40,7 +40,7 @@ import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { getCurrentScreenplayId } from '@/utils/clerkMetadata';
 
 export default function Navigation() {
-  const { user } = useUser();
+  const { user, isLoaded } = useUser();
   const { signOut } = useAuth();
   const { credits, loading: loadingCredits } = useCredits();
   const pathname = usePathname();
@@ -61,11 +61,11 @@ export default function Navigation() {
   const clerkScreenplayId = getCurrentScreenplayId(user);
   const currentScreenplayId = urlScreenplayId || contextScreenplayId || clerkScreenplayId;
 
-  // Fetch current screenplay name
+  // Fetch current screenplay name (only when Clerk is loaded to avoid auth token issues)
   useEffect(() => {
-    if (currentScreenplayId && user) {
+    if (currentScreenplayId && user && isLoaded) {
       setLoadingScreenplay(true);
-      fetch(`/api/screenplays/list?status=active&limit=100`)
+      fetch(`/api/screenplays/list?status=active&limit=100`, { credentials: 'include' })
         .then(async r => {
           if (!r.ok) return;
           const data = await r.json();
@@ -89,7 +89,7 @@ export default function Navigation() {
     } else {
       setCurrentScreenplayName(null);
     }
-  }, [currentScreenplayId, user]);
+  }, [currentScreenplayId, user, isLoaded]);
 
   // Navigation structure - Desktop: flat links, Mobile: hierarchical accordions
   // VERIFIED ROUTES - All pages exist in /app directory
