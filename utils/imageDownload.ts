@@ -3,6 +3,22 @@
  */
 
 /**
+ * Get file extension from MIME type (e.g. image/jpeg -> .jpg)
+ */
+function getExtensionFromMimeType(mimeType: string): string {
+    if (!mimeType || typeof mimeType !== 'string') return '.png';
+    const map: Record<string, string> = {
+        'image/jpeg': '.jpg',
+        'image/jpg': '.jpg',
+        'image/png': '.png',
+        'image/webp': '.webp',
+        'image/gif': '.gif',
+    };
+    const normalized = mimeType.split(';')[0].trim().toLowerCase();
+    return map[normalized] ?? '.png';
+}
+
+/**
  * Download an image to the user's local filesystem via blob.
  * Uses fetch → blob → saveAs so the browser triggers a proper file download.
  * When s3Key is provided, fetches via same-origin /api/media/file proxy to avoid CORS.
@@ -30,11 +46,14 @@ export async function downloadImageAsBlob(
         const response = await fetch(fetchUrl, fetchOptions);
         if (!response.ok) throw new Error(`Failed to fetch: ${response.statusText}`);
         const blob = await response.blob();
+        const ext = getExtensionFromMimeType(blob.type);
+        const baseName = filename.replace(/\.[^.]+$/, '') || 'image';
+        const finalFilename = baseName + ext;
         const fileSaver = await import('file-saver');
         const saveAs = fileSaver.default ?? fileSaver.saveAs;
         if (typeof saveAs !== 'function') throw new Error('saveAs is not a function');
-        saveAs(blob, filename);
-        console.log(`[ImageDownload] Downloaded image: ${filename}`);
+        saveAs(blob, finalFilename);
+        console.log(`[ImageDownload] Downloaded image: ${finalFilename}`);
     } catch (error) {
         console.error('[ImageDownload] Failed to download image:', error);
         throw new Error('Failed to download image');
