@@ -1339,8 +1339,118 @@ export function ShotConfigurationStep({
             </div>
           </div>
 
-          {/* 🔥 NEW: Hide reference selection UI when first frame is uploaded (references not needed) */}
-          {!uploadedFirstFrameUrl && (
+          {/* When first frame uploaded: show image + lip-sync options only (no ref selection). Otherwise show full config. */}
+          {uploadedFirstFrameUrl && isDialogueShot && !isOverrideAllowed ? (
+            /* Compact view: uploaded image + remove + lip-sync options */
+            <div className="pb-3 border-b border-[#3F3F46] space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-[#FFFFFF] mb-2">Uploaded first frame</label>
+                <div className="relative">
+                  <img
+                    src={uploadedFirstFrameUrl}
+                    alt="Uploaded first frame"
+                    className="w-full max-h-48 object-contain rounded border border-[#3F3F46] bg-[#0A0A0A]"
+                  />
+                  <button
+                    type="button"
+                    onClick={handleRemoveUploadedFirstFrame}
+                    className="absolute top-2 right-2 p-1.5 bg-[#1A1A1A] border border-[#3F3F46] rounded hover:bg-[#2A2A2A] hover:border-[#DC143C] transition-colors"
+                    title="Remove uploaded first frame"
+                  >
+                    <X className="w-4 h-4 text-[#FFFFFF]" />
+                  </button>
+                </div>
+              </div>
+              <ShotConfigurationPanel
+                activeTab="basic"
+                isDialogueShot={true}
+                shot={shot}
+                sceneAnalysisResult={sceneAnalysisResult}
+                shotMappings={shotMappings}
+                hasPronouns={hasPronouns}
+                explicitCharacters={explicitCharacters}
+                singularPronounCharacters={singularPronounCharacters}
+                pluralPronounCharacters={pluralPronounCharacters}
+                selectedLocationReferences={finalSelectedLocationReferences}
+                onLocationAngleChange={finalOnLocationAngleChange}
+                isLocationAngleRequired={isLocationAngleRequired}
+                needsLocationAngle={needsLocationAngle}
+                locationOptOuts={finalLocationOptOuts}
+                onLocationOptOutChange={finalOnLocationOptOutChange}
+                locationDescriptions={finalLocationDescriptions}
+                onLocationDescriptionChange={finalOnLocationDescriptionChange}
+                renderCharacterControlsOnly={() => null}
+                renderCharacterImagesOnly={() => null}
+                pronounInfo={pronounInfo}
+                allCharacters={allCharacters}
+                selectedCharactersForShots={finalSelectedCharactersForShots}
+                onCharactersForShotChange={finalOnCharactersForShotChange}
+                onPronounMappingChange={finalOnPronounMappingChange}
+                characterHeadshots={finalCharacterHeadshots}
+                loadingHeadshots={loadingHeadshots}
+                selectedCharacterReferences={finalSelectedCharacterReferences}
+                characterOutfits={finalCharacterOutfits}
+                onCharacterReferenceChange={finalOnCharacterReferenceChange}
+                onCharacterOutfitChange={finalOnCharacterOutfitChange}
+                characterThumbnailS3KeyMap={characterThumbnailS3KeyMap}
+                characterThumbnailUrlsMap={characterThumbnailUrlsMap}
+                selectedReferenceFullImageUrlsMap={selectedReferenceFullImageUrlsMap}
+                visibleHeadshotFullImageUrlsMap={visibleHeadshotFullImageUrlsMap}
+                locationThumbnailS3KeyMap={locationThumbnailS3KeyMap}
+                locationThumbnailUrlsMap={locationThumbnailUrlsMap}
+                locationFullImageUrlsMap={locationFullImageUrlsMap}
+                selectedDialogueQuality={finalSelectedDialogueQuality}
+                selectedDialogueWorkflow={finalSelectedDialogueWorkflow}
+                onDialogueQualityChange={finalOnDialogueQualityChange}
+                onDialogueWorkflowChange={finalOnDialogueWorkflowChange}
+                dialogueWorkflowPrompt={finalDialogueWorkflowPrompt}
+                onDialogueWorkflowPromptChange={finalOnDialogueWorkflowPromptChange}
+                narrationOverride={finalNarrationOverride}
+                onNarrationOverrideChange={(_, text) => actions.updateNarrationOverride(shotSlot, text)}
+                narratorCharacterId={finalNarratorCharacterId}
+                onNarrationNarratorChange={(_, characterId) => actions.updateNarrationNarratorCharacterId(shotSlot, characterId)}
+                offFrameShotType={finalOffFrameShotType}
+                offFrameListenerCharacterId={finalOffFrameListenerCharacterId}
+                offFrameGroupCharacterIds={finalOffFrameGroupCharacterIds}
+                offFrameSceneContextPrompt={finalOffFrameSceneContextPrompt}
+                onOffFrameSceneContextPromptChange={(_, prompt) => actions.updateOffFrameSceneContextPrompt(shotSlot, prompt)}
+                offFrameVideoPromptAdditive={finalOffFrameVideoPromptAdditive}
+                onOffFrameVideoPromptAdditiveChange={(_, prompt) => actions.updateOffFrameVideoPromptAdditive(shotSlot, prompt)}
+                lipSyncVideoPromptAdditive={finalLipSyncVideoPromptAdditive}
+                onLipSyncVideoPromptAdditiveChange={(_, prompt) => actions.updateLipSyncVideoPromptAdditive(shotSlot, prompt)}
+                onOffFrameShotTypeChange={(_, shotType) => actions.updateOffFrameShotType(shotSlot, shotType)}
+                onOffFrameListenerCharacterIdChange={(_, id) => actions.updateOffFrameListenerCharacterId(shotSlot, id)}
+                onOffFrameGroupCharacterIdsChange={(_, ids) => actions.updateOffFrameGroupCharacterIds(shotSlot, ids)}
+                pronounExtrasPrompts={shotPronounExtrasPrompts}
+                onPronounExtrasPromptChange={finalOnPronounExtrasPromptChange}
+                sceneProps={finalSceneProps}
+                propsToShots={finalPropsToShots}
+                onPropsToShotsChange={finalOnPropsToShotsChange}
+                shotProps={finalShotProps}
+                onPropDescriptionChange={finalOnPropDescriptionChange}
+                onPropImageChange={finalOnPropImageChange}
+                shotWorkflowOverride={shotWorkflowOverride}
+                onShotWorkflowOverrideChange={finalOnShotWorkflowOverrideChange}
+                propThumbnailS3KeyMap={finalPropThumbnailS3KeyMap}
+                propThumbnailUrlsMap={propThumbnailUrlsMap}
+                showDialogueWorkflowSection={videoOptInForThisShot}
+                onAddDialogueVideoClick={() => actions.updateGenerateVideoForShot(shotSlot, true)}
+                onCollapseDialogueVideo={() => actions.updateGenerateVideoForShot(shotSlot, false)}
+                motionDirectionPrompt={state.motionDirectionPrompt[shotSlot] || ''}
+                onMotionDirectionChange={(value) => actions.updateMotionDirectionPrompt(shotSlot, value)}
+                showMotionDirection={isDialogueShot && !isSceneVoiceover}
+                selectedElementsForVideo={state.selectedElementsForVideo[shotSlot] || []}
+                onSelectedElementsForShotChange={(elementIds) => actions.updateSelectedElementsForShot(shotSlot, elementIds)}
+                elementsMaxSelect={VEO_MAX_ELEMENTS}
+                elementsVideoPrompt={state.videoPromptOverrides[shot.slot] ?? ''}
+                onElementsVideoPromptChange={(value) => actions.updateVideoPromptOverride(shot.slot, value)}
+                elementsVideoDuration={state.elementsVideoDurations[shot.slot]}
+                onElementsVideoDurationChange={(seconds) => actions.updateElementsVideoDuration(shot.slot, seconds)}
+                renderAfterReferenceSelection={null}
+                renderBeforeDialogueVideo={null}
+              />
+            </div>
+          ) : !uploadedFirstFrameUrl ? (
             <>
               {/* Dialogue: ref selection → Reference Shot (model + preview) → Pricing (first frame only) → expand area (LIP SYNC + pricing with dialogue). Action: config then Reference Shot at bottom. */}
               {isDialogueShot ? (
@@ -1730,7 +1840,7 @@ export function ShotConfigurationStep({
                 />
               )}
             </>
-          )}
+          ) : null}
 
           {/* Override First Frame – moved outside !uploadedFirstFrameUrl so user can remove when uploaded */}
           {isOverrideAllowed && (

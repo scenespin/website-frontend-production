@@ -1897,10 +1897,7 @@ export function ShotConfigurationPanel({
       {/* Reference Shot (model + preview) + Override First Frame. Hidden when Elements to Video is on (Feature 0259). */}
       {!useElementsForVideo && renderAfterReferenceSelection}
 
-      {/* Use your own first frame – above "Add lip-sync video" so users see upload option before video opt-in. */}
-      {renderBeforeDialogueVideo}
-
-      {/* Feature 0234: Motion Direction – above "+ Add Dialogue Video" per plan. Lip-sync dialogue only. */}
+      {/* Feature 0234: Motion Direction – associated with first frame generation; above upload and lip-sync. */}
       {showMotionDirection && (
         <div className="py-3 border-b border-[#3F3F46]">
           <label className="block text-xs font-medium text-[#FFFFFF] mb-2">
@@ -1918,6 +1915,9 @@ export function ShotConfigurationPanel({
           </div>
         </div>
       )}
+
+      {/* Use your own first frame – below Motion Direction, above "Add lip-sync video". */}
+      {renderBeforeDialogueVideo}
 
       {/* Expand area for video: when collapsed show "Add Dialogue Video"; when expanded show Collapse + LIP SYNC. Pricing (first frame only) is outside this area in Step. */}
       {isDialogueBasicTab && shot.type === 'dialogue' && (
