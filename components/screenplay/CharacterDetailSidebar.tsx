@@ -563,15 +563,15 @@ export default function CharacterDetailSidebar({
               }
             };
           }).filter((img: any) => {
-            if (!img.imageUrl) {
-              console.warn('[CharacterDetailSidebar] Filtering out image with missing URL:', {
-                s3Key: img.metadata?.s3Key,
-                img
-              });
+            // CRITICAL: Keep images that have s3Key even if imageUrl is empty (e.g. R2 presign failed)
+            // Filtering out would cause updateCharacter(images: []) and overwrite referenceImages with []
+            const hasS3Key = !!(img.metadata?.s3Key || img.s3Key);
+            if (!img.imageUrl && !hasS3Key) {
+              console.warn('[CharacterDetailSidebar] Filtering out image with no URL and no s3Key:', img);
               return false;
             }
             return true;
-          }); // Filter out images with missing URLs
+          });
 
           console.log('[CharacterDetailSidebar] ✅ Transformed images:', {
             count: transformedImages.length,
