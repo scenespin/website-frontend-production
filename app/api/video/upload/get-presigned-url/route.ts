@@ -108,20 +108,15 @@ export async function GET(request: Request) {
       Bucket: S3_BUCKET,
       Key: s3Key,
       Expires: 3600, // 1 hour (maximum allowed for presigned POST)
-      Conditions: [
-        // Restrict file size (0 to 50GB)
-        ['content-length-range', 0, 50 * 1024 * 1024 * 1024],
-        // Content-Type must be declared in conditions when in Fields (AWS policy requirement).
-        // Use starts-with to allow image/jpeg, image/png, etc. - avoids 403 when client sends
-        // correct type but policy expected exact match.
-        ...(fileType.startsWith('image/')
-          ? [['starts-with', '$Content-Type', 'image/'] as [string, string, string]]
-          : fileType.startsWith('video/')
-            ? [['starts-with', '$Content-Type', 'video/'] as [string, string, string]]
-            : fileType.startsWith('audio/')
-              ? [['starts-with', '$Content-Type', 'audio/'] as [string, string, string]]
-              : []),
-      ],
+      Conditions: (() => {
+        const conds: Array<['content-length-range', number, number] | ['starts-with', string, string]> = [
+          ['content-length-range', 0, 50 * 1024 * 1024 * 1024],
+        ];
+        if (fileType.startsWith('image/')) conds.push(['starts-with', '$Content-Type', 'image/']);
+        else if (fileType.startsWith('video/')) conds.push(['starts-with', '$Content-Type', 'video/']);
+        else if (fileType.startsWith('audio/')) conds.push(['starts-with', '$Content-Type', 'audio/']);
+        return conds;
+      })(),
       Fields: {
         'Content-Type': fileType,
         // Add metadata as form fields (S3 will store these)

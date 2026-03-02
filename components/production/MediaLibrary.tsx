@@ -958,14 +958,14 @@ export default function MediaLibrary({
       });
 
       // Show StorageDecisionModal (same as Scene Builder)
-      const fileType = file.type.startsWith('video/') ? 'video' : 
-                       file.type.startsWith('image/') ? 'image' : 'attachment';
+      const assetType = file.type.startsWith('video/') ? 'video' : 
+                        file.type.startsWith('image/') ? 'image' : 'attachment';
       
       setSelectedAsset({
         url: downloadUrl,
         s3Key: s3Key,
         name: file.name,
-        type: fileType
+        type: assetType
       });
       setShowStorageModal(true);
 
