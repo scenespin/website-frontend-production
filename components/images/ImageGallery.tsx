@@ -2,8 +2,10 @@
 
 import React, { useState } from 'react';
 import { Camera, Download, Edit2, Trash2, X } from 'lucide-react';
+import { useAuth } from '@clerk/nextjs';
+import { toast } from 'sonner';
 import type { ImageAsset } from '@/types/screenplay';
-import { downloadImage, copyImageUrlToClipboard, generateImageFilename } from '@/utils/imageDownload';
+import { downloadImageAsBlob, copyImageUrlToClipboard, generateImageFilename } from '@/utils/imageDownload';
 
 interface ImageGalleryProps {
     images: ImageAsset[];
@@ -26,12 +28,21 @@ export function ImageGallery({
     onDeleteImage,
     readOnly = false
 }: ImageGalleryProps) {
+    const { getToken } = useAuth();
     const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
     const [showActions, setShowActions] = useState<number | null>(null);
 
-    const handleDownload = (image: ImageAsset, index: number) => {
-        const filename = generateImageFilename(entityType, entityName || entityId, index);
-        downloadImage(image.imageUrl, filename);
+    const handleDownload = async (e: React.MouseEvent, image: ImageAsset, index: number) => {
+        e.preventDefault();
+        e.stopPropagation();
+        try {
+            const filename = generateImageFilename(entityType, entityName || entityId, index);
+            const s3Key = image.metadata?.s3Key ?? (image as any).s3Key;
+            const getTokenFn = () => getToken({ template: 'wryda-backend' });
+            await downloadImageAsBlob(image.imageUrl, filename, s3Key, getTokenFn);
+        } catch (err) {
+            toast.error('Failed to download image');
+        }
     };
 
     const handleCopyUrl = async (image: ImageAsset) => {
@@ -159,7 +170,8 @@ export function ImageGallery({
                                 onClick={(e) => e.stopPropagation()}
                             >
                                 <button
-                                    onClick={() => handleDownload(image, index)}
+                                    type="button"
+                                    onClick={(e) => handleDownload(e, image, index)}
                                     className="p-2 rounded-lg hover:bg-white/20 transition-colors"
                                     title="Download"
                                 >
@@ -301,7 +313,8 @@ export function ImageGallery({
                             {!readOnly && (
                                 <div className="flex gap-2 mt-3">
                                     <button
-                                        onClick={() => handleDownload(images[lightboxIndex], lightboxIndex)}
+                                        type="button"
+                                        onClick={(e) => handleDownload(e, images[lightboxIndex], lightboxIndex)}
                                         className="flex items-center gap-2 px-3 py-1.5 rounded-lg text-sm font-medium transition-all hover:scale-105"
                                         style={{ backgroundColor: '#3B82F6', color: 'white' }}
                                     >

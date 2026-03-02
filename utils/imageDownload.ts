@@ -4,15 +4,15 @@
 
 /**
  * Download an image to the user's local filesystem via blob.
- * Uses fetch → blob → createObjectURL so the browser respects the download attribute
- * (direct link.href + download fails for cross-origin presigned URLs - opens in new tab instead).
+ * Uses fetch → blob → saveAs so the browser triggers a proper file download.
  * When s3Key is provided, fetches via same-origin /api/media/file proxy to avoid CORS.
+ * When s3Key is missing but imageUrl is cross-origin (R2/S3 presigned), download will fail - caller should ensure s3Key is passed.
  */
 export async function downloadImageAsBlob(
     imageUrl: string,
     filename: string,
     s3Key?: string,
-    getToken?: () => Promise<string | null>
+    _getToken?: () => Promise<string | null>
 ): Promise<void> {
     try {
         let fetchUrl: string;
@@ -20,7 +20,8 @@ export async function downloadImageAsBlob(
 
         if (s3Key) {
             // Use same-origin media proxy to avoid CORS (presigned S3/R2 URLs block cross-origin fetch)
-            fetchUrl = `/api/media/file?key=${encodeURIComponent(s3Key)}`;
+            const base = typeof window !== 'undefined' ? window.location.origin : '';
+            fetchUrl = `${base}/api/media/file?key=${encodeURIComponent(s3Key)}`;
             fetchOptions.credentials = 'include';
         } else {
             fetchUrl = imageUrl;
@@ -29,14 +30,8 @@ export async function downloadImageAsBlob(
         const response = await fetch(fetchUrl, fetchOptions);
         if (!response.ok) throw new Error(`Failed to fetch: ${response.statusText}`);
         const blob = await response.blob();
-        const blobUrl = URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = blobUrl;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+        const { saveAs } = await import('file-saver');
+        saveAs(blob, filename);
         console.log(`[ImageDownload] Downloaded image: ${filename}`);
     } catch (error) {
         console.error('[ImageDownload] Failed to download image:', error);
