@@ -615,6 +615,11 @@ export function ShotConfigurationStep({
       // Store in context (URL for preview; s3Key for deferred registration at workflow execution)
       actions.updateUploadedFirstFrame(shotSlot, imageUrl, s3Key);
       
+      // Dialogue shots: auto-set character reference for voice (workflow requires it; first frame provides visual)
+      if (shot.type === 'dialogue' && shot.characterId) {
+        actions.updateCharacterReference(shotSlot, shot.characterId, { imageUrl });
+      }
+      
       toast.success('First frame uploaded successfully!');
     } catch (error: any) {
       console.error('[ShotConfigurationStep] First frame upload failed:', error);
@@ -624,7 +629,7 @@ export function ShotConfigurationStep({
     } finally {
       setIsUploadingFirstFrame(false);
     }
-  }, [screenplayId, getToken, shotSlot, actions, projectId]);
+  }, [screenplayId, getToken, shotSlot, shot, actions, projectId]);
   
   // Handle file input change
   const handleFileInputChange = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
@@ -1037,6 +1042,18 @@ export function ShotConfigurationStep({
       }
     }
     
+    // 2a. When first frame uploaded + dialogue: voice/character selection required (workflow needs character ref for voice overlay)
+    if (uploadedFirstFrameUrl && isDialogueShot) {
+      const effectiveVoiceCharId = shot.characterId
+        || singularPronounCharacters?.[0]
+        || explicitCharacters?.[0]
+        || (pluralPronounCharacters?.[0] as string | undefined);
+      const hasVoiceRef = effectiveVoiceCharId && finalSelectedCharacterReferences[shot.slot]?.[effectiveVoiceCharId];
+      if (!hasVoiceRef) {
+        validationErrors.push('Please select a character for "Voice for this shot" to use for the dialogue overlay.');
+      }
+    }
+    
     // 2. Validate character headshots (required - skip if first frame is uploaded)
     if (!uploadedFirstFrameUrl) {
     // Collect all character IDs for this shot
@@ -1273,9 +1290,9 @@ export function ShotConfigurationStep({
             </div>
           </div>
 
-          {/* When first frame uploaded: show ONLY image + remove + lip-sync checkbox (hide Character, Location, Props, Motion Direction). */}
+          {/* When first frame uploaded: show ONLY image + remove + voice selector + lip-sync checkbox (hide Character, Location, Props, Motion Direction). */}
           {uploadedFirstFrameUrl && isDialogueShot && !isOverrideAllowed ? (
-            /* Compact view: uploaded image + remove + lip-sync checkbox only */
+            /* Compact view: uploaded image + remove + voice selector + lip-sync checkbox only */
             <div className="pb-3 border-b border-[#3F3F46] space-y-3">
               <div>
                 <label className="block text-xs font-medium text-[#FFFFFF] mb-2">Uploaded first frame</label>
@@ -1295,6 +1312,42 @@ export function ShotConfigurationStep({
                   </button>
                 </div>
               </div>
+              {/* Voice selector: required for lip-sync; first frame provides visual, character provides voice */}
+              {(() => {
+                const sceneChars = getCharacterSource(allCharacters, sceneAnalysisResult);
+                const effectiveVoiceCharId = shot.characterId
+                  || singularPronounCharacters?.[0]
+                  || explicitCharacters?.[0]
+                  || (pluralPronounCharacters?.[0] as string | undefined);
+                const dialogueChar = shot.dialogueBlock?.character?.trim();
+                const isPronounDialogue = dialogueChar && ['she', 'her', 'hers', 'he', 'him', 'his', 'they', 'them', 'their', 'theirs'].includes(dialogueChar.toLowerCase());
+                const pronounKey = dialogueChar?.toLowerCase();
+                return (
+                  <div className="py-2">
+                    <label className="block text-xs font-medium text-[#FFFFFF] mb-1.5">Voice for this shot</label>
+                    <select
+                      value={effectiveVoiceCharId || ''}
+                      onChange={(e) => {
+                        const charId = e.target.value;
+                        if (!charId) return;
+                        finalOnCharacterReferenceChange(shotSlot, charId, { imageUrl: uploadedFirstFrameUrl });
+                        if (isPronounDialogue && pronounKey && finalOnPronounMappingChange) {
+                          finalOnPronounMappingChange(shotSlot, pronounKey, charId);
+                        }
+                      }}
+                      className="w-full h-9 px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
+                    >
+                      <option value="">-- Select character --</option>
+                      {sceneChars.map((char: any) => (
+                        <option key={char.id} value={char.id}>
+                          {char.name || char.id}
+                        </option>
+                      ))}
+                    </select>
+                    <p className="text-[10px] text-[#808080] mt-1">Choose whose voice will be used for the dialogue overlay.</p>
+                  </div>
+                );
+              })()}
               {/* Lip-sync checkbox only – no Character, Location, Props, Motion Direction */}
               <div className="py-3">
                 {!videoOptInForThisShot ? (

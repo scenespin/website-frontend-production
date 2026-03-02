@@ -3230,14 +3230,27 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
           shots: (enabledShots.length > 0 
             ? sceneAnalysisResult.shotBreakdown.shots.filter((shot: any) => enabledShots.includes(shot.slot))
             : sceneAnalysisResult.shotBreakdown.shots
-          ).map((shot: any) => ({
-            ...shot,
-            // Add per-shot character reference if selected (backend Priority 1)
-            // For dialogue shots, get the reference for the shot's characterId
-            selectedCharacterReference: shot.type === 'dialogue' && shot.characterId && selectedCharacterReferences[shot.slot]?.[shot.characterId]
-              ? selectedCharacterReferences[shot.slot][shot.characterId]
-              : undefined
-          })),
+          ).map((shot: any) => {
+            // Resolve characterId from pronoun mapping for dialogue shots (scene analysis leaves it undefined for pronouns)
+            let effectiveCharacterId = shot.characterId;
+            if (shot.type === 'dialogue' && !effectiveCharacterId && shot.dialogueBlock?.character) {
+              const pronoun = shot.dialogueBlock.character.toLowerCase().trim();
+              const pronouns = ['she', 'her', 'hers', 'he', 'him', 'his', 'they', 'them', 'their', 'theirs'];
+              if (pronouns.includes(pronoun)) {
+                const mapping = pronounMappingsForShots[shot.slot]?.[pronoun];
+                if (typeof mapping === 'string') effectiveCharacterId = mapping;
+                else if (Array.isArray(mapping) && mapping[0]) effectiveCharacterId = mapping[0];
+              }
+            }
+            const shotWithResolved = effectiveCharacterId ? { ...shot, characterId: effectiveCharacterId } : shot;
+            return {
+              ...shotWithResolved,
+              // Add per-shot character reference if selected (backend Priority 1)
+              selectedCharacterReference: shot.type === 'dialogue' && shotWithResolved.characterId && selectedCharacterReferences[shot.slot]?.[shotWithResolved.characterId]
+                ? selectedCharacterReferences[shot.slot][shotWithResolved.characterId]
+                : undefined
+            };
+          }),
           totalShots: enabledShots.length > 0 ? enabledShots.length : sceneAnalysisResult.shotBreakdown.totalShots,
           totalCredits: enabledShots.length > 0 
             ? sceneAnalysisResult.shotBreakdown.shots
