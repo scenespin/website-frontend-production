@@ -24,7 +24,7 @@ import { useAuth } from '@clerk/nextjs';
 import { ReferencePreview } from './ReferencePreview';
 import { ReferenceShotSelector } from './ReferenceShotSelector';
 import { VideoGenerationSelector } from './VideoGenerationSelector';
-import { DialogueWorkflowType } from './UnifiedDialogueDropdown';
+import { UnifiedDialogueDropdown, type DialogueWorkflowType } from './UnifiedDialogueDropdown';
 import { getAvailablePropImages, getSelectedPropImageUrl } from './utils/propImageUtils';
 import { useSceneBuilderState, useSceneBuilderActions, VideoType, DEFAULT_REFERENCE_SHOT_MODEL, VEO_MAX_ELEMENTS } from '@/contexts/SceneBuilderContext';
 import { useBulkPresignedUrls } from '@/hooks/useMediaLibrary';
@@ -546,34 +546,35 @@ export function ShotConfigurationStep({
         throw new Error('Invalid presigned POST response: missing "key" field');
       }
       
-      const formData = new FormData();
-      Object.entries(fields).forEach(([key, value]) => {
-        // Skip 'bucket' field - it's only used in the policy, not in FormData
-        if (key.toLowerCase() === 'bucket') {
-          console.log(`[ShotConfigurationStep] Skipping 'bucket' field (policy-only): ${value}`);
-          return;
-        }
-        formData.append(key, value as string);
-      });
-      
-      // Add file last (required by S3 presigned POST)
-      formData.append('file', file);
-      
       console.log('[ShotConfigurationStep] Uploading to S3:', {
         url: url.substring(0, 100) + '...',
-        formDataKeys: Array.from(formData.keys()),
         hasKeyField: !!(fields.key || fields.Key),
         fileSize: file.size,
         fileType: file.type
       });
       
       // Small delay to ensure presigned URL is fully ready (fixes intermittent 403 errors)
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise(resolve => setTimeout(resolve, 150));
 
-      const s3Response = await fetch(url, {
-        method: 'POST',
-        body: formData
-      });
+      const doUpload = () => {
+        const fd = new FormData();
+        Object.entries(fields).forEach(([key, value]) => {
+          if (key.toLowerCase() !== 'bucket') {
+            fd.append(key, value as string);
+          }
+        });
+        fd.append('file', file);
+        return fetch(url, { method: 'POST', body: fd });
+      };
+
+      let s3Response = await doUpload();
+
+      // Retry once on 403 (intermittent presigned URL / S3 policy issues)
+      if (s3Response.status === 403) {
+        console.warn('[ShotConfigurationStep] S3 403, retrying after 500ms...');
+        await new Promise(resolve => setTimeout(resolve, 500));
+        s3Response = await doUpload();
+      }
       
       if (!s3Response.ok) {
         const errorText = await s3Response.text().catch(() => 'Unknown error');
@@ -583,7 +584,7 @@ export function ShotConfigurationStep({
           error: errorText.substring(0, 200),
           url: url.substring(0, 100) + '...'
         });
-        throw new Error(`S3 upload failed: ${s3Response.status} ${s3Response.statusText}`);
+        throw new Error(`S3 upload failed: ${s3Response.status} ${s3Response.statusText}. Please try again.`);
       }
 
       // Brief delay so S3 object is visible before register (avoids 404 from eventual consistency)
@@ -1382,18 +1383,60 @@ export function ShotConfigurationStep({
                     <p className="text-[10px] text-[#808080] mt-1 ml-6">First frame only by default. Check to include video and see cost.</p>
                   </>
                 ) : (
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-[#FFFFFF]">Dialogue Video (LIP SYNC)</span>
-                    <label className="flex items-center gap-1 cursor-pointer text-[10px] text-[#808080] hover:text-[#FFFFFF] transition-colors">
-                      <input
-                        type="checkbox"
-                        checked={true}
-                        onChange={() => actions.updateGenerateVideoForShot(shotSlot, false)}
-                        className="w-3.5 h-3.5 rounded border-[#3F3F46] bg-[#1A1A1A] text-[#DC143C] focus:ring-2 focus:ring-[#DC143C] cursor-pointer"
-                      />
-                      <span>Uncheck to remove video (first frame only)</span>
-                    </label>
-                  </div>
+                  <>
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-xs font-medium text-[#FFFFFF]">Dialogue Video (LIP SYNC OPTIONS)</span>
+                      <label className="flex items-center gap-1 cursor-pointer text-[10px] text-[#808080] hover:text-[#FFFFFF] transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={true}
+                          onChange={() => actions.updateGenerateVideoForShot(shotSlot, false)}
+                          className="w-3.5 h-3.5 rounded border-[#3F3F46] bg-[#1A1A1A] text-[#DC143C] focus:ring-2 focus:ring-[#DC143C] cursor-pointer"
+                        />
+                        <span>Uncheck to remove video (first frame only)</span>
+                      </label>
+                    </div>
+                    {finalOnDialogueWorkflowChange && (
+                      <div className="space-y-3 pb-3 border-b border-[#3F3F46]">
+                        <UnifiedDialogueDropdown
+                          shot={shot}
+                          selectedQuality={finalSelectedDialogueQuality}
+                          selectedWorkflow={finalSelectedDialogueWorkflow as DialogueWorkflowType}
+                          selectedBaseWorkflow={undefined}
+                          characterIds={[
+                            ...(shot.characterId ? [shot.characterId] : []),
+                            ...(explicitCharacters || []).filter((id: string) => id !== shot.characterId)
+                          ]}
+                          onQualityChange={(q) => finalOnDialogueQualityChange?.(shotSlot, q)}
+                          onWorkflowChange={(w) => finalOnDialogueWorkflowChange(shotSlot, w)}
+                          onBaseWorkflowChange={undefined}
+                          detectedWorkflow={(sceneAnalysisResult?.dialogue?.workflowType || 'first-frame-lipsync') as DialogueWorkflowType}
+                          workflowConfidence={sceneAnalysisResult?.dialogue?.workflowTypeConfidence}
+                          workflowReasoning={sceneAnalysisResult?.dialogue?.workflowTypeReasoning}
+                          showOnlyLipSync={true}
+                        />
+                        {['first-frame-lipsync', 'extreme-closeup', 'extreme-closeup-mouth'].includes(
+                          (finalSelectedDialogueWorkflow || sceneAnalysisResult?.dialogue?.workflowType || 'first-frame-lipsync') as string
+                        ) && (
+                          <div className="pt-2">
+                            <label className="block text-[10px] font-medium text-[#808080] mb-1.5">Video additive prompt (optional)</label>
+                            <textarea
+                              value={finalLipSyncVideoPromptAdditive || ''}
+                              onChange={(e) => actions.updateLipSyncVideoPromptAdditive(shotSlot, e.target.value.slice(0, 160))}
+                              placeholder="Adds performance/motion direction to the dialogue video prompt. Does not replace defaults."
+                              rows={2}
+                              maxLength={160}
+                              className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none"
+                            />
+                            <div className="mt-1 flex items-center justify-between text-[10px] text-[#808080]">
+                              <span>Adds to video prompt only; first-frame prompt is unchanged.</span>
+                              <span>{(finalLipSyncVideoPromptAdditive || '').length}/160</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </>
                 )}
               </div>
             </div>
@@ -1497,7 +1540,7 @@ export function ShotConfigurationStep({
                           <img
                             src={uploadedFirstFrameUrl}
                             alt="Uploaded first frame"
-                            className="w-full h-32 object-cover rounded border border-[#3F3F46]"
+                            className="w-full max-h-48 object-contain rounded border border-[#3F3F46] bg-[#0A0A0A]"
                           />
                           <button
                             type="button"
@@ -1932,7 +1975,7 @@ export function ShotConfigurationStep({
                                       <img
                                         src={uploadedFirstFrameUrl}
                                         alt="Uploaded first frame"
-                                        className="w-full h-32 object-cover rounded border border-[#3F3F46]"
+                                        className="w-full max-h-48 object-contain rounded border border-[#3F3F46] bg-[#0A0A0A]"
                                       />
                                       <button
                                         type="button"
