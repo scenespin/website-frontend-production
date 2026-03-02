@@ -3,23 +3,59 @@
  */
 
 /**
- * Download an image to the user's local filesystem
- * Handles both base64 data URLs and external URLs
+ * Download an image to the user's local filesystem via blob.
+ * Uses fetch → blob → createObjectURL so the browser respects the download attribute
+ * (direct link.href + download fails for cross-origin presigned URLs - opens in new tab instead).
+ * When s3Key is provided, fetches via same-origin /api/media/file proxy to avoid CORS.
+ */
+export async function downloadImageAsBlob(
+    imageUrl: string,
+    filename: string,
+    s3Key?: string,
+    getToken?: () => Promise<string | null>
+): Promise<void> {
+    try {
+        let fetchUrl: string;
+        const fetchOptions: RequestInit = {};
+
+        if (s3Key) {
+            // Use same-origin media proxy to avoid CORS (presigned S3/R2 URLs block cross-origin fetch)
+            fetchUrl = `/api/media/file?key=${encodeURIComponent(s3Key)}`;
+            fetchOptions.credentials = 'include';
+        } else {
+            fetchUrl = imageUrl;
+        }
+
+        const response = await fetch(fetchUrl, fetchOptions);
+        if (!response.ok) throw new Error(`Failed to fetch: ${response.statusText}`);
+        const blob = await response.blob();
+        const blobUrl = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+        console.log(`[ImageDownload] Downloaded image: ${filename}`);
+    } catch (error) {
+        console.error('[ImageDownload] Failed to download image:', error);
+        throw new Error('Failed to download image');
+    }
+}
+
+/**
+ * @deprecated Use downloadImageAsBlob for cross-origin URLs (presigned S3/R2).
+ * Direct link.href + download is ignored by browsers for cross-origin URLs → opens in new tab.
  */
 export function downloadImage(imageUrl: string, filename: string): void {
     try {
-        // Create a temporary anchor element
         const link = document.createElement('a');
         link.href = imageUrl;
         link.download = filename;
-        
-        // Trigger download
         document.body.appendChild(link);
         link.click();
-        
-        // Cleanup
         document.body.removeChild(link);
-        
         console.log(`[ImageDownload] Downloaded image: ${filename}`);
     } catch (error) {
         console.error('[ImageDownload] Failed to download image:', error);
