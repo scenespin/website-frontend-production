@@ -30,7 +30,9 @@ export async function downloadImageAsBlob(
         const response = await fetch(fetchUrl, fetchOptions);
         if (!response.ok) throw new Error(`Failed to fetch: ${response.statusText}`);
         const blob = await response.blob();
-        const { saveAs } = await import('file-saver');
+        const fileSaver = await import('file-saver');
+        const saveAs = fileSaver.default ?? fileSaver.saveAs;
+        if (typeof saveAs !== 'function') throw new Error('saveAs is not a function');
         saveAs(blob, filename);
         console.log(`[ImageDownload] Downloaded image: ${filename}`);
     } catch (error) {
@@ -70,7 +72,8 @@ export async function downloadImagesAsZip(
     try {
         // Dynamic import JSZip and FileSaver
         const JSZip = (await import('jszip')).default;
-        const { saveAs } = await import('file-saver');
+        const fileSaver = await import('file-saver');
+        const saveAs = fileSaver.default ?? fileSaver.saveAs;
         
         console.log(`[ImageDownload] Creating ZIP with ${images.length} images...`);
         
@@ -247,7 +250,8 @@ export async function downloadProductionPackage(
     try {
         // Dynamic imports
         const JSZip = (await import('jszip')).default;
-        const { saveAs } = await import('file-saver');
+        const fileSaver = await import('file-saver');
+        const saveAs = fileSaver.default ?? fileSaver.saveAs;
         
         console.log('[ImageDownload] Creating production package...');
         
