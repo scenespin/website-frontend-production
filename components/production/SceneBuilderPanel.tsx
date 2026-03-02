@@ -683,7 +683,10 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
           selectedDialogueQualities,
           selectedDialogueWorkflows,
           voiceoverBaseWorkflows,
-          generateVideoForShot
+          generateVideoForShot,
+          contextState.useElementsForVideo,
+          contextState.elementsVideoDurations,
+          contextState.uploadedFirstFrames
         );
         if (cancelled) return;
         const displayCredits: Record<number, number> = {};
@@ -706,7 +709,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     };
     run();
     return () => { cancelled = true; };
-  }, [currentStep, wizardStep, sceneAnalysisResult?.shotBreakdown?.shots, enabledShots, generateVideoForShot, selectedReferenceShotModels, selectedVideoTypes, shotDurations, selectedDialogueQualities, selectedDialogueWorkflows, voiceoverBaseWorkflows, getToken]);
+  }, [currentStep, wizardStep, sceneAnalysisResult?.shotBreakdown?.shots, enabledShots, generateVideoForShot, selectedReferenceShotModels, selectedVideoTypes, shotDurations, selectedDialogueQualities, selectedDialogueWorkflows, voiceoverBaseWorkflows, contextState.uploadedFirstFrames, contextState.useElementsForVideo, contextState.elementsVideoDurations, getToken]);
   
   // 🔥 NEW: Map Media Library files to character headshot structure
   // NOTE: This useEffect is moved to after sceneAnalysisResult declaration to avoid build error
@@ -2552,7 +2555,9 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       }
       
       // Validate location images (required unless opted out)
+      // Skip when shot has uploaded first frame – no generation, so refs not needed
       for (const shot of shots) {
+        if (uploadedFirstFrames[shot.slot]) continue;
         if (needsLocationAngle(shot, sceneAnalysisResult) && isLocationAngleRequired(shot, sceneAnalysisResult)) {
           const hasLocation = selectedLocationReferences[shot.slot] !== undefined;
           const hasOptOut = locationOptOuts[shot.slot] === true;
@@ -2576,7 +2581,9 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       }
       
       // Validate character headshots (required - no checkbox override)
+      // Skip when shot has uploaded first frame – no generation, so refs not needed
       for (const shot of shots) {
+        if (uploadedFirstFrames[shot.slot]) continue;
         // Collect all character IDs for this shot
         const shotCharacterIds = new Set<string>();
         
@@ -3458,7 +3465,8 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
             voiceoverBaseWorkflows,
             generateVideoForShot,
             contextState.useElementsForVideo,
-            contextState.elementsVideoDurations
+            contextState.elementsVideoDurations,
+            contextState.uploadedFirstFrames
           );
 
           const shotBySlot = Object.fromEntries(shots.map((s: any) => [s.slot, s]));

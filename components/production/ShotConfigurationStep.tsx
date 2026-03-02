@@ -1001,7 +1001,8 @@ export function ShotConfigurationStep({
           undefined, // voiceoverBaseWorkflows
           generateVideoForShot, // 🔥 FIX Issue 3: Pass generateVideoForShot to ensure correct pricing
           state.useElementsForVideo, // Feature 0262/0259: Elements on → firstFramePrice=0, hdPrice=VEO for action
-          state.elementsVideoDurations // 4/6/8 sec when Elements on
+          state.elementsVideoDurations, // 4/6/8 sec when Elements on
+          uploadedFirstFrameUrl ? { [shot.slot]: uploadedFirstFrameUrl } : undefined // Feature 0211: uploaded first frame → firstFramePrice=0
         );
         
         const shotPricing = pricingResult.shots.find(s => s.shotSlot === shot.slot);
@@ -1022,7 +1023,7 @@ export function ShotConfigurationStep({
     };
     
     fetchPricing();
-  }, [shot?.slot, shot?.credits, shot?.type, shotDuration, selectedReferenceShotModels, selectedVideoTypes, videoOptInForThisShot, generateVideoForShot, getToken, isDialogueShot, finalSelectedDialogueQuality, finalSelectedDialogueWorkflow, state.useElementsForVideo, state.elementsVideoDurations]);
+  }, [shot?.slot, shot?.credits, shot?.type, shotDuration, selectedReferenceShotModels, selectedVideoTypes, videoOptInForThisShot, generateVideoForShot, getToken, isDialogueShot, finalSelectedDialogueQuality, finalSelectedDialogueWorkflow, state.useElementsForVideo, state.elementsVideoDurations, uploadedFirstFrameUrl]);
 
   // Validate shot completion before allowing next
   const handleNext = () => {
@@ -1901,8 +1902,9 @@ export function ShotConfigurationStep({
           )}
 
           {/* Single separator then Aspect ratio + Estimated Cost (fewer lines under Add Dialogue Video) */}
+          {/* Hide aspect ratio and cost when user uploaded first frame – no generation, so no config needed */}
           <div className="border-t border-[#3F3F46]">
-            {onAspectRatioChange && !state.useElementsForVideo?.[shot.slot] && (
+            {onAspectRatioChange && !state.useElementsForVideo?.[shot.slot] && !uploadedFirstFrameUrl && (
               <div className="pt-2">
                 <label className="block text-[10px] text-[#808080] mb-1.5">Output aspect ratio (image &amp; video)</label>
                 <AspectRatioSelector
@@ -1937,8 +1939,8 @@ export function ShotConfigurationStep({
               </div>
             )}
 
-            {/* Cost Calculator - Explicit: first frame only vs first frame + video. Elements to Video adds video cost (no first frame). */}
-            {pricing && (
+            {/* Cost Calculator - Explicit: first frame only vs first frame + video. Elements to Video adds video cost (no first frame). Hide when uploaded first frame (0 cost). */}
+            {pricing && !uploadedFirstFrameUrl && (
               <div className="pt-3">
                 <div className="text-xs font-medium text-[#FFFFFF] mb-2">Estimated Cost</div>
                 <div className="space-y-2">

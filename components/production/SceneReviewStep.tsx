@@ -200,7 +200,8 @@ export function SceneReviewStep({
           voiceoverBaseWorkflows,
           generateVideoForShot,
           useElementsForVideo,
-          elementsVideoDurations
+          elementsVideoDurations,
+          uploadedFirstFrames
         );
         
         setPricing({
@@ -217,7 +218,7 @@ export function SceneReviewStep({
     };
     
     fetchPricing();
-  }, [sceneAnalysisResult?.shotBreakdown?.shots, enabledShots, shotDurations, selectedReferenceShotModels, selectedDialogueQualities, selectedDialogueWorkflows, voiceoverBaseWorkflows, generateVideoForShot, useElementsForVideo, elementsVideoDurations, getToken]);
+  }, [sceneAnalysisResult?.shotBreakdown?.shots, enabledShots, shotDurations, selectedReferenceShotModels, selectedDialogueQualities, selectedDialogueWorkflows, voiceoverBaseWorkflows, generateVideoForShot, useElementsForVideo, elementsVideoDurations, uploadedFirstFrames, getToken]);
   
   if (!sceneAnalysisResult) {
     return (
@@ -678,13 +679,14 @@ export function SceneReviewStep({
                             })}
                           </div>
                         )}
-                        {/* Elements path: "Video from elements". Otherwise: first frame model. */}
+                        {/* Elements path: "Video from elements". Uploaded first frame: minimal. Otherwise: first frame model. */}
                         <div className="mt-4 pt-2 border-t border-[#3F3F46]">
                           {(() => {
+                            const hasUploadedFirstFrame = !!uploadedFirstFrames[shot.slot];
                             const isElementsVideo = !!useElementsForVideo[shot.slot];
                             const isDialogueVideo = shot.type === 'dialogue' && !!generateVideoForShot[shot.slot];
                             const hasVideoForShot = isElementsVideo || isDialogueVideo;
-                            const hasFirstFrameForShot = !isElementsVideo;
+                            const hasFirstFrameForShot = !isElementsVideo && !hasUploadedFirstFrame;
                             const firstFrameAspectRatio = (shotAspectRatios[shot.slot] || '16:9') as '16:9' | '9:16' | '1:1' | '21:9' | '9:21';
                             const dialogueQuality = (selectedDialogueQualities?.[shot.slot] || 'reliable') as 'premium' | 'reliable';
 
@@ -703,7 +705,9 @@ export function SceneReviewStep({
 
                             return (
                               <div className="space-y-1">
-                                {isElementsVideo ? (
+                                {hasUploadedFirstFrame ? (
+                                  <div className="text-[10px] text-[#808080]">Uploaded first frame · No generation cost</div>
+                                ) : isElementsVideo ? (
                                   <>
                                     <div className="text-[10px] text-[#808080] mb-0.5">Video from elements</div>
                                     <div className="text-xs text-[#FFFFFF]">Reference-driven (characters, location, props)</div>
@@ -757,6 +761,10 @@ export function SceneReviewStep({
             {pricing && (
               <div className="bg-[#1A1A1A] border border-[#3F3F46] rounded p-3 space-y-2">
                 <div className="text-sm font-medium text-[#FFFFFF] mb-2">Estimated Cost</div>
+                {pricing.totalFirstFramePrice === 0 && !hasAnyVideo ? (
+                  <div className="text-xs text-[#808080]">No credits required – first frames uploaded</div>
+                ) : (
+                <>
                 <div className="flex items-center justify-between">
                   <span className="text-xs text-[#808080]">
                     {selectedShots.length} Reference Shot{selectedShots.length !== 1 ? 's' : ''}:
@@ -785,6 +793,8 @@ export function SceneReviewStep({
                   <div className="text-[10px] text-[#808080] italic mt-2 pt-2 border-t border-[#3F3F46]">
                     Standard = 720p · Premium = 1080p
                   </div>
+                )}
+                </>
                 )}
               </div>
             )}
