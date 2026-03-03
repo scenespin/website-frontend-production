@@ -68,7 +68,7 @@ export function VideoThumbnail({ videoUrl, thumbnailUrl, fileName = 'video', cla
         
         const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
         if (mounted) {
-          setThumbnailUrl(dataUrl);
+          setExtractedThumbnail(dataUrl);
         }
       } catch (err) {
         console.warn('[VideoThumbnail] Failed to capture frame:', err);
