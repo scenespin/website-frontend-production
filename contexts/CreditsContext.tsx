@@ -41,24 +41,24 @@ export function CreditsProvider({ children }: { children: React.ReactNode }) {
     refreshCredits(true);
   }, [refreshCredits]);
 
-  // Periodic refresh fallback.
+  // Periodic refresh fallback (use cache for speed; invalidated on writes).
   useEffect(() => {
     if (!user) return;
 
     const interval = setInterval(() => {
       if (!document.hidden) {
-        refreshCredits(true);
+        refreshCredits(false);
       }
     }, 30000);
 
     return () => clearInterval(interval);
   }, [user, refreshCredits]);
 
-  // Refresh on tab visibility restore.
+  // Refresh on tab visibility restore (use cache for speed; invalidated on writes).
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (!document.hidden) {
-        refreshCredits(true);
+        refreshCredits(false);
       }
     };
     document.addEventListener('visibilitychange', handleVisibilityChange);
