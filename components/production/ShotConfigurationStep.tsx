@@ -527,7 +527,7 @@ export function ShotConfigurationStep({
       const { url, fields, s3Key } = presignedData;
       
       // Validate presigned URL response
-      if (!url || !fields || !s3Key) {
+      if (!url || !s3Key) {
         console.error('[ShotConfigurationStep] Invalid presigned URL response:', presignedData);
         throw new Error('Invalid presigned URL response from server');
       }
@@ -538,10 +538,11 @@ export function ShotConfigurationStep({
         s3Key: s3Key.substring(0, 50) + '...'
       });
       
-      // Step 2: Upload to S3 directly (using presigned POST)
-      // Match working pattern from AnnotationToVideoPanel and SceneBuilderPanel
-      // Verify 'key' field is present (required for presigned POST)
-      if (!fields.key && !fields.Key) {
+      const usePutUpload = !fields || Object.keys(fields).length === 0;
+
+      // Step 2: Upload to object storage (S3 presigned POST or R2 signed PUT)
+      // Verify 'key' field only for presigned POST flows.
+      if (!usePutUpload && !fields.key && !fields.Key) {
         console.error('[ShotConfigurationStep] WARNING: No "key" field in presigned POST fields!');
         console.error('[ShotConfigurationStep] Available fields:', Object.keys(fields));
         throw new Error('Invalid presigned POST response: missing "key" field');
@@ -579,7 +580,6 @@ export function ShotConfigurationStep({
         body: fileToUpload
       });
 
-      const usePutUpload = !fields || Object.keys(fields).length === 0;
       let s3Response = usePutUpload ? await doPutUpload() : await doPostUpload();
 
       // Retry once on 403 (intermittent presigned URL / S3 policy issues)

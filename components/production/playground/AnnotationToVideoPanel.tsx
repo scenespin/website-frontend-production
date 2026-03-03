@@ -15,6 +15,7 @@ import { useAuth } from '@clerk/nextjs';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { VisualAnnotationPanel } from '../VisualAnnotationPanel';
 import { GenerationPreview } from './GenerationPreview';
+import { uploadToObjectStorage } from '@/lib/objectStorageUpload';
 
 interface AnnotationToVideoPanelProps {
   className?: string;
@@ -134,18 +135,10 @@ export function AnnotationToVideoPanel({ className = '' }: AnnotationToVideoPane
 
       const { url, fields, s3Key } = await presignedResponse.json();
       
-      // Upload to S3
-      const formData = new FormData();
-      Object.entries(fields).forEach(([key, value]) => {
-        if (key.toLowerCase() !== 'bucket') {
-          formData.append(key, value as string);
-        }
-      });
-      formData.append('file', file);
-
-      const s3Response = await fetch(url, {
-        method: 'POST',
-        body: formData,
+      // Upload to object storage (S3 POST or R2 PUT)
+      const s3Response = await uploadToObjectStorage(url, fields, file, {
+        fileName: file.name,
+        contentType: file.type,
       });
 
       if (!s3Response.ok) {

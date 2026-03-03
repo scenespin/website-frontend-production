@@ -12,6 +12,7 @@ import { useDropzone } from 'react-dropzone';
 import { useAuth } from '@clerk/nextjs';
 import { X, Upload, Image as ImageIcon, Trash2, Check } from 'lucide-react';
 import { AssetCategory, ASSET_CATEGORY_METADATA, CreateAssetRequest } from '@/types/asset';
+import { uploadToObjectStorage } from '@/lib/objectStorageUpload';
 
 interface AssetUploadModalProps {
   isOpen: boolean;
@@ -144,24 +145,14 @@ export default function AssetUploadModal({ isOpen, onClose, projectId, onSuccess
 
         const { url, fields, s3Key } = await presignedResponse.json();
         
-        if (!url || !fields || !s3Key) {
+        if (!url || !s3Key) {
           throw new Error('Invalid response from server');
         }
 
-        // Upload directly to S3 using presigned POST
-        const s3FormData = new FormData();
-        
-        Object.entries(fields).forEach(([key, value]) => {
-          if (key.toLowerCase() !== 'bucket') {
-            s3FormData.append(key, value as string);
-          }
-        });
-        
-        s3FormData.append('file', file);
-        
-        const s3UploadResponse = await fetch(url, {
-          method: 'POST',
-          body: s3FormData,
+        // Upload to object storage (S3 POST or R2 PUT)
+        const s3UploadResponse = await uploadToObjectStorage(url, fields, file, {
+          fileName: file.name,
+          contentType: file.type,
         });
 
         if (!s3UploadResponse.ok) {

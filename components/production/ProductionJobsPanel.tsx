@@ -19,6 +19,7 @@ import { StorageDecisionModal } from '@/components/storage/StorageDecisionModal'
 import { useQueryClient } from '@tanstack/react-query';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useRouter } from 'next/navigation';
+import { uploadToObjectStorage } from '@/lib/objectStorageUpload';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -252,15 +253,9 @@ function DrivingVideoUpload({
 
       // Step 2: Upload to S3
       toast.info('Uploading video...');
-      const formData = new FormData();
-      Object.entries(fields).forEach(([key, value]) => {
-        formData.append(key, value as string);
-      });
-      formData.append('file', videoFile);
-
-      const uploadResponse = await fetch(url, {
-        method: 'POST',
-        body: formData
+      const uploadResponse = await uploadToObjectStorage(url, fields, videoFile, {
+        fileName: videoFile.name,
+        contentType: videoFile.type,
       });
 
       if (!uploadResponse.ok) {

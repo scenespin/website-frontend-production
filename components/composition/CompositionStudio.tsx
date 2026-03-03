@@ -47,6 +47,7 @@ import { MobileCompositionBanner } from './MobileCompositionBanner';
 import { shouldSimplifyComposition } from '@/utils/deviceDetection';
 import { useEditorContext, useContextStore } from '@/lib/contextStore';  // Contextual navigation
 import { useAuth } from '@clerk/nextjs';
+import { uploadToObjectStorage } from '@/lib/objectStorageUpload';
 
 // Video file validation
 const MAX_VIDEO_SIZE_GB = 50;
@@ -245,33 +246,16 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
         
         const { url, fields, s3Key } = await presignedResponse.json();
         
-        if (!url || !fields || !s3Key) {
+        if (!url || !s3Key) {
           throw new Error('Invalid response from server');
         }
         
-        toast.info(`Uploading ${file.name} to S3...`, { id: uploadToastId.toString() });
+        toast.info(`Uploading ${file.name}...`, { id: uploadToastId.toString() });
         
-        // Step 2: Upload directly to S3 using FormData POST (presigned POST)
-        // This is the recommended approach for browser uploads - Content-Type is handled
-        // as form data, not headers, preventing 403 Forbidden errors
-        const formData = new FormData();
-        
-        // Add all the fields returned from createPresignedPost
-        // NOTE: Do NOT include 'bucket' field in FormData - it's only for policy validation
-        Object.entries(fields).forEach(([key, value]) => {
-          // Skip 'bucket' field - it's only used in the policy, not in FormData
-          if (key.toLowerCase() === 'bucket') {
-            return;
-          }
-          formData.append(key, value as string);
-        });
-        
-        // Add the file last (must be last field in FormData)
-        formData.append('file', file);
-        
-        const s3Response = await fetch(url, {
-          method: 'POST',
-          body: formData,
+        // Step 2: Upload to object storage (S3 POST or R2 PUT)
+        const s3Response = await uploadToObjectStorage(url, fields, file, {
+          fileName: file.name,
+          contentType: file.type,
         });
         
         if (!s3Response.ok) {

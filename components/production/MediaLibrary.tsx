@@ -681,103 +681,63 @@ export default function MediaLibrary({
 
       const { url, fields, s3Key } = await presignedResponse.json();
       
-      if (!url || !fields || !s3Key) {
+      if (!url || !s3Key) {
         throw new Error('Invalid response from server');
       }
 
-      // Step 2: Upload directly to S3 using FormData POST (presigned POST)
-      // This is the recommended approach for browser uploads - Content-Type is handled
-      // as form data, not headers, preventing 403 Forbidden errors
-      const formData = new FormData();
-      
-      // Add all the fields returned from createPresignedPost
-      // CRITICAL: The 'key' field must be present and match the S3 key exactly
-      // NOTE: Do NOT include 'bucket' field in FormData - it's only for policy validation
-      console.log('[MediaLibrary] Presigned POST fields:', fields);
-      console.log('[MediaLibrary] Expected S3 key:', s3Key);
-      
-      Object.entries(fields).forEach(([key, value]) => {
-        // Skip 'bucket' field - it's only used in the policy, not in FormData
-        if (key.toLowerCase() === 'bucket') {
-          console.log(`[MediaLibrary] Skipping 'bucket' field (policy-only): ${value}`);
-          return;
-        }
-        formData.append(key, value as string);
-        console.log(`[MediaLibrary] Added field: ${key} = ${value}`);
-      });
-      
-      // Verify 'key' field is present (required for presigned POST)
-      if (!fields.key && !fields.Key) {
-        console.error('[MediaLibrary] WARNING: No "key" field in presigned POST fields!');
-        console.error('[MediaLibrary] Available fields:', Object.keys(fields));
-      }
-      
-      // Ensure file part Content-Type matches policy (empty file.type → 403)
-      const fileType = fields['Content-Type'] || file.type || 'image/jpeg';
+      const hasPostFields = fields && Object.keys(fields).length > 0;
+      const fileType = (fields && fields['Content-Type']) || file.type || 'image/jpeg';
       const blob = file.slice(0, file.size, fileType);
       const fileToUpload = new File([blob], file.name, { type: fileType });
-      
-      // Add the file last (must be last field in FormData per AWS requirements)
-      formData.append('file', fileToUpload);
-      console.log('[MediaLibrary] Added file:', file.name, `(${file.size} bytes, ${file.type})`);
-      console.log('[MediaLibrary] Uploading to URL:', url);
-      
-      // Use XMLHttpRequest for progress tracking
-      await new Promise<void>((resolve, reject) => {
-        const xhr = new XMLHttpRequest();
-        
-        xhr.upload.addEventListener('progress', (e) => {
-          if (e.lengthComputable) {
-            const percentComplete = Math.round((e.loaded / e.total) * 50); // 0-50% for upload
-            setUploadProgress(25 + percentComplete); // 25-75% total
+
+      if (hasPostFields) {
+        const formData = new FormData();
+        Object.entries(fields).forEach(([key, value]) => {
+          if (key.toLowerCase() !== 'bucket') {
+            formData.append(key, value as string);
           }
         });
-        
-        xhr.addEventListener('load', () => {
-          if (xhr.status >= 200 && xhr.status < 300) {
-            resolve();
-          } else {
-            // Parse XML error response for detailed error code
-            let errorCode = 'Unknown';
-            let errorMessage = xhr.statusText;
-            try {
-              const parser = new DOMParser();
-              const xmlDoc = parser.parseFromString(xhr.responseText, 'text/xml');
-              errorCode = xmlDoc.querySelector('Code')?.textContent || 'Unknown';
-              errorMessage = xmlDoc.querySelector('Message')?.textContent || xhr.statusText;
-              const requestId = xmlDoc.querySelector('RequestId')?.textContent;
-              
-              console.error('[MediaLibrary] S3 Error Details:', {
-                Code: errorCode,
-                Message: errorMessage,
-                RequestId: requestId,
-                Status: xhr.status,
-                StatusText: xhr.statusText
-              });
-            } catch (e) {
-              // Not XML, use as-is
+        formData.append('file', fileToUpload);
+
+        // Use XMLHttpRequest for progress tracking (S3 multipart POST path)
+        await new Promise<void>((resolve, reject) => {
+          const xhr = new XMLHttpRequest();
+
+          xhr.upload.addEventListener('progress', (e) => {
+            if (e.lengthComputable) {
+              const percentComplete = Math.round((e.loaded / e.total) * 50); // 0-50% for upload
+              setUploadProgress(25 + percentComplete); // 25-75% total
             }
-            
-            // Log FormData contents for debugging
-            const formDataEntries = Array.from(formData.entries());
-            console.error('[MediaLibrary] FormData contents:', formDataEntries.map(([k, v]) => [
-              k,
-              typeof v === 'string' 
-                ? (v.length > 100 ? v.substring(0, 100) + '...' : v)
-                : `File: ${(v as File).name} (${(v as File).size} bytes)`
-            ]));
-            
-            reject(new Error(`S3 upload failed: ${xhr.status} ${xhr.statusText}. ${errorCode}: ${errorMessage}`));
-          }
+          });
+
+          xhr.addEventListener('load', () => {
+            if (xhr.status >= 200 && xhr.status < 300) {
+              resolve();
+            } else {
+              reject(new Error(`S3 upload failed: ${xhr.status} ${xhr.statusText}`));
+            }
+          });
+
+          xhr.addEventListener('error', () => {
+            reject(new Error('S3 upload failed: Network error'));
+          });
+
+          xhr.open('POST', url);
+          xhr.send(formData);
         });
-        
-        xhr.addEventListener('error', () => {
-          reject(new Error('S3 upload failed: Network error'));
+      } else {
+        // R2 path: signed PUT URL
+        setUploadProgress(60);
+        const putResponse = await fetch(url, {
+          method: 'PUT',
+          headers: { 'Content-Type': fileType },
+          body: fileToUpload,
         });
-        
-        xhr.open('POST', url);
-        xhr.send(formData);
-      });
+        if (!putResponse.ok) {
+          const errorText = await putResponse.text();
+          throw new Error(`R2 upload failed: ${putResponse.status} ${errorText || putResponse.statusText}`);
+        }
+      }
 
       setUploadProgress(75);
 

@@ -38,6 +38,8 @@ import { toast } from 'sonner';
 import StyleAnalyzer from './StyleAnalyzer';
 import { useCreateFolder, useMediaFolders, useUploadMedia } from '@/hooks/useMediaLibrary';
 import { useQuery } from '@tanstack/react-query';
+import { uploadToObjectStorage } from '@/lib/objectStorageUpload';
+import { uploadToObjectStorage } from '@/lib/objectStorageUpload';
 
 // ============================================================================
 // TYPES
@@ -246,16 +248,10 @@ export function StyleProfilesPanel({
 
       const { url, fields, s3Key } = await presignedResponse.json();
 
-      // Step 2: Upload to S3
-      const formData = new FormData();
-      Object.entries(fields).forEach(([key, value]) => {
-        formData.append(key, value as string);
-      });
-      formData.append('file', file);
-
-      const uploadResponse = await fetch(url, {
-        method: 'POST',
-        body: formData,
+      // Step 2: Upload to object storage (S3 POST or R2 PUT)
+      const uploadResponse = await uploadToObjectStorage(url, fields, file, {
+        fileName: file.name,
+        contentType: file.type,
       });
 
       if (!uploadResponse.ok) {

@@ -98,6 +98,7 @@ import { SceneBuilderProvider, useSceneBuilderState, useSceneBuilderActions, Vid
 // Media Library mapping utilities are now used in hooks
 import { resolveCharacterHeadshotUrl, isValidImageUrl } from './utils/imageUrlResolver';
 import { SCENE_BUILDER_GRID_COLS, SCENE_BUILDER_GRID_GAP, THUMBNAIL_STYLE } from './utils/imageConstants';
+import { uploadToObjectStorage } from '@/lib/objectStorageUpload';
 import {
   getFullShotText,
   actionShotHasExplicitCharacter,
@@ -2378,16 +2379,11 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
           const blob = file.slice(0, file.size, fileType);
           const fileToUpload = new File([blob], file.name, { type: fileType });
           
-          // Upload directly to S3 using FormData POST
-          const formData = new FormData();
-          Object.entries(fields).forEach(([key, value]) => {
-            if (key.toLowerCase() !== 'bucket') {
-              formData.append(key, value as string);
-            }
+          // Upload to object storage (S3 POST or R2 PUT)
+          const s3Response = await uploadToObjectStorage(url, fields, fileToUpload, {
+            fileName: file.name,
+            contentType: fileType,
           });
-          formData.append('file', fileToUpload); // File must be last
-          
-          const s3Response = await fetch(url, { method: 'POST', body: formData });
           if (!s3Response.ok) {
             const errorText = await s3Response.text();
             throw new Error(`S3 upload failed: ${s3Response.status} ${s3Response.statusText}. ${errorText}`);
@@ -3046,15 +3042,10 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       const blob = file.slice(0, file.size, fileType);
       const fileToUpload = new File([blob], file.name, { type: fileType });
       
-      const formData = new FormData();
-      Object.entries(fields).forEach(([key, value]) => {
-        if (key.toLowerCase() !== 'bucket') {
-          formData.append(key, value as string);
-        }
+      const s3Response = await uploadToObjectStorage(url, fields, fileToUpload, {
+        fileName: file.name,
+        contentType: fileType,
       });
-      formData.append('file', fileToUpload);
-      
-      const s3Response = await fetch(url, { method: 'POST', body: formData });
       if (!s3Response.ok) return null;
       
       const downloadUrlResponse = await fetch('/api/s3/download-url', {
@@ -3124,16 +3115,11 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
           const blob = file.slice(0, file.size, fileType);
           const fileToUpload = new File([blob], file.name, { type: fileType });
           
-          // Upload directly to S3 using FormData POST
-          const formData = new FormData();
-          Object.entries(fields).forEach(([key, value]) => {
-            if (key.toLowerCase() !== 'bucket') {
-              formData.append(key, value as string);
-            }
+          // Upload to object storage (S3 POST or R2 PUT)
+          const s3Response = await uploadToObjectStorage(url, fields, fileToUpload, {
+            fileName: file.name,
+            contentType: fileType,
           });
-          formData.append('file', fileToUpload); // File must be last
-          
-          const s3Response = await fetch(url, { method: 'POST', body: formData });
           if (!s3Response.ok) {
             throw new Error(`S3 upload failed: ${s3Response.statusText}`);
           }

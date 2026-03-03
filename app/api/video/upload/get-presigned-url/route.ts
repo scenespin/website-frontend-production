@@ -1,7 +1,8 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@clerk/nextjs/server';
-import { S3Client } from '@aws-sdk/client-s3';
+import { PutObjectCommand, S3Client } from '@aws-sdk/client-s3';
 import { createPresignedPost } from '@aws-sdk/s3-presigned-post';
+import { getSignedUrl } from '@aws-sdk/s3-request-presigner';
 import { randomUUID } from 'crypto';
 
 const S3_BUCKET = process.env.S3_BUCKET_NAME || process.env.S3_BUCKET || 'screenplay-assets-043309365215';
@@ -127,34 +128,54 @@ export async function GET(request: Request) {
         : `timeline/${clerkUserId}/${screenplayId}/${timestamp}_${uuid}${ext}`;
     }
     
-    // Generate pre-signed POST (browser-friendly, handles Content-Type as form data)
-    // This avoids the Content-Type header signing issues with getSignedUrl
-    // 🔥 FIX: Use maximum expiration (1 hour) - AWS S3 presigned POST max is 1 hour (3600 seconds)
-    // This handles cases where user does multiple things (creates character + uploads clothing) before upload
-    const { url, fields } = await createPresignedPost(storageClient, {
-      Bucket: bucketName,
-      Key: s3Key,
-      Expires: 3600, // 1 hour (maximum allowed for presigned POST)
-      Conditions: (() => {
-        const conds: Array<['content-length-range', number, number] | ['starts-with', string, string]> = [
-          ['content-length-range', 0, 50 * 1024 * 1024 * 1024],
-        ];
-        if (fileType.startsWith('image/')) conds.push(['starts-with', '$Content-Type', 'image/']);
-        else if (fileType.startsWith('video/')) conds.push(['starts-with', '$Content-Type', 'video/']);
-        else if (fileType.startsWith('audio/')) conds.push(['starts-with', '$Content-Type', 'audio/']);
-        return conds;
-      })(),
-      Fields: {
-        'Content-Type': fileType,
-        // Add metadata as form fields (S3 will store these)
-        'x-amz-meta-userid': clerkUserId,
-        'x-amz-meta-screenplayid': screenplayId.toString(), // Primary identifier
-        'x-amz-meta-projectid': screenplayId.toString(), // Keep for backward compatibility
-        'x-amz-meta-uploadedat': new Date().toISOString(),
-        'x-amz-meta-originalfilename': fileName,
-        'x-amz-meta-filetype': category,
-      },
-    });
+    let url: string;
+    let fields: Record<string, string>;
+    if (storageTarget === 'r2') {
+      // R2 browser uploads use signed PUT URLs.
+      const command = new PutObjectCommand({
+        Bucket: bucketName,
+        Key: s3Key,
+        ContentType: fileType,
+        Metadata: {
+          userid: clerkUserId,
+          screenplayid: screenplayId.toString(),
+          projectid: screenplayId.toString(),
+          uploadedat: new Date().toISOString(),
+          originalfilename: fileName,
+          filetype: category,
+        },
+      });
+      url = await getSignedUrl(storageClient, command, { expiresIn: 3600 });
+      fields = {};
+    } else {
+      // S3 browser uploads use presigned POST.
+      const presigned = await createPresignedPost(storageClient, {
+        Bucket: bucketName,
+        Key: s3Key,
+        Expires: 3600, // 1 hour (maximum allowed for presigned POST)
+        Conditions: (() => {
+          const conds: Array<['content-length-range', number, number] | ['starts-with', string, string]> = [
+            ['content-length-range', 0, 50 * 1024 * 1024 * 1024],
+          ];
+          if (fileType.startsWith('image/')) conds.push(['starts-with', '$Content-Type', 'image/']);
+          else if (fileType.startsWith('video/')) conds.push(['starts-with', '$Content-Type', 'video/']);
+          else if (fileType.startsWith('audio/')) conds.push(['starts-with', '$Content-Type', 'audio/']);
+          return conds;
+        })(),
+        Fields: {
+          'Content-Type': fileType,
+          // Add metadata as form fields (S3 will store these)
+          'x-amz-meta-userid': clerkUserId,
+          'x-amz-meta-screenplayid': screenplayId.toString(), // Primary identifier
+          'x-amz-meta-projectid': screenplayId.toString(), // Keep for backward compatibility
+          'x-amz-meta-uploadedat': new Date().toISOString(),
+          'x-amz-meta-originalfilename': fileName,
+          'x-amz-meta-filetype': category,
+        },
+      });
+      url = presigned.url;
+      fields = presigned.fields;
+    }
     
     console.log(`[VideoUpload] Generated pre-signed POST for user ${clerkUserId}: ${s3Key}`);
     console.log(`[VideoUpload] ContentType: ${fileType}, FileSize: ${fileSizeNum} bytes`);

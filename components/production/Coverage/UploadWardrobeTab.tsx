@@ -22,6 +22,7 @@ import { PoseGuidanceSection } from '../CharacterStudio/PoseGuidanceSection';
 import { MediaLibraryBrowser } from '../CharacterStudio/MediaLibraryBrowser';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { canonicalOutfitName, canonicalToDisplay } from '@/utils/outfitUtils';
+import { uploadToObjectStorage } from '@/lib/objectStorageUpload';
 
 interface UploadWardrobeTabProps {
   characterId: string;
@@ -152,16 +153,10 @@ export function UploadWardrobeTab({
             img.file === file ? { ...img, progress: 30 } : img
           ));
 
-          // Step 2: Upload to S3
-          const formData = new FormData();
-          Object.entries(fields).forEach(([key, value]) => {
-            formData.append(key, value as string);
-          });
-          formData.append('file', file);
-
-          const uploadResponse = await fetch(url, {
-            method: 'POST',
-            body: formData
+          // Step 2: Upload to object storage (S3 POST or R2 PUT)
+          const uploadResponse = await uploadToObjectStorage(url, fields, file, {
+            fileName: file.name,
+            contentType: file.type,
           });
 
           if (!uploadResponse.ok) {

@@ -16,6 +16,7 @@ import { useQueryClient } from '@tanstack/react-query'
 import { invalidateProductionHubAndMediaCache } from '@/utils/cacheInvalidation'
 import { useMediaFiles, useBulkPresignedUrls, useDropboxPreviewUrls } from '@/hooks/useMediaLibrary'
 import { getMediaFileDisplayUrl } from '@/components/production/utils/imageUrlResolver'
+import { uploadToObjectStorage } from '@/lib/objectStorageUpload';
 
 interface LocationDetailSidebarProps {
   location?: Location | null
@@ -1114,16 +1115,11 @@ export default function LocationDetailSidebar({
 
               const { url, fields, s3Key } = await presignedResponse.json();
               
-              // Upload to S3
-              const formData = new FormData();
-              Object.entries(fields).forEach(([key, value]) => {
-                if (key.toLowerCase() !== 'bucket') {
-                  formData.append(key, value as string);
-                }
+              // Upload to object storage (S3 POST or R2 PUT)
+              await uploadToObjectStorage(url, fields, file, {
+                fileName: file.name,
+                contentType: file.type,
               });
-              formData.append('file', file);
-              
-              await fetch(url, { method: 'POST', body: formData });
 
               // Get presigned download URL
               const S3_BUCKET = process.env.NEXT_PUBLIC_S3_BUCKET || 'screenplay-assets-043309365215';

@@ -6,6 +6,7 @@ import { useAuth } from '@clerk/nextjs';
 import { Users, Upload, Loader2, Download, Save, Clock, Droplet } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { api } from '@/lib/api';
+import { uploadToObjectStorage } from '@/lib/objectStorageUpload';
 
 export function TryOnModePanel({ onInsert }) {
   const { state, addMessage } = useChatContext();
@@ -97,27 +98,14 @@ export function TryOnModePanel({ onInsert }) {
       
       const { url, fields, s3Key } = await presignedResponse.json();
       
-      if (!url || !fields || !s3Key) {
+      if (!url || !s3Key) {
         throw new Error('Invalid response from server');
       }
       
-      // Step 2: Upload directly to S3 using FormData POST
-      const formData = new FormData();
-      
-      // Add all fields from presigned POST (except 'bucket')
-      Object.entries(fields).forEach(([key, value]) => {
-        if (key.toLowerCase() !== 'bucket') {
-          formData.append(key, value);
-        }
-      });
-      
-      // Add the file last
-      formData.append('file', file);
-      
-      // Upload to S3
-      const s3Response = await fetch(url, {
-        method: 'POST',
-        body: formData,
+      // Step 2: Upload to object storage (S3 POST or R2 PUT)
+      const s3Response = await uploadToObjectStorage(url, fields, file, {
+        fileName: file.name,
+        contentType: fileType,
       });
       
       if (!s3Response.ok) {

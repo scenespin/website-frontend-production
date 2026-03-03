@@ -16,6 +16,7 @@ import { toast } from 'sonner';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { hasCharacterReference, showReferenceRequired } from '@/utils/referenceImageValidation';
 import { useInFlightWorkflowJobsStore } from '@/lib/inFlightWorkflowJobsStore';
+import { uploadToObjectStorage } from '@/lib/objectStorageUpload';
 
 interface PoseGenerationModalProps {
   isOpen: boolean;
@@ -221,17 +222,11 @@ export default function PoseGenerationModal({
           const { url, fields, s3Key: uploadedS3Key } = await presignedResponse.json();
           s3Key = uploadedS3Key;
 
-          // Upload to S3
-          const s3FormData = new FormData();
-          Object.entries(fields).forEach(([key, value]) => {
-            if (key.toLowerCase() !== 'bucket') {
-              s3FormData.append(key, value as string);
-            }
-          });
-          s3FormData.append('file', file);
-
           // 🔥 FIX: Retry upload if presigned URL expires (Policy expired error)
-          let s3Response = await fetch(url, { method: 'POST', body: s3FormData });
+          let s3Response = await uploadToObjectStorage(url, fields, file, {
+            fileName: file.name,
+            contentType: file.type,
+          });
           
           // If upload fails with 403 (Policy expired), regenerate presigned URL and retry once
           if (!s3Response.ok && s3Response.status === 403) {
@@ -259,15 +254,10 @@ export default function PoseGenerationModal({
                 s3Key = retryS3Key;
                 
                 // Retry upload with new presigned URL
-                const retryFormData = new FormData();
-                Object.entries(retryFields).forEach(([key, value]) => {
-                  if (key.toLowerCase() !== 'bucket') {
-                    retryFormData.append(key, value as string);
-                  }
+                s3Response = await uploadToObjectStorage(retryUrl, retryFields, file, {
+                  fileName: file.name,
+                  contentType: file.type,
                 });
-                retryFormData.append('file', file);
-                
-                s3Response = await fetch(retryUrl, { method: 'POST', body: retryFormData });
               }
             }
           }

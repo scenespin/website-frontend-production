@@ -93,44 +93,53 @@ export function useDirectS3Upload() {
       
       const { url, fields, s3Key } = await presignedResponse.json();
       
-      if (!url || !fields || !s3Key) {
+      if (!url || !s3Key) {
         throw new Error('Invalid response from server');
       }
       
-      console.log('[DirectS3Upload] Got pre-signed POST, uploading to S3...');
+      const hasPostFields = fields && Object.keys(fields).length > 0;
+      console.log(`[DirectS3Upload] Got pre-signed ${hasPostFields ? 'POST' : 'PUT'} URL, uploading...`);
       
       if (onProgress) onProgress(30);
       
       // Ensure file part Content-Type matches policy (empty file.type → 403)
-      const fileType = fields['Content-Type'] || file.type || 'image/jpeg';
+      const fileType = (fields && fields['Content-Type']) || file.type || 'image/jpeg';
       const blob = file.slice(0, file.size, fileType);
       const fileToUpload = new File([blob], file.name, { type: fileType });
-      
-      // Step 2: Upload directly to S3 using FormData POST (presigned POST)
-      // This is the recommended approach for browser uploads - Content-Type is handled
-      // as form data, not headers, preventing 403 Forbidden errors
-      const formData = new FormData();
-      
-      // Add all the fields returned from createPresignedPost
-      // NOTE: Do NOT include 'bucket' field in FormData - it's only for policy validation
-      Object.entries(fields).forEach(([key, value]) => {
-        // Skip 'bucket' field - it's only used in the policy, not in FormData
-        if (key.toLowerCase() === 'bucket') {
-          return;
+
+      let s3Url = url;
+      if (hasPostFields) {
+        const formData = new FormData();
+        Object.entries(fields).forEach(([key, value]) => {
+          if (key.toLowerCase() !== 'bucket') {
+            formData.append(key, value as string);
+          }
+        });
+        formData.append('file', fileToUpload);
+
+        // Upload using XMLHttpRequest for progress tracking
+        s3Url = await uploadToS3WithProgress(url, formData, (progress) => {
+          // Map S3 upload progress to 30-90%
+          const mappedProgress = 30 + (progress * 0.6);
+          setState(prev => ({ ...prev, progress: mappedProgress }));
+          if (onProgress) onProgress(mappedProgress);
+        });
+      } else {
+        // R2 signed PUT path
+        const putResponse = await fetch(url, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': fileType,
+          },
+          body: fileToUpload,
+        });
+        if (!putResponse.ok) {
+          const errorText = await putResponse.text();
+          throw new Error(`Upload failed: ${putResponse.status} ${errorText || putResponse.statusText}`);
         }
-        formData.append(key, value as string);
-      });
-      
-      // Add the file last (must be last field in FormData)
-      formData.append('file', fileToUpload);
-      
-      // Upload using XMLHttpRequest for progress tracking
-      const s3Url = await uploadToS3WithProgress(url, formData, (progress) => {
-        // Map S3 upload progress to 30-90%
-        const mappedProgress = 30 + (progress * 0.6);
-        setState(prev => ({ ...prev, progress: mappedProgress }));
-        if (onProgress) onProgress(mappedProgress);
-      });
+        setState(prev => ({ ...prev, progress: 90 }));
+        if (onProgress) onProgress(90);
+      }
       
       console.log('[DirectS3Upload] Upload complete:', s3Key);
       

@@ -17,6 +17,7 @@ import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useAuth } from '@clerk/nextjs';
 import { GenerationPreview } from './GenerationPreview';
 import { extractCreditError, getCreditErrorDisplayMessage, syncCreditsFromError } from '@/utils/creditGuard';
+import { uploadToObjectStorage } from '@/lib/objectStorageUpload';
 
 /** Capabilities from GET /api/video/models (used for mode-based model filtering). */
 interface VideoModelCapabilities {
@@ -387,17 +388,9 @@ export function VideoGenerationTools({
 
     const { url, fields, s3Key } = await presignedResponse.json();
 
-    const formData = new FormData();
-    Object.entries(fields).forEach(([key, value]) => {
-      if (key.toLowerCase() !== 'bucket') {
-        formData.append(key, value as string);
-      }
-    });
-    formData.append('file', file);
-
-    const s3Response = await fetch(url, {
-      method: 'POST',
-      body: formData,
+    const s3Response = await uploadToObjectStorage(url, fields, file, {
+      fileName: file.name,
+      contentType: file.type,
     });
 
     if (!s3Response.ok) {

@@ -22,6 +22,7 @@ import PosePackageSelector from '../../character-bank/PosePackageSelector';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { extractCreditError, getCreditErrorDisplayMessage, syncCreditsFromError } from '@/utils/creditGuard';
 import { useInFlightWorkflowJobsStore } from '@/lib/inFlightWorkflowJobsStore';
+import { uploadToObjectStorage } from '@/lib/objectStorageUpload';
 
 interface GenerateWardrobeTabProps {
   characterId: string;
@@ -201,15 +202,10 @@ export function GenerateWardrobeTab({
         if (presignedResponse.ok) {
           const { url, fields, s3Key } = await presignedResponse.json();
           
-          const formData = new FormData();
-          Object.entries(fields).forEach(([key, value]) => {
-            if (key.toLowerCase() !== 'bucket') {
-              formData.append(key, value as string);
-            }
+          const uploadResponse = await uploadToObjectStorage(url, fields, file, {
+            fileName: file.name,
+            contentType: file.type,
           });
-          formData.append('file', file);
-
-          const uploadResponse = await fetch(url, { method: 'POST', body: formData });
           
           if (uploadResponse.ok) {
             // Get presigned download URL
