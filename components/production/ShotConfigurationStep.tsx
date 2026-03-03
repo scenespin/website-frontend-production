@@ -507,7 +507,8 @@ export function ShotConfigurationStep({
           headers: {
             'Authorization': `Bearer ${token}`,
             'Content-Type': 'application/json'
-          }
+          },
+          cache: 'no-store' // Prevent browser from reusing cached presigned URL (avoids 403 on retry/different shot)
         }
       );
       

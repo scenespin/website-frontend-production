@@ -11,15 +11,31 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Video } from 'lucide-react';
 
 interface VideoThumbnailProps {
+  /** Presigned URL for the video (used when thumbnailUrl not provided) */
   videoUrl: string;
+  /** Pre-generated thumbnail URL (image). When provided, use directly instead of loading video. */
+  thumbnailUrl?: string;
   fileName?: string;
   className?: string;
 }
 
-export function VideoThumbnail({ videoUrl, fileName = 'video', className = '' }: VideoThumbnailProps) {
-  const [thumbnailUrl, setThumbnailUrl] = useState<string | null>(null);
+export function VideoThumbnail({ videoUrl, thumbnailUrl, fileName = 'video', className = '' }: VideoThumbnailProps) {
+  const [extractedThumbnail, setExtractedThumbnail] = useState<string | null>(null);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+
+  // When thumbnailUrl is provided, use it directly (avoids CORS/video-load issues)
+  if (thumbnailUrl) {
+    return (
+      <div className={`${className} relative bg-[#1F1F1F] rounded overflow-hidden w-full h-full`}>
+        <img
+          src={thumbnailUrl}
+          alt={fileName}
+          className="w-full h-full object-cover"
+        />
+      </div>
+    );
+  }
 
   useEffect(() => {
     const video = videoRef.current;
@@ -98,9 +114,9 @@ export function VideoThumbnail({ videoUrl, fileName = 'video', className = '' }:
 
   return (
     <div className={`${className} relative bg-[#1F1F1F] rounded overflow-hidden w-full h-full`}>
-      {thumbnailUrl ? (
+      {extractedThumbnail ? (
         <img 
-          src={thumbnailUrl} 
+          src={extractedThumbnail} 
           alt={fileName}
           className="w-full h-full object-cover"
         />

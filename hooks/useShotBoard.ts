@@ -40,6 +40,8 @@ export interface ShotVariation {
     fileId: string;
     s3Key: string;
     fileName: string;
+    /** Pre-generated thumbnail S3 key (from backend FFmpeg). Use for thumbnail display instead of loading full video. */
+    thumbnailS3Key?: string;
     metadata?: Record<string, any>;
   };
 }
@@ -276,6 +278,7 @@ export function useShotBoard(screenplayId: string, enabled: boolean = true): Use
       }
       const variations = scene.shotsMap.get(shotNumber)!;
       const videoMetadata = (video as any).metadata || {};
+      const thumbKey = (video as any).thumbnailS3Key || videoMetadata?.thumbnailS3Key;
       variations.push({
         timestamp,
         firstFrame: { fileId: '', s3Key: '', fileName: '' }, // Video-only variation, no first frame
@@ -283,6 +286,7 @@ export function useShotBoard(screenplayId: string, enabled: boolean = true): Use
           fileId: (video as any).fileId || (video as any).id || '',
           s3Key: (video as any).s3Key || '',
           fileName: (video as any).fileName || '',
+          ...(thumbKey && { thumbnailS3Key: thumbKey }),
           metadata: videoMetadata
         }
       });
@@ -303,13 +307,16 @@ export function useShotBoard(screenplayId: string, enabled: boolean = true): Use
           return bKey.localeCompare(aKey, undefined, { numeric: true });
         });
 
-        // Collect S3 keys for presigned URLs
+        // Collect S3 keys for presigned URLs (first frames, videos, and video thumbnails when available)
         for (const variation of variations) {
           if (variation.firstFrame.s3Key) {
             s3Keys.push(variation.firstFrame.s3Key);
           }
           if (variation.video?.s3Key) {
             s3Keys.push(variation.video.s3Key);
+          }
+          if (variation.video?.thumbnailS3Key) {
+            s3Keys.push(variation.video.thumbnailS3Key);
           }
         }
 
