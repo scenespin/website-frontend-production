@@ -57,6 +57,7 @@ export async function GET(request: NextRequest) {
     const response = await fetch(url, {
       method: 'GET',
       headers,
+      cache: 'no-store', // Never cache - credits change after workflows, purchases, etc.
     });
 
     if (!response.ok) {
