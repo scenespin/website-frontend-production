@@ -311,6 +311,8 @@ export default function MediaLibrary({
           // 🔥 Filter out archived/expired files (same as useMediaFiles) so Archive and Scene Builder stay in sync
           const backendFiles = rawBackendFiles.filter((file: any) => {
             if (file.isArchived === true || file.metadata?.isArchived === true) return false;
+            // Thumbnails are internal rows and should not appear as deletable media.
+            if (typeof file.s3Key === 'string' && file.s3Key.startsWith('thumbnails/')) return false;
             return true;
           });
           

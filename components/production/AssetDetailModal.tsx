@@ -1420,16 +1420,6 @@ export default function AssetDetailModal({
                                           // 🔥 FIX: Send only Creation images in PUT so angle refs are never written to asset.images
                                           const imagesForPut = getCreationOnlyImages(updatedImages);
                                           
-                                          // 🔥 OPTIMISTIC UPDATE: Immediately update React Query cache before backend call
-                                          queryClient.setQueryData<Asset[]>(['assets', screenplayId, 'production-hub'], (old) => {
-                                            if (!old) return old;
-                                            return old.map(a => 
-                                              a.id === latestAsset.id
-                                                ? { ...a, angleReferences: updatedAngleReferences, images: imagesForPut }
-                                                : a
-                                            );
-                                          });
-                                          
                                           // 🔥 ONE-WAY SYNC: Update Production Hub backend with both arrays (images = Creation-only)
                                           const response = await fetch(`/api/asset-bank/${latestAsset.id}?screenplayId=${encodeURIComponent(screenplayId)}`, {
                                             method: 'PUT',

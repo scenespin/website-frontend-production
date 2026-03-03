@@ -52,7 +52,9 @@ export function usePropReferences(
     undefined,
     enabled && propIds.length > 0,
     true, // includeAllFolders: true (needed to get files from Angles subfolders)
-    'asset' // entityType only, no entityId (get all asset images)
+    'asset', // entityType only, no entityId (get all asset images)
+    undefined,
+    true // fetchAllPages to avoid default 50-item truncation
   );
 
   // Filter Media Library files by prop IDs and exclude archived/deleted files

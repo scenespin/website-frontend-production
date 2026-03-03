@@ -199,6 +199,8 @@ export function useMediaFiles(
       // Filter out archived/expired (Feature 0200)
       const activeFiles = allBackendFiles.filter((file: any) => {
         if (file.isArchived === true || file.metadata?.isArchived === true) return false;
+        // Thumbnails are implementation artifacts, not user-visible library items.
+        if (typeof file.s3Key === 'string' && file.s3Key.startsWith('thumbnails/')) return false;
         return true;
       });
 
@@ -654,6 +656,12 @@ export function useDeleteMedia(screenplayId: string) {
           'Authorization': `Bearer ${token}`,
         },
       });
+
+      // Treat 404 as already deleted. This can happen for stale UI rows
+      // (e.g. cached IDs that were already cleaned up server-side).
+      if (response.status === 404) {
+        return;
+      }
 
       if (!response.ok) {
         throw new Error(`Failed to delete media file: ${response.status} ${response.statusText}`);
