@@ -39,6 +39,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { useAssets } from '@/hooks/useAssetBank';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { formatProviderTag } from '@/utils/providerLabels';
+import { uploadToObjectStorage } from '@/lib/objectStorageUpload';
 
 /**
  * Returns only Creation-section images (excludes Production Hub / angle-generated).
@@ -604,7 +605,7 @@ export default function AssetDetailModal({
         return;
       }
 
-      // Upload each file
+      // Upload each file via presign -> direct object upload -> register
       for (let i = 0; i < files.length; i++) {
         const file = files[i];
         if (assetImages.length >= 5) {
@@ -612,20 +613,59 @@ export default function AssetDetailModal({
           break;
         }
 
-        const formData = new FormData();
-        formData.append('image', file);
+        // 1) Request upload URL (S3 POST or R2 PUT depending on primary target)
+        const presignedResponse = await fetch(
+          `/api/assets/upload/get-presigned-url?` +
+            `fileName=${encodeURIComponent(file.name)}` +
+            `&fileType=${encodeURIComponent(file.type)}` +
+            `&fileSize=${file.size}` +
+            `&screenplayId=${encodeURIComponent(screenplayId || '')}` +
+            `&assetId=${encodeURIComponent(latestAsset.id)}`,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+        if (!presignedResponse.ok) {
+          const errorData = await presignedResponse.json().catch(() => ({}));
+          throw new Error(errorData.error || `Failed to get upload URL: ${presignedResponse.status}`);
+        }
+        const { url, fields, s3Key } = await presignedResponse.json();
+        if (!url || !s3Key) {
+          throw new Error('Invalid upload-url response');
+        }
 
-        const response = await fetch(`/api/asset-bank/${latestAsset.id}/images`, {
+        // 2) Upload to object storage (R2 PUT or S3 POST)
+        const storageUploadResponse = await uploadToObjectStorage(url, fields, file, {
+          fileName: file.name,
+          contentType: file.type,
+        });
+        if (!storageUploadResponse.ok) {
+          const errorText = await storageUploadResponse.text();
+          console.error('[AssetDetailModal] Object storage upload failed:', errorText);
+          throw new Error(`Storage upload failed: ${storageUploadResponse.status}`);
+        }
+
+        // 3) Register uploaded key with asset + media library
+        const registerResponse = await fetch(`/api/asset-bank/${latestAsset.id}/images`, {
           method: 'POST',
           headers: {
-            'Authorization': `Bearer ${token}`,
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
           },
-          body: formData,
+          body: JSON.stringify({
+            s3Key,
+            fileName: file.name,
+            fileType: file.type,
+            fileSize: file.size,
+            createdIn: 'creation',
+          }),
         });
-
-        if (!response.ok) {
-          const error = await response.json();
-          throw new Error(error.error || 'Failed to upload image');
+        if (!registerResponse.ok) {
+          const errorData = await registerResponse.json().catch(() => ({}));
+          throw new Error(errorData.error || `Failed to register image: ${registerResponse.status}`);
         }
       }
 
