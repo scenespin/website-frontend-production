@@ -2340,6 +2340,13 @@ export default function MediaLibrary({
                         })()}`}>
                           {getFileIcon(file.fileType)}
                         </div>
+                        {/* Video badge - distinguish videos from images */}
+                        {(file.fileType === 'video' || (typeof file.fileType === 'string' && file.fileType.startsWith('video/')) || file.mediaFileType === 'video') && (
+                          <div className="absolute bottom-1 left-1 flex items-center gap-1 px-2 py-0.5 bg-black/75 rounded text-[10px] font-medium text-white">
+                            <Video className="w-3 h-3" />
+                            Video
+                          </div>
+                        )}
                       </div>
 
                       {/* File Info - Simplified on mobile */}
