@@ -5,15 +5,32 @@ import { createPresignedPost } from '@aws-sdk/s3-presigned-post';
 import { randomUUID } from 'crypto';
 
 const S3_BUCKET = process.env.S3_BUCKET_NAME || process.env.S3_BUCKET || 'screenplay-assets-043309365215';
+const R2_BUCKET = process.env.R2_BUCKET_NAME || '';
 const AWS_REGION = process.env.AWS_REGION || 'us-east-1';
+const R2_ACCOUNT_ID = process.env.R2_ACCOUNT_ID || '';
+const R2_ACCESS_KEY_ID = process.env.R2_ACCESS_KEY_ID || '';
+const R2_SECRET_ACCESS_KEY = process.env.R2_SECRET_ACCESS_KEY || '';
+const PRIMARY_STORAGE_TARGET = (process.env.MEDIA_PRIMARY_STORAGE_TARGET || 's3').toLowerCase();
 
 // Prevent stale presign responses from being cached by edge/browser layers.
 export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 export const fetchCache = 'force-no-store';
 
-// Initialize S3 client
-const s3Client = new S3Client({ region: AWS_REGION });
+function createStorageClient(target: 's3' | 'r2'): S3Client {
+  if (target === 'r2') {
+    return new S3Client({
+      region: 'auto',
+      endpoint: `https://${R2_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+      forcePathStyle: true,
+      credentials: {
+        accessKeyId: R2_ACCESS_KEY_ID,
+        secretAccessKey: R2_SECRET_ACCESS_KEY
+      }
+    });
+  }
+  return new S3Client({ region: AWS_REGION });
+}
 
 /**
  * GET /api/video/upload/get-presigned-url
@@ -37,6 +54,16 @@ const s3Client = new S3Client({ region: AWS_REGION });
  */
 export async function GET(request: Request) {
   try {
+    const storageTarget: 's3' | 'r2' = PRIMARY_STORAGE_TARGET === 'r2' ? 'r2' : 's3';
+    if (storageTarget === 'r2' && (!R2_ACCOUNT_ID || !R2_ACCESS_KEY_ID || !R2_SECRET_ACCESS_KEY || !R2_BUCKET)) {
+      return NextResponse.json({
+        error: 'R2 is selected as primary storage but is not fully configured'
+      }, { status: 500 });
+    }
+
+    const bucketName = storageTarget === 'r2' ? R2_BUCKET : S3_BUCKET;
+    const storageClient = createStorageClient(storageTarget);
+
     // Get the token from the Authorization header that the client sent
     const authHeader = request.headers.get('authorization');
     const token = authHeader?.replace('Bearer ', '');
@@ -104,8 +131,8 @@ export async function GET(request: Request) {
     // This avoids the Content-Type header signing issues with getSignedUrl
     // 🔥 FIX: Use maximum expiration (1 hour) - AWS S3 presigned POST max is 1 hour (3600 seconds)
     // This handles cases where user does multiple things (creates character + uploads clothing) before upload
-    const { url, fields } = await createPresignedPost(s3Client, {
-      Bucket: S3_BUCKET,
+    const { url, fields } = await createPresignedPost(storageClient, {
+      Bucket: bucketName,
       Key: s3Key,
       Expires: 3600, // 1 hour (maximum allowed for presigned POST)
       Conditions: (() => {
@@ -131,6 +158,7 @@ export async function GET(request: Request) {
     
     console.log(`[VideoUpload] Generated pre-signed POST for user ${clerkUserId}: ${s3Key}`);
     console.log(`[VideoUpload] ContentType: ${fileType}, FileSize: ${fileSizeNum} bytes`);
+    console.log(`[VideoUpload] Storage target: ${storageTarget}, bucket: ${bucketName}`);
     console.log(`[VideoUpload] Presigned POST URL: ${url}`);
     console.log(`[VideoUpload] Presigned POST fields:`, JSON.stringify(fields, null, 2));
     

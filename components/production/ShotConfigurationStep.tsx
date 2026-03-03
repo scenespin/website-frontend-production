@@ -498,11 +498,11 @@ export function ShotConfigurationStep({
       
       // Step 1: Get presigned URL (query params, not FormData - avoids multer parsing issues)
       const presignedResponse = await fetch(
-        `/api/video/upload/get-presigned-url?` +
+        `/api/scene-builder/first-frame/upload-url?` +
         `fileName=${encodeURIComponent(file.name)}` +
         `&fileType=${encodeURIComponent(fileType)}` +
         `&fileSize=${file.size}` +
-        `&projectId=${encodeURIComponent(screenplayId)}`,
+        `&screenplayId=${encodeURIComponent(screenplayId)}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
@@ -562,7 +562,7 @@ export function ShotConfigurationStep({
       const blob = file.slice(0, file.size, fileType);
       const fileToUpload = new File([blob], file.name, { type: fileType });
 
-      const doUpload = () => {
+      const doPostUpload = () => {
         const fd = new FormData();
         Object.entries(fields).forEach(([key, value]) => {
           if (key.toLowerCase() !== 'bucket') {
@@ -573,13 +573,20 @@ export function ShotConfigurationStep({
         return fetch(url, { method: 'POST', body: fd });
       };
 
-      let s3Response = await doUpload();
+      const doPutUpload = () => fetch(url, {
+        method: 'PUT',
+        headers: { 'Content-Type': fileToUpload.type || 'application/octet-stream' },
+        body: fileToUpload
+      });
+
+      const usePutUpload = !fields || Object.keys(fields).length === 0;
+      let s3Response = usePutUpload ? await doPutUpload() : await doPostUpload();
 
       // Retry once on 403 (intermittent presigned URL / S3 policy issues)
       if (s3Response.status === 403) {
         console.warn('[ShotConfigurationStep] S3 403, retrying after 500ms...');
         await new Promise(resolve => setTimeout(resolve, 500));
-        s3Response = await doUpload();
+        s3Response = usePutUpload ? await doPutUpload() : await doPostUpload();
       }
       
       if (!s3Response.ok) {

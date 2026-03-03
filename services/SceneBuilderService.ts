@@ -597,11 +597,11 @@ export class SceneBuilderService {
     const token = await this.getToken(getTokenFn);
     
     const response = await fetch(
-      `/api/video/upload/get-presigned-url?` +
+      `/api/scene-builder/first-frame/upload-url?` +
       `fileName=${encodeURIComponent(fileName)}` +
       `&fileType=${encodeURIComponent(fileType)}` +
       `&fileSize=${fileSize}` +
-      `&projectId=${encodeURIComponent(screenplayId)}`,
+      `&screenplayId=${encodeURIComponent(screenplayId)}`,
       {
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -639,6 +639,23 @@ export class SceneBuilderService {
     file: File,
     logPrefix?: string
   ): Promise<void> {
+    // R2 path: backend returns signed PUT URL and no form fields.
+    if (!fields || Object.keys(fields).length === 0) {
+      const putResponse = await fetch(url, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': file.type || 'application/octet-stream'
+        },
+        body: file
+      });
+
+      if (!putResponse.ok) {
+        const errorText = await putResponse.text().catch(() => 'No error details');
+        throw new Error(`Upload failed: ${putResponse.status} ${putResponse.statusText}. ${errorText}`);
+      }
+      return;
+    }
+
     const formData = new FormData();
     
     // Add all fields from presigned POST (skip 'bucket' field - policy only)
