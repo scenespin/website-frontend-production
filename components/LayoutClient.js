@@ -221,13 +221,20 @@ const InsufficientCreditsHandler = () => {
 
   useEffect(() => {
     const handleInsufficientCredits = (event) => {
-      const { requiredCredits, availableCredits, message } = event.detail;
+      const { requiredCredits, availableCredits, message } = event.detail || {};
       setModalState({
         isOpen: true,
         requiredCredits,
         availableCredits,
         operation: message || 'complete this operation'
       });
+      // 🔥 Update CreditsContext immediately so nav/dashboard show live balance from toast/modal
+      if (typeof availableCredits === 'number' && Number.isFinite(availableCredits) && availableCredits >= 0) {
+        window.dispatchEvent(new CustomEvent('credits:override', {
+          detail: { balance: availableCredits }
+        }));
+        if (typeof window.refreshCredits === 'function') window.refreshCredits();
+      }
     };
 
     window.addEventListener('insufficient-credits', handleInsufficientCredits);

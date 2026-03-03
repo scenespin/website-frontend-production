@@ -142,19 +142,30 @@ export async function secureFetch(path: string, options: RequestInit = {}) {
             let availableCredits = null;
             const message = data.message || '';
             
-            // Parse error message for credit details (format: "Need X credits, have Y")
+            // Backend canonical format: { required, current } (from buildInsufficientCreditsPayload)
+            if (typeof data.required === 'number') requiredCredits = data.required;
+            if (typeof data.current === 'number') availableCredits = data.current;
+            
+            // Parse error message for credit details (format: "Need X credits, have Y") - fallback
             const needMatch = message.match(/Need (\d+)/i);
             const haveMatch = message.match(/have (\d+)/i);
-            if (needMatch) requiredCredits = parseInt(needMatch[1], 10);
-            if (haveMatch) availableCredits = parseInt(haveMatch[1], 10);
+            if (needMatch && requiredCredits == null) requiredCredits = parseInt(needMatch[1], 10);
+            if (haveMatch && availableCredits == null) availableCredits = parseInt(haveMatch[1], 10);
             
-            // Also check if credits are in the response data
-            if (data.requiredCredits) requiredCredits = data.requiredCredits;
-            if (data.availableCredits) availableCredits = data.availableCredits;
+            // Legacy response fields
+            if (data.requiredCredits != null) requiredCredits = data.requiredCredits;
+            if (data.availableCredits != null) availableCredits = data.availableCredits;
+            
+            // 🔥 CRITICAL: Update CreditsContext immediately so nav/dashboard show live balance
+            if (typeof window !== 'undefined' && typeof availableCredits === 'number' && Number.isFinite(availableCredits) && availableCredits >= 0) {
+                window.dispatchEvent(new CustomEvent('credits:override', {
+                    detail: { balance: availableCredits }
+                }));
+                if (window.refreshCredits) window.refreshCredits();
+            }
             
             // Trigger global insufficient credits modal
             if (typeof window !== 'undefined') {
-                // Dispatch custom event that LayoutClient can listen to
                 window.dispatchEvent(new CustomEvent('insufficient-credits', {
                     detail: {
                         requiredCredits,
