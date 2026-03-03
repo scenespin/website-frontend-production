@@ -1580,6 +1580,7 @@ export default function AssetDetailModal({
             id: img.id,
             url: img.imageUrl,
             label: img.label,
+            type: 'image',
             s3Key: img.s3Key,
             metadata: img.metadata || { angle: (img as any).angle }
           }))}

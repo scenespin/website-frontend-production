@@ -2473,6 +2473,7 @@ export default function MediaLibrary({
               // 🔥 FIX: Always use full image URL in ImageViewer (not thumbnail)
               url: getFileUrl(file, false) || file.fileUrl || file.thumbnailUrl || '',
               label: file.fileName,
+              type: 'image',
               s3Key: file.s3Key,
               metadata: { fileType: file.fileType, fileSize: file.fileSize }
             }))}

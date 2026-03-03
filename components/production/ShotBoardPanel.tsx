@@ -409,6 +409,7 @@ export function ShotBoardPanel({ className = '', onNavigateToSceneBuilder, onGen
           id: shotKey,
           url,
           label: `Scene ${scene.sceneNumber} · Shot ${shot.shotNumber}`,
+          type: 'image',
         });
         index += 1;
       }

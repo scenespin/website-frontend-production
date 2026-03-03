@@ -2366,6 +2366,7 @@ export function CharacterDetailModal({
               id: img.id || img.s3Key || `img_${Date.now()}`,
               url: img.imageUrl || '',
               label: img.label || `${character.name} image`,
+              type: 'image',
               s3Key: img.s3Key,
               metadata: {
                 poseId: (img as any).poseId || (img as any).metadata?.poseId,
@@ -2378,6 +2379,7 @@ export function CharacterDetailModal({
             id: img.id || img.s3Key || `img_${Date.now()}`,
             url: img.imageUrl || '',
             label: img.label || `${character.name} image`,
+            type: 'image',
             s3Key: img.s3Key,
             metadata: {
               poseId: (img as any).poseId || (img as any).metadata?.poseId,

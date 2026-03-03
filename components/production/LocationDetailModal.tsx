@@ -2276,6 +2276,7 @@ export function LocationDetailModal({
           id: img.id,
           url: img.imageUrl,
           label: img.label,
+          type: 'image',
           s3Key: img.s3Key,
           metadata: {}
         }))}
@@ -2283,6 +2284,7 @@ export function LocationDetailModal({
           id: img.id,
           url: img.imageUrl,
           label: img.label,
+          type: 'image',
           s3Key: img.s3Key,
           metadata: {}
         }))}

@@ -85,12 +85,42 @@ export function ImageViewer({
   const isMobile = useIsMobile();
   const { getToken } = useAuth();
   
-  // Detect media type from URL or metadata
+  // Detect media type from authoritative type first, then metadata, then conservative extension fallback.
   const getMediaType = useCallback((item: ImageItem): 'image' | 'video' => {
-    if (item.type) return item.type;
-    const url = item.url?.toLowerCase() || '';
-    const videoExtensions = ['.mp4', '.webm', '.mov', '.avi', '.mkv'];
-    return videoExtensions.some(ext => url.includes(ext)) ? 'video' : 'image';
+    const normalizeType = (value?: string): 'image' | 'video' | null => {
+      if (!value) return null;
+      const lower = value.toLowerCase();
+      if (lower === 'image' || lower.startsWith('image/')) return 'image';
+      if (lower === 'video' || lower.startsWith('video/')) return 'video';
+      return null;
+    };
+
+    const getExtension = (value?: string): string => {
+      if (!value) return '';
+      const withoutQuery = value.split('?')[0].split('#')[0];
+      const dotIndex = withoutQuery.lastIndexOf('.');
+      return dotIndex >= 0 ? withoutQuery.substring(dotIndex + 1).toLowerCase() : '';
+    };
+
+    const explicitType = normalizeType(item.type);
+    if (explicitType) return explicitType;
+
+    const metadataType = normalizeType(item.metadata?.mediaFileType || item.metadata?.fileType);
+    if (metadataType) return metadataType;
+
+    const videoExtensions = new Set(['mp4', 'webm', 'mov', 'avi', 'mkv', 'm4v', '3gp', 'ogv']);
+    const imageExtensions = new Set(['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp', 'svg', 'avif', 'heic', 'heif']);
+
+    const urlExt = getExtension(item.url);
+    if (videoExtensions.has(urlExt)) return 'video';
+    if (imageExtensions.has(urlExt)) return 'image';
+
+    const keyExt = getExtension(item.s3Key);
+    if (videoExtensions.has(keyExt)) return 'video';
+    if (imageExtensions.has(keyExt)) return 'image';
+
+    // Default to image for backward compatibility if type is unknown.
+    return 'image';
   }, []);
 
   // Generate presigned URL from s3Key if URL is missing or fails
@@ -315,6 +345,20 @@ export function ImageViewer({
   // Memoize current image and media type for performance (must be before useEffects that use them)
   const currentImage = useMemo(() => displayImages[currentIndex], [displayImages, currentIndex]);
   const currentMediaType = useMemo(() => currentImage ? getMediaType(currentImage) : 'image', [currentImage, getMediaType]);
+
+  // Debug signal for data drift: explicit type should not disagree with inferred playback type.
+  useEffect(() => {
+    if (!currentImage?.type) return;
+    if (currentImage.type !== currentMediaType) {
+      console.warn('[ImageViewer] Media type mismatch detected', {
+        id: currentImage.id,
+        explicitType: currentImage.type,
+        resolvedType: currentMediaType,
+        s3Key: currentImage.s3Key,
+        url: currentImage.url?.substring(0, 160),
+      });
+    }
+  }, [currentImage, currentMediaType]);
 
   // Generate presigned URL when media changes or URL is missing/expired
   useEffect(() => {
@@ -632,7 +676,7 @@ export function ImageViewer({
         <div className="flex-1 flex flex-col bg-[#0A0A0A] border-2 border-[#3F3F46] rounded-lg overflow-hidden shadow-2xl relative">
         {/* Header - Minimal, shows on hover (always visible on mobile) */}
         <div 
-          className={`absolute top-0 left-0 right-0 z-10 bg-gradient-to-b from-black/80 to-transparent p-4 transition-opacity rounded-t-lg ${
+          className={`absolute top-0 left-0 right-0 z-30 bg-gradient-to-b from-black/80 to-transparent p-4 transition-opacity rounded-t-lg ${
             isMobile 
               ? showControls ? 'opacity-100' : 'opacity-0'
               : 'group-hover:opacity-100 md:opacity-70 opacity-100'
@@ -883,7 +927,7 @@ export function ImageViewer({
 
             {/* Media Type Indicator */}
             {currentMediaType === 'video' && (
-              <div className="absolute top-4 right-4 z-20 px-3 py-1.5 bg-[#DC143C]/90 backdrop-blur-sm rounded-lg flex items-center gap-2">
+              <div className="absolute top-16 md:top-20 right-4 z-20 px-3 py-1.5 bg-[#DC143C]/90 backdrop-blur-sm rounded-lg flex items-center gap-2">
                 <VideoIcon className="w-4 h-4 text-white" />
                 <span className="text-white text-sm font-medium">Video</span>
               </div>
