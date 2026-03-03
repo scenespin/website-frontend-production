@@ -39,7 +39,6 @@ import StyleAnalyzer from './StyleAnalyzer';
 import { useCreateFolder, useMediaFolders, useUploadMedia } from '@/hooks/useMediaLibrary';
 import { useQuery } from '@tanstack/react-query';
 import { uploadToObjectStorage } from '@/lib/objectStorageUpload';
-import { uploadToObjectStorage } from '@/lib/objectStorageUpload';
 
 // ============================================================================
 // TYPES
