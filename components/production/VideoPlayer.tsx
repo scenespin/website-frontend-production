@@ -10,10 +10,13 @@
  * - Custom trim handles
  * - Loading and error states
  * - Keyboard shortcuts
+ * 
+ * SSR-safe: Plyr is dynamically imported only on the client to avoid
+ * "document is not defined" during server-side rendering.
  */
 
 import React, { useRef, useEffect, useState, useCallback, forwardRef, useImperativeHandle } from 'react';
-import Plyr from 'plyr';
+import type Plyr from 'plyr';
 import 'plyr/dist/plyr.css';
 import { GripVertical } from 'lucide-react';
 
@@ -66,21 +69,28 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
   const trimEndTriggeredRef = useRef(false);
   const [isAutoPlaying, setIsAutoPlaying] = useState(false); // Track if we're autoplaying to hide controls
 
-  // Initialize Plyr player
+  // Initialize Plyr player - dynamic import to avoid SSR "document is not defined"
   useEffect(() => {
     if (!videoRef.current || !containerRef.current) return;
 
-    // Set initial source if provided
-    if (src && videoRef.current) {
-      videoRef.current.src = src;
-    }
+    let mounted = true;
 
-    // Set loop on video element directly (Plyr types are stricter)
-    if (videoRef.current) {
-      videoRef.current.loop = loop;
-    }
+    const initPlayer = async () => {
+      const { default: Plyr } = await import('plyr');
 
-    const player = new Plyr(videoRef.current, {
+      if (!mounted || !videoRef.current || !containerRef.current) return;
+
+      // Set initial source if provided
+      if (src && videoRef.current) {
+        videoRef.current.src = src;
+      }
+
+      // Set loop on video element directly (Plyr types are stricter)
+      if (videoRef.current) {
+        videoRef.current.loop = loop;
+      }
+
+      const player = new Plyr(videoRef.current, {
       controls: ['play-large', 'play', 'progress', 'current-time', 'duration', 'mute', 'volume', 'settings', 'fullscreen'],
       autoplay: false, // We'll handle autoplay manually for better control
       clickToPlay: true,
@@ -201,9 +211,12 @@ export const VideoPlayer = forwardRef<VideoPlayerRef, VideoPlayerProps>(({
         onError(error);
       }
     });
+    };
 
-    // Cleanup
+    initPlayer();
+
     return () => {
+      mounted = false;
       if (playerRef.current) {
         playerRef.current.destroy();
         playerRef.current = null;
