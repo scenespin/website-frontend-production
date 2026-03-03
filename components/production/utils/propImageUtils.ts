@@ -33,6 +33,7 @@ export interface AvailableImage {
  */
 export function getAvailablePropImages(prop: PropType): AvailableImage[] {
   const availableImages: AvailableImage[] = [];
+  const seenS3Keys = new Set<string>();
   
   // Add angleReferences (Production Hub images)
   // 🔥 Feature 0200: Only include angleReferences that have s3Key (presigned URLs will be fetched)
@@ -40,6 +41,8 @@ export function getAvailablePropImages(prop: PropType): AvailableImage[] {
     prop.angleReferences.forEach(ref => {
       // Only include if it has s3Key - presigned URL will be fetched from Media Library
       if (ref.s3Key) {
+        if (seenS3Keys.has(ref.s3Key)) return;
+        seenS3Keys.add(ref.s3Key);
         // 🔥 FIX: Use angle field as label fallback (backend AssetReference uses `angle`, not `label`)
         const effectiveLabel = ref.label || ref.angle;
         // 🔥 FIX: Include presignedUrl from enriched imageUrl (payload-first presigned URL)
@@ -59,6 +62,8 @@ export function getAvailablePropImages(prop: PropType): AvailableImage[] {
     prop.images.forEach(img => {
       // Only include if it has s3Key - presigned URL will be fetched
       if (img.s3Key) {
+        if (seenS3Keys.has(img.s3Key)) return;
+        seenS3Keys.add(img.s3Key);
         const hasPresignedUrl = img.url && !img.url.startsWith('projects/') && img.url.includes('://');
         availableImages.push({
           id: img.s3Key,
@@ -72,6 +77,10 @@ export function getAvailablePropImages(prop: PropType): AvailableImage[] {
   
   // 🔥 SIMPLIFIED: Always add baseReference if it exists - no conditional check
   if (prop.baseReference?.s3Key) {
+    if (seenS3Keys.has(prop.baseReference.s3Key)) {
+      return availableImages;
+    }
+    seenS3Keys.add(prop.baseReference.s3Key);
     const hasPresignedUrl = prop.baseReference.imageUrl && !prop.baseReference.imageUrl.startsWith('projects/') && prop.baseReference.imageUrl.includes('://');
     availableImages.push({
       id: prop.baseReference.s3Key,
@@ -119,7 +128,7 @@ export function getAvailablePropImagesByGroup(prop: PropType): {
   // Add images[] (Creation images) — only if not already in Production Hub
   if (prop.images && prop.images.length > 0) {
     prop.images.forEach(img => {
-      if (img.s3Key && !productionHubS3Keys.has(img.s3Key)) {
+      if (img.s3Key && !productionHubS3Keys.has(img.s3Key) && !creationImage.some((c) => c.imageUrl === img.s3Key)) {
         const hasPresignedUrl = img.url && !img.url.startsWith('projects/') && img.url.includes('://');
         creationImage.push({
           id: img.s3Key,
@@ -133,13 +142,15 @@ export function getAvailablePropImagesByGroup(prop: PropType): {
 
   // Add baseReference (Creation image) — only if not already in Production Hub
   if (prop.baseReference?.s3Key && !productionHubS3Keys.has(prop.baseReference.s3Key)) {
-    const hasPresignedUrl = prop.baseReference.imageUrl && !prop.baseReference.imageUrl.startsWith('projects/') && prop.baseReference.imageUrl.includes('://');
-    creationImage.push({
-      id: prop.baseReference.s3Key,
-      imageUrl: prop.baseReference.s3Key,
-      label: 'Creation Image',
-      presignedUrl: hasPresignedUrl ? prop.baseReference.imageUrl : undefined
-    });
+    if (!creationImage.some((c) => c.imageUrl === prop.baseReference!.s3Key)) {
+      const hasPresignedUrl = prop.baseReference.imageUrl && !prop.baseReference.imageUrl.startsWith('projects/') && prop.baseReference.imageUrl.includes('://');
+      creationImage.push({
+        id: prop.baseReference.s3Key,
+        imageUrl: prop.baseReference.s3Key,
+        label: 'Creation Image',
+        presignedUrl: hasPresignedUrl ? prop.baseReference.imageUrl : undefined
+      });
+    }
   }
 
   return {

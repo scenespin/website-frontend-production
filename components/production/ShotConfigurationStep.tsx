@@ -746,7 +746,7 @@ export function ShotConfigurationStep({
           const imgData = fullProp.images.find(i => i.url === selectedImage.id || i.s3Key === selectedImage.id);
           if (imgData?.s3Key) imageS3Key = imgData.s3Key;
         }
-        if (!imageS3Key && fullProp.baseReference?.s3Key && selectedImage.label === 'Creation Image (Last Resort)') {
+        if (!imageS3Key && fullProp.baseReference?.s3Key && (selectedImage.label === 'Creation Image' || selectedImage.label === 'Creation Image (Last Resort)')) {
           imageS3Key = fullProp.baseReference.s3Key;
         }
         
@@ -797,7 +797,7 @@ export function ShotConfigurationStep({
           const imgData = fullProp.images.find(i => i.url === selectedImage.id || i.s3Key === selectedImage.id);
           if (imgData?.s3Key) imageS3Key = imgData.s3Key;
         }
-        if (!imageS3Key && fullProp.baseReference?.s3Key && selectedImage.label === 'Creation Image (Last Resort)') {
+        if (!imageS3Key && fullProp.baseReference?.s3Key && (selectedImage.label === 'Creation Image' || selectedImage.label === 'Creation Image (Last Resort)')) {
           imageS3Key = fullProp.baseReference.s3Key;
         }
         

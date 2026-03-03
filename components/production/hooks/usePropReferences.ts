@@ -130,7 +130,12 @@ export function usePropReferences(
     payloadPropS3Keys.length > 0 ? payloadPropS3Keys : [],
     enabled && propIds.length > 0 && payloadPropS3Keys.length > 0
   );
-  const usePayloadForProps = initialProps.length > 0 && payloadPropS3Keys.length > 0;
+  // Media Library rows are the authoritative source for current prop assets.
+  // Only use payload-first when ML has no rows yet (e.g., transient consistency window).
+  const usePayloadForProps =
+    initialProps.length > 0 &&
+    payloadPropS3Keys.length > 0 &&
+    propMediaFiles.length === 0;
 
   // Enrich props: payload-first when API provided refs, else Media Library as source of truth
   const enrichedProps = useMemo(() => {

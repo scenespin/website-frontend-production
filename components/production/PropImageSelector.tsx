@@ -190,13 +190,13 @@ export function PropImageSelector({
       {displayedImages.length > 0 && (
         <div>
           <div className={`grid ${SCENE_BUILDER_GRID_COLS} ${SCENE_BUILDER_GRID_GAP}`}>
-            {displayedImages.map((image) => {
+            {displayedImages.map((image, index) => {
               const isSelected = selectedImageId === image.id;
               const imageUrl = resolveImageUrl(image);
               
               return (
                 <button
-                  key={image.id}
+                  key={`${image.id}:${image.imageUrl}:${index}`}
                   type="button"
                   onClick={() => handleImageSelect(image.id)}
                   className={`relative ${THUMBNAIL_ASPECT_RATIO} rounded-lg overflow-hidden border-2 transition-all ${
