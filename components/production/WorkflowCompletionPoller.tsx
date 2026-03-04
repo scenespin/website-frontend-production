@@ -83,10 +83,33 @@ export function WorkflowCompletionPoller({ jobIdsKey }: WorkflowCompletionPoller
         if (status === 'completed' || status === 'failed') {
           removeJob(jobId);
           if (status === 'completed' && projectId?.trim()) {
+            // Invalidate first so refetch gets fresh data (matches SceneBuilderPanel pattern)
+            queryClient.invalidateQueries({ queryKey: ['media', 'files', projectId] });
+            queryClient.invalidateQueries({ queryKey: ['scenes', projectId] });
+            queryClient.invalidateQueries({ queryKey: ['characters', projectId, 'production-hub'] });
+            queryClient.invalidateQueries({ queryKey: ['locations', projectId, 'production-hub'] });
+            queryClient.invalidateQueries({ queryKey: ['assets', projectId, 'production-hub'] });
             queryClient.refetchQueries({ queryKey: ['media', 'files', projectId] });
             queryClient.refetchQueries({ queryKey: ['characters', projectId, 'production-hub'] });
             queryClient.refetchQueries({ queryKey: ['locations', projectId, 'production-hub'] });
             queryClient.refetchQueries({ queryKey: ['assets', projectId, 'production-hub'] });
+            // Delayed retry: Media Library registration is async (1-5s). Retry so Shot Board/Videos tab updates.
+            const refreshWithRetry = (attempt: number = 1, maxAttempts: number = 3) => {
+              const delay = 2000; // 2s between attempts → refreshes at 2s, 4s, 6s from completion
+              setTimeout(async () => {
+                try {
+                  await queryClient.invalidateQueries({ queryKey: ['media', 'files', projectId] });
+                  await queryClient.refetchQueries({ queryKey: ['media', 'files', projectId] });
+                  await queryClient.invalidateQueries({ queryKey: ['scenes', projectId] });
+                } catch (e) {
+                  /* non-fatal */
+                }
+                if (attempt < maxAttempts) {
+                  refreshWithRetry(attempt + 1, maxAttempts);
+                }
+              }, delay);
+            };
+            refreshWithRetry();
           }
           if (status === 'failed') {
             toast.error('Workflow failed', {
