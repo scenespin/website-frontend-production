@@ -1461,15 +1461,8 @@ export default function MediaLibrary({
 
   return (
     <div className={`bg-[#0A0A0A] rounded-lg shadow-lg flex flex-col h-full ${className}`}>
-      {/* Header */}
-      <div className="p-3 md:p-4 lg:p-5 border-b border-[#3F3F46] flex-shrink-0">
-        <div className="flex items-center justify-between mb-3 md:mb-4">
-          <h2 className="text-base md:text-lg lg:text-xl font-bold text-[#FFFFFF]">
-            Archive
-          </h2>
-          {/* NOTE: Displayed as "Archive" to users, but backend/API still uses "Storage" or "media-library" terminology */}
-        </div>
-
+      {/* Header - Actions only (no title; Archive is in nav) */}
+      <div className="p-3 md:p-4 border-b border-[#3F3F46] flex-shrink-0">
         {/* Actions Bar - Simplified on mobile */}
         <div className="flex flex-col sm:flex-row gap-2 md:gap-3">
           {/* Upload Button - Full width on mobile */}

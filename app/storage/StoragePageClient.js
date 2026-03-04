@@ -36,18 +36,20 @@ export default function StoragePageClient() {
   }
   
   return (
-    <QueryClientProvider>
-      <Suspense fallback={
-        <div className="min-h-screen bg-gray-950 flex items-center justify-center">
-          <div className="text-center">
-            <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
-            <p className="text-gray-400">Loading Archive...</p>
+    <div className="flex-1 min-h-0 flex flex-col">
+      <QueryClientProvider>
+        <Suspense fallback={
+          <div className="flex-1 flex items-center justify-center bg-gray-950">
+            <div className="text-center">
+              <div className="w-12 h-12 border-4 border-purple-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+              <p className="text-gray-400">Loading Archive...</p>
+            </div>
           </div>
-        </div>
-      }>
-        <StorageHubWrapper />
-      </Suspense>
-    </QueryClientProvider>
+        }>
+          <StorageHubWrapper />
+        </Suspense>
+      </QueryClientProvider>
+    </div>
   );
 }
 

@@ -36,9 +36,9 @@ export function StorageHub() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-[#0A0A0A]">
-      <div className="flex-1 overflow-y-auto">
-        <div className="p-4 md:p-5">
+    <div className="flex flex-col flex-1 min-h-0 bg-[#0A0A0A]">
+      <div className="flex-1 overflow-y-auto min-h-0">
+        <div className="px-4 pb-4 pt-0 md:px-5 md:pb-5">
           <MediaLibrary
             projectId={screenplayId}
             onSelectFile={handleMediaSelect}
