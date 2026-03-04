@@ -660,7 +660,7 @@ export default function AssetDetailModal({
             fileName: file.name,
             fileType: file.type,
             fileSize: file.size,
-            createdIn: 'creation',
+            createdIn: 'production-hub', // Production Hub uploads must be tagged so they don't appear in Creation dropdown
           }),
         });
         if (!registerResponse.ok) {

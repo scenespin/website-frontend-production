@@ -1,9 +1,21 @@
 /**
  * Prop Image Utilities
- * 
+ *
  * Centralized logic for prop image selection and fallback handling.
  * Used by ShotConfigurationStep and ShotConfigurationPanel to ensure consistency.
+ *
+ * Groups images by metadata.createdIn so Production Hub uploads appear in
+ * "Production Hub" and Creation uploads in "Creation Image" (Scene Builder dropdown).
  */
+
+/** Check if image metadata indicates Production Hub (vs Creation) */
+function isProductionHubImage(metadata?: { createdIn?: string; source?: string }): boolean {
+  if (!metadata) return false;
+  return (
+    metadata.createdIn === 'production-hub' ||
+    metadata.source === 'angle-generation'
+  );
+}
 
 export interface PropType {
   id: string;
@@ -11,8 +23,8 @@ export interface PropType {
   imageUrl?: string;
   s3Key?: string;
   angleReferences?: Array<{ id: string; s3Key: string; imageUrl: string; label?: string; angle?: string }>;
-  images?: Array<{ url: string; s3Key?: string }>;
-  baseReference?: { s3Key?: string; imageUrl?: string };
+  images?: Array<{ url: string; s3Key?: string; metadata?: { createdIn?: string; source?: string } }>;
+  baseReference?: { s3Key?: string; imageUrl?: string; metadata?: { createdIn?: string; source?: string } };
 }
 
 export interface AvailableImage {
@@ -57,18 +69,18 @@ export function getAvailablePropImages(prop: PropType): AvailableImage[] {
     });
   }
   
-  // 🔥 SIMPLIFIED: Always add images[] (Creation images) - no conditional check
+  // Add images[] — label by metadata (Creation vs Production Hub)
   if (prop.images && prop.images.length > 0) {
     prop.images.forEach(img => {
-      // Only include if it has s3Key - presigned URL will be fetched
       if (img.s3Key) {
         if (seenS3Keys.has(img.s3Key)) return;
         seenS3Keys.add(img.s3Key);
         const hasPresignedUrl = img.url && !img.url.startsWith('projects/') && img.url.includes('://');
+        const label = isProductionHubImage(img.metadata) ? 'Production Hub' : 'Creation Image';
         availableImages.push({
           id: img.s3Key,
-          imageUrl: img.s3Key, // Use s3Key as identifier - presigned URL will be fetched separately
-          label: 'Creation Image',
+          imageUrl: img.s3Key,
+          label,
           presignedUrl: hasPresignedUrl ? img.url : undefined
         });
       }
@@ -96,8 +108,9 @@ export function getAvailablePropImages(prop: PropType): AvailableImage[] {
 /**
  * Get available images grouped by type (Production Hub vs Creation Image).
  * Used by PropImageSelector dropdown component.
- * Creation Image only includes images from images[] / baseReference that are NOT already in angleReferences
- * (so "All" vs "Creation Image" show different sets when the backend sends the same refs in both).
+ *
+ * Groups by metadata.createdIn and metadata.source so Production Hub uploads
+ * appear in "Production Hub" and Creation uploads in "Creation Image".
  */
 export function getAvailablePropImagesByGroup(prop: PropType): {
   'Production Hub': AvailableImage[];
@@ -105,14 +118,13 @@ export function getAvailablePropImagesByGroup(prop: PropType): {
 } {
   const productionHub: AvailableImage[] = [];
   const creationImage: AvailableImage[] = [];
+  const seenS3Keys = new Set<string>();
 
-  const productionHubS3Keys = new Set<string>();
-
-  // Add angleReferences (Production Hub images)
+  // Add angleReferences (Production Hub)
   if (prop.angleReferences && prop.angleReferences.length > 0) {
     prop.angleReferences.forEach(ref => {
-      if (ref.s3Key) {
-        productionHubS3Keys.add(ref.s3Key);
+      if (ref.s3Key && !seenS3Keys.has(ref.s3Key)) {
+        seenS3Keys.add(ref.s3Key);
         const effectiveLabel = ref.label || ref.angle;
         const hasPresignedUrl = ref.imageUrl && !ref.imageUrl.startsWith('projects/') && ref.imageUrl.includes('://');
         productionHub.push({
@@ -125,31 +137,43 @@ export function getAvailablePropImagesByGroup(prop: PropType): {
     });
   }
 
-  // Add images[] (Creation images) — only if not already in Production Hub
+  // Add images[] — group by metadata (createdIn / source)
   if (prop.images && prop.images.length > 0) {
     prop.images.forEach(img => {
-      if (img.s3Key && !productionHubS3Keys.has(img.s3Key) && !creationImage.some((c) => c.imageUrl === img.s3Key)) {
-        const hasPresignedUrl = img.url && !img.url.startsWith('projects/') && img.url.includes('://');
-        creationImage.push({
-          id: img.s3Key,
-          imageUrl: img.s3Key,
-          label: 'Creation Image',
-          presignedUrl: hasPresignedUrl ? img.url : undefined
-        });
+      if (!img.s3Key || seenS3Keys.has(img.s3Key)) return;
+      seenS3Keys.add(img.s3Key);
+      const hasPresignedUrl = img.url && !img.url.startsWith('projects/') && img.url.includes('://');
+      const entry = {
+        id: img.s3Key,
+        imageUrl: img.s3Key,
+        label: isProductionHubImage(img.metadata) ? 'Production Hub' : 'Creation Image',
+        presignedUrl: hasPresignedUrl ? img.url : undefined
+      };
+      if (isProductionHubImage(img.metadata)) {
+        productionHub.push(entry);
+      } else {
+        creationImage.push(entry);
       }
     });
   }
 
-  // Add baseReference (Creation image) — only if not already in Production Hub
-  if (prop.baseReference?.s3Key && !productionHubS3Keys.has(prop.baseReference.s3Key)) {
-    if (!creationImage.some((c) => c.imageUrl === prop.baseReference!.s3Key)) {
-      const hasPresignedUrl = prop.baseReference.imageUrl && !prop.baseReference.imageUrl.startsWith('projects/') && prop.baseReference.imageUrl.includes('://');
-      creationImage.push({
-        id: prop.baseReference.s3Key,
-        imageUrl: prop.baseReference.s3Key,
-        label: 'Creation Image',
-        presignedUrl: hasPresignedUrl ? prop.baseReference.imageUrl : undefined
-      });
+  // Add baseReference (typically Creation; group by metadata if present)
+  if (prop.baseReference?.s3Key && !seenS3Keys.has(prop.baseReference.s3Key)) {
+    seenS3Keys.add(prop.baseReference.s3Key);
+    const hasPresignedUrl =
+      prop.baseReference.imageUrl &&
+      !prop.baseReference.imageUrl.startsWith('projects/') &&
+      prop.baseReference.imageUrl.includes('://');
+    const entry = {
+      id: prop.baseReference.s3Key,
+      imageUrl: prop.baseReference.s3Key,
+      label: isProductionHubImage(prop.baseReference.metadata) ? 'Production Hub' : 'Creation Image',
+      presignedUrl: hasPresignedUrl ? prop.baseReference.imageUrl : undefined
+    };
+    if (isProductionHubImage(prop.baseReference.metadata)) {
+      productionHub.push(entry);
+    } else {
+      creationImage.push(entry);
     }
   }
 
