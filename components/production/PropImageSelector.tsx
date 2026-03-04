@@ -56,11 +56,10 @@ export function PropImageSelector({
   const creationImages = groupedImages['Creation Image'] || [];
   const hasAnyImages = hubImages.length > 0 || creationImages.length > 0;
 
-  // Unified options: All (if any hub) + each angle category + Creation Image (if any)
+  // Unified options: each angle category + Creation Image (if any) — no "All"
   const unifiedOptions = useMemo(() => {
     const options: Array<{ value: string; count: number }> = [];
     if (hubImages.length > 0) {
-      options.push({ value: 'All', count: hubImages.length });
       const labels = new Set<string>();
       hubImages.forEach((img) => {
         const label = (img.label && img.label.trim()) ? img.label.trim() : 'Uncategorized';
@@ -82,9 +81,9 @@ export function PropImageSelector({
     return options;
   }, [groupedImages]);
 
-  // Single selection: one of 'All', an angle label, or CREATION_IMAGE_VALUE
+  // Single selection: an angle label or CREATION_IMAGE_VALUE
   const selectedOptionFromImage = useMemo(() => {
-    if (!selectedImageId) return unifiedOptions[0]?.value ?? 'All';
+    if (!selectedImageId) return unifiedOptions[0]?.value ?? '';
     const inCreation = creationImages.some((img) => img.id === selectedImageId);
     if (inCreation) return CREATION_IMAGE_VALUE;
     const hubImg = hubImages.find((img) => img.id === selectedImageId);
@@ -92,7 +91,7 @@ export function PropImageSelector({
       const label = (hubImg.label && hubImg.label.trim()) ? hubImg.label.trim() : 'Uncategorized';
       return label;
     }
-    return unifiedOptions[0]?.value ?? 'All';
+    return unifiedOptions[0]?.value ?? '';
   }, [selectedImageId, hubImages, creationImages, unifiedOptions]);
 
   const [selectedOption, setSelectedOption] = useState<string>(() => selectedOptionFromImage);
@@ -104,7 +103,6 @@ export function PropImageSelector({
   // Images to show based on single dropdown selection
   const displayedImages = useMemo(() => {
     if (selectedOption === CREATION_IMAGE_VALUE) return creationImages;
-    if (selectedOption === 'All') return hubImages;
     return hubImages.filter((img) => {
       const label = (img.label && img.label.trim()) ? img.label.trim() : 'Uncategorized';
       return label === selectedOption;
@@ -140,12 +138,10 @@ export function PropImageSelector({
     setSelectedOption(value);
     const nextImages = value === CREATION_IMAGE_VALUE
       ? creationImages
-      : value === 'All'
-        ? hubImages
-        : hubImages.filter((img) => {
-            const label = (img.label && img.label.trim()) ? img.label.trim() : 'Uncategorized';
-            return label === value;
-          });
+      : hubImages.filter((img) => {
+          const label = (img.label && img.label.trim()) ? img.label.trim() : 'Uncategorized';
+          return label === value;
+        });
     const stillVisible = selectedImageId && nextImages.some((img) => img.id === selectedImageId);
     if (!stillVisible) onImageChange(propId, undefined);
   };
@@ -168,7 +164,7 @@ export function PropImageSelector({
 
   return (
     <div className="space-y-2">
-      {/* Single unified dropdown: All + angle categories + Creation Image */}
+      {/* Single unified dropdown: angle categories + Creation Image */}
       {unifiedOptions.length > 0 && (
         <div className="flex items-center gap-2">
           <label className="text-xs text-[#808080]">Filter by:</label>
