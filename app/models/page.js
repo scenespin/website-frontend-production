@@ -9,7 +9,7 @@ import {
   videoModels,
 } from '@/lib/modelCatalog';
 
-function ModelTable({ title, subtitle, rows, showSurface = false, showNotes = false }) {
+function ModelTable({ title, subtitle, rows }) {
   return (
     <section className="bg-[#111111] border border-[#2A2A2A] rounded-xl p-4 sm:p-6">
       <div className="mb-4">
@@ -24,8 +24,6 @@ function ModelTable({ title, subtitle, rows, showSurface = false, showNotes = fa
               <th className="text-left text-gray-300 py-2 pr-4">Name</th>
               <th className="text-left text-gray-300 py-2 pr-4">Model ID</th>
               <th className="text-left text-gray-300 py-2 pr-4">Provider</th>
-              {showSurface && <th className="text-left text-gray-300 py-2 pr-4">Exposed In</th>}
-              {showNotes && <th className="text-left text-gray-300 py-2 pr-4">Notes</th>}
             </tr>
           </thead>
           <tbody>
@@ -34,8 +32,6 @@ function ModelTable({ title, subtitle, rows, showSurface = false, showNotes = fa
                 <td className="py-2 pr-4 text-white">{row.name}</td>
                 <td className="py-2 pr-4 text-gray-300 font-mono">{row.id}</td>
                 <td className="py-2 pr-4 text-gray-300">{row.provider}</td>
-                {showSurface && <td className="py-2 pr-4 text-gray-300">{row.surface || '-'}</td>}
-                {showNotes && <td className="py-2 pr-4 text-gray-300">{row.notes || '-'}</td>}
               </tr>
             ))}
           </tbody>
@@ -103,21 +99,18 @@ export default function ModelsPage() {
             title="LLM Models"
             subtitle={`${llmModels.length} models in the editor (Story Advisor, Character, Location agents + modals)`}
             rows={llmModels}
-            showSurface
           />
 
           <ModelTable
             title="Image Models"
             subtitle={`${imageModels.length} models exposed in Scene Builder / reference-shot selectors`}
             rows={imageModels}
-            showSurface
           />
 
           <ModelTable
             title="Video Models"
             subtitle={`${videoModels.length} models in the Video Gen dropdown (playground)`}
             rows={videoModels}
-            showNotes
           />
         </div>
       </div>
