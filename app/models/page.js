@@ -66,20 +66,17 @@ export default function ModelsPage() {
               </span>
             </Link>
             <nav className="hidden md:flex items-center gap-6">
-              <Link href="/features" className="text-sm text-gray-300 hover:text-white transition-colors">
-                Features
-              </Link>
               <Link href="/examples" className="text-sm text-gray-300 hover:text-white transition-colors">
                 Examples
               </Link>
               <Link href="/compare" className="text-sm text-gray-300 hover:text-white transition-colors">
                 Compare
               </Link>
-              <Link href="/pricing" className="text-sm text-gray-300 hover:text-white transition-colors">
-                Pricing
-              </Link>
               <Link href="/models" className="text-sm text-white font-medium">
                 Models
+              </Link>
+              <Link href="/pricing" className="text-sm text-gray-300 hover:text-white transition-colors">
+                Pricing
               </Link>
               <Link href="/sign-in" className="text-sm text-gray-300 hover:text-white transition-colors">
                 Login
@@ -97,8 +94,7 @@ export default function ModelsPage() {
         <div className="mb-8">
           <h1 className="text-3xl sm:text-4xl font-bold text-white">Model Catalog</h1>
           <p className="text-gray-400 mt-3 max-w-3xl">
-            Models currently exposed in the Wryda UI: LLMs in the editor, image models in Scene Builder,
-            and video models in the Video Gen dropdown.
+            Full transparency. The AI models that power your screenplay editor, scene builder, and video workflows—writer-directed, with no hidden choices.
           </p>
         </div>
 

@@ -31,14 +31,14 @@ export default function PricingPage() {
               </span>
             </Link>
             <nav className="hidden md:flex items-center gap-6">
-              <Link href="/features" className="text-sm text-gray-300 hover:text-white transition-colors">
-                Features
-              </Link>
               <Link href="/examples" className="text-sm text-gray-300 hover:text-white transition-colors">
                 Examples
               </Link>
               <Link href="/compare" className="text-sm text-gray-300 hover:text-white transition-colors">
                 Compare
+              </Link>
+              <Link href="/models" className="text-sm text-gray-300 hover:text-white transition-colors">
+                Models
               </Link>
               <Link href="/pricing" className="text-sm text-white font-medium">
                 Pricing
