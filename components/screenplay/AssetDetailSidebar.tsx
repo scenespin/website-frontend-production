@@ -1436,15 +1436,6 @@ export default function AssetDetailSidebar({
                   }
                   
                   toast.success('Image generated and uploaded');
-                  
-                  // Show StorageDecisionModal
-                  setSelectedAsset({
-                    url: downloadUrl,
-                    s3Key: s3Key,
-                    name: 'generated-image.png',
-                    type: 'image'
-                  });
-                  setShowStorageModal(true);
                 } catch (error: any) {
                   toast.error(`Failed to upload image: ${error.message}`);
                 } finally {
