@@ -34,6 +34,7 @@ function isPublicRoute(pathname: string): boolean {
     '/affiliates',
     '/affiliates/apply',
     '/blog',
+    '/models',
     '/tos',
     '/privacy-policy',
     '/unsubscribe',
