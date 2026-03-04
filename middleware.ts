@@ -1,74 +1,49 @@
-import { clerkMiddleware } from '@clerk/nextjs/server'
+import { clerkMiddleware, createRouteMatcher } from '@clerk/nextjs/server'
 import { NextResponse } from 'next/server'
 
-// Define public routes that don't require authentication
-// Custom function to check if route is public (more reliable than pattern matching)
-function normalizePath(pathname: string): string {
-  if (!pathname || pathname === '/') return '/'
-  return pathname.endsWith('/') ? pathname.slice(0, -1) : pathname
-}
-
-function isPublicRoute(pathname: string): boolean {
-  const path = normalizePath(pathname)
-
-  // Public marketing/legal/support routes (exact)
-  const publicExactRoutes = new Set([
-    '/',
-    '/features',
-    '/features/editor',
-    '/compare',
-    '/pricing',
-    '/pricing/pro',
-    '/pricing/ultra',
-    '/pricing/studio',
-    '/examples',
-    '/provenance-ledger',
-    '/how-it-works',
-    '/help',
-    '/coming-soon',
-    '/agencies',
-    '/filmmakers',
-    '/marketing-teams',
-    '/screenwriters',
-    '/social-creators',
-    '/affiliates',
-    '/affiliates/apply',
-    '/blog',
-    '/models',
-    '/tos',
-    '/privacy-policy',
-    '/unsubscribe',
-  ])
-
-  if (publicExactRoutes.has(path)) {
-    return true
-  }
-
-  // Public route prefixes
-  const publicPrefixes = [
-    '/sign-in',
-    '/sign-up',
-    '/help/',
-    '/help-archive/',
-    '/blog/',
-    '/api/gallery',
-    '/api/waitlist',
-    '/api/affiliates',
-    '/api/analytics',
-    '/api/auth',
-  ]
-
-  if (publicPrefixes.some((prefix) => path.startsWith(prefix))) {
-    return true
-  }
-  
-  return false
-}
+// Public routes: no auth required. Uses Clerk's createRouteMatcher for reliable matching.
+const isPublicRoute = createRouteMatcher([
+  '/',
+  '/features',
+  '/features/editor',
+  '/compare',
+  '/pricing',
+  '/pricing/pro',
+  '/pricing/ultra',
+  '/pricing/studio',
+  '/examples',
+  '/provenance-ledger',
+  '/how-it-works',
+  '/help',
+  '/help/(.*)',
+  '/help-archive/(.*)',
+  '/coming-soon',
+  '/agencies',
+  '/filmmakers',
+  '/marketing-teams',
+  '/screenwriters',
+  '/social-creators',
+  '/affiliates',
+  '/affiliates/apply',
+  '/blog',
+  '/blog/(.*)',
+  '/models',
+  '/tos',
+  '/privacy-policy',
+  '/unsubscribe',
+  '/sign-in',
+  '/sign-in/(.*)',
+  '/sign-up',
+  '/sign-up/(.*)',
+  '/api/gallery/(.*)',
+  '/api/waitlist/(.*)',
+  '/api/affiliates/(.*)',
+  '/api/analytics/(.*)',
+  '/api/auth/(.*)',
+])
 
 export default clerkMiddleware(async (auth, req) => {
-  // Protect all routes except public ones
-  const pathname = normalizePath(req.nextUrl.pathname)
-  if (isPublicRoute(pathname)) {
+  if (isPublicRoute(req)) {
     return
   }
 
@@ -82,7 +57,6 @@ export default clerkMiddleware(async (auth, req) => {
       return NextResponse.redirect(signInUrl)
     }
   } catch {
-    // Fail safe: never return a 500 from middleware for auth checks.
     return NextResponse.redirect(signInUrl)
   }
 })

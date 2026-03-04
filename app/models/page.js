@@ -1,4 +1,8 @@
+import Link from 'next/link';
+import Image from 'next/image';
 import Footer from '@/components/Footer';
+import config from '@/config';
+import logo from '@/app/icon.png';
 import {
   llmModels,
   imageModels,
@@ -43,7 +47,52 @@ function ModelTable({ title, subtitle, rows, showSurface = false, showNotes = fa
 
 export default function ModelsPage() {
   return (
-    <main className="min-h-screen bg-black">
+    <div className="min-h-screen bg-black">
+      {/* Header */}
+      <header className="bg-[#0A0A0A] border-b border-[#3F3F46] sticky top-0 z-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex justify-between items-center h-16">
+            <Link href="/" className="flex items-center gap-2">
+              <Image
+                src={logo}
+                alt={`${config.appName} logo`}
+                width={40}
+                height={40}
+                className="w-10 h-10"
+                priority={true}
+              />
+              <span className="text-2xl font-extrabold text-white">
+                {config.appName}<span className="text-[#DC143C]">.ai</span>
+              </span>
+            </Link>
+            <nav className="hidden md:flex items-center gap-6">
+              <Link href="/features" className="text-sm text-gray-300 hover:text-white transition-colors">
+                Features
+              </Link>
+              <Link href="/examples" className="text-sm text-gray-300 hover:text-white transition-colors">
+                Examples
+              </Link>
+              <Link href="/compare" className="text-sm text-gray-300 hover:text-white transition-colors">
+                Compare
+              </Link>
+              <Link href="/pricing" className="text-sm text-gray-300 hover:text-white transition-colors">
+                Pricing
+              </Link>
+              <Link href="/models" className="text-sm text-white font-medium">
+                Models
+              </Link>
+              <Link href="/sign-in" className="text-sm text-gray-300 hover:text-white transition-colors">
+                Login
+              </Link>
+            </nav>
+            <Link href="/sign-in" className="md:hidden text-sm text-gray-300 hover:text-white transition-colors">
+              Login
+            </Link>
+          </div>
+        </div>
+      </header>
+
+      <main>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <div className="mb-8">
           <h1 className="text-3xl sm:text-4xl font-bold text-white">Model Catalog</h1>
@@ -76,7 +125,8 @@ export default function ModelsPage() {
           />
         </div>
       </div>
+      </main>
       <Footer />
-    </main>
+    </div>
   );
 }
