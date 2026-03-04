@@ -611,15 +611,14 @@ export default function MediaLibrary({
       const token = await getToken({ template: 'wryda-backend' });
       if (!token) throw new Error('Not authenticated');
 
-      // Step 1: Get pre-signed URL for S3 upload
-      // Use screenplayId as primary, projectId as fallback (projectId prop is actually screenplayId)
+      // Step 1: Get pre-signed URL from backend (uses same storage as register - fixes persistence)
       const presignedResponse = await fetch(
-        `/api/video/upload/get-presigned-url?` + 
+        `/api/media/upload-url?` +
         `fileName=${encodeURIComponent(file.name)}` +
         `&fileType=${encodeURIComponent(file.type)}` +
         `&fileSize=${file.size}` +
         `&screenplayId=${encodeURIComponent(projectId)}` +
-        `&projectId=${encodeURIComponent(projectId)}`, // Keep for backward compatibility
+        `&projectId=${encodeURIComponent(projectId)}`,
         {
           headers: {
             'Authorization': `Bearer ${token}`,
