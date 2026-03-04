@@ -23,6 +23,7 @@ function ModelTable({ title, subtitle, rows }) {
             <tr className="border-b border-[#2A2A2A]">
               <th className="text-left text-gray-300 py-2 pr-4">Name</th>
               <th className="text-left text-gray-300 py-2 pr-4">Provider</th>
+              <th className="text-left text-gray-300 py-2 pr-4">Description</th>
             </tr>
           </thead>
           <tbody>
@@ -30,6 +31,7 @@ function ModelTable({ title, subtitle, rows }) {
               <tr key={row.id} className="border-b border-[#1E1E1E]">
                 <td className="py-2 pr-4 text-white">{row.name}</td>
                 <td className="py-2 pr-4 text-gray-300">{row.provider}</td>
+                <td className="py-2 pr-4 text-gray-400 max-w-md">{row.description || '-'}</td>
               </tr>
             ))}
           </tbody>
