@@ -1136,10 +1136,11 @@ export function ShotConfigurationStep({
     }
     
     // 4. Validate ALL pronouns are mapped (singular and plural)
+    // Skip when first frame is uploaded – no generation, so refs not needed (same as location/character)
     // Each pronoun must either be:
     //   a) Mapped to a character (valid character ID or array of IDs)
     //   b) Skipped with a description (__ignore__ + description in pronounExtrasPrompts)
-    if (pronounInfo.hasPronouns && pronounInfo.pronouns.length > 0) {
+    if (!uploadedFirstFrameUrl && pronounInfo.hasPronouns && pronounInfo.pronouns.length > 0) {
       const unmappedPronouns: string[] = [];
       
       for (const pronoun of pronounInfo.pronouns) {

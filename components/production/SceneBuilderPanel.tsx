@@ -2480,6 +2480,8 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       
       for (const shot of shots) {
         if (shot.type !== 'action') continue;
+        // Skip when shot has uploaded first frame – no generation, so refs not needed
+        if (uploadedFirstFrames[shot.slot]) continue;
         
         // Detect pronouns
         const fullText = shot.narrationBlock?.text || shot.description || '';
@@ -4710,8 +4712,8 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
               enabledShotsList.forEach((s: any) => {
                 let isComplete = true;
                 
-                // Check location requirement
-                if (isLocationAngleRequiredWrapper(s) && needsLocationAngleWrapper(s)) {
+                // Check location requirement (skip when first frame uploaded – no generation)
+                if (!uploadedFirstFrames[s.slot] && isLocationAngleRequiredWrapper(s) && needsLocationAngleWrapper(s)) {
                   const hasLocation = selectedLocationReferences[s.slot] !== undefined;
                   const hasOptOut = locationOptOuts[s.slot] === true;
                   if (!hasLocation && !hasOptOut) {
@@ -4734,8 +4736,8 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                   }
                 }
                 
-                // Check pronoun mappings (all pronouns must be mapped or skipped)
-                if (s.type === 'action') {
+                // Check pronoun mappings (skip when first frame uploaded – no generation)
+                if (!uploadedFirstFrames[s.slot] && s.type === 'action') {
                   const actionPronounInfo = actionShotHasPronounsWrapper(s);
                   if (actionPronounInfo.hasPronouns) {
                     const mappings = pronounMappingsForShots[s.slot] || {};
