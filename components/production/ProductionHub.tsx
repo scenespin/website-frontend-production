@@ -269,7 +269,7 @@ export function ProductionHub({}: ProductionHubProps) {
   if (isMobile) {
     return (
       <div className="flex flex-col h-screen bg-[#0A0A0A]">
-        <WorkflowCompletionPoller jobIdsKey={jobIdsKey} />
+        <WorkflowCompletionPoller jobIdsKey={jobIdsKey} screenplayId={screenplayId} />
         {/* Mobile Tab Navigation - Hidden on mobile, shown on desktop */}
         <div className="hidden md:block">
           <ProductionTabBar
@@ -334,7 +334,7 @@ export function ProductionHub({}: ProductionHubProps) {
 
   return (
     <div className="flex flex-col h-screen bg-[#0A0A0A]">
-      <WorkflowCompletionPoller jobIdsKey={jobIdsKey} />
+      <WorkflowCompletionPoller jobIdsKey={jobIdsKey} screenplayId={screenplayId} />
       {/* Horizontal Tab Navigation */}
       <ProductionTabBar
         activeTab={activeTab}

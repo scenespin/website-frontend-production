@@ -23,9 +23,11 @@ const MAX_POLL_PER_TICK = 20;
 interface WorkflowCompletionPollerProps {
   /** Stable string from parent (e.g. sorted job IDs joined). Parent subscribes; poller does not. */
   jobIdsKey: string;
+  /** Canonical screenplay id from page context (preferred refresh key). */
+  screenplayId?: string;
 }
 
-export function WorkflowCompletionPoller({ jobIdsKey }: WorkflowCompletionPollerProps) {
+export function WorkflowCompletionPoller({ jobIdsKey, screenplayId }: WorkflowCompletionPollerProps) {
   const { getToken } = useAuth();
   const queryClient = useQueryClient();
   const removeJob = useInFlightWorkflowJobsStore((s) => s.removeJob);
@@ -38,7 +40,7 @@ export function WorkflowCompletionPoller({ jobIdsKey }: WorkflowCompletionPoller
 
     const pollJob = async (
       jobId: string
-    ): Promise<{ status: string; projectId?: string; jobType?: string; error?: string } | null> => {
+    ): Promise<{ status: string; projectIds: string[]; jobType?: string; error?: string } | null> => {
       try {
         const token = await getToken({ template: 'wryda-backend' });
         if (!token) return null;
@@ -54,9 +56,16 @@ export function WorkflowCompletionPoller({ jobIdsKey }: WorkflowCompletionPoller
 
         const resolvedJobType = exec.jobType || exec.metadata?.jobType || exec.workflowId;
 
+        const projectIds = Array.from(new Set([
+          exec.projectId,
+          exec.metadata?.screenplayId,
+          exec.inputs?.screenplayId,
+          exec.inputs?.projectId,
+        ].filter((v): v is string => typeof v === 'string' && v.trim().length > 0)));
+
         return {
           status: exec.status || 'running',
-          projectId: exec.projectId,
+          projectIds,
           jobType: resolvedJobType,
           error: exec.error,
         };
@@ -79,28 +88,38 @@ export function WorkflowCompletionPoller({ jobIdsKey }: WorkflowCompletionPoller
         const result = await pollJob(jobId);
         if (!result) continue;
 
-        const { status, projectId, error } = result;
-        if (status === 'completed' || status === 'failed') {
+        const { status, projectIds, error } = result;
+        const terminalStatuses = ['completed', 'failed', 'partial_delivery'];
+        if (terminalStatuses.includes(status)) {
           removeJob(jobId);
-          if (status === 'completed' && projectId?.trim()) {
-            // Invalidate first so refetch gets fresh data (matches SceneBuilderPanel pattern)
-            queryClient.invalidateQueries({ queryKey: ['media', 'files', projectId] });
-            queryClient.invalidateQueries({ queryKey: ['scenes', projectId] });
-            queryClient.invalidateQueries({ queryKey: ['characters', projectId, 'production-hub'] });
-            queryClient.invalidateQueries({ queryKey: ['locations', projectId, 'production-hub'] });
-            queryClient.invalidateQueries({ queryKey: ['assets', projectId, 'production-hub'] });
-            queryClient.refetchQueries({ queryKey: ['media', 'files', projectId] });
-            queryClient.refetchQueries({ queryKey: ['characters', projectId, 'production-hub'] });
-            queryClient.refetchQueries({ queryKey: ['locations', projectId, 'production-hub'] });
-            queryClient.refetchQueries({ queryKey: ['assets', projectId, 'production-hub'] });
+          const refreshIds = Array.from(new Set([
+            screenplayId,
+            ...projectIds,
+          ].filter((v): v is string => typeof v === 'string' && v.trim().length > 0)));
+          // Refresh media for ALL terminal states: first frames may be saved even when videos fail
+          // (e.g. dialogue shot fails with safety error, but first frames were persisted)
+          if (refreshIds.length > 0) {
+            for (const projectId of refreshIds) {
+              queryClient.invalidateQueries({ queryKey: ['media', 'files', projectId] });
+              queryClient.invalidateQueries({ queryKey: ['scenes', projectId] });
+              queryClient.invalidateQueries({ queryKey: ['characters', projectId, 'production-hub'] });
+              queryClient.invalidateQueries({ queryKey: ['locations', projectId, 'production-hub'] });
+              queryClient.invalidateQueries({ queryKey: ['assets', projectId, 'production-hub'] });
+              queryClient.refetchQueries({ queryKey: ['media', 'files', projectId] });
+              queryClient.refetchQueries({ queryKey: ['characters', projectId, 'production-hub'] });
+              queryClient.refetchQueries({ queryKey: ['locations', projectId, 'production-hub'] });
+              queryClient.refetchQueries({ queryKey: ['assets', projectId, 'production-hub'] });
+            }
             // Delayed retry: Media Library registration is async (1-5s). Retry so Shot Board/Videos tab updates.
             const refreshWithRetry = (attempt: number = 1, maxAttempts: number = 3) => {
               const delay = 2000; // 2s between attempts → refreshes at 2s, 4s, 6s from completion
               setTimeout(async () => {
                 try {
-                  await queryClient.invalidateQueries({ queryKey: ['media', 'files', projectId] });
-                  await queryClient.refetchQueries({ queryKey: ['media', 'files', projectId] });
-                  await queryClient.invalidateQueries({ queryKey: ['scenes', projectId] });
+                  for (const projectId of refreshIds) {
+                    await queryClient.invalidateQueries({ queryKey: ['media', 'files', projectId] });
+                    await queryClient.refetchQueries({ queryKey: ['media', 'files', projectId] });
+                    await queryClient.invalidateQueries({ queryKey: ['scenes', projectId] });
+                  }
                 } catch (e) {
                   /* non-fatal */
                 }
@@ -131,7 +150,7 @@ export function WorkflowCompletionPoller({ jobIdsKey }: WorkflowCompletionPoller
         intervalRef.current = null;
       }
     };
-  }, [jobIdsKey, getToken, queryClient, removeJob]);
+  }, [jobIdsKey, screenplayId, getToken, queryClient, removeJob]);
 
   return null;
 }

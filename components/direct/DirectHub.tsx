@@ -81,7 +81,7 @@ export function DirectHub() {
 
   return (
     <div className="flex flex-col h-screen bg-[#0A0A0A]">
-      <WorkflowCompletionPoller jobIdsKey={jobIdsKey} />
+      <WorkflowCompletionPoller jobIdsKey={jobIdsKey} screenplayId={screenplayId} />
       {/* Tab Navigation - Hidden on mobile, shown on desktop */}
       <div className="hidden md:block">
         <DirectTabBar
