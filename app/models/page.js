@@ -22,7 +22,6 @@ function ModelTable({ title, subtitle, rows }) {
           <thead>
             <tr className="border-b border-[#2A2A2A]">
               <th className="text-left text-gray-300 py-2 pr-4">Name</th>
-              <th className="text-left text-gray-300 py-2 pr-4">Model ID</th>
               <th className="text-left text-gray-300 py-2 pr-4">Provider</th>
             </tr>
           </thead>
@@ -30,7 +29,6 @@ function ModelTable({ title, subtitle, rows }) {
             {rows.map((row) => (
               <tr key={row.id} className="border-b border-[#1E1E1E]">
                 <td className="py-2 pr-4 text-white">{row.name}</td>
-                <td className="py-2 pr-4 text-gray-300 font-mono">{row.id}</td>
                 <td className="py-2 pr-4 text-gray-300">{row.provider}</td>
               </tr>
             ))}
