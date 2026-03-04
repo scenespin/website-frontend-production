@@ -50,6 +50,13 @@ export async function PATCH(
 
 async function forward(request: NextRequest, pathSegments: string[], method: string) {
   try {
+    const noStoreHeaders: Record<string, string> = {
+      'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+      Pragma: 'no-cache',
+      Expires: '0',
+      Vary: 'Authorization, Cookie',
+    };
+
     let authHeader = request.headers.get('authorization');
     if (!authHeader) {
       const { getToken } = await auth();
@@ -89,8 +96,19 @@ async function forward(request: NextRequest, pathSegments: string[], method: str
       ? await response.json()
       : await response.text();
 
-    return NextResponse.json(data, { status: response.status });
+    return NextResponse.json(data, { status: response.status, headers: noStoreHeaders });
   } catch (error: any) {
-    return NextResponse.json({ error: error?.message || 'Proxy error' }, { status: 500 });
+    return NextResponse.json(
+      { error: error?.message || 'Proxy error' },
+      {
+        status: 500,
+        headers: {
+          'Cache-Control': 'no-store, no-cache, must-revalidate, max-age=0',
+          Pragma: 'no-cache',
+          Expires: '0',
+          Vary: 'Authorization, Cookie',
+        },
+      }
+    );
   }
 }
