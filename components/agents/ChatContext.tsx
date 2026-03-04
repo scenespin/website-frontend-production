@@ -99,7 +99,7 @@ const initialState: ChatContextState = {
     streamingText: '',
     isStreaming: false,
     activeMode: 'chat',
-    selectedModel: 'claude-sonnet-4-5-20250929',
+    selectedModel: 'claude-sonnet-4-6',
     input: '',
     attachedFiles: [],
     inputPlaceholder: 'Type your message...',

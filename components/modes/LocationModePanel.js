@@ -33,7 +33,7 @@ export function LocationModePanel({ onInsert, editorContent, cursorPosition }) {
   } = useChatMode();
   
   // Use model from ChatContext (set by UnifiedChatPanel's LLMModelSelector)
-  const selectedModel = state.selectedModel || 'claude-sonnet-4-5-20250929';
+  const selectedModel = state.selectedModel || 'claude-sonnet-4-6';
   const [isSending, setIsSending] = useState(false);
   const messagesEndRef = useRef(null);
   const activeStreamControllerRef = useRef(null);

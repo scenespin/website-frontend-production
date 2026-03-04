@@ -32,9 +32,9 @@ const logger = createClientLogger('RewriteModal', {
 // Order: Anthropic (Claude) → OpenAI (GPT) → Google (Gemini)
 const LLM_MODELS = [
   // Claude (Anthropic) - Best for Creative Writing
-  { id: 'claude-sonnet-4-5-20250929', name: 'Claude Sonnet 4.5', provider: 'Anthropic', description: '⭐ Best for creative writing & screenplays', recommended: true },
-  { id: 'claude-opus-4-5-20251101', name: 'Claude Opus 4.5', provider: 'Anthropic', description: 'Most powerful - Enhanced coding & reasoning (3x cheaper pricing!)' },
-  { id: 'claude-haiku-4-5-20251001', name: 'Claude Haiku 4.5', provider: 'Anthropic', description: 'Fast & economical' },
+  { id: 'claude-sonnet-4-6', name: 'Claude Sonnet 4.6', provider: 'Anthropic', description: '⭐ Best for creative writing & screenplays', recommended: true },
+  { id: 'claude-opus-4-6', name: 'Claude Opus 4.6', provider: 'Anthropic', description: 'Most powerful - Enhanced coding & reasoning' },
+  { id: 'claude-haiku-4-5', name: 'Claude Haiku 4.5', provider: 'Anthropic', description: 'Fast & economical' },
   // GPT (OpenAI) - Good for Creative Writing
   { id: 'gpt-5.1', name: 'GPT-5.1', provider: 'OpenAI', description: 'Latest - Excellent for creative writing' },
   { id: 'gpt-4o', name: 'GPT-4o', provider: 'OpenAI', description: 'Balanced - Good for dialogue & scenes' },
@@ -244,7 +244,7 @@ export default function RewriteModal({
       const saved = localStorage.getItem('rewrite-selected-model');
       if (saved) return saved;
     }
-    return chatState.selectedModel || 'claude-sonnet-4-5-20250929';
+    return chatState.selectedModel || 'claude-sonnet-4-6';
   });
 
   // Simple handler - Headless UI doesn't have the infinite loop issues that Radix UI had

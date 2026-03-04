@@ -33,7 +33,7 @@ export function CharacterModePanel({ onInsert, editorContent, cursorPosition }) 
   
   // Model selection for AI chat
   // Use model from ChatContext (set by UnifiedChatPanel's LLMModelSelector)
-  const selectedModel = state.selectedModel || 'claude-sonnet-4-5-20250929';
+  const selectedModel = state.selectedModel || 'claude-sonnet-4-6';
   const [isSending, setIsSending] = useState(false);
   const [showPostInsertPrompt, setShowPostInsertPrompt] = useState(false);
   const [insertedCharacterName, setInsertedCharacterName] = useState(null);

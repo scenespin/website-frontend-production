@@ -9,7 +9,7 @@ export function DialogueModePanel({ onInsert }) {
   const { state } = useChatContext();
   
   // Model selection for Dialogue agent
-  const [selectedModel, setSelectedModel] = useState('claude-sonnet-4-5-20250929');
+  const [selectedModel, setSelectedModel] = useState('claude-sonnet-4-6');
   
   const quickActions = [
     { label: 'Write Scene Dialogue', prompt: 'Write compelling dialogue for this scene with subtext' },

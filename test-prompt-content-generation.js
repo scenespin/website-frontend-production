@@ -17,10 +17,10 @@ const TEST_SCENE_CONTEXT = {
 
 // Available models to test
 const MODELS_TO_TEST = [
-  'claude-sonnet-4-5-20250929',
+  'claude-sonnet-4-6',
   'gpt-4o',
   'gpt-4o-mini',
-  'claude-3-5-sonnet-20241022',
+  'claude-opus-4-6',
   'gemini-2.0-flash-001'
 ];
 

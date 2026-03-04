@@ -28,8 +28,8 @@ interface GroupedModels {
 const AI_MODELS: AIModel[] = [
   // Claude (Anthropic) - Best for creative writing
   {
-    id: 'claude-sonnet-4-5-20250929',
-    name: 'Claude Sonnet 4.5',
+    id: 'claude-sonnet-4-6',
+    name: 'Claude Sonnet 4.6',
     provider: 'Anthropic',
     providerShort: 'Claude',
     description: 'Best for creative writing',
@@ -37,15 +37,15 @@ const AI_MODELS: AIModel[] = [
     recommended: true,
   },
   {
-    id: 'claude-opus-4-5-20251101',
-    name: 'Claude Opus 4.5',
+    id: 'claude-opus-4-6',
+    name: 'Claude Opus 4.6',
     provider: 'Anthropic',
     providerShort: 'Claude',
-    description: 'Most powerful, deep analysis (3x cheaper!)',
+    description: 'Most powerful, deep analysis',
     cost: 'Medium',
   },
   {
-    id: 'claude-haiku-4-5-20251001',
+    id: 'claude-haiku-4-5',
     name: 'Claude Haiku 4.5',
     provider: 'Anthropic',
     providerShort: 'Claude',

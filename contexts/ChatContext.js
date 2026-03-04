@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useReducer, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useUser } from '@clerk/nextjs';
+import { ANTHROPIC_MODELS, normalizeAnthropicModelId } from '../utils/anthropicModels';
 
 // ============================================================================
 // TYPES
@@ -21,7 +22,7 @@ const initialState = {
   
   // Mode
   activeMode: 'chat',
-  selectedModel: 'claude-sonnet-4-5-20250929',
+  selectedModel: ANTHROPIC_MODELS.sonnet,
   
   // Input
   input: '',
@@ -233,7 +234,7 @@ export function ChatProvider({ children, initialContext = null }) {
   const getInitialModel = () => {
     if (typeof window !== 'undefined') {
       const saved = localStorage.getItem('story-advisor-selected-model');
-      if (saved) return saved;
+      if (saved) return normalizeAnthropicModelId(saved);
     }
     return initialState.selectedModel;
   };
@@ -356,10 +357,11 @@ export function ChatProvider({ children, initialContext = null }) {
   }, []);
   
   const setModel = useCallback((model) => {
-    dispatch({ type: 'SET_MODEL', payload: model });
+    const normalizedModel = normalizeAnthropicModelId(model);
+    dispatch({ type: 'SET_MODEL', payload: normalizedModel });
     // Save model selection to localStorage
-    if (typeof window !== 'undefined' && model) {
-      localStorage.setItem('story-advisor-selected-model', model);
+    if (typeof window !== 'undefined' && normalizedModel) {
+      localStorage.setItem('story-advisor-selected-model', normalizedModel);
     }
   }, []);
   

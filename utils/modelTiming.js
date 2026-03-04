@@ -5,28 +5,21 @@
 
 export const MODEL_TIMING = {
   // Anthropic (Claude)
-  'claude-sonnet-4-5-20250929': {
-    name: 'Claude Sonnet 4.5',
+  'claude-sonnet-4-6': {
+    name: 'Claude Sonnet 4.6',
     provider: 'Anthropic',
     typicalTime: '8-12s',
     typicalTimeSeconds: 10,
     description: 'High quality, balanced speed'
   },
-  'claude-opus-4-5-20251101': {
-    name: 'Claude Opus 4.5',
+  'claude-opus-4-6': {
+    name: 'Claude Opus 4.6',
     provider: 'Anthropic',
     typicalTime: '10-15s',
     typicalTimeSeconds: 12,
-    description: 'Most powerful, improved efficiency (3x cheaper!)'
+    description: 'Most powerful, improved efficiency'
   },
-  'claude-opus-4-1-20250805': {
-    name: 'Claude Opus 4.1',
-    provider: 'Anthropic',
-    typicalTime: '12-18s',
-    typicalTimeSeconds: 15,
-    description: 'Legacy model - use Opus 4.5 instead'
-  },
-  'claude-haiku-4-5-20251001': {
+  'claude-haiku-4-5': {
     name: 'Claude Haiku 4.5',
     provider: 'Anthropic',
     typicalTime: '5-10s',

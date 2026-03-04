@@ -77,9 +77,9 @@ function getAvailableModesForPage(pathname) {
 // Curated list: 8 models across 3 providers (latest flagship + fast option + premium option per provider)
 const LLM_MODELS = [
   // Claude (Anthropic) - Best for Creative Writing
-  { id: 'claude-sonnet-4-5-20250929', name: 'Claude Sonnet 4.5', provider: 'Anthropic', description: '⭐ Best for creative writing & screenplays', recommended: true },
-  { id: 'claude-opus-4-5-20251101', name: 'Claude Opus 4.5', provider: 'Anthropic', description: 'Most powerful - Enhanced coding & reasoning (3x cheaper pricing!)' },
-  { id: 'claude-haiku-4-5-20251001', name: 'Claude Haiku 4.5', provider: 'Anthropic', description: 'Fast & economical' },
+  { id: 'claude-sonnet-4-6', name: 'Claude Sonnet 4.6', provider: 'Anthropic', description: '⭐ Best for creative writing & screenplays', recommended: true },
+  { id: 'claude-opus-4-6', name: 'Claude Opus 4.6', provider: 'Anthropic', description: 'Most powerful - Enhanced coding & reasoning' },
+  { id: 'claude-haiku-4-5', name: 'Claude Haiku 4.5', provider: 'Anthropic', description: 'Fast & economical' },
   // GPT (OpenAI) - Good for Creative Writing
   { id: 'gpt-5.1', name: 'GPT-5.1', provider: 'OpenAI', description: 'Latest - Excellent for creative writing' },
   { id: 'gpt-4o', name: 'GPT-4o', provider: 'OpenAI', description: 'Balanced - Good for dialogue & scenes' },
@@ -243,7 +243,7 @@ function LLMModelSelector() {
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0 });
   
   // Use context state, fallback to default if not set
-  const selectedModel = state.selectedModel || 'claude-sonnet-4-5-20250929';
+  const selectedModel = state.selectedModel || 'claude-sonnet-4-6';
   const currentModel = LLM_MODELS.find(m => m.id === selectedModel) || LLM_MODELS[0];
   
   const handleModelChange = (modelId) => {
@@ -415,7 +415,7 @@ function UnifiedChatPanelInner({
   cursorPosition,
   onWorkflowComplete
 }) {
-  const { state, setMode, setInput, setSelectedTextContext, setEntityContextBanner, setSceneContext, clearContext, addMessage, closeMenus, setStreaming } = useChatContext();
+  const { state, setMode, setModel, setInput, setSelectedTextContext, setEntityContextBanner, setSceneContext, clearContext, addMessage, closeMenus, setStreaming } = useChatContext();
   
   console.log('[UnifiedChatPanelInner] 🔄 RENDER', {
     activeMode: state.activeMode,
@@ -1120,14 +1120,14 @@ function UnifiedChatPanelInner({
             editorContentLength: editorContent?.length || 0,
             cursorPosition,
             messageLength: message?.length || 0,
-            modelId: state.selectedModel || 'claude-sonnet-4-5-20250929'
+            modelId: state.selectedModel || 'claude-sonnet-4-6'
           });
           
           const contextData = buildStoryAdvisorContext(
             editorContent,
             cursorPosition,
             message,
-            state.selectedModel || 'claude-sonnet-4-5-20250929',
+            state.selectedModel || 'claude-sonnet-4-6',
             conversationHistory,
             systemPromptBase
           );
@@ -1255,7 +1255,7 @@ function UnifiedChatPanelInner({
           hasSceneContext: !!apiSceneContext,
           sceneContext: apiSceneContext,
           conversationHistoryLength: conversationHistory.length,
-          modelId: state.selectedModel || 'claude-sonnet-4-5-20250929'
+          modelId: state.selectedModel || 'claude-sonnet-4-6'
         });
         
         // Call streaming chat API
@@ -1263,7 +1263,7 @@ function UnifiedChatPanelInner({
           {
             userPrompt: finalUserPrompt, // Use built prompt (rewrite or original)
             systemPrompt: systemPrompt,
-            desiredModelId: state.selectedModel || 'claude-sonnet-4-5-20250929',
+            desiredModelId: state.selectedModel || 'claude-sonnet-4-6',
             conversationHistory,
             sceneContext: apiSceneContext
             // attachments: attachedFiles.length > 0 ? attachedFiles : undefined // TODO: Re-enable when backend supports attachments
@@ -1315,16 +1315,16 @@ function UnifiedChatPanelInner({
             } else if (errorMessage.includes('not_found') || errorMessage.includes('404') || errorMessage.includes('model:')) {
               // Model not found - fallback to default
               errorMessage = 'The selected AI model is not available. Switching to default model.';
-              userMessage = '⚠️ The selected model is unavailable. I\'ve switched to Claude Sonnet 4.5. Please try again.';
+              userMessage = '⚠️ The selected model is unavailable. I\'ve switched to Claude Sonnet 4.6. Please try again.';
               shouldFallbackModel = true;
             }
             
             // Fallback to default model if model not found
             if (shouldFallbackModel) {
-              const defaultModel = 'claude-sonnet-4-5-20250929';
+              const defaultModel = 'claude-sonnet-4-6';
               if (state.selectedModel !== defaultModel) {
                 setModel(defaultModel);
-                toast.info('Switched to Claude Sonnet 4.5');
+                toast.info('Switched to Claude Sonnet 4.6');
               }
             }
             
@@ -1376,16 +1376,16 @@ function UnifiedChatPanelInner({
         } else if (errorMessage.includes('not_found') || errorMessage.includes('404') || errorMessage.includes('model:')) {
           // Model not found - fallback to default
           errorMessage = 'The selected AI model is not available. Switching to default model.';
-          userMessage = '⚠️ The selected model is unavailable. I\'ve switched to Claude Sonnet 4.5. Please try again.';
+          userMessage = '⚠️ The selected model is unavailable. I\'ve switched to Claude Sonnet 4.6. Please try again.';
           shouldFallbackModel = true;
         }
         
         // Fallback to default model if model not found
         if (shouldFallbackModel) {
-          const defaultModel = 'claude-sonnet-4-5-20250929';
+          const defaultModel = 'claude-sonnet-4-6';
           if (state.selectedModel !== defaultModel) {
             setModel(defaultModel);
-            toast.info('Switched to Claude Sonnet 4.5');
+            toast.info('Switched to Claude Sonnet 4.6');
           }
         }
         
