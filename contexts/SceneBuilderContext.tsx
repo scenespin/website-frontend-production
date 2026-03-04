@@ -67,6 +67,7 @@ export type CameraAngle =
 export type ShotDuration = 'quick-cut' | 'extended-take';
 export type Resolution = '1080p' | '4k';
 export type AspectRatio = '16:9' | '9:16' | '1:1' | '21:9' | '9:21';
+export type DialogueVideoAspectRatio = '16:9' | '9:16' | '1:1' | '4:3' | '3:4' | '21:9' | '9:21' | '3:2' | '2:3';
 export type ReferenceShotModel = 'nano-banana-pro' | 'nano-banana-pro-2k' | 'flux2-max-4k-16:9' | 'flux2-max-2k' | 'flux2-pro-4k' | 'flux2-pro-2k';
 /** Single source of truth for default first-frame model when user has not selected one. Change here to update dropdown display, review step, pricing, and workflow payload. */
 export const DEFAULT_REFERENCE_SHOT_MODEL: ReferenceShotModel = 'nano-banana-pro-2k';
@@ -142,6 +143,7 @@ export interface SceneBuilderState {
   shotCameraAngles: Record<number, CameraAngle>;
   shotDurations: Record<number, ShotDuration>;
   shotAspectRatios: Record<number, AspectRatio>;
+  dialogueVideoAspectRatios: Record<number, DialogueVideoAspectRatio>;
   selectedReferenceShotModels: Record<number, ReferenceShotModel>;
   selectedVideoTypes: Record<number, VideoType>;
   /** Feature 0233: Per-shot video opt-in. When false/absent, shot is first-frame-only. */
@@ -266,6 +268,8 @@ export interface SceneBuilderActions {
   updateShotDuration: (shotSlot: number, duration: ShotDuration | undefined) => void;
   setShotAspectRatios: (ratios: Record<number, AspectRatio>) => void;
   updateShotAspectRatio: (shotSlot: number, aspectRatio: AspectRatio) => void;
+  setDialogueVideoAspectRatios: (ratios: Record<number, DialogueVideoAspectRatio>) => void;
+  updateDialogueVideoAspectRatio: (shotSlot: number, aspectRatio: DialogueVideoAspectRatio) => void;
   setSelectedReferenceShotModels: (models: Record<number, ReferenceShotModel>) => void;
   updateReferenceShotModel: (shotSlot: number, model: ReferenceShotModel) => void;
   setSelectedVideoTypes: (types: Record<number, VideoType>) => void;
@@ -380,6 +384,7 @@ function getInitialSceneBuilderState(): SceneBuilderState {
     shotCameraAngles: {},
     shotDurations: {},
     shotAspectRatios: {},
+    dialogueVideoAspectRatios: {},
     selectedReferenceShotModels: {},
     selectedVideoTypes: {},
     generateVideoForShot: {},
@@ -1276,6 +1281,20 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
         ...prev,
         shotAspectRatios: {
           ...prev.shotAspectRatios,
+          [shotSlot]: aspectRatio
+        }
+      }));
+    }, []),
+
+    setDialogueVideoAspectRatios: useCallback((ratios) => {
+      setState(prev => ({ ...prev, dialogueVideoAspectRatios: ratios }));
+    }, []),
+
+    updateDialogueVideoAspectRatio: useCallback((shotSlot, aspectRatio) => {
+      setState(prev => ({
+        ...prev,
+        dialogueVideoAspectRatios: {
+          ...prev.dialogueVideoAspectRatios,
           [shotSlot]: aspectRatio
         }
       }));

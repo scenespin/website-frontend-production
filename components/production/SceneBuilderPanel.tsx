@@ -92,7 +92,7 @@ import { isValidCharacterId, filterValidCharacterIds } from './utils/characterId
 import { categorizeCharacters } from './utils/characterCategorization';
 import { isOffFrameListenerShotType, isOffFrameGroupShotType } from '@/types/offFrame';
 import type { OffFrameShotType } from '@/types/offFrame';
-import { SceneBuilderProvider, useSceneBuilderState, useSceneBuilderActions, VideoType, type AspectRatio, DEFAULT_REFERENCE_SHOT_MODEL } from '@/contexts/SceneBuilderContext';
+import { SceneBuilderProvider, useSceneBuilderState, useSceneBuilderActions, VideoType, type AspectRatio, type DialogueVideoAspectRatio, DEFAULT_REFERENCE_SHOT_MODEL } from '@/contexts/SceneBuilderContext';
 // Media Library mapping utilities are now used in hooks
 import { resolveCharacterHeadshotUrl, isValidImageUrl } from './utils/imageUrlResolver';
 import { SCENE_BUILDER_GRID_COLS, SCENE_BUILDER_GRID_GAP, THUMBNAIL_STYLE } from './utils/imageConstants';
@@ -428,6 +428,15 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     }
     // 🔥 FIX: contextActions functions are stable (useCallback with empty deps), so we don't need contextActions in deps
   }, [contextState.shotAspectRatios]);
+
+  const setDialogueVideoAspectRatios = useCallback((updater: Record<number, DialogueVideoAspectRatio> | ((prev: Record<number, DialogueVideoAspectRatio>) => Record<number, DialogueVideoAspectRatio>)) => {
+    if (typeof updater === 'function') {
+      const newValue = updater(contextState.dialogueVideoAspectRatios);
+      contextActions.setDialogueVideoAspectRatios(newValue);
+    } else {
+      contextActions.setDialogueVideoAspectRatios(updater);
+    }
+  }, [contextState.dialogueVideoAspectRatios]);
   
   const setShotCameraAngles = useCallback((updater: Record<number, any> | ((prev: Record<number, any>) => Record<number, any>)) => {
     if (typeof updater === 'function') {
@@ -624,6 +633,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   const currentStep = contextState.currentStep;
   const globalResolution = contextState.globalResolution;
   const shotAspectRatios = contextState.shotAspectRatios;
+  const dialogueVideoAspectRatios = contextState.dialogueVideoAspectRatios;
   const locationOptOuts = contextState.locationOptOuts;
   const locationDescriptions = contextState.locationDescriptions;
   const shotCameraAngles = contextState.shotCameraAngles;
@@ -3200,6 +3210,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
           : '16:9',
         // Per-shot aspect ratio map (required for dialogue/premium dialogue to keep each shot's selected ratio)
         shotAspectRatios: Object.keys(shotAspectRatios).length > 0 ? shotAspectRatios : undefined,
+        dialogueVideoAspectRatios: Object.keys(dialogueVideoAspectRatios).length > 0 ? dialogueVideoAspectRatios : undefined,
         duration,
         qualityTier,
         shotBreakdown: sceneAnalysisResult?.shotBreakdown ? {
@@ -5166,6 +5177,8 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                   shotDisplayCredits={shotDisplayCredits ?? undefined}
                   shotAspectRatio={currentShot != null ? (shotAspectRatios[currentShot.slot] ?? '16:9') : '16:9'}
                   onAspectRatioChange={(shotSlot, aspectRatio) => setShotAspectRatios(prev => ({ ...prev, [shotSlot]: aspectRatio }))}
+                  dialogueVideoAspectRatio={currentShot != null ? dialogueVideoAspectRatios[currentShot.slot] : undefined}
+                  onDialogueVideoAspectRatioChange={(shotSlot, aspectRatio) => setDialogueVideoAspectRatios(prev => ({ ...prev, [shotSlot]: aspectRatio }))}
                   isMobile={isMobile}
                 />
               );
@@ -5181,6 +5194,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                 shotCameraAngles={shotCameraAngles}
                 shotDurations={shotDurations}
                 shotAspectRatios={shotAspectRatios}
+                dialogueVideoAspectRatios={dialogueVideoAspectRatios}
                 selectedCharacterReferences={selectedCharacterReferences}
                 characterOutfits={characterOutfits}
                 selectedLocationReferences={selectedLocationReferences}

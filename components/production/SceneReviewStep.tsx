@@ -51,6 +51,7 @@ interface SceneReviewStepProps {
   shotCameraAngles?: Record<number, CameraAngle>;
   shotDurations?: Record<number, 'quick-cut' | 'extended-take'>;
   shotAspectRatios?: Record<number, '16:9' | '9:16' | '1:1' | '21:9' | '9:21'>;
+  dialogueVideoAspectRatios?: Record<number, '16:9' | '9:16' | '1:1' | '4:3' | '3:4' | '21:9' | '9:21' | '3:2' | '2:3'>;
   // Character mappings
   selectedCharacterReferences: Record<number, Record<string, { poseId?: string; s3Key?: string; imageUrl?: string }>>;
   characterOutfits: Record<number, Record<string, string>>;
@@ -108,6 +109,7 @@ export function SceneReviewStep({
   shotCameraAngles = {},
   shotDurations = {},
   shotAspectRatios = {},
+  dialogueVideoAspectRatios = {},
   selectedCharacterReferences,
   characterOutfits,
   selectedLocationReferences,
@@ -693,7 +695,7 @@ export function SceneReviewStep({
                             const videoAspectRatio = isElementsVideo
                               ? (elementsVideoAspectRatios[shot.slot] || '16:9')
                               : isDialogueVideo
-                                ? resolveDialogueVideoAspectRatio(firstFrameAspectRatio, dialogueQuality)
+                                ? (dialogueVideoAspectRatios[shot.slot] || resolveDialogueVideoAspectRatio(firstFrameAspectRatio, dialogueQuality))
                                 : (shotAspectRatios[shot.slot] || '16:9');
 
                             const showAdjustment = hasVideoForShot && hasFirstFrameForShot && videoAspectRatio !== firstFrameAspectRatio;

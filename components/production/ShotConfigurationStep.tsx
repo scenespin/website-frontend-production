@@ -48,13 +48,37 @@ const ASPECT_RATIO_OPTIONS = [
   { value: '9:21' as const, label: '9:21 (Vertical ultrawide)' }
 ] as const;
 
-function AspectRatioSelector({ value, onChange }: { value: string; onChange: (value: '16:9' | '9:16' | '1:1' | '21:9' | '9:21') => void }) {
+const DIALOGUE_VIDEO_ASPECT_RATIO_LABELS: Record<string, string> = {
+  '16:9': '16:9 (Horizontal)',
+  '9:16': '9:16 (Vertical)',
+  '4:3': '4:3 (Classic)',
+  '3:4': '3:4 (Vertical classic)',
+  '1:1': '1:1 (Square)',
+  '3:2': '3:2',
+  '2:3': '2:3',
+  '21:9': '21:9 (Ultrawide)',
+  '9:21': '9:21 (Vertical ultrawide)',
+};
+
+function AspectRatioSelector({
+  value,
+  onChange,
+  options = ASPECT_RATIO_OPTIONS as unknown as ReadonlyArray<{ value: string; label: string }>,
+  label = 'Aspect Ratio',
+  showTopDivider = true
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  options?: ReadonlyArray<{ value: string; label: string }>;
+  label?: string;
+  showTopDivider?: boolean;
+}) {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
-  const aspectRatios = useMemo(() => ASPECT_RATIO_OPTIONS, []);
+  const aspectRatios = useMemo(() => options, [options]);
 
-  const currentLabel = aspectRatios.find(ar => ar.value === value)?.label || '16:9 (Horizontal)';
+  const currentLabel = aspectRatios.find(ar => ar.value === value)?.label || DIALOGUE_VIDEO_ASPECT_RATIO_LABELS[value] || '16:9 (Horizontal)';
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -73,9 +97,9 @@ function AspectRatioSelector({ value, onChange }: { value: string; onChange: (va
   }, [isOpen]);
 
   return (
-    <div className="mt-3 pt-3 border-t border-[#3F3F46]">
+    <div className={showTopDivider ? 'mt-3 pt-3 border-t border-[#3F3F46]' : ''}>
       <label className="text-xs font-medium text-[#FFFFFF] mb-2 block">
-        Aspect Ratio
+        {label}
       </label>
       <div ref={dropdownRef} className="relative">
         <button
@@ -216,6 +240,8 @@ interface ShotConfigurationStepProps {
   // Aspect Ratio (per-shot)
   shotAspectRatio?: '16:9' | '9:16' | '1:1' | '21:9' | '9:21';
   onAspectRatioChange?: (shotSlot: number, aspectRatio: '16:9' | '9:16' | '1:1' | '21:9' | '9:21') => void;
+  dialogueVideoAspectRatio?: '16:9' | '9:16' | '1:1' | '4:3' | '3:4' | '21:9' | '9:21' | '3:2' | '2:3';
+  onDialogueVideoAspectRatioChange?: (shotSlot: number, aspectRatio: '16:9' | '9:16' | '1:1' | '4:3' | '3:4' | '21:9' | '9:21' | '3:2' | '2:3') => void;
   // Navigation
   onPrevious: () => void;
   onNext: () => void;
@@ -297,6 +323,8 @@ export function ShotConfigurationStep({
   onVideoTypeChange,
   shotAspectRatio,
   onAspectRatioChange,
+  dialogueVideoAspectRatio,
+  onDialogueVideoAspectRatioChange,
   onPrevious,
   onNext,
   onShotSelect,
@@ -346,6 +374,7 @@ export function ShotConfigurationStep({
   const finalOffFrameSceneContextPrompt = state.offFrameSceneContextPrompt[shotSlot] ?? '';
   const finalOffFrameVideoPromptAdditive = state.offFrameVideoPromptAdditive[shotSlot] ?? '';
   const finalLipSyncVideoPromptAdditive = state.lipSyncVideoPromptAdditive[shotSlot] ?? '';
+  const finalDialogueVideoAspectRatio = dialogueVideoAspectRatio ?? state.dialogueVideoAspectRatios?.[shotSlot];
   const finalShotWorkflowOverride = state.shotWorkflowOverrides[shotSlot];
   const finalFirstFramePromptOverride = state.firstFramePromptOverrides[shotSlot];
   const finalVideoPromptOverride = state.videoPromptOverrides[shotSlot];
@@ -712,6 +741,68 @@ export function ShotConfigurationStep({
       }
     }
   }, [shot.slot, shot.type, videoOptInForThisShot, finalSelectedDialogueWorkflow, sceneAnalysisResult?.dialogue?.workflowType, shotSlot, onDialogueWorkflowChange]);
+
+  const dialogueVideoAspectRatioOptions = useMemo(() => {
+    const isLipSyncWorkflow =
+      finalSelectedDialogueWorkflow === 'first-frame-lipsync' ||
+      finalSelectedDialogueWorkflow === 'extreme-closeup' ||
+      finalSelectedDialogueWorkflow === 'extreme-closeup-mouth' ||
+      !finalSelectedDialogueWorkflow;
+    if (isLipSyncWorkflow) {
+      if (finalSelectedDialogueQuality === 'premium') {
+        return [
+          { value: '16:9', label: DIALOGUE_VIDEO_ASPECT_RATIO_LABELS['16:9'] },
+          { value: '9:16', label: DIALOGUE_VIDEO_ASPECT_RATIO_LABELS['9:16'] },
+        ];
+      }
+      return [
+        { value: '16:9', label: DIALOGUE_VIDEO_ASPECT_RATIO_LABELS['16:9'] },
+        { value: '9:16', label: DIALOGUE_VIDEO_ASPECT_RATIO_LABELS['9:16'] },
+        { value: '4:3', label: DIALOGUE_VIDEO_ASPECT_RATIO_LABELS['4:3'] },
+        { value: '3:4', label: DIALOGUE_VIDEO_ASPECT_RATIO_LABELS['3:4'] },
+        { value: '1:1', label: DIALOGUE_VIDEO_ASPECT_RATIO_LABELS['1:1'] },
+        { value: '3:2', label: DIALOGUE_VIDEO_ASPECT_RATIO_LABELS['3:2'] },
+        { value: '2:3', label: DIALOGUE_VIDEO_ASPECT_RATIO_LABELS['2:3'] },
+      ];
+    }
+
+    const videoType = selectedVideoTypes[shotSlot] || 'cinematic-visuals';
+    if (videoType === 'premium-quality') {
+      return [
+        { value: '16:9', label: DIALOGUE_VIDEO_ASPECT_RATIO_LABELS['16:9'] },
+        { value: '9:16', label: DIALOGUE_VIDEO_ASPECT_RATIO_LABELS['9:16'] },
+      ];
+    }
+    if (videoType === 'natural-motion') {
+      return [
+        { value: '16:9', label: DIALOGUE_VIDEO_ASPECT_RATIO_LABELS['16:9'] },
+        { value: '9:16', label: DIALOGUE_VIDEO_ASPECT_RATIO_LABELS['9:16'] },
+        { value: '4:3', label: DIALOGUE_VIDEO_ASPECT_RATIO_LABELS['4:3'] },
+        { value: '3:4', label: DIALOGUE_VIDEO_ASPECT_RATIO_LABELS['3:4'] },
+        { value: '21:9', label: DIALOGUE_VIDEO_ASPECT_RATIO_LABELS['21:9'] },
+        { value: '9:21', label: DIALOGUE_VIDEO_ASPECT_RATIO_LABELS['9:21'] },
+        { value: '1:1', label: DIALOGUE_VIDEO_ASPECT_RATIO_LABELS['1:1'] },
+      ];
+    }
+
+    // cinematic-visuals (Runway Gen-4 Turbo)
+    return [
+      { value: '16:9', label: DIALOGUE_VIDEO_ASPECT_RATIO_LABELS['16:9'] },
+      { value: '9:16', label: DIALOGUE_VIDEO_ASPECT_RATIO_LABELS['9:16'] },
+    ];
+  }, [finalSelectedDialogueWorkflow, finalSelectedDialogueQuality, selectedVideoTypes, shotSlot]);
+
+  useEffect(() => {
+    if (!isDialogueShot || !videoOptInForThisShot || !onDialogueVideoAspectRatioChange) return;
+    const allowed = dialogueVideoAspectRatioOptions.map((option) => option.value);
+    const current = finalDialogueVideoAspectRatio;
+    if (!current || !allowed.includes(current)) {
+      onDialogueVideoAspectRatioChange(
+        shotSlot,
+        allowed[0] as '16:9' | '9:16' | '1:1' | '4:3' | '3:4' | '21:9' | '9:21' | '3:2' | '2:3'
+      );
+    }
+  }, [isDialogueShot, videoOptInForThisShot, onDialogueVideoAspectRatioChange, dialogueVideoAspectRatioOptions, finalDialogueVideoAspectRatio, shotSlot]);
   
   // 🔥 NEW: Fetch presigned URLs for prop images (for references section)
   // Collect all prop image S3 keys for this shot
@@ -914,6 +1005,10 @@ export function ShotConfigurationStep({
   
   const finalOnAspectRatioChange = useCallback((shotSlot: number, aspectRatio: '16:9' | '9:16' | '1:1' | '21:9' | '9:21') => {
     actions.updateShotAspectRatio(shotSlot, aspectRatio);
+  }, [actions]);
+
+  const finalOnDialogueVideoAspectRatioChange = useCallback((shotSlot: number, aspectRatio: '16:9' | '9:16' | '1:1' | '4:3' | '3:4' | '21:9' | '9:21' | '3:2' | '2:3') => {
+    actions.updateDialogueVideoAspectRatio(shotSlot, aspectRatio);
   }, [actions]);
   
   const [isTransitioning, setIsTransitioning] = useState(false);
@@ -1531,6 +1626,16 @@ export function ShotConfigurationStep({
                   elementsMaxSelect={VEO_MAX_ELEMENTS}
                   renderBeforeDialogueVideo={isDialogueShot && !isOverrideAllowed ? (
                     <div className="py-3 border-b border-[#3F3F46]">
+                      {onAspectRatioChange && (
+                        <div className="mb-3">
+                          <AspectRatioSelector
+                            value={shotAspectRatio || '16:9'}
+                            onChange={(value) => finalOnAspectRatioChange(shot.slot, value as '16:9' | '9:16' | '1:1' | '21:9' | '9:21')}
+                            label="First frame aspect ratio"
+                            showTopDivider={false}
+                          />
+                        </div>
+                      )}
                       <label className="block text-xs font-medium text-[#FFFFFF] mb-2">Use your own first frame</label>
                       <p className="text-[10px] text-[#808080] mb-2">
                         {videoOptInForThisShot
@@ -2084,17 +2189,41 @@ export function ShotConfigurationStep({
             </>
           )}
 
-          {/* Single separator then Aspect ratio + Estimated Cost (fewer lines under Add Dialogue Video) */}
-          {/* Show aspect ratio: always for action; for dialogue with uploaded first frame, show when video opted in (match custom upload) */}
+          {/* Single separator then ratio controls + Estimated Cost */}
           <div className="border-t border-[#3F3F46]">
-            {onAspectRatioChange && !state.useElementsForVideo?.[shot.slot] && (!uploadedFirstFrameUrl || (uploadedFirstFrameUrl && isDialogueShot && videoOptInForThisShot)) && (
+            {onAspectRatioChange && !isDialogueShot && !state.useElementsForVideo?.[shot.slot] && (!uploadedFirstFrameUrl || (uploadedFirstFrameUrl && videoOptInForThisShot)) && (
               <div className="pt-2">
                 <label className="block text-[10px] text-[#808080] mb-1.5">
-                  {uploadedFirstFrameUrl && isDialogueShot ? 'Video aspect ratio (match your upload)' : 'Output aspect ratio (image &amp; video)'}
+                  Output aspect ratio (image &amp; video)
                 </label>
                 <AspectRatioSelector
                   value={shotAspectRatio || '16:9'}
                   onChange={(value) => finalOnAspectRatioChange(shot.slot, value as '16:9' | '9:16' | '1:1' | '21:9' | '9:21')}
+                  showTopDivider={false}
+                />
+              </div>
+            )}
+            {onAspectRatioChange && isDialogueShot && !videoOptInForThisShot && isOverrideAllowed && !state.useElementsForVideo?.[shot.slot] && (
+              <div className="pt-2">
+                <AspectRatioSelector
+                  value={shotAspectRatio || '16:9'}
+                  onChange={(value) => finalOnAspectRatioChange(shot.slot, value as '16:9' | '9:16' | '1:1' | '21:9' | '9:21')}
+                  label="First frame aspect ratio"
+                  showTopDivider={false}
+                />
+              </div>
+            )}
+            {isDialogueShot && videoOptInForThisShot && !state.useElementsForVideo?.[shot.slot] && onDialogueVideoAspectRatioChange && (
+              <div className="pt-2">
+                <AspectRatioSelector
+                  value={finalDialogueVideoAspectRatio || dialogueVideoAspectRatioOptions[0]?.value || '16:9'}
+                  onChange={(value) => finalOnDialogueVideoAspectRatioChange(
+                    shot.slot,
+                    value as '16:9' | '9:16' | '1:1' | '4:3' | '3:4' | '21:9' | '9:21' | '3:2' | '2:3'
+                  )}
+                  options={dialogueVideoAspectRatioOptions}
+                  label="Dialogue video aspect ratio"
+                  showTopDivider={false}
                 />
               </div>
             )}
