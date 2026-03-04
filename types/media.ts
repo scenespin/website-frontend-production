@@ -221,12 +221,39 @@ export interface RegisterMediaFileRequest {
 }
 
 /**
+ * Backend file shape returned by list/register APIs (for mapping to MediaFile)
+ */
+export interface BackendMediaFile {
+  fileId: string;
+  fileName: string;
+  fileType: string;
+  mediaFileType?: 'video' | 'image' | 'audio' | '3d-model' | 'other';
+  fileSize: number;
+  s3Key: string;
+  folderId?: string;
+  projectId?: string;
+  screenplayId?: string;
+  userId?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  isArchived?: boolean;
+  metadata?: Record<string, any>;
+  storageType?: 'local' | 'google-drive' | 'dropbox' | 'wryda-temp';
+  thumbnailS3Key?: string;
+  folderPath?: string[];
+  entityType?: string;
+  entityId?: string;
+}
+
+/**
  * Response from media file registration
  */
 export interface RegisterMediaFileResponse {
   success: boolean;
   fileId: string;
   message: string;
+  /** Returned file for immediate UI display (avoids GSI eventual consistency delay) */
+  file?: BackendMediaFile;
 }
 
 /**

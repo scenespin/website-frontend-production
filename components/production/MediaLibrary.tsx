@@ -44,7 +44,8 @@ import {
   usePresignedUrl,
   useBulkPresignedUrls,
   useMediaFolderTree,
-  useDeleteFolder
+  useDeleteFolder,
+  mapBackendFileToMediaFile
 } from '@/hooks/useMediaLibrary';
 import { ImageViewer, type ImageItem } from './ImageViewer';
 import { VideoThumbnail as SharedVideoThumbnail } from './VideoThumbnail';
@@ -88,6 +89,9 @@ export default function MediaLibrary({
 }: MediaLibraryProps) {
   const { getToken } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Optimistic files from register response (avoids GSI eventual consistency delay)
+  const [optimisticFiles, setOptimisticFiles] = useState<MediaFile[]>([]);
   
   // Backend API URL for direct calls (Phase 2A: Direct Backend Auth)
   const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
@@ -405,8 +409,19 @@ export default function MediaLibrary({
     setSelectedFolderId(folderId || null);
     setSelectedFolderPath(path);
     setSelectedStorageType(folderId ? storageType : null);
+    setOptimisticFiles([]); // Clear when navigating
     // loadFolderFiles will be called by useEffect when selectedFolderId changes (for cloud storage)
   };
+
+  // Clear optimistic files when they appear in server response
+  useEffect(() => {
+    if (optimisticFiles.length === 0 || selectedStorageType === 'cloud') return;
+    const serverIds = new Set((files as MediaFile[]).map(f => f.id));
+    const stillPending = optimisticFiles.filter(f => !serverIds.has(f.id));
+    if (stillPending.length !== optimisticFiles.length) {
+      setOptimisticFiles(stillPending);
+    }
+  }, [files, optimisticFiles, selectedStorageType]);
 
   const handleBreadcrumbClick = async (index: number) => {
     if (index === -1) {
@@ -414,6 +429,7 @@ export default function MediaLibrary({
       setSelectedFolderId(null);
       setSelectedFolderPath([]);
       setSelectedStorageType(null);
+      setOptimisticFiles([]);
     } else {
       // Navigate to specific folder in path
       const newPath = selectedFolderPath.slice(0, index + 1);
@@ -445,6 +461,7 @@ export default function MediaLibrary({
         if (folderId) {
           setSelectedFolderId(folderId);
           setSelectedStorageType('s3');
+          setOptimisticFiles([]);
         }
       } else if (selectedStorageType === 'cloud') {
         // For cloud storage, we need to reconstruct the folderId from the path
@@ -457,9 +474,13 @@ export default function MediaLibrary({
   
   // Determine which files to display
   // Feature 0128: S3 folders use React Query (files), cloud storage uses folderFiles
-  const displayFiles: MediaFile[] = (selectedFolderId && selectedStorageType === 'cloud') 
+  // Merge optimistic files from register response for immediate display (avoids GSI eventual consistency delay)
+  const baseFiles: MediaFile[] = (selectedFolderId && selectedStorageType === 'cloud') 
     ? folderFiles 
     : (files as MediaFile[]);
+  const serverFileIds = new Set(baseFiles.map(f => f.id));
+  const pendingOptimistic = optimisticFiles.filter(f => !serverFileIds.has(f.id));
+  const displayFiles: MediaFile[] = [...pendingOptimistic, ...baseFiles];
   const displayLoading = (selectedFolderId && selectedStorageType === 'cloud') 
     ? folderFilesLoading 
     : isLoading;
@@ -685,7 +706,7 @@ export default function MediaLibrary({
       await new Promise(resolve => setTimeout(resolve, 500));
       
       try {
-        await uploadMediaMutation.mutateAsync({
+        const response = await uploadMediaMutation.mutateAsync({
           fileName: file.name,
           fileType: file.type,
           fileSize: file.size,
@@ -693,8 +714,14 @@ export default function MediaLibrary({
           folderId: selectedFolderId && selectedStorageType === 's3' ? selectedFolderId : undefined, // Feature 0128: Include folderId if S3 folder selected
         });
         console.log('[MediaLibrary] File registered, cache invalidated');
-        
-        // Force refetch to ensure UI updates immediately
+
+        // Immediate display from register response (avoids GSI eventual consistency delay)
+        if (response?.file && selectedStorageType !== 'cloud') {
+          const mediaFile = mapBackendFileToMediaFile(response.file);
+          setOptimisticFiles(prev => [mediaFile, ...prev]);
+        }
+
+        // Force refetch to ensure UI updates and eventual consistency
         await refetchFiles();
         console.log('[MediaLibrary] Files refetched after upload');
       } catch (error) {

@@ -55,8 +55,9 @@ const FETCH_ALL_MAX_MS = 8000;
 
 /**
  * Map backend file shape to frontend MediaFile (single place for consistency).
+ * Exported for use in MediaLibrary optimistic display from register response.
  */
-function mapBackendFileToMediaFile(file: any): MediaFile {
+export function mapBackendFileToMediaFile(file: any): MediaFile {
   const rawFileType = typeof file.fileType === 'string' && file.fileType.trim().length > 0
     ? file.fileType
     : 'application/octet-stream';
