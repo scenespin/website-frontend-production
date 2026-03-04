@@ -4,10 +4,8 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { getScreenplay, updateScreenplay } from '@/utils/screenplayStorage';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
-import { useStorageConnections } from '@/hooks/useStorageConnections';
-import { X, Settings, Loader2, Cloud, ExternalLink } from 'lucide-react';
+import { X, Settings, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
-import Link from 'next/link';
 
 interface ScreenplaySettingsModalProps {
   isOpen: boolean;
@@ -31,12 +29,6 @@ export default function ScreenplaySettingsModal({ isOpen, onClose, screenplayId:
   const [author, setAuthor] = useState('');
   const [description, setDescription] = useState('');
   const [genre, setGenre] = useState('');
-  const [cloudStorageProvider, setCloudStorageProvider] = useState<'google-drive' | 'dropbox' | null>(null);
-  const [deleteFromCloudWhenDeletingInApp, setDeleteFromCloudWhenDeletingInApp] = useState(true);
-  
-  // Check storage connections
-  const { googleDrive, dropbox, isLoading: connectionsLoading } = useStorageConnections();
-
   useEffect(() => {
     if (isOpen && screenplayId) {
       fetchScreenplayData();
@@ -55,25 +47,6 @@ export default function ScreenplaySettingsModal({ isOpen, onClose, screenplayId:
         setAuthor(screenplayData.author || '');
         setDescription(screenplayData.description || '');
         setGenre(screenplayData.metadata?.genre || '');
-        setCloudStorageProvider(screenplayData.cloudStorageProvider || null);
-      }
-
-      const token = await getToken({ template: 'wryda-backend' });
-      if (token) {
-        const accountResponse = await fetch('/api/account/profile', {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-          },
-        });
-
-        if (accountResponse.ok) {
-          const accountPayload = await accountResponse.json();
-          const profile = accountPayload?.data ?? accountPayload;
-          const pref = profile?.delete_from_cloud_when_deleting_in_app;
-          if (typeof pref === 'boolean') {
-            setDeleteFromCloudWhenDeletingInApp(pref);
-          }
-        }
       }
     } catch (error) {
       console.error('[ScreenplaySettingsModal] Failed to fetch screenplay:', error);
@@ -108,28 +81,10 @@ export default function ScreenplaySettingsModal({ isOpen, onClose, screenplayId:
           metadata: {
             ...(currentScreenplay?.metadata || {}),
             ...(genre.trim() ? { genre: genre.trim() } : {})
-          },
-          cloudStorageProvider: cloudStorageProvider || undefined
+          }
         },
         getToken
       );
-
-      const token = await getToken({ template: 'wryda-backend' });
-      if (token) {
-        const settingsResponse = await fetch('/api/account/settings', {
-          method: 'PUT',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            delete_from_cloud_when_deleting_in_app: deleteFromCloudWhenDeletingInApp,
-          }),
-        });
-        if (!settingsResponse.ok) {
-          throw new Error(`Failed to update cloud delete preference (${settingsResponse.status})`);
-        }
-      }
       
       // 🔥 FIX 3: Add delay for DynamoDB consistency (like Media Library pattern)
       // This ensures the update is fully processed before we dispatch the event
@@ -254,125 +209,6 @@ export default function ScreenplaySettingsModal({ isOpen, onClose, screenplayId:
                   <option value="documentary">Documentary</option>
                   <option value="other">Other</option>
                 </select>
-              </div>
-
-              {/* Cloud Storage Provider */}
-              <div>
-                <label className="block text-sm font-medium text-[#E4E4E7] mb-2">
-                  <Cloud className="w-4 h-4 inline mr-2" />
-                  Cloud Storage Auto-Sync (Optional)
-                </label>
-                <p className="text-xs text-[#A1A1AA] mb-3">
-                  Choose one provider per screenplay. Each screenplay can use a different provider, but all files in this screenplay will use the same provider.
-                </p>
-                <div className="space-y-2">
-                  <label className="flex items-center gap-3 p-3 rounded-lg border border-[#3F3F46] bg-[#141414] hover:bg-[#1F1F1F] cursor-pointer transition-colors">
-                    <input
-                      type="radio"
-                      name="cloudProvider"
-                      value=""
-                      checked={cloudStorageProvider === null}
-                      onChange={() => setCloudStorageProvider(null)}
-                      className="w-4 h-4 text-[#DC143C] focus:ring-[#DC143C]"
-                      disabled={isSaving}
-                    />
-                    <div className="flex-1">
-                      <div className="text-sm font-medium text-[#FFFFFF]">None (Manual Sync)</div>
-                      <div className="text-xs text-[#808080]">You&apos;ll choose storage location each time</div>
-                    </div>
-                  </label>
-                  
-                  <label className={`flex items-center gap-3 p-3 rounded-lg border ${
-                    cloudStorageProvider === 'google-drive' 
-                      ? 'border-[#DC143C] bg-[#DC143C]/10' 
-                      : 'border-[#3F3F46] bg-[#141414] hover:bg-[#1F1F1F]'
-                  } cursor-pointer transition-colors ${!googleDrive ? 'opacity-50' : ''}`}>
-                    <input
-                      type="radio"
-                      name="cloudProvider"
-                      value="google-drive"
-                      checked={cloudStorageProvider === 'google-drive'}
-                      onChange={() => setCloudStorageProvider('google-drive')}
-                      className="w-4 h-4 text-[#DC143C] focus:ring-[#DC143C]"
-                      disabled={isSaving || !googleDrive}
-                    />
-                    <div className="flex-1">
-                      <div className="text-sm font-medium text-[#FFFFFF] flex items-center gap-2">
-                        Google Drive
-                        {!googleDrive && (
-                          <span className="text-xs text-amber-400 font-normal">(Not connected)</span>
-                        )}
-                      </div>
-                      <div className="text-xs text-[#808080]">
-                        Files automatically sync to Google Drive
-                      </div>
-                    </div>
-                  </label>
-                  
-                  <label className={`flex items-center gap-3 p-3 rounded-lg border ${
-                    cloudStorageProvider === 'dropbox' 
-                      ? 'border-[#DC143C] bg-[#DC143C]/10' 
-                      : 'border-[#3F3F46] bg-[#141414] hover:bg-[#1F1F1F]'
-                  } cursor-pointer transition-colors ${!dropbox ? 'opacity-50' : ''}`}>
-                    <input
-                      type="radio"
-                      name="cloudProvider"
-                      value="dropbox"
-                      checked={cloudStorageProvider === 'dropbox'}
-                      onChange={() => setCloudStorageProvider('dropbox')}
-                      className="w-4 h-4 text-[#DC143C] focus:ring-[#DC143C]"
-                      disabled={isSaving || !dropbox}
-                    />
-                    <div className="flex-1">
-                      <div className="text-sm font-medium text-[#FFFFFF] flex items-center gap-2">
-                        Dropbox
-                        {!dropbox && (
-                          <span className="text-xs text-amber-400 font-normal">(Not connected)</span>
-                        )}
-                      </div>
-                      <div className="text-xs text-[#808080]">
-                        Files automatically sync to Dropbox
-                      </div>
-                    </div>
-                  </label>
-                </div>
-                {(!googleDrive || !dropbox) && (
-                  <div className="mt-3 p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg">
-                    <p className="text-xs text-amber-300 mb-2">
-                      {!googleDrive && !dropbox 
-                        ? 'No cloud storage providers connected. Connect a provider in the Media Library to enable auto-sync.'
-                        : !googleDrive 
-                        ? 'Google Drive is not connected. Connect it in the Media Library to enable auto-sync.'
-                        : 'Dropbox is not connected. Connect it in the Media Library to enable auto-sync.'}
-                    </p>
-                    <Link
-                      href={`/storage?project=${screenplayId}`}
-                      onClick={() => onClose()}
-                      className="inline-flex items-center gap-1.5 text-xs text-amber-300 hover:text-amber-200 font-medium transition-colors"
-                    >
-                      Go to Media Library
-                      <ExternalLink className="w-3 h-3" />
-                    </Link>
-                  </div>
-                )}
-                <p className="text-xs text-[#808080] mt-2">
-                  When enabled, files will automatically upload to your cloud storage using the screenplay folder structure
-                </p>
-                <div className="mt-3 p-3 rounded-lg border border-[#3F3F46] bg-[#141414] space-y-2">
-                  <label className="flex items-center justify-between gap-3">
-                    <div>
-                      <div className="text-xs font-semibold text-[#E4E4E7]">Delete from cloud when deleting in app</div>
-                      <div className="text-xs text-[#A1A1AA]">If disabled, app deletes keep cloud copies.</div>
-                    </div>
-                    <input
-                      type="checkbox"
-                      checked={deleteFromCloudWhenDeletingInApp}
-                      onChange={(e) => setDeleteFromCloudWhenDeletingInApp(e.target.checked)}
-                      disabled={isSaving}
-                      className="w-4 h-4 text-[#DC143C] focus:ring-[#DC143C] bg-[#141414] border-[#3F3F46] rounded"
-                    />
-                  </label>
-                </div>
               </div>
             </>
           )}

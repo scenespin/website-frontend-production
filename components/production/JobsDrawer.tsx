@@ -21,10 +21,9 @@ import { useAuth } from '@clerk/nextjs';
 import {
   Loader2, CheckCircle, XCircle, Clock, Download, 
   RefreshCw, Trash2, Filter, ChevronDown, Play,
-  Sparkles, AlertCircle, Image, Save, X, ChevronRight, GripHorizontal, Music
+  Sparkles, AlertCircle, Image, X, ChevronRight, GripHorizontal, Music
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { StorageDecisionModal } from '@/components/storage/StorageDecisionModal';
 import { useQueryClient } from '@tanstack/react-query';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useDrawer } from '@/contexts/DrawerContext';
@@ -566,16 +565,6 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
     (j.results.screenplayReading) ||
     (j.results.videoSoundscape)
   );
-
-  // Storage modal state
-  const [showStorageModal, setShowStorageModal] = useState(false);
-  const [selectedAsset, setSelectedAsset] = useState<{
-    url: string;
-    s3Key: string;
-    name: string;
-    type: 'image' | 'video' | 'audio';
-    metadata?: any;
-  } | null>(null);
 
   // Safety error dialog state
   const [showSafetyDialog, setShowSafetyDialog] = useState(false);
@@ -1954,30 +1943,6 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
 
                     {/* Download buttons - compact */}
                     <div className="flex flex-wrap gap-1">
-                      {job.jobType === 'audio-generation' && job.results.audio && job.results.audio.length > 0 && (
-                        <button
-                          onClick={() => {
-                            const firstAudio = job.results!.audio![0];
-                            setSelectedAsset({
-                              url: firstAudio.audioUrl,
-                              s3Key: firstAudio.s3Key,
-                              name: firstAudio.label || 'Generated Audio',
-                              type: 'audio',
-                              metadata: {
-                                audioType: job.metadata?.inputs?.type || 'audio',
-                                prompt: job.metadata?.inputs?.prompt,
-                                allAudio: job.results!.audio
-                              }
-                            });
-                            setShowStorageModal(true);
-                          }}
-                          className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium bg-[#8B5CF6] text-white hover:bg-[#7C4DCC] transition-colors"
-                        >
-                          <Save className="w-2.5 h-2.5" />
-                          Save
-                        </button>
-                      )}
-                      
                       {job.jobType === 'complete-scene' && job.results.videos && (
                         <>
                           {job.results.videos.map((video, index) => (
@@ -2141,23 +2106,6 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-        
-        {/* Storage Decision Modal */}
-        {showStorageModal && selectedAsset && (
-          <StorageDecisionModal
-            isOpen={showStorageModal}
-            onClose={() => {
-              setShowStorageModal(false);
-              setSelectedAsset(null);
-            }}
-            assetType={selectedAsset.type}
-            assetName={selectedAsset.name}
-            s3TempUrl={selectedAsset.url}
-            s3Key={selectedAsset.s3Key}
-            fileSize={undefined}
-            metadata={selectedAsset.metadata}
-          />
-        )}
       </>
     );
   }
@@ -2241,23 +2189,6 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      
-      {/* Storage Decision Modal */}
-      {showStorageModal && selectedAsset && (
-        <StorageDecisionModal
-          isOpen={showStorageModal}
-          onClose={() => {
-            setShowStorageModal(false);
-            setSelectedAsset(null);
-          }}
-          assetType={selectedAsset.type}
-          assetName={selectedAsset.name}
-          s3TempUrl={selectedAsset.url}
-          s3Key={selectedAsset.s3Key}
-          fileSize={undefined}
-          metadata={selectedAsset.metadata}
-        />
-      )}
     </>
   );
 }

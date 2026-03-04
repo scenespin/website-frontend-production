@@ -12,10 +12,9 @@ import { useAuth } from '@clerk/nextjs';
 import {
   Loader2, CheckCircle, XCircle, Clock, Download, 
   RefreshCw, Trash2, Filter, ChevronDown, Play,
-  Sparkles, AlertCircle, Image, Save, Upload, ChevronRight
+  Sparkles, AlertCircle, Image, Upload, ChevronRight
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { StorageDecisionModal } from '@/components/storage/StorageDecisionModal';
 import { useQueryClient } from '@tanstack/react-query';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useRouter } from 'next/navigation';
@@ -496,16 +495,6 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
   // Poll-by-ID until completion: same constants as JobsDrawer for consistency
   const POLL_BY_ID_INTERVAL_MS = 4000;
   const MAX_POLL_PER_TICK = 20;
-  
-  // Storage modal state
-  const [showStorageModal, setShowStorageModal] = useState(false);
-  const [selectedAsset, setSelectedAsset] = useState<{
-    url: string;
-    s3Key: string;
-    name: string;
-    type: 'image' | 'video' | 'audio';
-    metadata?: any;
-  } | null>(null);
 
   /**
    * Helper function for downloading audio files via blob (more reliable than download attribute)
@@ -1606,31 +1595,6 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
                         - Asset angles auto-save to asset.angleReferences
                     */}
                     
-                    {job.jobType === 'audio-generation' && job.results.audio && job.results.audio.length > 0 && (
-                      <button
-                        onClick={() => {
-                          const firstAudio = job.results!.audio![0];
-                          setSelectedAsset({
-                            url: firstAudio.audioUrl,
-                            s3Key: firstAudio.s3Key,
-                            name: firstAudio.label || 'Generated Audio',
-                            type: 'audio',
-                            metadata: {
-                              audioType: job.metadata?.inputs?.type || 'audio',
-                              prompt: job.metadata?.inputs?.prompt,
-                              allAudio: job.results!.audio
-                            }
-                          });
-                          setShowStorageModal(true);
-                        }}
-                        className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg
-                                 bg-[#8B5CF6] text-white text-xs font-medium
-                                 hover:bg-[#7C4DCC] transition-colors"
-                      >
-                        <Save className="w-3 h-3" />
-                        Save Audio
-                      </button>
-                    )}
                     
                     {/* Video workflow: Download buttons */}
                     {job.jobType === 'complete-scene' && job.results.videos && (
@@ -1851,23 +1815,6 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      
-      {/* Storage Decision Modal */}
-      {showStorageModal && selectedAsset && (
-        <StorageDecisionModal
-          isOpen={showStorageModal}
-          onClose={() => {
-            setShowStorageModal(false);
-            setSelectedAsset(null);
-          }}
-          assetType={selectedAsset.type}
-          assetName={selectedAsset.name}
-          s3TempUrl={selectedAsset.url}
-          s3Key={selectedAsset.s3Key}
-          fileSize={undefined}
-          metadata={selectedAsset.metadata}
-        />
-      )}
     </div>
   );
 }

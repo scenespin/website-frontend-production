@@ -9,7 +9,6 @@ import { useEditor } from '@/contexts/EditorContext'
 import { ImageGallery } from '@/components/images/ImageGallery'
 import { ImageSourceDialog } from '@/components/images/ImageSourceDialog'
 import { ImagePromptModal } from '@/components/images/ImagePromptModal'
-import { StorageDecisionModal } from '@/components/storage/StorageDecisionModal'
 import { useAuth } from '@clerk/nextjs'
 import { toast } from 'sonner'
 import { useQueryClient } from '@tanstack/react-query'
@@ -52,8 +51,6 @@ export default function LocationDetailSidebar({
   const [showImagePromptModal, setShowImagePromptModal] = useState(false)
   const [pendingImages, setPendingImages] = useState<Array<{ imageUrl: string; s3Key: string; prompt?: string; modelUsed?: string }>>([])
   const [uploading, setUploading] = useState(false)
-  const [showStorageModal, setShowStorageModal] = useState(false)
-  const [selectedAsset, setSelectedAsset] = useState<{url: string; s3Key: string; name: string; type: 'image' | 'video' | 'attachment'} | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [regeneratedImageUrls, setRegeneratedImageUrls] = useState<Record<string, string>>({})
   
@@ -283,28 +280,6 @@ export default function LocationDetailSidebar({
     
     regenerateUrls();
   }, [location?.id, location?.images, getToken]);
-
-  // 🔥 FIX: Refetch location data after StorageDecisionModal closes (like MediaLibrary refetches files)
-  // This ensures the UI reflects the latest location data, including newly uploaded images
-  useEffect(() => {
-    if (!showStorageModal && location?.id) {
-      // Modal just closed - sync from context (which should have been updated by the upload)
-      // Add small delay to ensure DynamoDB consistency (like MediaLibrary does)
-      const syncLocation = async () => {
-        await new Promise(resolve => setTimeout(resolve, 500));
-        // 🔥 FIX: Use ref to get latest locations to avoid stale closures
-        const updatedLocationFromContext = locationsRef.current.find(l => l.id === location.id);
-        if (updatedLocationFromContext) {
-          console.log('[LocationDetailSidebar] 📸 Syncing from context after modal close:', {
-            imageCount: updatedLocationFromContext.images?.length || 0,
-            imageUrls: updatedLocationFromContext.images?.map(img => img.imageUrl) || []
-          });
-          setFormData({ ...updatedLocationFromContext });
-        }
-      };
-      syncLocation();
-    }
-  }, [showStorageModal, location?.id]) // Remove locations from deps, use ref instead
 
   const handleSave = async () => {
     if (!formData.name.trim()) return
@@ -587,20 +562,6 @@ export default function LocationDetailSidebar({
         
         toast.success(`Successfully uploaded ${fileArray.length} image${fileArray.length > 1 ? 's' : ''} - will be added when location is created`);
         
-        // 🔥 FIX: Show storage modal for first uploaded image during creation
-        // Images are in temporary S3 storage, user can choose to save permanently
-        if (uploadedImages.length > 0) {
-          const firstImage = uploadedImages[0];
-          if (firstImage.metadata?.s3Key && firstImage.imageUrl) {
-            setSelectedAsset({
-              url: firstImage.imageUrl,
-              s3Key: firstImage.metadata.s3Key,
-              name: fileArray[0].name,
-              type: 'image'
-            });
-            setShowStorageModal(true);
-          }
-        }
       } else if (location && uploadedImages.length > 0) {
         // Existing location - register all images with location API
         try {
@@ -645,17 +606,6 @@ export default function LocationDetailSidebar({
           onUpdate(updatedLocation);
 
           toast.success(`Successfully uploaded ${fileArray.length} image${fileArray.length > 1 ? 's' : ''}`);
-
-          // Show StorageDecisionModal for first uploaded image
-          if (uploadedImages.length > 0) {
-            setSelectedAsset({
-              url: uploadedImages[0].imageUrl,
-              s3Key: uploadedImages[0].metadata.s3Key,
-              name: fileArray[0].name,
-              type: 'image'
-            });
-            setShowStorageModal(true);
-          }
         } catch (error: any) {
           console.error('[LocationDetailSidebar] Failed to register images:', error);
           toast.error(`Failed to register images: ${error.message}`);
@@ -1178,15 +1128,6 @@ export default function LocationDetailSidebar({
                 }
                 
                 toast.success('Image generated and uploaded');
-                
-                // Show StorageDecisionModal
-                setSelectedAsset({
-                  url: downloadUrl,
-                  s3Key: s3Key,
-                  name: 'generated-location.png',
-                  type: 'image'
-                });
-                setShowStorageModal(true);
               } else if (isCreating) {
                 // New location - store temporarily with s3Key
                 setPendingImages(prev => [...prev, { 
@@ -1196,15 +1137,6 @@ export default function LocationDetailSidebar({
                   modelUsed 
                 }]);
                 toast.success('Image generated - will be uploaded when location is created');
-                
-                // Show StorageDecisionModal
-                setSelectedAsset({
-                  url: downloadUrl,
-                  s3Key: s3Key,
-                  name: 'generated-location.png',
-                  type: 'image'
-                });
-                setShowStorageModal(true);
               }
             } catch (error: any) {
               toast.error(`Failed to upload image: ${error.message}`);
@@ -1216,26 +1148,6 @@ export default function LocationDetailSidebar({
         />
         )}
 
-        {/* StorageDecisionModal */}
-        {showStorageModal && selectedAsset && (
-          <StorageDecisionModal
-            isOpen={showStorageModal}
-            onClose={() => {
-              setShowStorageModal(false);
-              setSelectedAsset(null);
-            }}
-            assetType="image"
-            assetName={selectedAsset.name}
-            s3TempUrl={selectedAsset.url}
-            s3Key={selectedAsset.s3Key}
-            fileSize={undefined}
-            metadata={{
-              entityType: 'location',
-              entityId: location?.id || 'new',
-              entityName: formData.name || 'Location'
-            }}
-          />
-        )}
     </motion.div>
   )
 }

@@ -41,8 +41,6 @@ import { CompositionPreview } from './CompositionPreview';
 import { CompositionGallery } from './CompositionGallery';
 import { MusicGenerator } from '../music/MusicGenerator';
 import { MusicLibrary, MusicTrack } from '../music/MusicLibrary';
-import { StorageDecisionModal } from '@/components/storage/StorageDecisionModal';
-import { extractS3Key } from '@/utils/s3';
 import { MobileCompositionBanner } from './MobileCompositionBanner';
 import { shouldSimplifyComposition } from '@/utils/deviceDetection';
 import { useEditorContext, useContextStore } from '@/lib/contextStore';  // Contextual navigation
@@ -108,15 +106,6 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
   const [backgroundMusic, setBackgroundMusic] = useState<MusicTrack | null>(null);
   const [musicVolume, setMusicVolume] = useState(0.5);
   const [showMusicGenerator, setShowMusicGenerator] = useState(false);
-  
-  // Storage modal state (Feature 0066)
-  const [showStorageModal, setShowStorageModal] = useState(false);
-  const [selectedAsset, setSelectedAsset] = useState<{
-    url: string;
-    s3Key: string;
-    name: string;
-    type: 'video' | 'image' | 'composition';
-  } | null>(null);
   
   // Device detection (Feature 0068)
   const [isMobileView, setIsMobileView] = useState(false);
@@ -269,7 +258,7 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
         const AWS_REGION = process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1';
         const s3Url = `https://${S3_BUCKET}.s3.${AWS_REGION}.amazonaws.com/${s3Key}`;
         
-        // Step 4: Add to clips and show storage modal
+        // Step 4: Add to clips
           const clipId = `clip_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
           const preview = URL.createObjectURL(file);
 
@@ -283,16 +272,7 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
             name: file.name,
           });
           
-        // Show storage decision modal
-          setSelectedAsset({
-          url: s3Url,
-          s3Key: s3Key,
-            name: file.name,
-            type: 'video'
-          });
-          setShowStorageModal(true);
-          
-          toast.success(`✅ ${file.name} uploaded! Choose where to save it.`, { id: uploadToastId.toString() });
+          toast.success(`✅ ${file.name} uploaded!`, { id: uploadToastId.toString() });
         
       } catch (error: any) {
         console.error('[CompositionStudio] Upload failed:', error);
@@ -454,17 +434,6 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
             const encoded = encodeURIComponent(JSON.stringify(replacementData));
             window.location.href = `/app/timeline?replaceClips=${encoded}`;
             return;
-          }
-          
-          // NEW (Feature 0066): Show storage modal for completed composition
-          if (data.output_video_url) {
-            setSelectedAsset({
-              url: data.output_video_url,
-              s3Key: extractS3Key(data.output_video_url),
-              name: `composition_${Date.now()}.mp4`,
-              type: 'composition'
-            });
-            setShowStorageModal(true);
           }
           
           setCompositionResult((prev) => prev ? {
@@ -1633,23 +1602,6 @@ export function CompositionStudio({ userId, preloadedClip, preloadedClips, recom
             <CompositionGallery userId={userId} />
           </TabsContent>
         </Tabs>
-        
-        {/* Storage Decision Modal (Feature 0066) */}
-        {showStorageModal && selectedAsset && (
-          <StorageDecisionModal
-            isOpen={showStorageModal}
-            onClose={() => {
-              setShowStorageModal(false);
-              setSelectedAsset(null);
-            }}
-            assetType={selectedAsset.type}
-            assetName={selectedAsset.name}
-            s3TempUrl={selectedAsset.url}
-            s3Key={selectedAsset.s3Key}
-            fileSize={undefined}
-            metadata={{}}
-          />
-        )}
       </div>
     </div>
   );

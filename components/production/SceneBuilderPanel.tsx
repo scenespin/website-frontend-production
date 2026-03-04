@@ -60,13 +60,11 @@ import { SceneBuilderDecisionModal } from '@/components/video/SceneBuilderDecisi
 import { PartialDeliveryModal } from '@/components/video/PartialDeliveryModal';
 import { ShotConfigurationStep } from './ShotConfigurationStep';
 import { DialogueWorkflowType } from './UnifiedDialogueDropdown';
-import { StorageDecisionModal } from '@/components/storage/StorageDecisionModal';
 import { MediaUploadSlot } from '@/components/production/MediaUploadSlot';
 import { useAuth } from '@clerk/nextjs';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useCredits } from '@/contexts/CreditsContext';
 import { useQueryClient } from '@tanstack/react-query';
-import { extractS3Key } from '@/utils/s3';
 import { useBulkPresignedUrls, useMediaFiles } from '@/hooks/useMediaLibrary';
 // useCharacterReferences is now called in SceneBuilderProvider - no import needed here
 import type { CharacterHeadshot } from './hooks/useCharacterReferences';
@@ -1995,15 +1993,6 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   
   // Note: Generation history moved to Shot Board tab (uses Media Library, not localStorage)
   
-  // Storage modal state (Feature 0066)
-  const [showStorageModal, setShowStorageModal] = useState(false);
-  const [selectedAsset, setSelectedAsset] = useState<{
-    url: string;
-    s3Key: string;
-    name: string;
-    type: 'video' | 'image' | 'composition';
-  } | null>(null);
-  
   // Dialogue detection: Check if scene description contains dialogue
   useEffect(() => {
     if (sceneDescription.trim()) {
@@ -3689,16 +3678,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       newUploads[index] = file;
       setMediaUploads(newUploads);
       
-      // Show storage decision modal
-      setSelectedAsset({
-        url: s3Url,
-        s3Key: s3Key,
-        name: file.name,
-        type: fileType as 'video' | 'image'
-      });
-      setShowStorageModal(true);
-      
-      toast.success('✅ File uploaded! Choose where to save it.');
+      toast.success('✅ File uploaded!');
       
     } catch (error: any) {
       console.error('[SceneBuilderPanel] Upload failed:', error);
@@ -3888,21 +3868,6 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     setTimeout(() => {
       handleShowNextStepOptions(historyItem.outputs);
     }, 500);
-    
-    // NEW (Feature 0066): Show storage modal for first video
-    if (historyItem.outputs.length > 0) {
-      const firstVideo = historyItem.outputs[0];
-      setSelectedAsset({
-        url: firstVideo.url,
-        s3Key: extractS3Key(firstVideo.url),
-        name: `scene_video_${Date.now()}.mp4`,
-        type: 'video'
-      });
-      // Delay modal slightly so toast appears first
-      setTimeout(() => {
-        setShowStorageModal(true);
-      }, 2000);
-    }
     
     // Reset form (wizard reset happens on 1.5s delay when user starts job; completion may be seen in Jobs panel)
     setSceneDescription('');
@@ -5285,23 +5250,6 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
         onCancel={handleDecisionCancel}
         message={workflowStatus?.metadata?.message}
       />
-      
-      {/* Storage Decision Modal (Feature 0066) */}
-      {showStorageModal && selectedAsset && (
-        <StorageDecisionModal
-          isOpen={showStorageModal}
-          onClose={() => {
-            setShowStorageModal(false);
-            setSelectedAsset(null);
-          }}
-          assetType={selectedAsset.type}
-          assetName={selectedAsset.name}
-          s3TempUrl={selectedAsset.url}
-          s3Key={selectedAsset.s3Key}
-          fileSize={undefined}
-          metadata={{}}
-        />
-      )}
       
       {/* Partial Delivery Modal (Feature 0077) */}
       {showPartialDeliveryModal && partialDeliveryData && (

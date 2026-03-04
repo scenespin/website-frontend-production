@@ -37,15 +37,8 @@ import { FolderTreeSidebar } from './FolderTreeSidebar';
 import { BreadcrumbNavigation } from './BreadcrumbNavigation';
 import { VideoPlayer } from './VideoPlayer';
 import { toast } from 'sonner';
-// Removed useDropdownCoordinator - using uncontrolled state
-import { StorageDecisionModal } from '@/components/storage/StorageDecisionModal';
-import ScreenplaySettingsModal from '@/components/editor/ScreenplaySettingsModal';
-import { getScreenplay } from '@/utils/screenplayStorage';
-import { Settings } from 'lucide-react';
 import { 
   useMediaFiles, 
-  useStorageConnectionsQuery, 
-  useStorageQuota,
   useUploadMedia,
   useDeleteMedia,
   usePresignedUrl,
@@ -64,9 +57,7 @@ import { getMediaFileDisplayUrl, getDropboxPath } from './utils/imageUrlResolver
 // ============================================================================
 
 import type { 
-  MediaFile, 
-  StorageQuota, 
-  CloudStorageConnection 
+  MediaFile
 } from '@/types/media';
 import { mediaCacheKeys } from '@/types/media';
 
@@ -172,17 +163,6 @@ export default function MediaLibrary({
     isLoading: folderTreeLoading 
   } = useMediaFolderTree(projectId, !!projectId);
   
-  // Load cloud storage connections
-  const { 
-    data: cloudConnections = [],
-    isLoading: connectionsLoading 
-  } = useStorageConnectionsQuery();
-  
-  // Load storage quota
-  const { 
-    data: storageQuota,
-    isLoading: quotaLoading 
-  } = useStorageQuota();
   // Mutations
   const uploadMediaMutation = useUploadMedia(projectId);
   const deleteMediaMutation = useDeleteMedia(projectId);
@@ -191,52 +171,9 @@ export default function MediaLibrary({
   // Query client for on-demand presigned URL fetching
   const queryClient = useQueryClient();
   
-  // Storage Decision Modal state (same as Scene Builder)
-  const [showStorageModal, setShowStorageModal] = useState(false);
-  const [selectedAsset, setSelectedAsset] = useState<{
-    url: string;
-    s3Key: string;
-    name: string;
-    type: 'video' | 'image' | 'attachment';
-  } | null>(null);
-
-  // Auto-sync configuration state (Feature 0144)
-  const [screenplayData, setScreenplayData] = useState<{ cloudStorageProvider?: 'google-drive' | 'dropbox' | null; title?: string } | null>(null);
-  const [isLoadingScreenplay, setIsLoadingScreenplay] = useState(false);
-  const [showSettingsModal, setShowSettingsModal] = useState(false);
-  
-  // Check if any providers are connected
   // ============================================================================
   // API CALLS
   // ============================================================================
-
-  // Load screenplay data to check auto-sync status (Feature 0144)
-  useEffect(() => {
-    const loadScreenplayData = async () => {
-      // Only load if projectId is a valid screenplay ID
-      if (!projectId || !projectId.startsWith('screenplay_')) {
-        return;
-      }
-
-      setIsLoadingScreenplay(true);
-      try {
-        const screenplay = await getScreenplay(projectId, getToken);
-        if (screenplay) {
-          setScreenplayData({
-            cloudStorageProvider: screenplay.cloudStorageProvider || null,
-            title: screenplay.title
-          });
-        }
-      } catch (error) {
-        console.error('[MediaLibrary] Failed to load screenplay data:', error);
-        // Don't show error toast - this is optional data
-      } finally {
-        setIsLoadingScreenplay(false);
-      }
-    };
-
-    loadScreenplayData();
-  }, [projectId, getToken]);
 
   // Load folder files (cloud storage folders - not using React Query yet)
   const loadFolderFiles = async (folderId: string) => {
@@ -765,35 +702,6 @@ export default function MediaLibrary({
         throw new Error('File uploaded but failed to register. Please refresh the page.');
       }
 
-      // Step 4: Generate S3 URL and get presigned download URL for StorageDecisionModal (bucket is private)
-      const S3_BUCKET = process.env.NEXT_PUBLIC_S3_BUCKET || 'screenplay-assets-043309365215';
-      const AWS_REGION = process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1';
-      const s3Url = `https://${S3_BUCKET}.s3.${AWS_REGION}.amazonaws.com/${s3Key}`;
-      
-      let downloadUrl = s3Url; // Fallback to direct S3 URL if presigned URL generation fails
-      try {
-        const downloadResponse = await fetch('/api/s3/download-url', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            s3Key: s3Key,
-            expiresIn: 3600 // 1 hour
-          }),
-        });
-        
-        if (downloadResponse.ok) {
-          const downloadData = await downloadResponse.json();
-          if (downloadData.downloadUrl) {
-            downloadUrl = downloadData.downloadUrl;
-          }
-        }
-      } catch (error) {
-        console.warn('[MediaLibrary] Failed to get presigned download URL for modal, using direct S3 URL:', error);
-      }
-
       // ✅ Upload and registration successful
       // Feature 0128: Invalidate and refetch folder tree query to update folder counts
       queryClient.invalidateQueries({ 
@@ -807,20 +715,6 @@ export default function MediaLibrary({
       toast.success(`✅ File uploaded: ${file.name}`, {
         description: 'File is now available in your library',
       });
-
-      // Show StorageDecisionModal (same as Scene Builder)
-      const assetType = file.type.startsWith('video/') ? 'video' : 
-                        file.type.startsWith('image/') ? 'image' : 'attachment';
-      
-      setSelectedAsset({
-        url: downloadUrl,
-        s3Key: s3Key,
-        name: file.name,
-        type: assetType
-      });
-      setShowStorageModal(true);
-
-      // File registration already handled above via mutation
       
       setUploadProgress(100);
 
@@ -1354,75 +1248,6 @@ export default function MediaLibrary({
     setLongPressMenuPosition(null);
   };
 
-  const handleConnectDrive = async (storageType: 'google-drive' | 'dropbox') => {
-    try {
-      const token = await getToken({ template: 'wryda-backend' });
-      if (!token) throw new Error('Not authenticated');
-
-      // Get OAuth authorization URL from backend
-      const response = await fetch(`/api/storage/connect/${storageType}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-
-      const data = await response.json().catch(() => ({}));
-
-      if (!response.ok) {
-        const message = data?.message || data?.error || `Failed to get auth URL: ${response.status}`;
-        if (response.status === 403) {
-          toast.error('Cannot connect cloud storage', { description: message });
-        }
-        throw new Error(message);
-      }
-      
-      // Open OAuth flow in popup
-      const popup = window.open(data.authUrl, '_blank', 'width=600,height=700');
-      
-      // Poll for connection status; stop as soon as the user closes the popup
-      const pollInterval = setInterval(async () => {
-        if (popup && popup.closed) {
-          clearInterval(pollInterval);
-          return;
-        }
-        try {
-          const statusResponse = await fetch(`/api/auth/${storageType === 'google-drive' ? 'google' : 'dropbox'}/status`, {
-            headers: {
-              'Authorization': `Bearer ${token}`,
-            },
-          });
-          
-          if (statusResponse.ok) {
-            const statusData = await statusResponse.json();
-            if (statusData.connected) {
-              clearInterval(pollInterval);
-              if (popup && !popup.closed) {
-                popup.close();
-              }
-              // Refresh file list to include cloud storage files
-              await refetchFiles();
-              alert(`${storageType === 'google-drive' ? 'Google Drive' : 'Dropbox'} connected successfully!`);
-            }
-          }
-          // 401 while polling is expected when not yet connected; don't log to avoid console noise
-        } catch (error) {
-          if (popup && !popup.closed) {
-            console.error('[MediaLibrary] Status poll error:', error);
-          }
-        }
-      }, 2000); // Poll every 2 seconds
-      
-      // Stop polling after 5 minutes
-      setTimeout(() => {
-        clearInterval(pollInterval);
-      }, 5 * 60 * 1000);
-      
-    } catch (error) {
-      console.error('[MediaLibrary] Connect error:', error);
-      setMutationError(error instanceof Error ? error.message : 'Failed to connect storage');
-    }
-  };
-
   // ============================================================================
   // RENDER HELPERS
   // ============================================================================
@@ -1505,29 +1330,6 @@ export default function MediaLibrary({
           }));
           folders.push(...s3Children);
         }
-      }
-    }
-    
-    // 🔥 NEW: Get cloud storage folders (for identical experience across storage providers)
-    if (screenplayData?.cloudStorageProvider && cloudConnections.length > 0) {
-      const activeConnection = (cloudConnections as CloudStorageConnection[]).find(
-        c => c.provider === screenplayData.cloudStorageProvider && c.connected
-      );
-      
-      if (activeConnection && !selectedFolderId) {
-        // Root level: show cloud storage top-level folders (Characters, Locations, etc.)
-        const cloudFolders = [
-          { id: 'characters-cloud', name: 'Characters', path: ['Characters'], storageType: 'cloud' as const },
-          { id: 'locations-cloud', name: 'Locations', path: ['Locations'], storageType: 'cloud' as const },
-          { id: 'scenes-cloud', name: 'Scenes', path: ['Scenes'], storageType: 'cloud' as const },
-          { id: 'audio-cloud', name: 'Audio', path: ['Audio'], storageType: 'cloud' as const },
-          { id: 'compositions-cloud', name: 'Compositions', path: ['Compositions'], storageType: 'cloud' as const }
-        ];
-        folders.push(...cloudFolders);
-      } else if (selectedFolderId && selectedStorageType === 'cloud') {
-        // TODO: Load cloud storage subfolders (character subfolders, outfit folders, etc.)
-        // For now, cloud storage subfolders are handled via file loading
-        // This would require fetching folder structure from cloud provider API
       }
     }
     
@@ -1666,15 +1468,6 @@ export default function MediaLibrary({
             Archive
           </h2>
           {/* NOTE: Displayed as "Archive" to users, but backend/API still uses "Storage" or "media-library" terminology */}
-
-          {/* Storage Quota - Hidden on mobile, shown on tablet+ */}
-          {storageQuota && (
-            <div className="hidden sm:block text-sm text-[#808080]">
-              <span className="font-medium">{formatFileSize((storageQuota as { used: number; total: number }).used)}</span>
-              {' / '}
-              <span>{formatFileSize((storageQuota as { used: number; total: number }).total)}</span>
-            </div>
-          )}
         </div>
 
         {/* Actions Bar - Simplified on mobile */}
@@ -1713,89 +1506,7 @@ export default function MediaLibrary({
             multiple
             className="hidden"
           />
-
-          {/* Cloud Storage Section - Hidden on mobile, shown on tablet+ */}
-          <div className="hidden sm:flex gap-2">
-            {/* Google Drive Connection */}
-            <button
-              onClick={() => handleConnectDrive('google-drive')}
-              className={`px-4 py-2 border rounded-lg transition-colors flex items-center justify-center gap-2 ${
-                (cloudConnections as CloudStorageConnection[]).find(c => c.provider === 'google-drive')?.connected
-                  ? 'bg-[#00D9FF]/20 border-[#00D9FF] text-[#00D9FF]'
-                  : 'bg-[#141414] border-[#3F3F46] text-[#FFFFFF] hover:bg-[#1F1F1F] hover:border-[#DC143C]'
-              }`}
-            >
-              {(cloudConnections as CloudStorageConnection[]).find(c => c.provider === 'google-drive')?.connected ? (
-                <>
-                  <Check className="w-5 h-5" />
-                  <span className="hidden sm:inline">Drive Connected</span>
-                </>
-              ) : (
-                <>
-                  <Cloud className="w-5 h-5" />
-                  <span className="hidden sm:inline">Google Drive</span>
-                </>
-              )}
-            </button>
-
-            {/* Dropbox Connection */}
-            <button
-              onClick={() => handleConnectDrive('dropbox')}
-              className={`px-4 py-2 border rounded-lg transition-colors flex items-center justify-center gap-2 ${
-                (cloudConnections as CloudStorageConnection[]).find(c => c.provider === 'dropbox')?.connected
-                  ? 'bg-[#00D9FF]/20 border-[#00D9FF] text-[#00D9FF]'
-                  : 'bg-[#141414] border-[#3F3F46] text-[#FFFFFF] hover:bg-[#1F1F1F] hover:border-[#DC143C]'
-              }`}
-            >
-              {(cloudConnections as CloudStorageConnection[]).find(c => c.provider === 'dropbox')?.connected ? (
-                <>
-                  <Check className="w-5 h-5" />
-                  <span className="hidden sm:inline">Dropbox Connected</span>
-                </>
-              ) : (
-                <>
-                  <Cloud className="w-5 h-5" />
-                  <span className="hidden sm:inline">Dropbox</span>
-                </>
-              )}
-            </button>
-
-            {/* Configure Auto-Sync Button */}
-            {projectId && projectId.startsWith('screenplay_') && (
-              <button
-                onClick={() => setShowSettingsModal(true)}
-                className="px-4 py-2 border border-[#3F3F46] rounded-lg bg-[#141414] text-[#FFFFFF] hover:bg-[#1F1F1F] hover:border-[#DC143C] transition-colors flex items-center justify-center gap-2"
-                title="Configure auto-sync for this screenplay"
-              >
-                <Settings className="w-5 h-5" />
-                <span className="hidden sm:inline">Auto-Sync</span>
-              </button>
-            )}
-          </div>
         </div>
-
-        {/* Auto-Sync Enabled Banner (always show when configured) */}
-        {projectId && projectId.startsWith('screenplay_') && screenplayData && screenplayData.cloudStorageProvider && (
-          <div className="mt-4 p-3 rounded-lg border bg-[#00D9FF]/10 border-[#00D9FF]/30 text-[#00D9FF]">
-            <div className="flex items-start gap-3">
-              <Check className="w-5 h-5 mt-0.5 flex-shrink-0" />
-              <div className="flex-1">
-                <div className="text-sm font-medium">
-                  Auto-sync enabled: {screenplayData.cloudStorageProvider === 'google-drive' ? 'Google Drive' : 'Dropbox'}
-                </div>
-                <div className="text-xs mt-1 opacity-80">
-                  Files automatically save to: <span className="font-mono">/Wryda Screenplays/{screenplayData.title || 'Screenplay'}/...</span>
-                </div>
-              </div>
-              <button
-                onClick={() => setShowSettingsModal(true)}
-                className="text-xs underline hover:no-underline flex-shrink-0"
-              >
-                Change
-              </button>
-            </div>
-          </div>
-        )}
 
         {/* Phase 2: Selection Mode Bulk Actions - Only show when selection mode is active and items are selected */}
         {selectionMode && (selectedFiles.size > 0 || selectedFolders.size > 0) && (
@@ -2690,50 +2401,6 @@ export default function MediaLibrary({
             </div>
           </div>
         </div>
-      )}
-
-      {/* Storage Decision Modal (same as Scene Builder) */}
-      {showStorageModal && selectedAsset && (
-        <StorageDecisionModal
-          isOpen={showStorageModal}
-          onClose={() => {
-            setShowStorageModal(false);
-            setSelectedAsset(null);
-          }}
-          assetType={selectedAsset.type === 'video' ? 'video' : 
-                     selectedAsset.type === 'image' ? 'image' : 'composition'}
-          assetName={selectedAsset.name}
-          s3TempUrl={selectedAsset.url}
-          s3Key={selectedAsset.s3Key}
-        />
-      )}
-
-      {/* Screenplay Settings Modal for Auto-Sync Configuration - Feature 0144 */}
-      {projectId && projectId.startsWith('screenplay_') && (
-        <ScreenplaySettingsModal
-          isOpen={showSettingsModal}
-          onClose={(updatedData) => {
-            setShowSettingsModal(false);
-            // Reload screenplay data if settings were updated
-            if (updatedData) {
-              const loadScreenplayData = async () => {
-                try {
-                  const screenplay = await getScreenplay(projectId, getToken);
-                  if (screenplay) {
-                    setScreenplayData({
-                      cloudStorageProvider: screenplay.cloudStorageProvider || null,
-                      title: screenplay.title
-                    });
-                  }
-                } catch (error) {
-                  console.error('[MediaLibrary] Failed to reload screenplay data:', error);
-                }
-              };
-              loadScreenplayData();
-            }
-          }}
-          screenplayId={projectId}
-        />
       )}
 
       {/* Phase 2: Bulk Delete Confirmation Dialog */}

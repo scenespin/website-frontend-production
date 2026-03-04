@@ -8,7 +8,6 @@ import { useScreenplay } from '@/contexts/ScreenplayContext'
 import { useEditor } from '@/contexts/EditorContext'
 import { ImageGallery } from '@/components/images/ImageGallery'
 import { ImagePromptModal } from '@/components/images/ImagePromptModal'
-import { StorageDecisionModal } from '@/components/storage/StorageDecisionModal'
 import { useAuth } from '@clerk/nextjs'
 import { api } from '@/lib/api'
 import { toast } from 'sonner'
@@ -57,8 +56,6 @@ export default function AssetDetailSidebar({
   const [showImagePromptModal, setShowImagePromptModal] = useState(false)
   const [pendingImages, setPendingImages] = useState<Array<{ imageUrl: string; s3Key: string; prompt?: string; modelUsed?: string }>>([])
   const [uploading, setUploading] = useState(false)
-  const [showStorageModal, setShowStorageModal] = useState(false)
-  const [selectedAsset, setSelectedAsset] = useState<{url: string; s3Key: string; name: string; type: 'image' | 'video' | 'attachment'} | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   
   // 🔥 FIX: Regenerate expired presigned URLs for images
@@ -292,28 +289,6 @@ export default function AssetDetailSidebar({
       };
     }).filter((img: any) => !!img.imageUrl);
   }, [payloadImages, getDisplayUrl]);
-
-  // 🔥 FIX: Refetch asset data after StorageDecisionModal closes (like MediaLibrary refetches files)
-  // This ensures the UI reflects the latest asset data, including newly uploaded images
-  useEffect(() => {
-    if (!showStorageModal && asset?.id) {
-      // Modal just closed - sync from context (which should have been updated by the upload)
-      // Add small delay to ensure DynamoDB consistency (like MediaLibrary does)
-      const syncAsset = async () => {
-        await new Promise(resolve => setTimeout(resolve, 500));
-        // 🔥 FIX: Use ref to get latest assets to avoid stale closures
-        const updatedAssetFromContext = assetsRef.current.find(a => a.id === asset.id);
-        if (updatedAssetFromContext) {
-          console.log('[AssetDetailSidebar] 📸 Syncing from context after modal close:', {
-            imageCount: updatedAssetFromContext.images?.length || 0,
-            imageUrls: updatedAssetFromContext.images?.map(img => img.url) || []
-          });
-          setFormData({ ...updatedAssetFromContext });
-        }
-      };
-      syncAsset();
-    }
-  }, [showStorageModal, asset?.id]) // Remove assets from deps, use ref instead
 
   const handleSave = async () => {
     if (!formData.name.trim()) {
@@ -568,19 +543,6 @@ export default function AssetDetailSidebar({
         // New asset - store temporarily with s3Key, will be uploaded after asset creation
         setPendingImages(prev => [...prev, ...uploadedImages]);
         toast.success(`${uploadedImages.length} image${uploadedImages.length > 1 ? 's' : ''} ready - will be added when asset is created`);
-      }
-
-      // Step 4: Show StorageDecisionModal for all uploaded images
-      // Show modal once after all uploads complete - user can choose storage location
-      if (uploadedImages.length > 0) {
-        // For now, show modal for first image (can be enhanced to batch all images)
-        setSelectedAsset({
-          url: uploadedImages[0].imageUrl,
-          s3Key: uploadedImages[0].s3Key,
-          name: fileArray[0].name,
-          type: 'image'
-        });
-        setShowStorageModal(true);
       }
 
     } catch (error: any) {
@@ -1563,15 +1525,6 @@ export default function AssetDetailSidebar({
                   }]);
                   
                   toast.success('Image generated and ready - will be added when asset is created');
-                  
-                  // Show StorageDecisionModal
-                  setSelectedAsset({
-                    url: downloadUrl,
-                    s3Key: s3Key,
-                    name: 'generated-image.png',
-                    type: 'image'
-                  });
-                  setShowStorageModal(true);
                 } catch (error: any) {
                   toast.error(`Failed to upload image: ${error.message}`);
                 } finally {
@@ -1583,26 +1536,6 @@ export default function AssetDetailSidebar({
           />
         )}
 
-        {/* StorageDecisionModal */}
-        {showStorageModal && selectedAsset && (
-          <StorageDecisionModal
-            isOpen={showStorageModal}
-            onClose={() => {
-              setShowStorageModal(false);
-              setSelectedAsset(null);
-            }}
-            assetType="image"
-            assetName={selectedAsset.name}
-            s3TempUrl={selectedAsset.url}
-            s3Key={selectedAsset.s3Key}
-            fileSize={undefined}
-            metadata={{
-              entityType: 'asset',
-              entityId: asset?.id || 'new',
-              entityName: formData.name || 'Asset'
-            }}
-          />
-        )}
       </motion.div>
     </>
   )

@@ -18,8 +18,6 @@ import React, { useState } from 'react';
 import { Upload, Loader2, X } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { toast } from 'sonner';
-import { StorageDecisionModal } from '@/components/storage/StorageDecisionModal';
-import { extractS3Key } from '@/utils/s3';
 import { useAuth } from '@clerk/nextjs';
 import { uploadToObjectStorage } from '@/lib/objectStorageUpload';
 
@@ -64,8 +62,6 @@ export function UploadModal({ isOpen, onClose, onUploadComplete, projectId }: Up
   const { getToken } = useAuth();
   const [isDragging, setIsDragging] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [showStorageModal, setShowStorageModal] = useState(false);
-  const [selectedAsset, setSelectedAsset] = useState<any>(null);
 
   /**
    * Validate file before upload
@@ -181,19 +177,10 @@ export function UploadModal({ isOpen, onClose, onUploadComplete, projectId }: Up
       const AWS_REGION = process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1';
       const s3Url = `https://${S3_BUCKET}.s3.${AWS_REGION}.amazonaws.com/${s3Key}`;
       
-      // Show storage decision modal
-      setSelectedAsset({
-        url: s3Url,
-        s3Key: s3Key,
-        name: file.name,
-        type: fileType
-      });
-      setShowStorageModal(true);
-      
-      // Also notify parent to add to timeline
+      // Notify parent to add to timeline
       onUploadComplete(s3Url, s3Key, fileType, file.name);
       
-      toast.success('✅ File uploaded! Choose where to save it.');
+      toast.success('✅ File uploaded!');
       
     } catch (error: any) {
       console.error('[UploadModal] Upload failed:', error);
@@ -268,24 +255,6 @@ export function UploadModal({ isOpen, onClose, onUploadComplete, projectId }: Up
           </div>
         </DialogContent>
       </Dialog>
-      
-      {/* Storage Decision Modal */}
-      {showStorageModal && selectedAsset && (
-        <StorageDecisionModal
-          isOpen={showStorageModal}
-          onClose={() => {
-            setShowStorageModal(false);
-            setSelectedAsset(null);
-            onClose(); // Close upload modal too
-          }}
-          assetType={selectedAsset.type}
-          assetName={selectedAsset.name}
-          s3TempUrl={selectedAsset.url}
-          s3Key={selectedAsset.s3Key}
-          fileSize={undefined}
-          metadata={{}}
-        />
-      )}
     </>
   );
 }
