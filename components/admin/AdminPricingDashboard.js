@@ -231,6 +231,10 @@ export default function AdminPricingDashboard() {
   }
 
   // Stats are now fetched from backend (based on config files, not just registry)
+  const runtimeRegistryCount = priceRegistry.length;
+  const isRuntimeKey = (provider) =>
+    provider.is_runtime_pricing_key ?? ['video', 'image', 'audio'].includes(provider.category);
+  const runtimeCatalogCount = allProviders.filter((p) => isRuntimeKey(p)).length;
 
   return (
     <div className="space-y-6">
@@ -242,7 +246,10 @@ export default function AdminPricingDashboard() {
               <div className="text-3xl font-bold">{stats.total_providers}</div>
               <DollarSign className="w-8 h-8 text-primary" />
             </div>
-            <div className="text-sm opacity-70">API Providers Tracked</div>
+            <div className="text-sm opacity-70">Catalog Providers Tracked</div>
+            <div className="text-xs opacity-60 mt-1">
+              Runtime registry: {runtimeRegistryCount}/{runtimeCatalogCount || '...'}
+            </div>
           </div>
         </div>
 
@@ -334,7 +341,7 @@ export default function AdminPricingDashboard() {
           className={`tab ${activeTab === 'all-apis' ? 'tab-active' : ''}`}
           onClick={() => setActiveTab('all-apis')}
         >
-          All APIs
+          Catalog
           <span className="badge badge-info ml-2">{allProviders.length}</span>
         </button>
       </div>
@@ -643,7 +650,7 @@ export default function AdminPricingDashboard() {
             </div>
           )}
 
-          {/* All APIs Tab - Comprehensive Manual Editing */}
+          {/* Catalog Tab - Runtime keys + reference models */}
           {activeTab === 'all-apis' && (
             <div className="space-y-4">
               {loading ? (
@@ -653,6 +660,12 @@ export default function AdminPricingDashboard() {
                 </div>
               ) : (
                 <div>
+                  <div className="alert mb-4">
+                    <span>
+                      Runtime pricing keys (video/image/audio) are editable here and drive charge-path overrides.
+                      Reference LLM/catalog rows are display-only on this page.
+                    </span>
+                  </div>
                   {/* Category Filter */}
                   <div className="flex flex-wrap gap-2 mb-4">
                     <button
@@ -800,6 +813,7 @@ export default function AdminPricingDashboard() {
                                   <td className="text-center">
                                     <button
                                       onClick={() => {
+                                        if (!provider.editable_in_registry) return;
                                         // Create a price entry if it doesn't exist, or edit existing
                                         const priceToEdit = hasRegistry ? {
                                           provider_id: provider.provider_id,
@@ -819,6 +833,12 @@ export default function AdminPricingDashboard() {
                                         handleEditPrice(priceToEdit);
                                       }}
                                       className="btn btn-sm btn-ghost"
+                                      disabled={!provider.editable_in_registry}
+                                      title={
+                                        provider.editable_in_registry
+                                          ? 'Edit runtime registry price'
+                                          : 'Display-only: non-runtime catalog entry'
+                                      }
                                     >
                                       <Edit className="w-4 h-4" />
                                     </button>
@@ -854,6 +874,7 @@ export default function AdminPricingDashboard() {
                                   </div>
                                   <button
                                     onClick={() => {
+                                      if (!provider.editable_in_registry) return;
                                       const priceToEdit = hasRegistry ? {
                                         provider_id: provider.provider_id,
                                         operation_type: provider.operation_type,
@@ -872,6 +893,12 @@ export default function AdminPricingDashboard() {
                                       handleEditPrice(priceToEdit);
                                     }}
                                     className="btn btn-sm btn-ghost"
+                                    disabled={!provider.editable_in_registry}
+                                    title={
+                                      provider.editable_in_registry
+                                        ? 'Edit runtime registry price'
+                                        : 'Display-only: non-runtime catalog entry'
+                                    }
                                   >
                                     <Edit className="w-4 h-4" />
                                   </button>
@@ -968,17 +995,17 @@ export default function AdminPricingDashboard() {
                     <div className="card bg-base-200">
                       <div className="card-body p-4">
                         <div className="text-2xl font-bold text-success">
-                          {allProviders.filter(p => p.has_registry_entry).length}
+                          {allProviders.filter(p => isRuntimeKey(p) && p.has_registry_entry).length}
                         </div>
-                        <div className="text-sm opacity-70">In Registry</div>
+                        <div className="text-sm opacity-70">Runtime Keys in Registry</div>
                       </div>
                     </div>
                     <div className="card bg-base-200">
                       <div className="card-body p-4">
                         <div className="text-2xl font-bold text-error">
-                          {allProviders.filter(p => !p.has_registry_entry).length}
+                          {allProviders.filter(p => isRuntimeKey(p) && !p.has_registry_entry).length}
                         </div>
-                        <div className="text-sm opacity-70">Missing from Registry</div>
+                        <div className="text-sm opacity-70">Runtime Keys Missing</div>
                       </div>
                     </div>
                     <div className="card bg-base-200">
