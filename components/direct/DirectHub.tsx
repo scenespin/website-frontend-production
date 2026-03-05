@@ -72,7 +72,7 @@ export function DirectHub() {
   // Jobs drawer is intentionally hidden on Scene Builder.
   // Keep the open state across Direct tabs where jobs monitoring is relevant.
   const shouldShowJobsUi =
-    activeTab === 'shots' || activeTab === 'videos' || activeTab === 'video-gen';
+    activeTab === 'shots' || activeTab === 'videos';
 
   useEffect(() => {
     if (!shouldShowJobsUi && isJobsDrawerOpen) {
