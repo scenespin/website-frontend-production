@@ -1531,35 +1531,6 @@ export function LocationDetailModal({
                                         </DropdownMenuItem>
                                       )}
                                       {/* ✅ Images are now generated directly at 16:9 - no cropping needed */}
-                                      {/* 🔥 NEW: Regenerate option (only for AI-generated angles with id) */}
-                                      {variation.id && variation.s3Key && (variation.generationMethod === 'angle-variation' || variation.generationMethod === 'ai-generated') && (() => {
-                                        // 🔥 FIX: Ensure both values are strings and trimmed for reliable comparison
-                                        const currentS3Key = (variation.s3Key || '').trim();
-                                        const isThisImageRegenerating = regeneratingS3Key !== null && regeneratingS3Key.trim() === currentS3Key;
-                                        return (
-                                          <DropdownMenuItem
-                                            className="text-[#8B5CF6] hover:bg-[#8B5CF6]/10 hover:text-[#8B5CF6] cursor-pointer focus:bg-[#8B5CF6]/10 focus:text-[#8B5CF6] disabled:opacity-50 disabled:cursor-not-allowed"
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              // Don't allow if ANY regeneration is in progress
-                                              if (isRegenerating) {
-                                                return;
-                                              }
-                                              // Show warning modal before regenerating
-                                              setRegenerateAngle({
-                                                angleId: variation.id,
-                                                s3Key: currentS3Key,
-                                                angle: variation.angle,
-                                                variation: variation,
-                                              });
-                                            }}
-                                            disabled={isRegenerating}
-                                          >
-                                            <Sparkles className="w-4 h-4 mr-2" />
-                                            {isThisImageRegenerating ? 'Regenerating...' : 'Regenerate'}
-                                          </DropdownMenuItem>
-                                        );
-                                      })()}
                                       <DropdownMenuItem
                                         className="text-[#DC143C] hover:bg-[#DC143C]/10 hover:text-[#DC143C] cursor-pointer focus:bg-[#DC143C]/10 focus:text-[#DC143C]"
                                         onClick={async (e) => {
@@ -2083,11 +2054,6 @@ export function LocationDetailModal({
                                       <DropdownMenuItem className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]" onClick={async (e) => { e.stopPropagation(); try { await downloadImageAsBlob(img.imageUrl, `${location.name}_ECU_${Date.now()}.jpg`, img.s3Key); } catch (_) { toast.error('Failed to download image'); } }}>
                                         <Download className="w-4 h-4 mr-2 text-[#808080]" /> Download
                                       </DropdownMenuItem>
-                                      {background.id && background.s3Key && background.generationMethod === 'ai-generated' && (
-                                        <DropdownMenuItem className="text-[#8B5CF6] hover:bg-[#8B5CF6]/10 hover:text-[#8B5CF6] cursor-pointer focus:bg-[#8B5CF6]/10 focus:text-[#8B5CF6] disabled:opacity-50 disabled:cursor-not-allowed" onClick={(e) => { e.stopPropagation(); if (!isRegenerating) setRegenerateBackground({ backgroundId: background.id, s3Key: (background.s3Key || '').trim(), backgroundType: background.backgroundType, background: background as LocationBackground }); }} disabled={isRegenerating}>
-                                          <Sparkles className="w-4 h-4 mr-2" /> {regeneratingS3Key === (background.s3Key || '').trim() ? 'Regenerating...' : 'Regenerate'}
-                                        </DropdownMenuItem>
-                                      )}
                                       <DropdownMenuItem className="text-[#DC143C] hover:bg-[#DC143C]/10 hover:text-[#DC143C] cursor-pointer focus:bg-[#DC143C]/10 focus:text-[#DC143C]" onClick={(e) => { e.stopPropagation(); handleDeleteBackground(background as LocationBackground); }}>
                                         <Trash2 className="w-4 h-4 mr-2" /> Delete
                                       </DropdownMenuItem>

@@ -11,7 +11,7 @@
  */
 
 import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { X, Upload, Sparkles, Image as ImageIcon, User, FileText, Box, Download, Trash2, Plus, Camera, Info, MoreVertical, Eye, CheckSquare, Square, Volume2, Crop, FlipHorizontal } from 'lucide-react';
+import { X, Upload, Image as ImageIcon, User, FileText, Box, Download, Trash2, Plus, Camera, Info, MoreVertical, Eye, CheckSquare, Square, Volume2, Crop, FlipHorizontal } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import type { CharacterProfile } from './types';
 import { toast } from 'sonner';
@@ -2021,47 +2021,6 @@ export function CharacterDetailModal({
                                         {flippingImageId === img.id ? 'Flipping...' : 'Flip Horizontal'}
                                       </DropdownMenuItem>
                                     )}
-                                    {/* 🔥 NEW: Regenerate option (only for poses with poseId) */}
-                                    {(img.poseId || img.metadata?.poseId) && img.s3Key && (() => {
-                                      // 🔥 FIX: Ensure both values are strings and trimmed for reliable comparison
-                                      const currentS3Key = (img.s3Key || '').trim();
-                                      const isThisImageRegenerating = regeneratingS3Key !== null && regeneratingS3Key.trim() === currentS3Key;
-                                      return (
-                                        <DropdownMenuItem
-                                          className="text-[#8B5CF6] hover:bg-[#8B5CF6]/10 hover:text-[#8B5CF6] cursor-pointer focus:bg-[#8B5CF6]/10 focus:text-[#8B5CF6] disabled:opacity-50 disabled:cursor-not-allowed"
-                                          onSelect={(e) => {
-                                            e.preventDefault();
-                                            e.stopPropagation();
-                                            // Close dropdown after a brief delay to ensure handler fires
-                                            setTimeout(() => setOpenDropdownId(null), 100);
-                                            // Don't allow if ANY regeneration is in progress
-                                            if (isRegenerating) {
-                                              console.log('[CharacterDetailModal] Blocked regenerate - another regeneration in progress');
-                                              return;
-                                            }
-                                            console.log('[CharacterDetailModal] Opening regenerate modal for s3Key:', currentS3Key);
-                                            // Show warning modal before regenerating
-                                            // 🔥 FIX: Pass ALL metadata from the clicked image for exact regeneration
-                                            // This includes providerId, quality, clothingReferences, typicalClothing, outfitName, etc.
-                                            // Backend will also look up from DynamoDB, but passing ensures accuracy
-                                            setRegeneratePose({
-                                              poseId: img.poseId || img.metadata?.poseId || '',
-                                              s3Key: currentS3Key,
-                                              providerId: img.metadata?.providerId,
-                                              quality: img.metadata?.quality,
-                                              clothingReferences: img.metadata?.clothingReferences,
-                                              typicalClothing: img.metadata?.typicalClothing,
-                                              outfitName: img.outfitName || img.metadata?.outfitName,
-                                              referenceImageUrls: img.metadata?.referenceImageUrls,
-                                            });
-                                          }}
-                                          disabled={isRegenerating}
-                                        >
-                                          <Sparkles className="w-4 h-4 mr-2" />
-                                          {isThisImageRegenerating ? 'Regenerating...' : 'Regenerate'}
-                                        </DropdownMenuItem>
-                                      );
-                                    })()}
                                     <DropdownMenuItem
                                       className="text-[#DC143C] hover:bg-[#DC143C]/10 hover:text-[#DC143C] cursor-pointer focus:bg-[#DC143C]/10 focus:text-[#DC143C]"
                                       onSelect={async (e) => {

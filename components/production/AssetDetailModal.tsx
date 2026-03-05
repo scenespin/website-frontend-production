@@ -16,7 +16,7 @@
 import { useState, useEffect, useMemo, useCallback } from 'react';
 import React from 'react';
 import { useAuth } from '@clerk/nextjs';
-import { X, Trash2, Image as ImageIcon, Sparkles, Package, Car, Armchair, Box, Upload, FileText, MoreVertical, Info, Eye, Download, CheckSquare, Square, FlipHorizontal } from 'lucide-react';
+import { X, Trash2, Image as ImageIcon, Package, Car, Armchair, Box, Upload, FileText, MoreVertical, Info, Eye, Download, CheckSquare, Square, FlipHorizontal } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Asset, AssetCategory, AssetImage, ASSET_CATEGORY_METADATA } from '@/types/asset';
 import { toast } from 'sonner';
@@ -1350,30 +1350,6 @@ export default function AssetDetailModal({
                                       >
                                         <FlipHorizontal className="w-4 h-4 mr-2 text-[#808080]" />
                                         {flippingAngleId === img.id ? 'Flipping...' : 'Flip Horizontal'}
-                                      </DropdownMenuItem>
-                                    )}
-                                    {/* 🔥 NEW: Regenerate option (only for AI-generated angles with id) */}
-                                    {img.id && img.s3Key && (img.metadata?.angle || img.angle) && (
-                                      <DropdownMenuItem
-                                        className="text-[#8B5CF6] hover:bg-[#8B5CF6]/10 hover:text-[#8B5CF6] cursor-pointer focus:bg-[#8B5CF6]/10 focus:text-[#8B5CF6] disabled:opacity-50 disabled:cursor-not-allowed"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          // Don't allow if ANY regeneration is in progress
-                                          if (isRegenerating) {
-                                            return;
-                                          }
-                                          // Show warning modal before regenerating
-                                          setRegenerateAngle({
-                                            angleId: img.id,
-                                            s3Key: img.s3Key!,
-                                            angle: img.metadata?.angle || img.angle || 'angle',
-                                            metadata: img.metadata, // 🔥 FIX: Pass metadata for providerId/quality
-                                          });
-                                        }}
-                                        disabled={isRegenerating}
-                                      >
-                                        <Sparkles className="w-4 h-4 mr-2" />
-                                        {regeneratingS3Key === img.s3Key ? 'Regenerating...' : 'Regenerate'}
                                       </DropdownMenuItem>
                                     )}
                                     <DropdownMenuItem
