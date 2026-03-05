@@ -1567,9 +1567,6 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
           <h3 className="text-base font-semibold text-[#E5E7EB]">Jobs</h3>
-          {isPolling && (
-            <Loader2 className="w-3 h-3 animate-spin text-blue-600" />
-          )}
         </div>
         <button
           onClick={(e) => {
