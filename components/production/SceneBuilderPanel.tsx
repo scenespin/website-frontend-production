@@ -3550,9 +3550,9 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
         // 🔥 NEW: Show simple animation, then redirect to jobs drawer and reset scene builder
         setIsGenerating(true);
         
-        // Show success toast
-        toast.success('🎬 Video generation started!', {
-        description: 'Your videos are being generated. Check the Shot Board when your job is completed.',
+        // Show unified submit toast (Scene Builder can generate first frames, videos, and/or use uploads)
+        toast.success('🎬 Scene run started!', {
+        description: 'Processing your selected shots now. Outputs will appear in the Shot Board when the job finishes.',
         duration: 4000
       });
     } catch (error) {
