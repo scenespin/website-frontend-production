@@ -90,7 +90,7 @@ export default function ModelsPage() {
         <div className="mb-8">
           <h1 className="text-3xl sm:text-4xl font-bold text-white">Model Catalog</h1>
           <p className="text-gray-400 mt-3 max-w-3xl">
-            Full transparency. The AI models that power your screenplay editor, scene builder, and video workflows—writer-directed, with no hidden choices.
+            Full transparency. The AI models that power your screenplay editor, scene builder, and video workflows—writer-directed and production-aware.
           </p>
         </div>
 
