@@ -183,56 +183,57 @@ export function useQuickVideo(): QuickVideoState & QuickVideoActions {
         }
     }, [videoGeneration.isGenerating, videoGeneration.progress]);
     
-    // Helper function to upload image with detailed error handling
+    // Helper function to upload image with primary-storage aware presigned upload flow.
     async function uploadImage(file: File, token: string): Promise<{ s3Key: string; s3Url: string }> {
-        const formData = new FormData();
-        formData.append('image', file);
-        
         try {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/video/upload-image`, {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}` },
-                body: formData
+            const params = new URLSearchParams({
+                fileName: file.name,
+                fileType: file.type || 'image/jpeg',
+                fileSize: String(file.size),
+                screenplayId: 'quick-video',
             });
-            
-            if (!response.ok) {
-                // Try to get error details from response
-                let errorData: any = {};
-                try {
-                    errorData = await response.json();
-                } catch (e) {
-                    // Response doesn't have JSON body
+            const presignResponse = await fetch(`/api/video/upload/get-presigned-url?${params.toString()}`, {
+                method: 'GET',
+                headers: { 'Authorization': `Bearer ${token}` },
+                cache: 'no-store',
+            });
+
+            if (!presignResponse.ok) {
+                const payload = await presignResponse.json().catch(() => ({}));
+                throw new Error(payload?.error || payload?.message || `Failed to get upload URL (${presignResponse.status})`);
+            }
+
+            const presignData = await presignResponse.json();
+            const { url, fields, s3Key } = presignData;
+            if (!url || !s3Key) {
+                throw new Error('Upload URL response missing required fields');
+            }
+
+            // S3 path uses presigned POST form fields. R2 path uses signed PUT URL (fields empty).
+            if (fields && Object.keys(fields).length > 0) {
+                const uploadForm = new FormData();
+                Object.entries(fields).forEach(([key, value]) => {
+                    uploadForm.append(key, value as string);
+                });
+                uploadForm.append('file', file);
+                const uploadResponse = await fetch(url, { method: 'POST', body: uploadForm });
+                if (!uploadResponse.ok) {
+                    throw new Error(`File upload failed (${uploadResponse.status})`);
                 }
-                
-                // Provide specific error messages based on status code
-                if (response.status === 401 || response.status === 403) {
-                    throw new Error('Authentication failed. Please log in again and try uploading your image.');
-                } else if (response.status === 413) {
-                    throw new Error(`Image is too large. Maximum size is 20MB. Please resize your image and try again.`);
-                } else if (response.status === 400) {
-                    const message = errorData.message || errorData.error || 'Invalid image file';
-                    throw new Error(`Upload failed: ${message}`);
-                } else if (response.status === 415) {
-                    throw new Error('Unsupported image format. Please use JPG, PNG, GIF, or WEBP.');
-                } else if (response.status >= 500) {
-                    throw new Error(`Server error (${response.status}). Please try again in a few moments.`);
-                } else {
-                    const message = errorData.message || errorData.error || 'Unknown error';
-                    throw new Error(`Upload failed (${response.status}): ${message}`);
+            } else {
+                const uploadResponse = await fetch(url, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': file.type || 'image/jpeg' },
+                    body: file,
+                });
+                if (!uploadResponse.ok) {
+                    throw new Error(`File upload failed (${uploadResponse.status})`);
                 }
             }
-            
-            const data = await response.json();
-            
-            // Validate response has required data
-            if (!data.s3Key || !data.s3Url) {
-                console.error('[UploadImage] Missing s3Key or s3Url in response:', data);
-                throw new Error('Upload succeeded but server returned invalid response. Please try again.');
-            }
-            
-            console.log('[UploadImage] Success:', { s3Key: data.s3Key, hasPresignedUrl: !!data.s3Url });
-            
-            return { s3Key: data.s3Key, s3Url: data.s3Url };
+
+            const proxyUrl = `/api/media/file?key=${encodeURIComponent(s3Key)}`;
+            console.log('[UploadImage] Success:', { s3Key, hasProxyUrl: true });
+            return { s3Key, s3Url: proxyUrl };
         } catch (error) {
             // Network errors (offline, timeout, etc.)
             if (error instanceof TypeError) {

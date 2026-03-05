@@ -3,12 +3,14 @@
 import { useState, useRef } from 'react';
 import { useChatContext } from '@/contexts/ChatContext';
 import { api } from '@/lib/api';
+import { useAuth } from '@clerk/nextjs';
 import { Film, Loader2, Upload, X, Image as ImageIcon } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { CloudSavePrompt } from '@/components/CloudSavePrompt';
 
 export function VideoModePanel({ onInsert }) {
   const { state, addMessage } = useChatContext();
+  const { getToken } = useAuth();
   const [isGenerating, setIsGenerating] = useState(false);
   const [generatedVideo, setGeneratedVideo] = useState(null);
   
@@ -107,13 +109,50 @@ export function VideoModePanel({ onInsert }) {
   
   // Upload image to backend
   const uploadImage = async (file) => {
-    const formData = new FormData();
-    formData.append('image', file);
-    
-    const response = await api.video.uploadImage(formData);
+    const token = await getToken({ template: 'wryda-backend' });
+    if (!token) {
+      throw new Error('Authentication required. Please sign in again.');
+    }
+
+    const params = new URLSearchParams({
+      fileName: file.name,
+      fileType: file.type || 'image/jpeg',
+      fileSize: String(file.size),
+      screenplayId: 'video-mode',
+    });
+    const presignResponse = await fetch(`/api/video/upload/get-presigned-url?${params.toString()}`, {
+      method: 'GET',
+      headers: { Authorization: `Bearer ${token}` },
+      cache: 'no-store',
+    });
+    if (!presignResponse.ok) {
+      const payload = await presignResponse.json().catch(() => ({}));
+      throw new Error(payload?.error || payload?.message || `Failed to get upload URL (${presignResponse.status})`);
+    }
+
+    const { url, fields, s3Key } = await presignResponse.json();
+    if (!url || !s3Key) {
+      throw new Error('Upload URL response missing required fields');
+    }
+
+    if (fields && Object.keys(fields).length > 0) {
+      const uploadForm = new FormData();
+      Object.entries(fields).forEach(([key, value]) => uploadForm.append(key, value));
+      uploadForm.append('file', file);
+      const uploadResponse = await fetch(url, { method: 'POST', body: uploadForm });
+      if (!uploadResponse.ok) throw new Error(`File upload failed (${uploadResponse.status})`);
+    } else {
+      const uploadResponse = await fetch(url, {
+        method: 'PUT',
+        headers: { 'Content-Type': file.type || 'image/jpeg' },
+        body: file,
+      });
+      if (!uploadResponse.ok) throw new Error(`File upload failed (${uploadResponse.status})`);
+    }
+
     return {
-      s3Key: response.data.s3Key,
-      url: response.data.url
+      s3Key,
+      url: `/api/media/file?key=${encodeURIComponent(s3Key)}`
     };
   };
   

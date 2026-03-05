@@ -543,12 +543,10 @@ export function VideoGenerationTools({
             description: `Estimated time: ${getEstimatedDuration('complete-scene')}. Check Jobs panel for progress.`
           });
         } else {
-          // Try to construct from S3 key if available
+          // Build proxy URL from key if backend returned only key.
           const s3Key = result.data?.s3Key || result.data?.key;
           if (s3Key) {
-            const S3_BUCKET = process.env.NEXT_PUBLIC_S3_BUCKET || 'screenplay-assets-043309365215';
-            const AWS_REGION = process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1';
-            setGeneratedVideoUrl(`https://${S3_BUCKET}.s3.${AWS_REGION}.amazonaws.com/${s3Key}`);
+            setGeneratedVideoUrl(`/api/media/file?key=${encodeURIComponent(s3Key)}`);
           }
         }
       }

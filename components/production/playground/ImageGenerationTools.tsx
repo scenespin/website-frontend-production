@@ -330,15 +330,10 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
       const { api: apiModule, setAuthTokenGetter } = await import('@/lib/api');
       setAuthTokenGetter(() => getToken({ template: 'wryda-backend' }));
 
-      // Prepare reference image URLs
+      // Prepare reference image identifiers without constructing provider-specific bucket URLs.
       const referenceImageUrls = referenceImages
         .map(img => {
-          if (img.s3Key) {
-            const S3_BUCKET = process.env.NEXT_PUBLIC_S3_BUCKET || 'screenplay-assets-043309365215';
-            const AWS_REGION = process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1';
-            return `https://${S3_BUCKET}.s3.${AWS_REGION}.amazonaws.com/${img.s3Key}`;
-          }
-          return null;
+          return img.s3Key || null;
         })
         .filter(Boolean) as string[];
 
@@ -377,12 +372,10 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
       if (imageUrl) {
         setGeneratedImageUrl(imageUrl);
       } else {
-        // Try to construct from S3 key if available
+        // Build proxy URL from key if backend returned only key.
         const s3Key = response.data?.s3Key || response.data?.key;
         if (s3Key) {
-          const S3_BUCKET = process.env.NEXT_PUBLIC_S3_BUCKET || 'screenplay-assets-043309365215';
-          const AWS_REGION = process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1';
-          setGeneratedImageUrl(`https://${S3_BUCKET}.s3.${AWS_REGION}.amazonaws.com/${s3Key}`);
+          setGeneratedImageUrl(`/api/media/file?key=${encodeURIComponent(s3Key)}`);
         }
       }
 

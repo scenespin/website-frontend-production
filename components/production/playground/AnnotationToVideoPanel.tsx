@@ -145,10 +145,8 @@ export function AnnotationToVideoPanel({ className = '' }: AnnotationToVideoPane
         throw new Error('S3 upload failed');
       }
 
-      // Generate preview URL
-      const S3_BUCKET = process.env.NEXT_PUBLIC_S3_BUCKET || 'screenplay-assets-043309365215';
-      const AWS_REGION = process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1';
-      const previewUrl = `https://${S3_BUCKET}.s3.${AWS_REGION}.amazonaws.com/${s3Key}`;
+      // Use authenticated media proxy URL for preview to remain storage-provider agnostic.
+      const previewUrl = `/api/media/file?key=${encodeURIComponent(s3Key)}`;
 
       setImageUrl(previewUrl);
       setImageS3Key(s3Key);
@@ -246,12 +244,10 @@ export function AnnotationToVideoPanel({ className = '' }: AnnotationToVideoPane
         if (jobId) {
           toast.success('Video generation started! Check Jobs panel for progress.');
         } else {
-          // Try to construct from S3 key if available
+          // Build proxy URL from key when immediate URL is not present.
           const s3Key = data.data?.s3Key || data.data?.key;
           if (s3Key) {
-            const S3_BUCKET = process.env.NEXT_PUBLIC_S3_BUCKET || 'screenplay-assets-043309365215';
-            const AWS_REGION = process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1';
-            setGeneratedVideoUrl(`https://${S3_BUCKET}.s3.${AWS_REGION}.amazonaws.com/${s3Key}`);
+            setGeneratedVideoUrl(`/api/media/file?key=${encodeURIComponent(s3Key)}`);
             toast.success('Video generated!');
           } else {
             toast.success('Video generation started! Check Jobs panel for progress.');

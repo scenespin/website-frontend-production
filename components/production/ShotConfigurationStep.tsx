@@ -647,7 +647,7 @@ export function ShotConfigurationStep({
       }
       
       const { downloadUrl } = await downloadResponse.json();
-      const imageUrl = downloadUrl || `https://screenplay-assets-043309365215.s3.us-east-1.amazonaws.com/${s3Key}`;
+      const imageUrl = downloadUrl || `/api/media/file?key=${encodeURIComponent(s3Key)}`;
       
       // Store in context (URL for preview; s3Key for deferred registration at workflow execution)
       actions.updateUploadedFirstFrame(shotSlot, imageUrl, s3Key);

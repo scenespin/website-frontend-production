@@ -3681,11 +3681,6 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       // Upload to S3
       await SceneBuilderService.uploadToS3(url, fields, file, '[SceneBuilderPanel] Media');
       
-      // Generate S3 URL
-      const S3_BUCKET = process.env.NEXT_PUBLIC_S3_BUCKET || 'screenplay-assets-043309365215';
-      const AWS_REGION = process.env.NEXT_PUBLIC_AWS_REGION || 'us-east-1';
-      const s3Url = `https://${S3_BUCKET}.s3.${AWS_REGION}.amazonaws.com/${s3Key}`;
-      
       // Update local state
       const newUploads = [...mediaUploads];
       newUploads[index] = file;
