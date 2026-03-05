@@ -193,6 +193,7 @@ interface JobsDrawerProps {
   autoOpen?: boolean; // Auto-open when jobs are running
   compact?: boolean; // Compact mode for smaller screens
   jobCount?: number; // Number of active jobs for tab badge
+  showCountBadge?: boolean; // Show/hide badge count in collapsed mobile handle
   /** When provided (e.g. from ProductionHub), use this screenplayId so drawer and Hub query the same project (URL-first, then context). */
   screenplayIdFromHub?: string;
   onNavigateToEntity?: (entityType: 'character' | 'location' | 'asset', entityId: string) => void; // Callback to navigate to entity modal
@@ -436,7 +437,7 @@ function PoseImagesFromMediaLibrary({
   );
 }
 
-export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false, compact = false, jobCount = 0, screenplayIdFromHub, onNavigateToEntity }: JobsDrawerProps) {
+export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false, compact = false, jobCount = 0, showCountBadge = true, screenplayIdFromHub, onNavigateToEntity }: JobsDrawerProps) {
   const router = useRouter();
   const screenplay = useScreenplay();
   // Use Hub's screenplayId when provided (URL-first, then context) so drawer and badge query the same project
@@ -2046,7 +2047,7 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
               >
                 <div className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></div>
                 Jobs
-                {(jobCount > 0 || visibleJobs.length > 0) && (
+                {showCountBadge && (jobCount > 0 || visibleJobs.length > 0) && (
                   <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-blue-600 text-white min-w-[18px] text-center">
                     {(jobCount || visibleJobs.length) > 99 ? '99+' : (jobCount || visibleJobs.length)}
                   </span>

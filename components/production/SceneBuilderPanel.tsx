@@ -54,8 +54,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Progress } from '@/components/ui/progress';
 import { toast } from 'sonner';
-// Removed SceneBuilderProgress - using Jobs panel instead
-import { JobsDrawer } from './JobsDrawer';
+// Removed SceneBuilderProgress - using parent-managed Jobs drawer
 import { SceneBuilderDecisionModal } from '@/components/video/SceneBuilderDecisionModal';
 import { PartialDeliveryModal } from '@/components/video/PartialDeliveryModal';
 import { ShotConfigurationStep } from './ShotConfigurationStep';
@@ -1999,7 +1998,6 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   const [partialDeliveryData, setPartialDeliveryData] = useState<any>(null);
   
   // Jobs panel integration - replace legacy progress bar
-  const [isJobsDrawerOpen, setIsJobsDrawerOpen] = useState(false);
   
   // Note: Generation history moved to Shot Board tab (uses Media Library, not localStorage)
   
@@ -3531,7 +3529,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       setWorkflowExecutionId(executionId);
       // Register for completion polling (runs even when Jobs drawer closed - Videos tab auto-updates)
       useInFlightWorkflowJobsStore.getState().addJob(executionId);
-      // So JobsDrawer can show this job and store it in recent-job-ids (fetch-by-IDs on drawer open)
+      // So parent-owned JobsDrawer surfaces it immediately and stores recent job IDs.
       if (typeof window !== 'undefined' && projectId) {
         window.dispatchEvent(new CustomEvent('wryda:optimistic-job', {
           detail: { jobId: executionId, screenplayId: projectId, jobType: 'workflow-execution' }
@@ -3597,8 +3595,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
 
     // Reset wizard after short delay so user can start another job immediately (concurrent jobs).
     // Job keeps running in backend (workflowRequest.screenplayId was set); Jobs panel loads from
-    // /api/workflows/executions?screenplayId=... so the job appears there with progress. We open
-    // the Jobs drawer below so the user sees it.
+    // /api/workflows/executions?screenplayId=... so the job appears there with progress.
     // Feature 0259: Full context reset (equivalent to hard refresh) so no sticky choices from previous run.
     setTimeout(() => {
       contextActions.resetToInitialState();
@@ -3611,7 +3608,6 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       setWorkflowExecutionId(null);
       setWorkflowStatus(null);
       localStorage.removeItem(`scene-builder-execution-${projectId}`);
-      setIsJobsDrawerOpen(true);
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }, 1500);
   }
@@ -5290,21 +5286,6 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
         />
       )}
       
-      {/* Jobs Drawer - Replace legacy progress bar */}
-      <JobsDrawer
-        isOpen={isJobsDrawerOpen}
-        onClose={() => setIsJobsDrawerOpen(false)}
-        onOpen={() => setIsJobsDrawerOpen(true)}
-        onToggle={() => setIsJobsDrawerOpen(!isJobsDrawerOpen)}
-        autoOpen={false}
-        compact={false}
-        jobCount={workflowStatus ? 1 : 0}
-        onNavigateToEntity={(type, id) => {
-          // Handle navigation to character/location/asset from jobs drawer
-          console.log(`[SceneBuilderPanel] Navigate to ${type}: ${id}`);
-        }}
-      />
-
       {/* Scene Builder Info Modal */}
       {showSceneBuilderInfo && (
         <div 

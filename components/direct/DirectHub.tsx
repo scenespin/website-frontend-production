@@ -12,6 +12,7 @@ import { ShotBoardPanel } from '@/components/production/ShotBoardPanel';
 import { VideoBrowserPanel } from '@/components/production/VideoBrowserPanel';
 import { VideoGenerationTools } from '@/components/production/playground/VideoGenerationTools';
 import { WorkflowCompletionPoller } from '@/components/production/WorkflowCompletionPoller';
+import { JobsDrawer } from '@/components/production/JobsDrawer';
 import { useInFlightWorkflowJobsStore } from '@/lib/inFlightWorkflowJobsStore';
 import { DirectTabBar, DirectTab } from './DirectTabBar';
 import type { GenerateVideoContext } from '@/components/production/ShotBoardPanel';
@@ -26,6 +27,7 @@ export function DirectHub() {
 
   const [activeTab, setActiveTab] = useState<DirectTab>('scene-builder');
   const [videoGenPreFill, setVideoGenPreFill] = useState<GenerateVideoContext | null>(null);
+  const [isJobsDrawerOpen, setIsJobsDrawerOpen] = useState(false);
 
   // Stable key for WorkflowCompletionPoller (parent subscribes; poller does not - avoids #185)
   const jobIdsKey = useInFlightWorkflowJobsStore((s) =>
@@ -66,6 +68,17 @@ export function DirectHub() {
     },
     [router]
   );
+
+  // Jobs drawer is intentionally hidden on Scene Builder.
+  // Keep the open state across Direct tabs where jobs monitoring is relevant.
+  const shouldShowJobsUi =
+    activeTab === 'shots' || activeTab === 'videos' || activeTab === 'video-gen';
+
+  useEffect(() => {
+    if (!shouldShowJobsUi && isJobsDrawerOpen) {
+      setIsJobsDrawerOpen(false);
+    }
+  }, [shouldShowJobsUi, isJobsDrawerOpen]);
 
   // Early return if no screenplay
   if (!screenplayId) {
@@ -134,6 +147,19 @@ export function DirectHub() {
           </div>
         )}
       </div>
+
+      {shouldShowJobsUi && (
+        <JobsDrawer
+          isOpen={isJobsDrawerOpen}
+          onClose={() => setIsJobsDrawerOpen(false)}
+          onOpen={() => setIsJobsDrawerOpen(true)}
+          autoOpen={false}
+          compact={false}
+          screenplayIdFromHub={screenplayId}
+          jobCount={0}
+          showCountBadge={false}
+        />
+      )}
     </div>
   );
 }
