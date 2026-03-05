@@ -1429,7 +1429,8 @@ export default function AssetDetailModal({
                                             },
                                             body: JSON.stringify({
                                               angleReferences: updatedAngleReferences,
-                                              images: imagesForPut
+                                              images: imagesForPut,
+                                              deletedS3Keys: [img.s3Key]
                                             }),
                                           });
                                           
@@ -1715,7 +1716,8 @@ export default function AssetDetailModal({
                     },
                     body: JSON.stringify({
                       angleReferences: updatedAngleReferences,
-                      images: imagesForPut
+                      images: imagesForPut,
+                      deletedS3Keys: Array.from(s3KeysToDelete)
                     }),
                   });
                   
