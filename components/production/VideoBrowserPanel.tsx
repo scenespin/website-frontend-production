@@ -59,7 +59,7 @@ function getProviderLabel(provider: string | null | undefined): string {
   if (p === 'veo-2-fast') return 'Veo 2.0 Fast';
   if (p === 'veo-3' || p === 'veo-3.0') return 'Veo 3.0';
   if (p === 'veo-3-fast') return 'Veo 3.0 Fast';
-  if (p === 'veo-3.1') return 'Veo 3.1';
+  if (p === 'veo-3.1') return 'Veo 3.1 (Quality)';
   if (p === 'veo-3.1-fast') return 'Veo 3.1 Fast';
   if (p === 'luma' || p === 'luma-ray-2') return 'Luma Ray 2';
   if (p === 'luma-ray-3') return 'Luma Ray 3';
