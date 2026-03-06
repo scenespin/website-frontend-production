@@ -85,6 +85,8 @@ export interface UseShotBoardResult {
 export interface UseShotBoardOptions {
   /** Current screenplay scene IDs; when provided and includeArchivedSceneAssets is false, only these scene IDs are shown. */
   activeSceneIds?: string[];
+  /** Active screenplay scene numbers (used as fallback for legacy media when IDs were churned historically). */
+  activeSceneNumbers?: number[];
   /** Include legacy/orphaned scene media from older scene IDs (e.g. pre-rescan assets). */
   includeArchivedSceneAssets?: boolean;
 }
@@ -131,6 +133,12 @@ export function useShotBoard(
     const ids = (options?.activeSceneIds || []).filter((id): id is string => typeof id === 'string' && id.trim().length > 0);
     return new Set(ids);
   }, [options?.activeSceneIds]);
+  const activeSceneNumberSet = React.useMemo(() => {
+    const nums = (options?.activeSceneNumbers || [])
+      .map((n) => Number(n))
+      .filter((n) => Number.isFinite(n));
+    return new Set(nums);
+  }, [options?.activeSceneNumbers]);
 
   // Process files into shot board structure
   const { scenes, allS3Keys } = React.useMemo(() => {
@@ -196,7 +204,7 @@ export function useShotBoard(
 
     for (const firstFrame of firstFrames) {
       const metadata = (firstFrame as any).metadata || {};
-      const sceneId = metadata.sceneId;
+      const sceneId = typeof metadata.sceneId === 'string' ? metadata.sceneId.trim() : String(metadata.sceneId || '').trim();
       const sceneNumber = Number(metadata.sceneNumber);
       const shotNumber = Number(metadata.shotNumber);
       const timestamp = typeof metadata.timestamp === 'string' ? metadata.timestamp : String(metadata.timestamp || '');
@@ -274,7 +282,7 @@ export function useShotBoard(
     for (const [videoKey, video] of videoMap) {
       if (videoKeysMatchedToFirstFrame.has(videoKey)) continue;
       const metadata = (video as any).metadata || {};
-      const sceneId = metadata.sceneId;
+      const sceneId = typeof metadata.sceneId === 'string' ? metadata.sceneId.trim() : String(metadata.sceneId || '').trim();
       const sceneNumber = Number(metadata.sceneNumber ?? 1);
       const shotNumber = Number(metadata.shotNumber);
       const timestamp = typeof metadata.timestamp === 'string' ? metadata.timestamp : String(metadata.timestamp || '');
@@ -359,13 +367,32 @@ export function useShotBoard(
     // Sort scenes by sceneNumber
     scenesResult.sort((a, b) => a.sceneNumber - b.sceneNumber);
 
-    const filteredScenes =
-      includeArchivedSceneAssets || activeSceneIdSet.size === 0
-        ? scenesResult
-        : scenesResult.filter((scene) => activeSceneIdSet.has(scene.sceneId));
+    let filteredScenes: ShotBoardScene[];
+    if (includeArchivedSceneAssets || activeSceneIdSet.size === 0) {
+      filteredScenes = scenesResult;
+    } else {
+      // Primary filter: active scene IDs only.
+      const activeIdScenes = scenesResult.filter((scene) => activeSceneIdSet.has((scene.sceneId || '').trim()));
+
+      // Compatibility fallback for historical ID churn:
+      // If an active scene number has no active-ID media, include the best legacy scene for that number.
+      const activeNumbersWithVisibleMedia = new Set(activeIdScenes.map((scene) => scene.sceneNumber));
+      const legacyFallbackBySceneNumber = new Map<number, ShotBoardScene>();
+      for (const scene of scenesResult) {
+        if (activeSceneIdSet.has((scene.sceneId || '').trim())) continue;
+        if (!activeSceneNumberSet.has(scene.sceneNumber)) continue;
+        if (activeNumbersWithVisibleMedia.has(scene.sceneNumber)) continue;
+        const existing = legacyFallbackBySceneNumber.get(scene.sceneNumber);
+        if (!existing || scene.shots.length > existing.shots.length) {
+          legacyFallbackBySceneNumber.set(scene.sceneNumber, scene);
+        }
+      }
+      filteredScenes = [...activeIdScenes, ...Array.from(legacyFallbackBySceneNumber.values())];
+      filteredScenes.sort((a, b) => a.sceneNumber - b.sceneNumber);
+    }
 
     return { scenes: filteredScenes, allS3Keys: s3Keys };
-  }, [allFiles, includeArchivedSceneAssets, activeSceneIdSet]);
+  }, [allFiles, includeArchivedSceneAssets, activeSceneIdSet, activeSceneNumberSet]);
 
   // Fetch presigned URLs for all S3 keys
   // useBulkPresignedUrls already returns Map<string, string>

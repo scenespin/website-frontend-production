@@ -373,6 +373,12 @@ export function ShotBoardPanel({ className = '', onNavigateToSceneBuilder, onGen
       .filter((id: any): id is string => typeof id === 'string' && id.trim().length > 0);
     return Array.from(new Set(ids));
   }, [screenplay.scenes]);
+  const activeSceneNumbers = useMemo(() => {
+    const nums = (screenplay.scenes || [])
+      .map((scene: any) => Number(scene?.number ?? scene?.order))
+      .filter((n: number) => Number.isFinite(n));
+    return Array.from(new Set(nums));
+  }, [screenplay.scenes]);
 
   // Fetch shot board data
   const {
@@ -384,6 +390,7 @@ export function ShotBoardPanel({ className = '', onNavigateToSceneBuilder, onGen
     presignedUrlsLoading
   } = useShotBoard(screenplayId || '', !!screenplayId, {
     activeSceneIds,
+    activeSceneNumbers,
     includeArchivedSceneAssets: showArchivedSceneAssets,
   });
 
