@@ -294,6 +294,7 @@ function ShotCell({
  */
 function SceneRow({
   scene,
+  isArchived,
   presignedUrls,
   onGenerateVideo,
   onFrameClick,
@@ -303,6 +304,7 @@ function SceneRow({
   onVariationChange,
 }: {
   scene: ShotBoardScene;
+  isArchived: boolean;
   presignedUrls: Map<string, string>;
   onGenerateVideo: (context: GenerateVideoContext) => void;
   onFrameClick?: (index: number) => void;
@@ -317,10 +319,16 @@ function SceneRow({
     [scene.shots]
   );
   return (
-    <div className="bg-[#141414] rounded-lg border border-[#3F3F46] overflow-hidden">
-      <div className="px-4 py-3 border-b border-[#3F3F46] flex items-center justify-between">
+    <div
+      className={`rounded-lg border overflow-hidden ${
+        isArchived ? 'bg-[#180f28] border-[#8B5CF6]/40' : 'bg-[#141414] border-[#3F3F46]'
+      }`}
+    >
+      <div className={`px-4 py-3 border-b flex items-center justify-between ${isArchived ? 'border-[#8B5CF6]/30' : 'border-[#3F3F46]'}`}>
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded bg-[#DC143C] flex items-center justify-center text-white text-sm font-semibold">
+          <div className={`w-8 h-8 rounded flex items-center justify-center text-white text-sm font-semibold ${
+            isArchived ? 'bg-[#8B5CF6]' : 'bg-[#DC143C]'
+          }`}>
             {scene.sceneNumber}
           </div>
           <div>
@@ -330,6 +338,15 @@ function SceneRow({
             </p>
           </div>
         </div>
+        {isArchived ? (
+          <span className="px-2 py-1 text-[10px] font-medium rounded border border-[#8B5CF6]/40 text-[#C4B5FD] bg-[#8B5CF6]/10">
+            Archived
+          </span>
+        ) : (
+          <span className="px-2 py-1 text-[10px] font-medium rounded border border-[#334155] text-[#94A3B8] bg-[#0F172A]/40">
+            Live
+          </span>
+        )}
       </div>
       <div className="p-4">
         <div className="flex gap-3 overflow-x-auto pb-2">
@@ -373,6 +390,10 @@ export function ShotBoardPanel({ className = '', onNavigateToSceneBuilder, onGen
       .filter((id: any): id is string => typeof id === 'string' && id.trim().length > 0);
     return Array.from(new Set(ids));
   }, [screenplay.scenes]);
+  const activeSceneIdSet = useMemo(
+    () => new Set(activeSceneIds.map((id) => id.trim())),
+    [activeSceneIds]
+  );
   const activeSceneNumbers = useMemo(() => {
     const nums = (screenplay.scenes || [])
       .map((scene: any) => Number(scene?.number ?? scene?.order))
@@ -601,6 +622,7 @@ export function ShotBoardPanel({ className = '', onNavigateToSceneBuilder, onGen
               <SceneRow
                 key={scene.sceneId}
                 scene={scene}
+                isArchived={!activeSceneIdSet.has((scene.sceneId || '').trim())}
                 presignedUrls={presignedUrls}
                 onGenerateVideo={handleGenerateVideo}
                 onFrameClick={allFirstFrameImages.length > 0 ? handleFrameClick : undefined}
