@@ -5430,17 +5430,40 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 }
             }
             
-            // 🔥 NEW APPROACH: Reimport all scenes with metadata preservation
+            // 🔥 NEW APPROACH: Reimport all scenes with metadata preservation + stable IDs
             // Step 1: Preserve metadata from existing scenes
             let preservedCount = 0; // Initialize for return statement
             const metadataMap = preserveSceneMetadata(allExistingScenes, parseResult.scenes);
             preservedCount = metadataMap.size;
             console.log('[ScreenplayContext] Preserved metadata for', preservedCount, 'scenes');
             
-            // Step 2: Build all new scenes with preserved metadata + correct numbering (based on script order)
+            // Step 2: Build all new scenes with stable IDs (reuse matched scene IDs; new IDs only for true additions)
             const now = new Date().toISOString();
+            const usedExistingSceneIds = new Set<string>();
+            let reusedSceneIdCount = 0;
+            let newSceneIdCount = 0;
             const allNewScenes: Scene[] = parseResult.scenes.map((parsedScene, index) => {
                 const preserved = metadataMap.get(index);
+
+                // Match parsed scene to an existing scene and reuse its ID when possible.
+                // This prevents identity churn across rescans for unchanged scenes.
+                const unmatchedExistingScenes = allExistingScenes.filter(s => !usedExistingSceneIds.has(s.id));
+                const matchedExistingScene = matchScene(
+                    {
+                        heading: parsedScene.heading,
+                        startLine: parsedScene.startLine,
+                        endLine: parsedScene.endLine,
+                        id: (parsedScene as any).id
+                    },
+                    unmatchedExistingScenes
+                );
+                const reusedSceneId = matchedExistingScene?.id;
+                if (reusedSceneId) {
+                    usedExistingSceneIds.add(reusedSceneId);
+                    reusedSceneIdCount += 1;
+                } else {
+                    newSceneIdCount += 1;
+                }
                 
                 // Map character names to IDs
                 const characterIds = parsedScene.characters
@@ -5455,13 +5478,13 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 const locationId = location?.id;
                 
                 return {
-                    id: `scene-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}`,
+                    id: reusedSceneId || `scene-${Date.now()}-${index}-${Math.random().toString(36).substr(2, 9)}`,
                     number: index + 1, // ← Sequential based on script order (always correct!)
                     order: index + 1,
                     heading: parsedScene.heading,
                     // 🔥 NEW: Use Fountain synopsis if available, otherwise preserve existing or use default
-                    synopsis: parsedScene.synopsis || preserved?.synopsis || `Imported from script`,
-                    status: preserved?.status || 'draft',
+                    synopsis: parsedScene.synopsis || matchedExistingScene?.synopsis || preserved?.synopsis || `Imported from script`,
+                    status: matchedExistingScene?.status || preserved?.status || 'draft',
                     fountain: {
                         startLine: parsedScene.startLine,
                         endLine: parsedScene.endLine,
@@ -5469,21 +5492,28 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                             characters: characterIds,
                             location: locationId,
                             // Preserve props from preserved metadata (which now uses current scene state)
-                            ...(preserved?.props && preserved.props.length > 0 ? { props: preserved.props } : {})
+                            ...(((matchedExistingScene?.fountain?.tags as any)?.props && Array.isArray((matchedExistingScene?.fountain?.tags as any)?.props) && (matchedExistingScene?.fountain?.tags as any)?.props.length > 0)
+                                ? { props: (matchedExistingScene?.fountain?.tags as any)?.props }
+                                : (preserved?.props && preserved.props.length > 0 ? { props: preserved.props } : {}))
                         }
                     },
-                    images: preserved?.images,
-                    videoAssets: preserved?.videoAssets,
-                    timing: preserved?.timing,
-                    estimatedPageCount: preserved?.estimatedPageCount,
+                    images: matchedExistingScene?.images || preserved?.images,
+                    videoAssets: matchedExistingScene?.videoAssets || preserved?.videoAssets,
+                    timing: matchedExistingScene?.timing || preserved?.timing,
+                    estimatedPageCount: matchedExistingScene?.estimatedPageCount || preserved?.estimatedPageCount,
                     // 🔥 NEW: Use Fountain section (group_label) if available, otherwise preserve existing
-                    group_label: parsedScene.group_label || preserved?.group_label,
-                    createdAt: now,
+                    group_label: parsedScene.group_label || matchedExistingScene?.group_label || preserved?.group_label,
+                    createdAt: matchedExistingScene?.createdAt || now,
                     updatedAt: now
                 };
             });
             
             console.log('[ScreenplayContext] Built', allNewScenes.length, 'scenes with correct numbering (1-' + allNewScenes.length + ' based on script order)');
+            console.log('[ScreenplayContext] Stable scene ID stats:', {
+                reusedSceneIds: reusedSceneIdCount,
+                newSceneIds: newSceneIdCount,
+                unmatchedExistingScenes: allExistingScenes.length - reusedSceneIdCount
+            });
             
             // Step 3: 🔥 CRITICAL FIX: Delete ALL existing scenes FIRST (like import does), then save new ones
             // This prevents duplicates - the current approach saves new scenes then deletes old ones by ID,
@@ -5558,13 +5588,15 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 newCharacters: newCharacterNames.length,
                 newLocations: newLocationNames.length,
                 scenesReimported: updatedScenesCount,
-                preservedMetadata: preservedCount
+                preservedMetadata: preservedCount,
+                reusedSceneIds: reusedSceneIdCount,
+                newSceneIds: newSceneIdCount
             });
             
             return {
                 newCharacters: newCharacterNames.length,
                 newLocations: newLocationNames.length,
-                newScenes: 0, // Always 0 (we reimport all)
+                newScenes: newSceneIdCount,
                 updatedScenes: updatedScenesCount,
                 preservedMetadata: preservedCount
             };
@@ -5575,7 +5607,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             // Always release the lock
             isRescanningRef.current = false;
         }
-    }, [characters, locations, beats, bulkImportCharacters, bulkImportLocations, saveScenes, preserveSceneMetadata, updateRelationships, buildRelationshipsFromScenes, getToken, screenplayId]);
+    }, [characters, locations, beats, bulkImportCharacters, bulkImportLocations, saveScenes, preserveSceneMetadata, matchScene, updateRelationships, buildRelationshipsFromScenes, getToken, screenplayId]);
     
     // ========================================================================
     // Clear All Data (Editor Source of Truth)
