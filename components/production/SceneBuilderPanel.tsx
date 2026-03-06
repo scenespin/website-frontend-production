@@ -1799,6 +1799,19 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   // BUT: Only auto-analyze if user has explicitly confirmed (not on initial selection)
   const [hasConfirmedSceneSelection, setHasConfirmedSceneSelection] = useState(false);
 
+  // If rescan/refresh replaced scene IDs, clear stale selection so auto-select can pick a valid current scene.
+  useEffect(() => {
+    if (!selectedSceneId) return;
+    const existsInCurrentScenes = sortedScenes.some((scene) => scene.id === selectedSceneId);
+    if (existsInCurrentScenes) return;
+
+    console.warn('[SceneBuilderPanel] Clearing stale selectedSceneId after scene list refresh:', selectedSceneId);
+    setSelectedSceneId(null);
+    setHasConfirmedSceneSelection(false);
+    setSceneAnalysisResult(null);
+    setAnalysisError(null);
+  }, [selectedSceneId, sortedScenes, setSceneAnalysisResult]);
+
   // Keep Scene Builder populated: auto-select a scene whenever none is selected.
   // Uses pending preferred scene (next scene after generation) when available.
   useEffect(() => {
@@ -3181,8 +3194,9 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
           : (sceneAnalysisResult?.workflowRecommendations?.[0]?.workflowId ? [sceneAnalysisResult.workflowRecommendations[0].workflowId] : ['complete-scene']);
       }
       
-      // Get scene information for workflow request
-      const sceneId = sceneAnalysisResult?.sceneId || selectedSceneId;
+      // Get scene information for workflow request.
+      // Use selectedSceneId as source of truth (sceneAnalysisResult can be stale after rescan/selection changes).
+      const sceneId = selectedSceneId || sceneAnalysisResult?.sceneId;
       let sceneNumber: number | undefined;
       if (selectedSceneId && screenplay.scenes) {
         const selectedScene = screenplay.scenes.find((s: any) => s.id === selectedSceneId);
@@ -3407,7 +3421,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       }
       
       // Add scene information for media organization (Feature 0170)
-      // Priority: sceneAnalysisResult.sceneId > selectedSceneId (no editor context fallback)
+      // Priority: selectedSceneId > sceneAnalysisResult.sceneId (selected scene is source of truth).
       if (sceneId) {
         workflowRequest.sceneId = sceneId;
       }
