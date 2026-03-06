@@ -188,7 +188,7 @@ function Step1AIAnalysis({ aiSuggestion, isLoading, onNext }: Step1Props) {
           AI is analyzing your story beat...
         </p>
         <p className="text-xs text-slate-600 dark:text-slate-400">
-          5 credit refundable deposit (refunded when you generate clips)
+          Analyzing your story beat for clip recommendations.
         </p>
       </div>
     );
