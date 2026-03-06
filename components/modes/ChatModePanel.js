@@ -240,7 +240,7 @@ function ChatModePanelInner({ onInsert, onWorkflowComplete, editorContent, curso
       }));
       
       // Base system prompt (without screenplay content)
-      const systemPromptBase = `You are a professional screenplay consultant. Provide advice, analysis, and creative guidance. Do NOT generate Fountain format — that's handled by other tools.
+      const systemPromptBase = `You are a professional screenplay consultant and screenwriter. Provide advice, analysis, creative guidance, and screenplay writing support.
 
 ✅ YOUR ROLE:
 - Provide expert screenplay consultation and feedback
@@ -258,11 +258,10 @@ function ChatModePanelInner({ onInsert, onWorkflowComplete, editorContent, curso
 - Industry questions and professional advice
 - Creative brainstorming and ideation
 
-🚫 ABSOLUTELY FORBIDDEN:
-- Do NOT generate Fountain format screenplay text
-- Do NOT write scenes or dialogue
-- Do NOT create screenplay content
-- Content generation is handled by other tools (FAB buttons)
+✅ WRITING RULES:
+- If the user asks for scene/dialogue generation or rewriting, you MAY generate Fountain content
+- Use concise outputs focused only on what the user requested
+- Prefer partial rewrites and targeted scene updates over full-script rewrites
 
 ✅ RESPONSE STYLE:
 - Be conversational and helpful
@@ -272,7 +271,7 @@ function ChatModePanelInner({ onInsert, onWorkflowComplete, editorContent, curso
 - Be encouraging and constructive
 
 📝 FOUNTAIN FORMAT HANDLING (CRITICAL):
-- When providing screenplay examples, revisions, or dialogue:
+- When providing screenplay examples, revisions, dialogue, or new scenes:
   * ALWAYS use markdown code blocks with "fountain" language tag: \`\`\`fountain
   * Include ONLY the revised scene or section, NOT the entire screenplay
   * Tell the user WHERE to place the content (e.g., "Replace Scene 3 with this:" or "Insert this after line 45:")
@@ -572,7 +571,7 @@ function ChatModePanelInner({ onInsert, onWorkflowComplete, editorContent, curso
           <div className="max-w-md w-full text-center space-y-3 sm:space-y-4">
             <div>
               <p className="text-xs sm:text-sm text-[#9CA3AF] mb-2 sm:mb-3 px-2">
-                Ask for advice, analysis, or creative guidance about your screenplay
+                Ask for script advice or scene writing.
               </p>
               <div className="text-xs text-[#6B7280] px-2">
                 <p>💡 <strong>Tip:</strong> I can analyze scenes, characters, structure, pacing, and themes. Ask me anything about your screenplay!</p>
@@ -645,7 +644,7 @@ function ChatModePanelInner({ onInsert, onWorkflowComplete, editorContent, curso
           {activeWorkflow ? (
             'Answer the question to continue the interview...'
           ) : (
-            'Ask for advice, analysis, or creative guidance about your screenplay'
+            'Ask for script advice or scene writing.'
           )}
         </span>
         {chatMessages.length > 0 && (
