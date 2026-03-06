@@ -82,6 +82,13 @@ export interface UseShotBoardResult {
   presignedUrlsLoading: boolean;
 }
 
+export interface UseShotBoardOptions {
+  /** Current screenplay scene IDs; when provided and includeArchivedSceneAssets is false, only these scene IDs are shown. */
+  activeSceneIds?: string[];
+  /** Include legacy/orphaned scene media from older scene IDs (e.g. pre-rescan assets). */
+  includeArchivedSceneAssets?: boolean;
+}
+
 // ============================================================================
 // HOOK
 // ============================================================================
@@ -93,7 +100,11 @@ export interface UseShotBoardResult {
  * @param enabled - Whether to enable the query
  * @returns Shot board data organized by scene and shot
  */
-export function useShotBoard(screenplayId: string, enabled: boolean = true): UseShotBoardResult {
+export function useShotBoard(
+  screenplayId: string,
+  enabled: boolean = true,
+  options?: UseShotBoardOptions
+): UseShotBoardResult {
   // Fetch all scene-related files from Media Library
   // entityType='scene' uses GSI for efficient querying
   // includeAllFolders=true ensures files in scene folders are included
@@ -114,6 +125,12 @@ export function useShotBoard(screenplayId: string, enabled: boolean = true): Use
     undefined, // limit (use default page size per request)
     true // fetchAllPages – paginate until no nextToken so all scenes/shots load
   );
+
+  const includeArchivedSceneAssets = options?.includeArchivedSceneAssets === true;
+  const activeSceneIdSet = React.useMemo(() => {
+    const ids = (options?.activeSceneIds || []).filter((id): id is string => typeof id === 'string' && id.trim().length > 0);
+    return new Set(ids);
+  }, [options?.activeSceneIds]);
 
   // Process files into shot board structure
   const { scenes, allS3Keys } = React.useMemo(() => {
@@ -342,8 +359,13 @@ export function useShotBoard(screenplayId: string, enabled: boolean = true): Use
     // Sort scenes by sceneNumber
     scenesResult.sort((a, b) => a.sceneNumber - b.sceneNumber);
 
-    return { scenes: scenesResult, allS3Keys: s3Keys };
-  }, [allFiles]);
+    const filteredScenes =
+      includeArchivedSceneAssets || activeSceneIdSet.size === 0
+        ? scenesResult
+        : scenesResult.filter((scene) => activeSceneIdSet.has(scene.sceneId));
+
+    return { scenes: filteredScenes, allS3Keys: s3Keys };
+  }, [allFiles, includeArchivedSceneAssets, activeSceneIdSet]);
 
   // Fetch presigned URLs for all S3 keys
   // useBulkPresignedUrls already returns Map<string, string>

@@ -365,6 +365,14 @@ export function ShotBoardPanel({ className = '', onNavigateToSceneBuilder, onGen
   const screenplayId = screenplay.screenplayId;
   const queryClient = useQueryClient();
   const { getToken } = useAuth();
+  const [showArchivedSceneAssets, setShowArchivedSceneAssets] = useState(false);
+
+  const activeSceneIds = useMemo(() => {
+    const ids = (screenplay.scenes || [])
+      .map((scene: any) => scene?.id || scene?.scene_id)
+      .filter((id: any): id is string => typeof id === 'string' && id.trim().length > 0);
+    return Array.from(new Set(ids));
+  }, [screenplay.scenes]);
 
   // Fetch shot board data
   const {
@@ -374,7 +382,10 @@ export function ShotBoardPanel({ className = '', onNavigateToSceneBuilder, onGen
     refetch,
     presignedUrls,
     presignedUrlsLoading
-  } = useShotBoard(screenplayId || '', !!screenplayId);
+  } = useShotBoard(screenplayId || '', !!screenplayId, {
+    activeSceneIds,
+    includeArchivedSceneAssets: showArchivedSceneAssets,
+  });
 
   const [generateVideoModalOpen, setGenerateVideoModalOpen] = useState(false);
   const [generateVideoContext, setGenerateVideoContext] = useState<GenerateVideoContext | null>(null);
@@ -532,15 +543,29 @@ export function ShotBoardPanel({ className = '', onNavigateToSceneBuilder, onGen
             {visibleScenes.length} scene{visibleScenes.length !== 1 ? 's' : ''} • {totalShots} shot{totalShots !== 1 ? 's' : ''}
           </span>
         </div>
-        <button
-          onClick={handleRefresh}
-          disabled={isLoading || presignedUrlsLoading}
-          className="flex items-center gap-2 px-3 py-1.5 text-sm text-[#B3B3B3] hover:text-white hover:bg-[#1A1A1A] rounded transition-colors disabled:opacity-50"
-          title="Refresh shots"
-        >
-          <RefreshCw className={`w-4 h-4 ${presignedUrlsLoading ? 'animate-spin' : ''}`} />
-          Refresh
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowArchivedSceneAssets((prev) => !prev)}
+            className={`px-3 py-1.5 text-xs rounded border transition-colors ${
+              showArchivedSceneAssets
+                ? 'border-[#8B5CF6] text-[#C4B5FD] bg-[#8B5CF6]/10'
+                : 'border-[#3F3F46] text-[#B3B3B3] hover:text-white hover:bg-[#1A1A1A]'
+            }`}
+            title={showArchivedSceneAssets ? 'Hide archived scene assets' : 'Show archived scene assets'}
+            aria-pressed={showArchivedSceneAssets}
+          >
+            {showArchivedSceneAssets ? 'Archived: On' : 'Archived: Off'}
+          </button>
+          <button
+            onClick={handleRefresh}
+            disabled={isLoading || presignedUrlsLoading}
+            className="flex items-center gap-2 px-3 py-1.5 text-sm text-[#B3B3B3] hover:text-white hover:bg-[#1A1A1A] rounded transition-colors disabled:opacity-50"
+            title="Refresh shots"
+          >
+            <RefreshCw className={`w-4 h-4 ${presignedUrlsLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </button>
+        </div>
       </div>
 
       {/* Content */}
