@@ -396,6 +396,8 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     
     const transformScenesToAPI = useCallback((scenes: Scene[]): any[] => {
         return scenes.map(scene => ({
+            // Preserve scene identity across save/rescan; backend bulkCreateScenes reuses provided id.
+            id: scene.id || (scene as any).scene_id,
             number: scene.number,
             heading: scene.heading,
             synopsis: scene.synopsis,
