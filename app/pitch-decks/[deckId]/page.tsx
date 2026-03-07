@@ -69,6 +69,7 @@ type ImageAttempt = {
 type PitchDeckPdfExportInput = {
   deckTitle: string;
   slides: PitchDeckSlide[];
+  templateId?: string;
   includeImages: boolean;
   watermarkEnabled: boolean;
   watermarkText: string;
@@ -98,6 +99,49 @@ const PITCH_DECK_REWRITE_ACTIONS: RewriteQuickAction[] = [
   },
 ];
 
+type PdfImageLayout = 'text_only' | 'split_right' | 'split_left' | 'full_bleed';
+
+const PDF_LAYOUT_REGISTRY: Record<string, Partial<Record<string, PdfImageLayout>>> = {
+  'cinematic-dark-v1': {
+    cover: 'full_bleed',
+    characters_grid: 'split_left',
+    tone_style: 'split_right',
+    world_locations: 'split_right',
+  },
+  'festival-minimal-v1': {
+    cover: 'full_bleed',
+    world_locations: 'split_left',
+  },
+  'investor-clean-v1': {
+    cover: 'split_right',
+    market_positioning: 'split_right',
+    distribution_strategy: 'split_left',
+    audience: 'split_right',
+  },
+  'streaming-premium-v1': {
+    cover: 'full_bleed',
+    characters_grid: 'split_left',
+    tone_style: 'split_right',
+    world_locations: 'split_right',
+    market_positioning: 'split_left',
+  },
+};
+
+function getPdfLayout(templateId: string | undefined, slideType: string, hasImage: boolean): PdfImageLayout {
+  if (!hasImage) return 'text_only';
+  const templateLayouts = (templateId && PDF_LAYOUT_REGISTRY[templateId]) || {};
+  return templateLayouts[slideType] || 'split_right';
+}
+
+function getLayoutPreviewLabel(templateId: string | undefined, slideType: string): string {
+  const templateLayouts = (templateId && PDF_LAYOUT_REGISTRY[templateId]) || {};
+  const layout = templateLayouts[slideType] || 'split_right';
+  if (layout === 'full_bleed') return 'Full Bleed Hero';
+  if (layout === 'split_left') return 'Split: Image Left';
+  if (layout === 'split_right') return 'Split: Image Right';
+  return 'Text Only';
+}
+
 function sanitizeFileName(name: string): string {
   const safe = (name || 'pitch-deck')
     .replace(/[^a-zA-Z0-9_-]+/g, '-')
@@ -123,12 +167,9 @@ function getSlidePrimaryImageUrlForExport(slide: PitchDeckSlide): string {
   const content = imageBlock.content as any;
   const options = Array.isArray(content.imageOptions) ? content.imageOptions : [];
   const activeId = typeof content.activeImageId === 'string' ? content.activeImageId : '';
-  if (activeId && options.length > 0) {
-    const active = options.find((option: any) => option?.id === activeId);
-    if (typeof active?.imageUrl === 'string') return active.imageUrl;
-  }
-  if (options.length > 0 && typeof options[0]?.imageUrl === 'string') return options[0].imageUrl;
-  return typeof content.imageUrl === 'string' ? content.imageUrl : '';
+  if (!activeId || options.length === 0) return '';
+  const active = options.find((option: any) => option?.id === activeId);
+  return typeof active?.imageUrl === 'string' ? active.imageUrl : '';
 }
 
 function blobToDataUrl(blob: Blob): Promise<string> {
@@ -165,11 +206,11 @@ async function generatePitchDeckPdfClient(input: PitchDeckPdfExportInput): Promi
   const pageWidth = 1152;
   const pageHeight = 648;
   const margin = 44;
-  const imageGap = 20;
-  const imageWidth = 410;
-  const imageHeight = pageHeight - margin * 2 - 60;
+  const splitGap = 20;
+  const splitImageWidth = 410;
+  const splitImageHeight = pageHeight - margin * 2 - 60;
   const textWidthNoImage = pageWidth - margin * 2;
-  const textWidthWithImage = pageWidth - margin * 2 - imageWidth - imageGap;
+  const textWidthWithSplitImage = pageWidth - margin * 2 - splitImageWidth - splitGap;
 
   const doc = new jsPDF({
     orientation: 'landscape',
@@ -213,10 +254,11 @@ async function generatePitchDeckPdfClient(input: PitchDeckPdfExportInput): Promi
     const bodyText = getSlidePrimaryTextForExport(slide) || 'No text provided for this slide.';
     const imageUrl = input.includeImages ? getSlidePrimaryImageUrlForExport(slide) : '';
     const hasImage = Boolean(imageUrl);
-
+    const layout = getPdfLayout(input.templateId, slide.slideType, hasImage);
     const textStartY = margin + 74;
     const textMaxY = pageHeight - margin;
-    const textWidth = hasImage ? textWidthWithImage : textWidthNoImage;
+    const textWidth = layout === 'split_right' || layout === 'split_left' ? textWidthWithSplitImage : textWidthNoImage;
+    const textStartX = layout === 'split_left' ? margin + splitImageWidth + splitGap : margin;
     const wrapped = doc.splitTextToSize(bodyText, textWidth);
 
     doc.setFont('helvetica', 'normal');
@@ -225,26 +267,61 @@ async function generatePitchDeckPdfClient(input: PitchDeckPdfExportInput): Promi
     let cursorY = textStartY;
     for (const line of wrapped) {
       if (cursorY > textMaxY) break;
-      doc.text(line, margin, cursorY);
+      doc.text(line, textStartX, cursorY);
       cursorY += 24;
     }
 
     if (hasImage) {
       const resolvedImage = await loadImageForPdf(String(imageUrl));
       if (resolvedImage) {
-        const imageX = pageWidth - margin - imageWidth;
-        const imageY = margin + 60;
-        doc.setDrawColor(65, 65, 70);
-        doc.roundedRect(imageX, imageY, imageWidth, imageHeight, 10, 10, 'S');
         try {
-          doc.addImage(
-            resolvedImage.dataUrl,
-            resolvedImage.format,
-            imageX + 1,
-            imageY + 1,
-            imageWidth - 2,
-            imageHeight - 2
-          );
+          if (layout === 'full_bleed') {
+            doc.addImage(resolvedImage.dataUrl, resolvedImage.format, 0, 0, pageWidth, pageHeight);
+            // Re-draw top bar content for legibility over hero image
+            doc.setFillColor(8, 8, 10);
+            doc.rect(0, 0, pageWidth, 84, 'F');
+            doc.setDrawColor(95, 95, 105);
+            doc.line(margin, margin + 44, pageWidth - margin, margin + 44);
+            doc.setFont('helvetica', 'bold');
+            doc.setFontSize(28);
+            doc.setTextColor(240, 240, 245);
+            doc.text(slide.title || `Slide ${slide.orderIndex}`, margin, margin + 28);
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(12);
+            doc.setTextColor(170, 170, 180);
+            doc.text(input.deckTitle || 'Pitch Deck', pageWidth - margin, margin + 28, { align: 'right' });
+
+            // Draw text panel over image for readable body copy
+            const panelX = margin;
+            const panelY = pageHeight - 200;
+            const panelW = pageWidth - margin * 2;
+            const panelH = 150;
+            doc.setFillColor(10, 10, 12);
+            doc.roundedRect(panelX, panelY, panelW, panelH, 10, 10, 'F');
+            const heroTextLines = doc.splitTextToSize(bodyText, panelW - 30);
+            doc.setFont('helvetica', 'normal');
+            doc.setFontSize(15);
+            doc.setTextColor(232, 232, 238);
+            let heroY = panelY + 30;
+            for (const line of heroTextLines) {
+              if (heroY > panelY + panelH - 16) break;
+              doc.text(line, panelX + 15, heroY);
+              heroY += 20;
+            }
+          } else {
+            const imageX = layout === 'split_left' ? margin : pageWidth - margin - splitImageWidth;
+            const imageY = margin + 60;
+            doc.setDrawColor(65, 65, 70);
+            doc.roundedRect(imageX, imageY, splitImageWidth, splitImageHeight, 10, 10, 'S');
+            doc.addImage(
+              resolvedImage.dataUrl,
+              resolvedImage.format,
+              imageX + 1,
+              imageY + 1,
+              splitImageWidth - 2,
+              splitImageHeight - 2
+            );
+          }
         } catch {
           // If a specific image fails to encode, keep PDF generation resilient.
         }
@@ -267,6 +344,7 @@ export default function PitchDeckEditorPage() {
   const [deckTitle, setDeckTitle] = useState('');
   const [deckVersion, setDeckVersion] = useState<number>(1);
   const [deckStatus, setDeckStatus] = useState<string>('draft');
+  const [deckTemplateId, setDeckTemplateId] = useState<string | undefined>(undefined);
   const [deckScreenplayId, setDeckScreenplayId] = useState<string | undefined>(undefined);
   const [slides, setSlides] = useState<PitchDeckSlide[]>([]);
   const [selectedSlideId, setSelectedSlideId] = useState<string | null>(null);
@@ -547,6 +625,7 @@ export default function PitchDeckEditorPage() {
         setDeckTitle(data.deck.title);
         setDeckVersion(data.deck.version);
         setDeckStatus(data.deck.status || 'draft');
+        setDeckTemplateId(data.deck.templateId);
         setDeckScreenplayId(data.deck.screenplayId);
         setSlides(data.slides);
         setSelectedSlideId(data.slides[0]?.slideId || null);
@@ -1196,6 +1275,7 @@ export default function PitchDeckEditorPage() {
       const { blob, fileName } = await generatePitchDeckPdfClient({
         deckTitle,
         slides,
+        templateId: deckTemplateId,
         includeImages: exportIncludeImages,
         watermarkEnabled: exportWatermarkEnabled,
         watermarkText: exportWatermarkText.trim() || 'DRAFT',
@@ -1255,6 +1335,7 @@ export default function PitchDeckEditorPage() {
       setDeckTitle(updated.title);
       setDeckVersion(updated.version);
       setDeckStatus(updated.status);
+      setDeckTemplateId(updated.templateId);
     } catch (err: any) {
       setError(err.message || 'Failed to rename deck');
     } finally {
@@ -1442,7 +1523,12 @@ export default function PitchDeckEditorPage() {
 
                 {hasSelectedImageSlot ? (
                   <div className="mt-4 rounded border border-[#3F3F46] bg-[#121212] p-3">
-                    <p className="text-xs uppercase tracking-wide text-gray-400">Slide image slot</p>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs uppercase tracking-wide text-gray-400">Slide image slot</p>
+                      <span className="rounded border border-[#2f2f2f] bg-[#0f0f0f] px-2 py-0.5 text-[10px] text-gray-300">
+                        Export layout: {getLayoutPreviewLabel(deckTemplateId, selectedSlide.slideType)}
+                      </span>
+                    </div>
 
                     <div className="mt-3 rounded border border-[#2a2a2a] bg-[#101010] p-3">
                       <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">

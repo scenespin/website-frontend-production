@@ -232,7 +232,7 @@ export default function RewriteModal({
   onReplace,
   title = 'Rewrite Selected Text',
   subtitle = 'Rewrite selected text with AI assistance',
-  quickActions
+  quickActions = undefined
 }) {
   const { state: chatState } = useChatContext();
   const { characters } = useScreenplay();
