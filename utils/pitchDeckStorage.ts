@@ -70,6 +70,20 @@ export interface PitchDeckTemplate {
     includeBusinessSlides: boolean;
   };
   allowedBlockTypes: Array<'text' | 'image' | 'list' | 'metric'>;
+  imageSlots: Array<{
+    slideType: string;
+    slotId: string;
+  }>;
+}
+
+export interface PitchDeckImageModel {
+  id: string;
+  provider: string;
+  creditsPerImage: number;
+  label?: string;
+  description?: string;
+  speed?: string;
+  quality?: string;
 }
 
 function unwrapResponse<T>(payload: any): T {
@@ -223,5 +237,79 @@ export async function deletePitchDeck(deckId: string): Promise<{ deckId: string;
     throw new Error(json?.error?.message || 'Failed to delete pitch deck');
   }
   return unwrapResponse(json);
+}
+
+export async function listImageGenerationModels(): Promise<PitchDeckImageModel[]> {
+  const response = await fetch('/api/models/image', {
+    method: 'GET',
+    cache: 'no-store',
+  });
+
+  const json = await response.json();
+  if (!response.ok) {
+    throw new Error(json?.error?.message || 'Failed to load image models');
+  }
+  return (json?.models || []) as PitchDeckImageModel[];
+}
+
+export async function generatePitchDeckImageFromPrompt(input: {
+  prompt: string;
+  providerId?: string;
+  screenplayId?: string;
+}): Promise<{ imageUrl: string; s3Key?: string; creditsDeducted?: number; modelUsed?: string }> {
+  const response = await fetch('/api/image/generate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      prompt: input.prompt,
+      providerId: input.providerId,
+      ...(input.screenplayId
+        ? {
+            entityType: 'screenplay',
+            entityId: input.screenplayId,
+            projectId: input.screenplayId,
+          }
+        : {}),
+    }),
+    cache: 'no-store',
+  });
+
+  const json = await response.json();
+  if (!response.ok) {
+    throw new Error(json?.message || json?.error?.message || json?.error || 'Failed to generate image');
+  }
+  return {
+    imageUrl: json?.imageUrl,
+    s3Key: json?.s3Key,
+    creditsDeducted: json?.creditsDeducted,
+    modelUsed: json?.modelUsed,
+  };
+}
+
+export async function generatePitchDeckImageFromReference(input: {
+  sourceImageUrl: string;
+  editPrompt: string;
+}): Promise<{ imageUrl: string; s3Key?: string; creditsDeducted?: number; modelUsed?: string }> {
+  const response = await fetch('/api/image/edit', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({
+      sourceImageUrl: input.sourceImageUrl,
+      editPrompt: input.editPrompt,
+      desiredModelId: 'nano-banana',
+    }),
+    cache: 'no-store',
+  });
+
+  const json = await response.json();
+  if (!response.ok) {
+    throw new Error(json?.message || json?.error?.message || json?.error || 'Failed to generate image from reference');
+  }
+  return {
+    imageUrl: json?.imageUrl,
+    s3Key: json?.s3Key,
+    creditsDeducted: json?.creditsDeducted,
+    modelUsed: json?.modelUsed,
+  };
 }
 
