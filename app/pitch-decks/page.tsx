@@ -2,15 +2,9 @@
 
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { listPitchDecksByScreenplay, type PitchDeck } from '@/utils/pitchDeckStorage';
+import { deletePitchDeck, listPitchDecksByScreenplay, updatePitchDeck, type PitchDeck } from '@/utils/pitchDeckStorage';
 import { EditorSubNav } from '@/components/editor/EditorSubNav';
-
-type ScreenplayOption = {
-  screenplay_id: string;
-  title?: string;
-  description?: string;
-  status?: string;
-};
+import { useScreenplay } from '@/contexts/ScreenplayContext';
 
 function isFeatureEnabled(): boolean {
   return process.env.NEXT_PUBLIC_ENABLE_PITCH_DECK_V1 === 'true';
@@ -19,62 +13,58 @@ function isFeatureEnabled(): boolean {
 function PitchDeckHubPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const [screenplayId, setScreenplayId] = useState('');
-  const [screenplayQuery, setScreenplayQuery] = useState('');
-  const [screenplays, setScreenplays] = useState<ScreenplayOption[]>([]);
-  const [loadingScreenplays, setLoadingScreenplays] = useState(true);
+  const { screenplayId: contextScreenplayId } = useScreenplay();
+
+  const [screenplayTitle, setScreenplayTitle] = useState<string>('');
   const [decks, setDecks] = useState<PitchDeck[]>([]);
   const [loadingDecks, setLoadingDecks] = useState(false);
+  const [deletingDeckId, setDeletingDeckId] = useState<string | null>(null);
+  const [renamingDeckId, setRenamingDeckId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   const featureEnabled = isFeatureEnabled();
-  const requestedScreenplayId = searchParams?.get('screenplayId') || searchParams?.get('project') || '';
+  const currentScreenplayId = useMemo(
+    () => searchParams?.get('project') || searchParams?.get('screenplayId') || contextScreenplayId || '',
+    [searchParams, contextScreenplayId]
+  );
 
   useEffect(() => {
     let cancelled = false;
-    const loadScreenplays = async () => {
-      setLoadingScreenplays(true);
+    const loadTitle = async () => {
+      if (!currentScreenplayId) {
+        setScreenplayTitle('');
+        return;
+      }
       try {
         const response = await fetch('/api/screenplays/list?status=active&limit=100', { credentials: 'include' });
-        if (!response.ok) {
-          throw new Error(`Failed to load screenplays (${response.status})`);
-        }
+        if (!response.ok) return;
         const payload = await response.json();
-        const list = (payload?.data?.screenplays || payload?.screenplays || []).filter(
-          (item: ScreenplayOption) => item?.screenplay_id
-        );
-
-        if (cancelled) return;
-        setScreenplays(list);
-        if (requestedScreenplayId) {
-          setScreenplayId(requestedScreenplayId);
-        } else if (list.length > 0) {
-          setScreenplayId(list[0].screenplay_id);
+        const list = payload?.data?.screenplays || payload?.screenplays || [];
+        const match = list.find((item: any) => item?.screenplay_id === currentScreenplayId);
+        if (!cancelled) {
+          setScreenplayTitle(match?.title || '');
         }
-      } catch (err: any) {
-        if (!cancelled) setError(err.message || 'Failed to load screenplays');
-      } finally {
-        if (!cancelled) setLoadingScreenplays(false);
+      } catch {
+        if (!cancelled) setScreenplayTitle('');
       }
     };
-
-    void loadScreenplays();
+    void loadTitle();
     return () => {
       cancelled = true;
     };
-  }, [requestedScreenplayId]);
+  }, [currentScreenplayId]);
 
   useEffect(() => {
     let cancelled = false;
     const loadDecks = async () => {
-      if (!screenplayId) {
+      if (!currentScreenplayId) {
         setDecks([]);
         return;
       }
       setLoadingDecks(true);
       setError(null);
       try {
-        const payload = await listPitchDecksByScreenplay(screenplayId);
+        const payload = await listPitchDecksByScreenplay(currentScreenplayId);
         if (cancelled) return;
         setDecks(payload.decks || []);
       } catch (err: any) {
@@ -88,17 +78,51 @@ function PitchDeckHubPageContent() {
     return () => {
       cancelled = true;
     };
-  }, [screenplayId]);
+  }, [currentScreenplayId]);
 
-  const filteredScreenplays = useMemo(() => {
-    const needle = screenplayQuery.trim().toLowerCase();
-    if (!needle) return screenplays;
-    return screenplays.filter((item) => {
-      const title = (item.title || '').toLowerCase();
-      const id = (item.screenplay_id || '').toLowerCase();
-      return title.includes(needle) || id.includes(needle);
-    });
-  }, [screenplays, screenplayQuery]);
+  const goToCreate = () => {
+    const query = currentScreenplayId ? `?screenplayId=${encodeURIComponent(currentScreenplayId)}` : '';
+    router.push(`/pitch-decks/new${query}`);
+  };
+
+  const onDeleteDeck = async (deckId: string) => {
+    const ok = window.confirm('Delete this pitch deck? This cannot be undone.');
+    if (!ok) return;
+
+    setDeletingDeckId(deckId);
+    setError(null);
+    try {
+      await deletePitchDeck(deckId);
+      setDecks((prev) => prev.filter((deck) => deck.deckId !== deckId));
+    } catch (err: any) {
+      setError(err.message || 'Failed to delete pitch deck');
+    } finally {
+      setDeletingDeckId(null);
+    }
+  };
+
+  const onRenameDeck = async (deck: PitchDeck) => {
+    const nextTitle = window.prompt('Rename pitch deck', deck.title || '');
+    if (!nextTitle) return;
+    const trimmed = nextTitle.trim();
+    if (!trimmed || trimmed === deck.title) return;
+
+    setRenamingDeckId(deck.deckId);
+    setError(null);
+    try {
+      const updated = await updatePitchDeck(deck.deckId, {
+        expectedVersion: deck.version,
+        title: trimmed,
+      });
+      setDecks((prev) =>
+        prev.map((item) => (item.deckId === deck.deckId ? { ...item, ...updated } : item))
+      );
+    } catch (err: any) {
+      setError(err.message || 'Failed to rename pitch deck');
+    } finally {
+      setRenamingDeckId(null);
+    }
+  };
 
   if (!featureEnabled) {
     return (
@@ -109,21 +133,14 @@ function PitchDeckHubPageContent() {
     );
   }
 
-  const goToCreate = () => {
-    const query = screenplayId ? `?screenplayId=${encodeURIComponent(screenplayId)}` : '';
-    router.push(`/pitch-decks/new${query}`);
-  };
-
   return (
     <>
-      <EditorSubNav activeTab="pitch-decks" screenplayId={screenplayId || undefined} />
+      <EditorSubNav activeTab="pitch-decks" screenplayId={currentScreenplayId || undefined} />
       <main className="p-8 max-w-5xl">
         <div className="flex items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-semibold text-white">Pitch Decks</h1>
-            <p className="mt-2 text-sm text-gray-400">
-              Manage saved pitch decks by screenplay and create new versions.
-            </p>
+            <p className="mt-2 text-sm text-gray-400">Manage pitch decks for the current screenplay.</p>
           </div>
           <button onClick={goToCreate} className="rounded bg-[#DC143C] px-4 py-2 text-sm font-medium text-white">
             Create Pitch Deck
@@ -132,74 +149,76 @@ function PitchDeckHubPageContent() {
 
         <div className="mt-6 space-y-4">
           <div>
-            <label className="block text-sm text-gray-300 mb-1">Screenplay</label>
-            <input
-              className="w-full rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white mb-2"
-              value={screenplayQuery}
-              onChange={(e) => setScreenplayQuery(e.target.value)}
-              placeholder="Search by title or ID..."
-            />
-            <select
-              className="w-full rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white"
-              value={screenplayId}
-              onChange={(e) => setScreenplayId(e.target.value)}
-              disabled={loadingScreenplays || filteredScreenplays.length === 0}
-            >
-              {loadingScreenplays ? <option value="">Loading screenplays...</option> : null}
-              {!loadingScreenplays && filteredScreenplays.length === 0 ? (
-                <option value="">No screenplays match your search</option>
-              ) : null}
-              {!loadingScreenplays
-                ? filteredScreenplays.map((item) => (
-                    <option key={item.screenplay_id} value={item.screenplay_id}>
-                      {(item.title || 'Untitled Screenplay').trim()} - {item.screenplay_id}
-                    </option>
-                  ))
-                : null}
-            </select>
+            <label className="block text-sm text-gray-300 mb-1">Current Screenplay</label>
+            <div className="rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white">
+              {currentScreenplayId
+                ? `${screenplayTitle || 'Untitled Screenplay'} - ${currentScreenplayId}`
+                : 'No screenplay selected'}
+            </div>
           </div>
 
           {error ? (
             <div className="rounded border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-300">{error}</div>
           ) : null}
 
-          <section className="rounded border border-[#3F3F46] bg-[#111] p-4">
-            {loadingDecks ? (
-              <p className="text-sm text-gray-400">Loading pitch decks...</p>
-            ) : decks.length === 0 ? (
-              <div className="py-8 text-center">
-                <p className="text-sm text-gray-300">No pitch decks found for this screenplay yet.</p>
-                <button
-                  onClick={goToCreate}
-                  className="mt-4 rounded bg-[#DC143C] px-4 py-2 text-sm font-medium text-white"
-                >
-                  Create Your First Pitch Deck
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {decks.map((deck) => (
+          {!currentScreenplayId ? (
+            <section className="rounded border border-[#3F3F46] bg-[#111] p-6">
+              <p className="text-sm text-gray-300">Open Pitch Deck from a screenplay context to manage decks.</p>
+            </section>
+          ) : (
+            <section className="rounded border border-[#3F3F46] bg-[#111] p-4">
+              {loadingDecks ? (
+                <p className="text-sm text-gray-400">Loading pitch decks...</p>
+              ) : decks.length === 0 ? (
+                <div className="py-8 text-center">
+                  <p className="text-sm text-gray-300">No pitch decks found for this screenplay yet.</p>
                   <button
-                    key={deck.deckId}
-                    onClick={() => router.push(`/pitch-decks/${deck.deckId}`)}
-                    className="w-full rounded border border-[#2a2a2a] bg-[#161616] p-4 text-left hover:border-[#DC143C]/50"
+                    onClick={goToCreate}
+                    className="mt-4 rounded bg-[#DC143C] px-4 py-2 text-sm font-medium text-white"
                   >
-                    <div className="flex items-center justify-between gap-4">
-                      <div>
-                        <h3 className="text-sm font-semibold text-white">{deck.title}</h3>
-                        <p className="mt-1 text-xs text-gray-400">
-                          {deck.deckType === 'investor' ? 'Investor' : 'Screenplay'} • {deck.status}
-                        </p>
-                      </div>
-                      <span className="text-xs text-gray-500">
-                        Updated {deck.updatedAt ? new Date(deck.updatedAt).toLocaleDateString() : '-'}
-                      </span>
-                    </div>
+                    Create Your First Pitch Deck
                   </button>
-                ))}
-              </div>
-            )}
-          </section>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {decks.map((deck) => (
+                    <div key={deck.deckId} className="rounded border border-[#2a2a2a] bg-[#161616] p-4">
+                      <div className="flex items-center justify-between gap-4">
+                        <button
+                          onClick={() => router.push(`/pitch-decks/${deck.deckId}`)}
+                          className="text-left hover:opacity-90"
+                        >
+                          <h3 className="text-sm font-semibold text-white">{deck.title}</h3>
+                          <p className="mt-1 text-xs text-gray-400">
+                            {deck.deckType === 'investor' ? 'Investor' : 'Screenplay'} • {deck.status}
+                          </p>
+                        </button>
+                        <div className="flex items-center gap-3">
+                          <span className="text-xs text-gray-500">
+                            Updated {deck.updatedAt ? new Date(deck.updatedAt).toLocaleDateString() : '-'}
+                          </span>
+                          <button
+                            onClick={() => onRenameDeck(deck)}
+                            disabled={renamingDeckId === deck.deckId || deletingDeckId === deck.deckId}
+                            className="rounded border border-[#3F3F46] px-3 py-1.5 text-xs font-medium text-gray-200 hover:bg-white/5 disabled:opacity-50"
+                          >
+                            {renamingDeckId === deck.deckId ? 'Renaming...' : 'Rename'}
+                          </button>
+                          <button
+                            onClick={() => onDeleteDeck(deck.deckId)}
+                            disabled={deletingDeckId === deck.deckId || renamingDeckId === deck.deckId}
+                            className="rounded border border-red-500/40 px-3 py-1.5 text-xs font-medium text-red-300 hover:bg-red-500/10 disabled:opacity-50"
+                          >
+                            {deletingDeckId === deck.deckId ? 'Deleting...' : 'Delete'}
+                          </button>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+          )}
         </div>
       </main>
     </>

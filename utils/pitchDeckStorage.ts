@@ -137,3 +137,16 @@ export async function updatePitchDeckSlide(
   return unwrapResponse(json);
 }
 
+export async function deletePitchDeck(deckId: string): Promise<{ deckId: string; deleted: boolean }> {
+  const response = await fetch(`/api/pitch-decks/${deckId}`, {
+    method: 'DELETE',
+    cache: 'no-store',
+  });
+
+  const json = await response.json();
+  if (!response.ok) {
+    throw new Error(json?.error?.message || 'Failed to delete pitch deck');
+  }
+  return unwrapResponse(json);
+}
+
