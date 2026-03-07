@@ -25,6 +25,7 @@ interface UseEditorSelectionReturn {
     toolbar: ToolbarState;
     handlers: SelectionHandlers;
     hasSelection: boolean;
+    clearSelection: (cursorPos?: number) => void;
     // Expose ref for immediate access (Solution 6)
     selectionRef: MutableRefObject<{ start: number; end: number; text: string } | null>;
 }
@@ -151,6 +152,22 @@ export function useEditorSelection(
     const closeToolbar = useCallback(() => {
         setShowSelectionToolbar(false);
     }, []);
+
+    const clearSelection = useCallback((cursorPos?: number) => {
+        const nextPos = cursorPos ?? textareaRef.current?.selectionStart ?? 0;
+
+        selectionRef.current = null;
+        lastCaptureRef.current = null;
+        setSelectedText('');
+        setSelectionStart(nextPos);
+        setSelectionEnd(nextPos);
+        setShowSelectionToolbar(false);
+        setSelection(nextPos, nextPos);
+
+        if (onSelectionChange) {
+            onSelectionChange(nextPos, nextPos);
+        }
+    }, [onSelectionChange, setSelection, textareaRef]);
     
     /**
      * Check if text is currently selected
@@ -186,6 +203,7 @@ export function useEditorSelection(
             onPointerUp: handlePointerUp
         },
         hasSelection,
+        clearSelection,
         // Solution 6: Expose ref for immediate access (no React state delay)
         selectionRef
     };

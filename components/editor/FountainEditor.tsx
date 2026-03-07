@@ -902,9 +902,12 @@ export default function FountainEditor({
                     onBlur={() => {
                         if (isSettingHighlightRef.current) return;
                         const ta = textareaRef.current;
-                        if (ta && ta.selectionStart !== ta.selectionEnd) {
-                            ta.selectionEnd = ta.selectionStart;
+                        if (!ta) return;
+                        const cursorPos = ta.selectionStart;
+                        if (ta.selectionStart !== ta.selectionEnd) {
+                            ta.selectionEnd = cursorPos;
                         }
+                        selection.clearSelection(cursorPos);
                     }}
                     placeholder={placeholder}
                             readOnly={readonly}
