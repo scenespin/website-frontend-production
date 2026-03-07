@@ -27,6 +27,10 @@ export default function PitchDeckEditorPage() {
     () => slides.find((slide) => slide.slideId === selectedSlideId) || null,
     [slides, selectedSlideId]
   );
+  const selectedSlideIndex = useMemo(
+    () => slides.findIndex((slide) => slide.slideId === selectedSlideId),
+    [slides, selectedSlideId]
+  );
 
   useEffect(() => {
     if (!deckId || !featureEnabled) return;
@@ -119,6 +123,24 @@ export default function PitchDeckEditorPage() {
     }
   };
 
+  const goToPreviousSlide = () => {
+    if (selectedSlideIndex <= 0) return;
+    const prevSlide = slides[selectedSlideIndex - 1];
+    if (!prevSlide) return;
+    setSelectedSlideId(prevSlide.slideId);
+    setSaveStatus('idle');
+    setSavedAt(null);
+  };
+
+  const goToNextSlide = () => {
+    if (selectedSlideIndex < 0 || selectedSlideIndex >= slides.length - 1) return;
+    const nextSlide = slides[selectedSlideIndex + 1];
+    if (!nextSlide) return;
+    setSelectedSlideId(nextSlide.slideId);
+    setSaveStatus('idle');
+    setSavedAt(null);
+  };
+
   if (!featureEnabled) {
     return (
       <main className="p-8">
@@ -202,7 +224,23 @@ export default function PitchDeckEditorPage() {
                 />
 
                 <div className="mt-4 flex items-center justify-between">
-                  <div className="text-xs">
+                  <div className="flex items-center gap-2">
+                    <button
+                      onClick={goToPreviousSlide}
+                      disabled={saving || selectedSlideIndex <= 0}
+                      className="rounded border border-[#3F3F46] px-3 py-2 text-sm font-medium text-gray-200 disabled:opacity-40"
+                    >
+                      Back
+                    </button>
+                    <button
+                      onClick={goToNextSlide}
+                      disabled={saving || selectedSlideIndex >= slides.length - 1}
+                      className="rounded border border-[#3F3F46] px-3 py-2 text-sm font-medium text-gray-200 disabled:opacity-40"
+                    >
+                      Next
+                    </button>
+                  </div>
+                  <div className="text-xs text-right">
                     {saving ? <span className="text-gray-400">Saving changes...</span> : null}
                     {!saving && saveStatus === 'unsaved' ? <span className="text-amber-300">Unsaved changes</span> : null}
                     {!saving && saveStatus === 'saved' ? (
