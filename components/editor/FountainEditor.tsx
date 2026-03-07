@@ -899,6 +899,13 @@ export default function FountainEditor({
                     onSelect={handleSelectionChange}
                     onClick={handleSelectionChange}
                     onPointerUp={selection.handlers.onPointerUp}
+                    onBlur={() => {
+                        if (isSettingHighlightRef.current) return;
+                        const ta = textareaRef.current;
+                        if (ta && ta.selectionStart !== ta.selectionEnd) {
+                            ta.selectionEnd = ta.selectionStart;
+                        }
+                    }}
                     placeholder={placeholder}
                             readOnly={readonly}
                             spellCheck={true}
