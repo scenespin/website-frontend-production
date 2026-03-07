@@ -999,12 +999,23 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
     }, []);
     
     const setSelection = useCallback((start: number, end: number) => {
-        setState(prev => ({ 
-            ...prev, 
-            selectionStart: start, 
-            selectionEnd: end,
-            cursorPosition: start // Update cursor to match selection start
-        }));
+        setState(prev => {
+            const nextCursorPosition = start;
+            if (
+                prev.selectionStart === start &&
+                prev.selectionEnd === end &&
+                prev.cursorPosition === nextCursorPosition
+            ) {
+                return prev;
+            }
+
+            return {
+                ...prev,
+                selectionStart: start,
+                selectionEnd: end,
+                cursorPosition: nextCursorPosition // Update cursor to match selection start
+            };
+        });
     }, []);
     
     const setCurrentLine = useCallback((line: number, programmatic: boolean = false) => {
