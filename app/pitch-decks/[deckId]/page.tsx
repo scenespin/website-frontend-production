@@ -35,6 +35,10 @@ export default function PitchDeckEditorPage() {
     () => slides.findIndex((slide) => slide.slideId === selectedSlideId),
     [slides, selectedSlideId]
   );
+  const selectedImageBlock = useMemo(
+    () => selectedSlide?.blocks?.find((block) => block.type === 'image') || null,
+    [selectedSlide]
+  );
 
   useEffect(() => {
     if (!deckId || !featureEnabled) return;
@@ -129,6 +133,57 @@ export default function PitchDeckEditorPage() {
     }
   };
 
+  const updateSelectedSlideImageUrl = (nextImageUrl: string) => {
+    if (!selectedSlide) return;
+    const currentBlocks = Array.isArray(selectedSlide.blocks) ? [...selectedSlide.blocks] : [];
+    const imageIndex = currentBlocks.findIndex((block) => block.type === 'image');
+
+    const baseImageBlock: PitchDeckBlock =
+      imageIndex >= 0
+        ? currentBlocks[imageIndex]
+        : {
+            blockId: `block_image_${Date.now()}`,
+            type: 'image',
+            content: {
+              slotId: 'hero',
+              imageUrl: '',
+              alt: '',
+              fit: 'cover',
+            },
+            sourceType: 'user_custom',
+            lockedByUser: false,
+          };
+
+    const nextContent = {
+      ...(typeof baseImageBlock.content === 'object' && baseImageBlock.content ? baseImageBlock.content : {}),
+      imageUrl: nextImageUrl,
+    };
+
+    const updatedImageBlock: PitchDeckBlock = {
+      ...baseImageBlock,
+      content: nextContent,
+      sourceType: nextImageUrl ? 'user_custom' : baseImageBlock.sourceType,
+    };
+
+    if (imageIndex >= 0) {
+      currentBlocks[imageIndex] = updatedImageBlock;
+    } else {
+      currentBlocks.push(updatedImageBlock);
+    }
+
+    setSlides((prev) =>
+      prev.map((slide) =>
+        slide.slideId === selectedSlide.slideId
+          ? {
+              ...slide,
+              blocks: currentBlocks,
+            }
+          : slide
+      )
+    );
+    setSaveStatus('unsaved');
+  };
+
   const goToPreviousSlide = () => {
     if (selectedSlideIndex <= 0) return;
     const prevSlide = slides[selectedSlideIndex - 1];
@@ -192,9 +247,6 @@ export default function PitchDeckEditorPage() {
           <div>
             <h1 className="text-2xl font-semibold text-white">{deckTitle || 'Pitch Deck'}</h1>
             <div className="mt-2 flex items-center gap-2">
-              <span className="rounded border border-[#3F3F46] bg-[#111] px-2 py-0.5 text-xs text-gray-300">
-                Deck already created
-              </span>
               <span className="rounded border border-[#3F3F46] bg-[#111] px-2 py-0.5 text-xs text-gray-300">
                 {deckStatus}
               </span>
@@ -280,6 +332,26 @@ export default function PitchDeckEditorPage() {
                   rows={12}
                   className="w-full rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white"
                 />
+
+                <div className="mt-4 rounded border border-[#3F3F46] bg-[#121212] p-3">
+                  <label className="block text-xs uppercase tracking-wide text-gray-400 mb-1">
+                    Slide image slot (Phase 3B)
+                  </label>
+                  <input
+                    value={
+                      String(
+                        (selectedImageBlock?.content && (selectedImageBlock.content as any).imageUrl) ||
+                          ''
+                      )
+                    }
+                    onChange={(e) => updateSelectedSlideImageUrl(e.target.value)}
+                    placeholder="Paste image URL for this slide..."
+                    className="w-full rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white"
+                  />
+                  <p className="mt-2 text-xs text-gray-500">
+                    Next: pick from existing screenplay assets or generate images directly in this slot.
+                  </p>
+                </div>
 
                 <div className="mt-4 flex items-center justify-between">
                   <div className="flex items-center gap-2">
