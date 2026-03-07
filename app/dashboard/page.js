@@ -700,7 +700,7 @@ export default function Dashboard() {
 
   const handleCreatePitchDeck = (screenplayId) => {
     if (!screenplayId) return;
-    router.push(`/pitch-decks?screenplayId=${encodeURIComponent(screenplayId)}`);
+    router.push(`/pitch-decks/new?screenplayId=${encodeURIComponent(screenplayId)}`);
   };
 
   if (loading) {

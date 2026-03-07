@@ -29,6 +29,8 @@ export interface PitchDeck {
   templateId: string;
   status: 'draft' | 'ready' | 'archived';
   version: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 function unwrapResponse<T>(payload: any): T {
@@ -70,6 +72,23 @@ export async function getPitchDeck(deckId: string): Promise<{ deck: PitchDeck; s
   const json = await response.json();
   if (!response.ok) {
     throw new Error(json?.error?.message || 'Failed to load pitch deck');
+  }
+  return unwrapResponse(json);
+}
+
+export async function listPitchDecksByScreenplay(screenplayId: string): Promise<{
+  screenplayId: string;
+  decks: PitchDeck[];
+  count: number;
+}> {
+  const response = await fetch(`/api/pitch-decks?screenplayId=${encodeURIComponent(screenplayId)}`, {
+    method: 'GET',
+    cache: 'no-store',
+  });
+
+  const json = await response.json();
+  if (!response.ok) {
+    throw new Error(json?.error?.message || 'Failed to list pitch decks');
   }
   return unwrapResponse(json);
 }

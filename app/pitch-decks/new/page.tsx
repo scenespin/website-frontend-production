@@ -2,7 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { listPitchDecksByScreenplay, type PitchDeck } from '@/utils/pitchDeckStorage';
+import { generatePitchDeckDraft, type PitchDeckTextMode, type PitchDeckType } from '@/utils/pitchDeckStorage';
 import { EditorSubNav } from '@/components/editor/EditorSubNav';
 
 type ScreenplayOption = {
@@ -16,15 +16,18 @@ function isFeatureEnabled(): boolean {
   return process.env.NEXT_PUBLIC_ENABLE_PITCH_DECK_V1 === 'true';
 }
 
-function PitchDeckHubPageContent() {
+function PitchDeckCreatePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [screenplayId, setScreenplayId] = useState('');
   const [screenplayQuery, setScreenplayQuery] = useState('');
   const [screenplays, setScreenplays] = useState<ScreenplayOption[]>([]);
   const [loadingScreenplays, setLoadingScreenplays] = useState(true);
-  const [decks, setDecks] = useState<PitchDeck[]>([]);
-  const [loadingDecks, setLoadingDecks] = useState(false);
+  const [deckType, setDeckType] = useState<PitchDeckType>('screenplay');
+  const [templateId, setTemplateId] = useState('cinematic-dark-v1');
+  const [textMode, setTextMode] = useState<PitchDeckTextMode>('auto_from_screenplay');
+  const [includeBusinessSlides, setIncludeBusinessSlides] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const featureEnabled = isFeatureEnabled();
@@ -52,7 +55,9 @@ function PitchDeckHubPageContent() {
           setScreenplayId(list[0].screenplay_id);
         }
       } catch (err: any) {
-        if (!cancelled) setError(err.message || 'Failed to load screenplays');
+        if (!cancelled) {
+          setError(err.message || 'Failed to load screenplays');
+        }
       } finally {
         if (!cancelled) setLoadingScreenplays(false);
       }
@@ -64,32 +69,6 @@ function PitchDeckHubPageContent() {
     };
   }, [requestedScreenplayId]);
 
-  useEffect(() => {
-    let cancelled = false;
-    const loadDecks = async () => {
-      if (!screenplayId) {
-        setDecks([]);
-        return;
-      }
-      setLoadingDecks(true);
-      setError(null);
-      try {
-        const payload = await listPitchDecksByScreenplay(screenplayId);
-        if (cancelled) return;
-        setDecks(payload.decks || []);
-      } catch (err: any) {
-        if (!cancelled) setError(err.message || 'Failed to load pitch decks');
-      } finally {
-        if (!cancelled) setLoadingDecks(false);
-      }
-    };
-
-    void loadDecks();
-    return () => {
-      cancelled = true;
-    };
-  }, [screenplayId]);
-
   const filteredScreenplays = useMemo(() => {
     const needle = screenplayQuery.trim().toLowerCase();
     if (!needle) return screenplays;
@@ -100,35 +79,49 @@ function PitchDeckHubPageContent() {
     });
   }, [screenplays, screenplayQuery]);
 
+  const onCreate = async () => {
+    setError(null);
+    if (!screenplayId.trim()) {
+      setError('Please select a screenplay');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const result = await generatePitchDeckDraft({
+        screenplayId: screenplayId.trim(),
+        deckType,
+        templateId,
+        textMode,
+        includeBusinessSlides,
+      });
+      router.push(`/pitch-decks/${result.deckId}`);
+    } catch (err: any) {
+      setError(err.message || 'Failed to create pitch deck');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (!featureEnabled) {
     return (
       <main className="p-8">
         <h1 className="text-2xl font-semibold text-white">Pitch Decks</h1>
-        <p className="mt-3 text-sm text-gray-400">Pitch Deck V1 is disabled in this environment.</p>
+        <p className="mt-3 text-sm text-gray-400">
+          Pitch Deck V1 is disabled in this environment.
+        </p>
       </main>
     );
   }
 
-  const goToCreate = () => {
-    const query = screenplayId ? `?screenplayId=${encodeURIComponent(screenplayId)}` : '';
-    router.push(`/pitch-decks/new${query}`);
-  };
-
   return (
     <>
       <EditorSubNav activeTab="pitch-decks" screenplayId={screenplayId || undefined} />
-      <main className="p-8 max-w-5xl">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h1 className="text-2xl font-semibold text-white">Pitch Decks</h1>
-            <p className="mt-2 text-sm text-gray-400">
-              Manage saved pitch decks by screenplay and create new versions.
-            </p>
-          </div>
-          <button onClick={goToCreate} className="rounded bg-[#DC143C] px-4 py-2 text-sm font-medium text-white">
-            Create Pitch Deck
-          </button>
-        </div>
+      <main className="p-8 max-w-3xl">
+        <h1 className="text-2xl font-semibold text-white">Create Pitch Deck</h1>
+        <p className="mt-2 text-sm text-gray-400">
+          Select a screenplay, then generate a structured deck draft.
+        </p>
 
         <div className="mt-6 space-y-4">
           <div>
@@ -159,64 +152,81 @@ function PitchDeckHubPageContent() {
             </select>
           </div>
 
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm text-gray-300 mb-1">Deck Type</label>
+              <select
+                className="w-full rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white"
+                value={deckType}
+                onChange={(e) => setDeckType(e.target.value as PitchDeckType)}
+              >
+                <option value="screenplay">Screenplay</option>
+                <option value="investor">Investor</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm text-gray-300 mb-1">Text Mode</label>
+              <select
+                className="w-full rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white"
+                value={textMode}
+                onChange={(e) => setTextMode(e.target.value as PitchDeckTextMode)}
+              >
+                <option value="manual_first">Manual first (no AI start)</option>
+                <option value="auto_from_screenplay">Auto from screenplay</option>
+                <option value="auto_plus_ai_polish">Auto + AI polish</option>
+              </select>
+            </div>
+          </div>
+
+          <div>
+            <label className="block text-sm text-gray-300 mb-1">Template</label>
+            <input
+              className="w-full rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white"
+              value={templateId}
+              onChange={(e) => setTemplateId(e.target.value)}
+            />
+          </div>
+
+          <label className="inline-flex items-center gap-2 text-sm text-gray-300">
+            <input
+              type="checkbox"
+              checked={includeBusinessSlides}
+              onChange={(e) => setIncludeBusinessSlides(e.target.checked)}
+            />
+            Include business slides
+          </label>
+
           {error ? (
-            <div className="rounded border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-300">{error}</div>
+            <div className="rounded border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-300">
+              {error}
+            </div>
           ) : null}
 
-          <section className="rounded border border-[#3F3F46] bg-[#111] p-4">
-            {loadingDecks ? (
-              <p className="text-sm text-gray-400">Loading pitch decks...</p>
-            ) : decks.length === 0 ? (
-              <div className="py-8 text-center">
-                <p className="text-sm text-gray-300">No pitch decks found for this screenplay yet.</p>
-                <button
-                  onClick={goToCreate}
-                  className="mt-4 rounded bg-[#DC143C] px-4 py-2 text-sm font-medium text-white"
-                >
-                  Create Your First Pitch Deck
-                </button>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {decks.map((deck) => (
-                  <button
-                    key={deck.deckId}
-                    onClick={() => router.push(`/pitch-decks/${deck.deckId}`)}
-                    className="w-full rounded border border-[#2a2a2a] bg-[#161616] p-4 text-left hover:border-[#DC143C]/50"
-                  >
-                    <div className="flex items-center justify-between gap-4">
-                      <div>
-                        <h3 className="text-sm font-semibold text-white">{deck.title}</h3>
-                        <p className="mt-1 text-xs text-gray-400">
-                          {deck.deckType === 'investor' ? 'Investor' : 'Screenplay'} • {deck.status}
-                        </p>
-                      </div>
-                      <span className="text-xs text-gray-500">
-                        Updated {deck.updatedAt ? new Date(deck.updatedAt).toLocaleDateString() : '-'}
-                      </span>
-                    </div>
-                  </button>
-                ))}
-              </div>
-            )}
-          </section>
+          <button
+            onClick={onCreate}
+            disabled={loading || loadingScreenplays || !screenplayId}
+            className="rounded bg-[#DC143C] px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+          >
+            {loading ? 'Generating...' : 'Generate Draft Deck'}
+          </button>
         </div>
       </main>
     </>
   );
 }
 
-export default function PitchDeckHubPage() {
+export default function PitchDeckCreateNewPage() {
   return (
     <Suspense
       fallback={
         <main className="p-8">
-          <h1 className="text-2xl font-semibold text-white">Pitch Decks</h1>
+          <h1 className="text-2xl font-semibold text-white">Create Pitch Deck</h1>
           <p className="mt-2 text-sm text-gray-400">Loading...</p>
         </main>
       }
     >
-      <PitchDeckHubPageContent />
+      <PitchDeckCreatePageContent />
     </Suspense>
   );
 }
