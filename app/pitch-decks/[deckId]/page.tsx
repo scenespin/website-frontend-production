@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { useAuth } from '@clerk/nextjs';
 import { jsPDF } from 'jspdf';
 import {
   generatePitchDeckImageFromPrompt,
@@ -38,6 +39,7 @@ type ExistingMediaItem = {
 type ExistingMediaSourceFilter = 'all' | 'character' | 'location' | 'prop';
 
 type ImageGenerationMode = 'prompt' | 'reference';
+type PitchDeckRewritePreset = 'investor' | 'festival' | 'sales';
 
 type SlotImageOption = {
   id: string;
@@ -64,6 +66,32 @@ type PitchDeckPdfExportInput = {
   watermarkEnabled: boolean;
   watermarkText: string;
 };
+
+const REWRITE_PRESET_OPTIONS: Array<{
+  id: PitchDeckRewritePreset;
+  label: string;
+  instruction: string;
+  estimateCredits: number;
+}> = [
+  {
+    id: 'investor',
+    label: 'Investor',
+    instruction: 'Rewrite this slide for investor audiences: concise, credible, business-oriented, and outcome-focused.',
+    estimateCredits: 2,
+  },
+  {
+    id: 'festival',
+    label: 'Festival',
+    instruction: 'Rewrite this slide for festival submissions: cinematic, emotionally resonant, and artistically distinctive.',
+    estimateCredits: 2,
+  },
+  {
+    id: 'sales',
+    label: 'Sales',
+    instruction: 'Rewrite this slide for sales/distribution audiences: hook-driven, clear market positioning, and audience-forward.',
+    estimateCredits: 2,
+  },
+];
 
 function sanitizeFileName(name: string): string {
   const safe = (name || 'pitch-deck')
@@ -227,6 +255,7 @@ async function generatePitchDeckPdfClient(input: PitchDeckPdfExportInput): Promi
 
 export default function PitchDeckEditorPage() {
   const router = useRouter();
+  const { getToken } = useAuth();
   const params = useParams<{ deckId: string }>();
   const deckId = params?.deckId;
   const [loading, setLoading] = useState(true);
@@ -264,6 +293,17 @@ export default function PitchDeckEditorPage() {
   const [imageAttempts, setImageAttempts] = useState<ImageAttempt[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [lastImageCharge, setLastImageCharge] = useState<{ credits: number; action: 'prompt' | 'reference'; at: number } | null>(null);
+  const [rewritePreset, setRewritePreset] = useState<PitchDeckRewritePreset>('investor');
+  const [rewriteCustomInstruction, setRewriteCustomInstruction] = useState('');
+  const [rewritingSlide, setRewritingSlide] = useState(false);
+  const [rewriteError, setRewriteError] = useState<string | null>(null);
+  const [rewriteNotice, setRewriteNotice] = useState<string | null>(null);
+  const [rewritePreviewText, setRewritePreviewText] = useState<string | null>(null);
+  const [rewriteOriginalText, setRewriteOriginalText] = useState<string | null>(null);
+  const [rewriteUndoText, setRewriteUndoText] = useState<string | null>(null);
+  const [lastRewriteCharge, setLastRewriteCharge] = useState<{ credits: number; preset: PitchDeckRewritePreset; at: number } | null>(
+    null
+  );
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
   const [exportIncludeImages, setExportIncludeImages] = useState(true);
@@ -310,6 +350,10 @@ export default function PitchDeckEditorPage() {
     const referenceModel = imageModels.find((model) => model.id === 'nano-banana');
     return referenceModel?.creditsPerImage ?? 1;
   }, [imageModels]);
+  const selectedRewritePreset = useMemo(
+    () => REWRITE_PRESET_OPTIONS.find((preset) => preset.id === rewritePreset) || REWRITE_PRESET_OPTIONS[0],
+    [rewritePreset]
+  );
   const selectedImageContent = useMemo(() => {
     if (!selectedImageBlock || typeof selectedImageBlock.content !== 'object' || !selectedImageBlock.content) {
       return {};
@@ -692,6 +736,14 @@ export default function PitchDeckEditorPage() {
     }
   }, [filteredExistingMedia, selectedExistingMediaId, referenceMediaId]);
 
+  useEffect(() => {
+    setRewriteError(null);
+    setRewriteNotice(null);
+    setRewritePreviewText(null);
+    setRewriteOriginalText(null);
+    setRewriteUndoText(null);
+  }, [selectedSlideId]);
+
   const updateSelectedSlideText = (nextText: string) => {
     if (!selectedSlide) return;
     const currentBlocks = Array.isArray(selectedSlide.blocks) ? [...selectedSlide.blocks] : [];
@@ -731,6 +783,91 @@ export default function PitchDeckEditorPage() {
       )
     );
     setSaveStatus('unsaved');
+  };
+
+  const runRewriteSlide = async () => {
+    if (!selectedSlide) return;
+    const currentText = String(selectedSlide.blocks.find((block) => block.type === 'text')?.content || '').trim();
+    if (!currentText) {
+      setRewriteError('Add slide text before running rewrite.');
+      setRewriteNotice(null);
+      return;
+    }
+
+    const customInstruction = rewriteCustomInstruction.trim();
+    const instruction = customInstruction
+      ? `${selectedRewritePreset.instruction} Additional instruction: ${customInstruction}`
+      : selectedRewritePreset.instruction;
+
+    setRewritingSlide(true);
+    setRewriteError(null);
+    setRewriteNotice(null);
+    try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) {
+        throw new Error('Please sign in to run slide rewrite.');
+      }
+
+      const response = await fetch('/api/rewrite', {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          selectedText: currentText,
+          instruction,
+        }),
+      });
+
+      const result = await response.json();
+      if (!response.ok) {
+        throw new Error(result?.error || result?.message || 'Rewrite failed');
+      }
+
+      const nextText = String(result?.rewrittenText || '').trim();
+      if (!nextText) {
+        throw new Error('Rewrite returned empty text.');
+      }
+
+      setRewriteOriginalText(currentText);
+      setRewritePreviewText(nextText);
+      if (typeof result?.creditsDeducted === 'number') {
+        setLastRewriteCharge({
+          credits: result.creditsDeducted,
+          preset: rewritePreset,
+          at: Date.now(),
+        });
+      }
+      setRewriteNotice(
+        `Rewrite ready (${selectedRewritePreset.label})${
+          typeof result?.creditsDeducted === 'number' ? ` • Charged ${result.creditsDeducted} credits` : ''
+        }.`
+      );
+    } catch (err: any) {
+      setRewriteError(err?.message || 'Failed to rewrite this slide');
+    } finally {
+      setRewritingSlide(false);
+    }
+  };
+
+  const applyRewritePreview = () => {
+    if (!rewritePreviewText) return;
+    const currentText = String(selectedSlide?.blocks.find((block) => block.type === 'text')?.content || '');
+    setRewriteUndoText(rewriteOriginalText ?? currentText);
+    updateSelectedSlideText(rewritePreviewText);
+    setRewriteNotice('Rewrite applied to slide text.');
+    setRewriteError(null);
+    setRewritePreviewText(null);
+    setRewriteOriginalText(null);
+  };
+
+  const undoLastRewrite = () => {
+    if (!rewriteUndoText) return;
+    updateSelectedSlideText(rewriteUndoText);
+    setRewriteUndoText(null);
+    setRewriteNotice('Undo complete. Previous slide text restored.');
+    setRewriteError(null);
   };
 
   const saveSelectedSlide = async () => {
@@ -1200,6 +1337,10 @@ export default function PitchDeckEditorPage() {
                     setSavedAt(null);
                     setImageActionError(null);
                     setImageActionNotice(null);
+                    setRewriteError(null);
+                    setRewriteNotice(null);
+                    setRewritePreviewText(null);
+                    setRewriteOriginalText(null);
                   }}
                   className={`w-full rounded px-3 py-2 text-left text-sm border ${
                     selectedSlideId === slide.slideId
@@ -1244,6 +1385,89 @@ export default function PitchDeckEditorPage() {
                   rows={12}
                   className="w-full rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white"
                 />
+
+                <div className="mt-3 rounded border border-[#2a2a2a] bg-[#101010] p-3">
+                  <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                    <p className="text-xs uppercase tracking-wide text-gray-400">Rewrite slide</p>
+                    <div className="rounded border border-[#2f2f2f] bg-[#0f0f0f] px-2 py-1 text-[11px] text-gray-300">
+                      Estimated: <span className="text-white">{selectedRewritePreset.estimateCredits} credits</span>
+                    </div>
+                  </div>
+
+                  <div className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-2">
+                    <select
+                      value={rewritePreset}
+                      onChange={(e) => setRewritePreset(e.target.value as PitchDeckRewritePreset)}
+                      className="rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white"
+                    >
+                      {REWRITE_PRESET_OPTIONS.map((preset) => (
+                        <option key={preset.id} value={preset.id}>
+                          {preset.label} preset
+                        </option>
+                      ))}
+                    </select>
+                    <button
+                      type="button"
+                      onClick={runRewriteSlide}
+                      disabled={rewritingSlide || saving}
+                      className="rounded border border-[#3F3F46] px-3 py-2 text-sm text-gray-200 hover:bg-white/5 disabled:opacity-40"
+                    >
+                      {rewritingSlide ? 'Rewriting...' : `Rewrite Slide (${selectedRewritePreset.estimateCredits} credits est.)`}
+                    </button>
+                  </div>
+
+                  <textarea
+                    value={rewriteCustomInstruction}
+                    onChange={(e) => setRewriteCustomInstruction(e.target.value)}
+                    rows={2}
+                    placeholder="Optional: add specific rewrite guidance for this slide..."
+                    className="mt-2 w-full rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white"
+                  />
+
+                  <p className="mt-2 text-[11px] text-gray-500">
+                    Preset focus: {selectedRewritePreset.instruction}
+                  </p>
+
+                  {rewritePreviewText ? (
+                    <div className="mt-3 rounded border border-[#3F3F46] bg-[#121212] p-3">
+                      <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">Rewrite preview</p>
+                      <div className="max-h-60 overflow-auto whitespace-pre-wrap rounded border border-[#2f2f2f] bg-[#0e0e0e] p-2 text-sm text-gray-100">
+                        {rewritePreviewText}
+                      </div>
+                      <div className="mt-2 flex items-center justify-end gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setRewritePreviewText(null)}
+                          className="rounded border border-[#3F3F46] px-3 py-1.5 text-xs text-gray-200 hover:bg-white/5"
+                        >
+                          Dismiss
+                        </button>
+                        <button
+                          type="button"
+                          onClick={applyRewritePreview}
+                          className="rounded bg-[#DC143C] px-3 py-1.5 text-xs font-medium text-white"
+                        >
+                          Apply Rewrite
+                        </button>
+                      </div>
+                    </div>
+                  ) : null}
+
+                  {rewriteUndoText ? (
+                    <div className="mt-2 flex items-center justify-end">
+                      <button
+                        type="button"
+                        onClick={undoLastRewrite}
+                        className="rounded border border-[#3F3F46] px-3 py-1.5 text-xs text-gray-200 hover:bg-white/5"
+                      >
+                        Undo Last Rewrite
+                      </button>
+                    </div>
+                  ) : null}
+
+                  {rewriteError ? <p className="mt-2 text-xs text-red-300">{rewriteError}</p> : null}
+                  {rewriteNotice ? <p className="mt-2 text-xs text-emerald-300">{rewriteNotice}</p> : null}
+                </div>
 
                 {hasSelectedImageSlot ? (
                   <div className="mt-4 rounded border border-[#3F3F46] bg-[#121212] p-3">
@@ -1616,6 +1840,12 @@ export default function PitchDeckEditorPage() {
                       <div className="text-sky-300">
                         Charged {lastImageCharge.credits} credits ({lastImageCharge.action}) at{' '}
                         {new Date(lastImageCharge.at).toLocaleTimeString()}
+                      </div>
+                    ) : null}
+                    {!saving && lastRewriteCharge ? (
+                      <div className="text-violet-300">
+                        Charged {lastRewriteCharge.credits} credits (rewrite: {lastRewriteCharge.preset}) at{' '}
+                        {new Date(lastRewriteCharge.at).toLocaleTimeString()}
                       </div>
                     ) : null}
                   </div>
