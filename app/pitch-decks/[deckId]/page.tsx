@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { useAuth } from '@clerk/nextjs';
 import { jsPDF } from 'jspdf';
+import { Wand2, Briefcase, Film, Megaphone, X } from 'lucide-react';
 import {
   generatePitchDeckImageFromPrompt,
   generatePitchDeckImageFromReference,
@@ -17,6 +17,7 @@ import {
 } from '@/utils/pitchDeckStorage';
 import { EditorSubNav } from '@/components/editor/EditorSubNav';
 import { useDirectS3Upload } from '@/hooks/useDirectS3Upload';
+import RewriteModal from '@/components/modals/RewriteModal';
 
 function isFeatureEnabled(): boolean {
   return process.env.NEXT_PUBLIC_ENABLE_PITCH_DECK_V1 === 'true';
@@ -36,10 +37,16 @@ type ExistingMediaItem = {
   imageUrl: string;
 };
 
-type ExistingMediaSourceFilter = 'all' | 'character' | 'location' | 'prop';
+type ExistingMediaSourceFilter = 'character' | 'location' | 'prop';
 
-type ImageGenerationMode = 'prompt' | 'reference';
-type PitchDeckRewritePreset = 'investor' | 'festival' | 'sales';
+type ImageActionTab = 'prompt' | 'reference' | 'upload';
+type RewriteQuickAction = {
+  id: string;
+  label: string;
+  prompt: string;
+  icon?: any;
+  styleClass?: string;
+};
 
 type SlotImageOption = {
   id: string;
@@ -67,29 +74,27 @@ type PitchDeckPdfExportInput = {
   watermarkText: string;
 };
 
-const REWRITE_PRESET_OPTIONS: Array<{
-  id: PitchDeckRewritePreset;
-  label: string;
-  instruction: string;
-  estimateCredits: number;
-}> = [
+const PITCH_DECK_REWRITE_ACTIONS: RewriteQuickAction[] = [
   {
     id: 'investor',
-    label: 'Investor',
-    instruction: 'Rewrite this slide for investor audiences: concise, credible, business-oriented, and outcome-focused.',
-    estimateCredits: 2,
+    label: 'Investor polish',
+    prompt: 'Rewrite this slide for investor audiences: concise, credible, business-oriented, and outcome-focused.',
+    icon: Briefcase,
+    styleClass: 'bg-[rgba(220,20,60,0.14)] border-[rgba(220,20,60,0.45)] hover:bg-[rgba(220,20,60,0.22)] text-white',
   },
   {
     id: 'festival',
-    label: 'Festival',
-    instruction: 'Rewrite this slide for festival submissions: cinematic, emotionally resonant, and artistically distinctive.',
-    estimateCredits: 2,
+    label: 'Festival polish',
+    prompt: 'Rewrite this slide for festival submissions: cinematic, emotionally resonant, and artistically distinctive.',
+    icon: Film,
+    styleClass: 'bg-[rgba(99,102,241,0.14)] border-[rgba(99,102,241,0.45)] hover:bg-[rgba(99,102,241,0.22)] text-white',
   },
   {
     id: 'sales',
-    label: 'Sales',
-    instruction: 'Rewrite this slide for sales/distribution audiences: hook-driven, clear market positioning, and audience-forward.',
-    estimateCredits: 2,
+    label: 'Sales polish',
+    prompt: 'Rewrite this slide for sales/distribution audiences: hook-driven, clear market positioning, and audience-forward.',
+    icon: Megaphone,
+    styleClass: 'bg-[rgba(0,217,255,0.12)] border-[rgba(0,217,255,0.40)] hover:bg-[rgba(0,217,255,0.20)] text-white',
   },
 ];
 
@@ -255,7 +260,6 @@ async function generatePitchDeckPdfClient(input: PitchDeckPdfExportInput): Promi
 
 export default function PitchDeckEditorPage() {
   const router = useRouter();
-  const { getToken } = useAuth();
   const params = useParams<{ deckId: string }>();
   const deckId = params?.deckId;
   const [loading, setLoading] = useState(true);
@@ -274,7 +278,7 @@ export default function PitchDeckEditorPage() {
   const [existingMediaLoading, setExistingMediaLoading] = useState(false);
   const [existingMediaError, setExistingMediaError] = useState<string | null>(null);
   const [selectedExistingMediaId, setSelectedExistingMediaId] = useState('');
-  const [existingSourceFilter, setExistingSourceFilter] = useState<ExistingMediaSourceFilter>('all');
+  const [existingSourceFilter, setExistingSourceFilter] = useState<ExistingMediaSourceFilter>('character');
   const [existingEntityFilter, setExistingEntityFilter] = useState('all');
   const [existingVariantFilter, setExistingVariantFilter] = useState('all');
   const [imageModels, setImageModels] = useState<PitchDeckImageModel[]>([]);
@@ -284,7 +288,7 @@ export default function PitchDeckEditorPage() {
   const [promptGenerationModelId, setPromptGenerationModelId] = useState('flux2-pro-2k');
   const [referencePromptText, setReferencePromptText] = useState('');
   const [referenceMediaId, setReferenceMediaId] = useState('');
-  const [imageGenerationMode, setImageGenerationMode] = useState<ImageGenerationMode>('prompt');
+  const [imageActionTab, setImageActionTab] = useState<ImageActionTab>('prompt');
   const [generatingFromPrompt, setGeneratingFromPrompt] = useState(false);
   const [generatingFromReference, setGeneratingFromReference] = useState(false);
   const [imageActionError, setImageActionError] = useState<string | null>(null);
@@ -294,17 +298,12 @@ export default function PitchDeckEditorPage() {
   const [imageAttempts, setImageAttempts] = useState<ImageAttempt[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [lastImageCharge, setLastImageCharge] = useState<{ credits: number; action: 'prompt' | 'reference'; at: number } | null>(null);
-  const [rewritePreset, setRewritePreset] = useState<PitchDeckRewritePreset>('investor');
-  const [rewriteCustomInstruction, setRewriteCustomInstruction] = useState('');
-  const [rewritingSlide, setRewritingSlide] = useState(false);
+  const [rewriteModalOpen, setRewriteModalOpen] = useState(false);
   const [rewriteError, setRewriteError] = useState<string | null>(null);
   const [rewriteNotice, setRewriteNotice] = useState<string | null>(null);
   const [rewritePreviewText, setRewritePreviewText] = useState<string | null>(null);
   const [rewriteOriginalText, setRewriteOriginalText] = useState<string | null>(null);
   const [rewriteUndoText, setRewriteUndoText] = useState<string | null>(null);
-  const [lastRewriteCharge, setLastRewriteCharge] = useState<{ credits: number; preset: PitchDeckRewritePreset; at: number } | null>(
-    null
-  );
   const [exportModalOpen, setExportModalOpen] = useState(false);
   const [exportingPdf, setExportingPdf] = useState(false);
   const [exportIncludeImages, setExportIncludeImages] = useState(true);
@@ -351,9 +350,9 @@ export default function PitchDeckEditorPage() {
     const referenceModel = imageModels.find((model) => model.id === 'nano-banana');
     return referenceModel?.creditsPerImage ?? 1;
   }, [imageModels]);
-  const selectedRewritePreset = useMemo(
-    () => REWRITE_PRESET_OPTIONS.find((preset) => preset.id === rewritePreset) || REWRITE_PRESET_OPTIONS[0],
-    [rewritePreset]
+  const selectedSlidePrimaryText = useMemo(
+    () => String(selectedSlide?.blocks.find((block) => block.type === 'text')?.content || ''),
+    [selectedSlide]
   );
   const selectedImageContent = useMemo(() => {
     if (!selectedImageBlock || typeof selectedImageBlock.content !== 'object' || !selectedImageBlock.content) {
@@ -388,10 +387,7 @@ export default function PitchDeckEditorPage() {
     return imageAttempts.filter((attempt) => attempt.slideId === selectedSlide.slideId);
   }, [imageAttempts, selectedSlide]);
   const sourceScopedExistingMedia = useMemo(
-    () =>
-      existingSourceFilter === 'all'
-        ? existingMedia
-        : existingMedia.filter((item) => item.sourceType === existingSourceFilter),
+    () => existingMedia.filter((item) => item.sourceType === existingSourceFilter),
     [existingMedia, existingSourceFilter]
   );
   const existingEntityOptions = useMemo(() => {
@@ -399,11 +395,7 @@ export default function PitchDeckEditorPage() {
     sourceScopedExistingMedia.forEach((item) => {
       const entityFilterKey = `${item.sourceType}:${item.entityId}`;
       if (map.has(entityFilterKey)) return;
-      const sourcePrefix =
-        existingSourceFilter === 'all'
-          ? `${item.sourceType.charAt(0).toUpperCase()}${item.sourceType.slice(1)} - `
-          : '';
-      map.set(entityFilterKey, `${sourcePrefix}${item.entityName}`);
+      map.set(entityFilterKey, item.entityName);
     });
     return Array.from(map.entries())
       .map(([value, label]) => ({ value, label }))
@@ -818,70 +810,28 @@ export default function PitchDeckEditorPage() {
     setSaveStatus('unsaved');
   };
 
-  const runRewriteSlide = async () => {
-    if (!selectedSlide) return;
-    const currentText = String(selectedSlide.blocks.find((block) => block.type === 'text')?.content || '').trim();
-    if (!currentText) {
+  const openRewriteForSlide = () => {
+    if (!selectedSlidePrimaryText.trim()) {
       setRewriteError('Add slide text before running rewrite.');
       setRewriteNotice(null);
       return;
     }
-
-    const customInstruction = rewriteCustomInstruction.trim();
-    const instruction = customInstruction
-      ? `${selectedRewritePreset.instruction} Additional instruction: ${customInstruction}`
-      : selectedRewritePreset.instruction;
-
-    setRewritingSlide(true);
     setRewriteError(null);
     setRewriteNotice(null);
-    try {
-      const token = await getToken({ template: 'wryda-backend' });
-      if (!token) {
-        throw new Error('Please sign in to run slide rewrite.');
-      }
+    setRewriteModalOpen(true);
+  };
 
-      const response = await fetch('/api/rewrite', {
-        method: 'POST',
-        headers: {
-          Authorization: `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          selectedText: currentText,
-          instruction,
-        }),
-      });
-
-      const result = await response.json();
-      if (!response.ok) {
-        throw new Error(result?.error || result?.message || 'Rewrite failed');
-      }
-
-      const nextText = String(result?.rewrittenText || '').trim();
-      if (!nextText) {
-        throw new Error('Rewrite returned empty text.');
-      }
-
-      setRewriteOriginalText(currentText);
-      setRewritePreviewText(nextText);
-      if (typeof result?.creditsDeducted === 'number') {
-        setLastRewriteCharge({
-          credits: result.creditsDeducted,
-          preset: rewritePreset,
-          at: Date.now(),
-        });
-      }
-      setRewriteNotice(
-        `Rewrite ready (${selectedRewritePreset.label})${
-          typeof result?.creditsDeducted === 'number' ? ` • Charged ${result.creditsDeducted} credits` : ''
-        }.`
-      );
-    } catch (err: any) {
-      setRewriteError(err?.message || 'Failed to rewrite this slide');
-    } finally {
-      setRewritingSlide(false);
+  const captureRewritePreview = (rewrittenText: string) => {
+    const nextText = String(rewrittenText || '').trim();
+    if (!nextText) {
+      setRewriteError('Rewrite returned empty text.');
+      return;
     }
+    setRewriteOriginalText(selectedSlidePrimaryText);
+    setRewritePreviewText(nextText);
+    setRewriteNotice('Rewrite preview ready. Review and apply when ready.');
+    setRewriteError(null);
+    setRewriteModalOpen(false);
   };
 
   const applyRewritePreview = () => {
@@ -1036,6 +986,19 @@ export default function PitchDeckEditorPage() {
       imageOptions: selectedSlotImageOptions,
     });
     setImageActionNotice(`Selected image option: ${option.label}`);
+    setImageActionError(null);
+  };
+
+  const removeSlotImageOption = (optionId: string) => {
+    const option = selectedSlotImageOptions.find((item) => item.id === optionId);
+    if (!option) return;
+    const nextOptions = selectedSlotImageOptions.filter((item) => item.id !== optionId);
+    const nextActive = nextOptions[0];
+    updateSelectedSlideImageUrl(nextActive?.imageUrl || '', nextActive?.sourceType || 'user_custom', {
+      activeImageId: nextActive?.id || '',
+      imageOptions: nextOptions,
+    });
+    setImageActionNotice(`Removed image option: ${option.label}`);
     setImageActionError(null);
   };
 
@@ -1420,45 +1383,20 @@ export default function PitchDeckEditorPage() {
                 />
 
                 <div className="mt-3 rounded border border-[#2a2a2a] bg-[#101010] p-3">
-                  <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                  <div className="flex items-center justify-between">
                     <p className="text-xs uppercase tracking-wide text-gray-400">Rewrite slide</p>
-                    <div className="rounded border border-[#2f2f2f] bg-[#0f0f0f] px-2 py-1 text-[11px] text-gray-300">
-                      Estimated: <span className="text-white">{selectedRewritePreset.estimateCredits} credits</span>
-                    </div>
-                  </div>
-
-                  <div className="mt-2 grid grid-cols-1 gap-2 md:grid-cols-2">
-                    <select
-                      value={rewritePreset}
-                      onChange={(e) => setRewritePreset(e.target.value as PitchDeckRewritePreset)}
-                      className="rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white"
-                    >
-                      {REWRITE_PRESET_OPTIONS.map((preset) => (
-                        <option key={preset.id} value={preset.id}>
-                          {preset.label} preset
-                        </option>
-                      ))}
-                    </select>
                     <button
                       type="button"
-                      onClick={runRewriteSlide}
-                      disabled={rewritingSlide || saving}
-                      className="rounded border border-[#3F3F46] px-3 py-2 text-sm text-gray-200 hover:bg-white/5 disabled:opacity-40"
+                      onClick={openRewriteForSlide}
+                      disabled={saving}
+                      className="inline-flex items-center gap-1.5 rounded border border-[#3F3F46] px-2.5 py-1.5 text-xs text-gray-200 hover:bg-white/5 disabled:opacity-40"
                     >
-                      {rewritingSlide ? 'Rewriting...' : `Rewrite Slide (${selectedRewritePreset.estimateCredits} credits est.)`}
+                      <Wand2 className="h-3.5 w-3.5" />
+                      Rewrite
                     </button>
                   </div>
-
-                  <textarea
-                    value={rewriteCustomInstruction}
-                    onChange={(e) => setRewriteCustomInstruction(e.target.value)}
-                    rows={2}
-                    placeholder="Optional: add specific rewrite guidance for this slide..."
-                    className="mt-2 w-full rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white"
-                  />
-
                   <p className="mt-2 text-[11px] text-gray-500">
-                    Preset focus: {selectedRewritePreset.instruction}
+                    Uses the same rewrite modal as the editor. Choose model + preset inside modal, then review below.
                   </p>
 
                   {rewritePreviewText ? (
@@ -1504,66 +1442,7 @@ export default function PitchDeckEditorPage() {
 
                 {hasSelectedImageSlot ? (
                   <div className="mt-4 rounded border border-[#3F3F46] bg-[#121212] p-3">
-                    <label className="block text-xs uppercase tracking-wide text-gray-400 mb-1">
-                      Slide image slot (Phase 3B)
-                    </label>
-                    <input
-                      value={
-                        String(
-                          (selectedImageBlock?.content && (selectedImageBlock.content as any).imageUrl) ||
-                            ''
-                        )
-                      }
-                      onChange={(e) => updateSelectedSlideImageUrl(e.target.value)}
-                      placeholder="Paste image URL for this slide..."
-                      className="w-full rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white"
-                    />
-                    <div className="mt-2 flex items-center justify-end">
-                      <button
-                        type="button"
-                        onClick={() => {
-                          const currentImageUrl = String(
-                            (selectedImageBlock?.content && (selectedImageBlock.content as any).imageUrl) || ''
-                          ).trim();
-                          if (!currentImageUrl) {
-                            setImageActionError('Paste an image URL first.');
-                            addImageAttempt('failed', 'upload', 'Failed: no URL to add to gallery.');
-                            return;
-                          }
-                          appendSlotImageOption({
-                            imageUrl: currentImageUrl,
-                            sourceType: 'user_custom',
-                            label: 'Manual URL',
-                          });
-                          setImageActionError(null);
-                          setImageActionNotice('Manual URL added to slot gallery.');
-                          addImageAttempt('success', 'upload', 'Added manual URL image to slot gallery.');
-                        }}
-                        className="rounded border border-[#3F3F46] px-3 py-1.5 text-xs text-gray-200 hover:bg-white/5"
-                      >
-                        Add URL To Gallery
-                      </button>
-                    </div>
-
-                    <div className="mt-3 rounded border border-[#2a2a2a] bg-[#101010] p-3">
-                      <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">Upload image</p>
-                      <div className="flex items-center gap-2">
-                        <input
-                          type="file"
-                          accept="image/*"
-                          disabled={uploadingImage}
-                          onChange={(e) => {
-                            const file = e.target.files?.[0];
-                            void handleUploadImageToSlot(file);
-                            e.currentTarget.value = '';
-                          }}
-                          className="block w-full text-xs text-gray-300 file:mr-3 file:rounded file:border-0 file:bg-[#232323] file:px-3 file:py-1.5 file:text-xs file:text-gray-200"
-                        />
-                      </div>
-                      <p className="mt-1 text-[11px] text-gray-500">
-                        Uploads are added to this slide slot gallery. Credit cost: 0.
-                      </p>
-                    </div>
+                    <p className="text-xs uppercase tracking-wide text-gray-400">Slide image slot</p>
 
                     <div className="mt-3 rounded border border-[#2a2a2a] bg-[#101010] p-3">
                       <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">
@@ -1593,6 +1472,17 @@ export default function PitchDeckEditorPage() {
                                     (e.target as HTMLImageElement).style.opacity = '0.2';
                                   }}
                                 />
+                                <button
+                                  type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    removeSlotImageOption(option.id);
+                                  }}
+                                  className="absolute right-1 top-1 z-10 rounded bg-black/70 p-0.5 text-white hover:bg-[#DC143C]"
+                                  title="Remove image from slot"
+                                >
+                                  <X className="h-3.5 w-3.5" />
+                                </button>
                                 <div className="absolute inset-x-0 bottom-0 bg-black/70 px-1 py-0.5 text-[10px] text-left text-white truncate">
                                   {option.label}
                                 </div>
@@ -1630,7 +1520,6 @@ export default function PitchDeckEditorPage() {
                           }}
                           className="rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white"
                         >
-                          <option value="all">All sources</option>
                           <option value="character">Characters</option>
                           <option value="location">Locations</option>
                           <option value="prop">Props</option>
@@ -1644,7 +1533,13 @@ export default function PitchDeckEditorPage() {
                           className="rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white"
                           disabled={existingEntityOptions.length === 0}
                         >
-                          <option value="all">All {existingSourceFilter === 'all' ? 'entities' : existingSourceFilter + 's'}</option>
+                          <option value="all">
+                            {existingSourceFilter === 'character'
+                              ? 'All characters'
+                              : existingSourceFilter === 'location'
+                                ? 'All locations'
+                                : 'All props'}
+                          </option>
                           {existingEntityOptions.map((option) => (
                             <option key={option.value} value={option.value}>
                               {option.label}
@@ -1667,25 +1562,7 @@ export default function PitchDeckEditorPage() {
                           ))}
                         </select>
                       </div>
-                      <div className="flex flex-col md:flex-row gap-2">
-                        <select
-                          value={selectedExistingMediaId}
-                          onChange={(e) => setSelectedExistingMediaId(e.target.value)}
-                          className="flex-1 rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white"
-                          disabled={existingMediaLoading || filteredExistingMedia.length === 0}
-                        >
-                          {filteredExistingMedia.length === 0 ? (
-                            <option value="">
-                              {existingMediaLoading ? 'Loading screenplay images...' : 'No images found for selected filters'}
-                            </option>
-                          ) : (
-                            filteredExistingMedia.map((item) => (
-                              <option key={item.id} value={item.id}>
-                                {item.label}
-                              </option>
-                            ))
-                          )}
-                        </select>
+                      <div className="flex items-center justify-end">
                         <button
                           type="button"
                           onClick={applyExistingMediaToSlot}
@@ -1694,6 +1571,45 @@ export default function PitchDeckEditorPage() {
                         >
                           Use Existing (0 credits)
                         </button>
+                      </div>
+                      <div className="mt-2 rounded border border-[#2f2f2f] bg-[#0f0f0f] p-2">
+                        {filteredExistingMedia.length === 0 ? (
+                          <p className="text-xs text-gray-500">
+                            {existingMediaLoading ? 'Loading screenplay images...' : 'No images found for selected filters'}
+                          </p>
+                        ) : (
+                          <div className="grid grid-cols-3 md:grid-cols-5 gap-2">
+                            {filteredExistingMedia.map((item) => {
+                              const isActive = selectedExistingMediaId === item.id;
+                              return (
+                                <button
+                                  key={item.id}
+                                  type="button"
+                                  onClick={() => {
+                                    setSelectedExistingMediaId(item.id);
+                                    setReferenceMediaId(item.id);
+                                  }}
+                                  className={`relative overflow-hidden rounded border ${
+                                    isActive ? 'border-[#DC143C]' : 'border-[#3F3F46]'
+                                  } bg-[#151515]`}
+                                  title={item.label}
+                                >
+                                  <img
+                                    src={item.imageUrl}
+                                    alt={item.label}
+                                    className="h-20 w-full object-cover"
+                                    onError={(e) => {
+                                      (e.target as HTMLImageElement).style.opacity = '0.2';
+                                    }}
+                                  />
+                                  <div className="absolute inset-x-0 bottom-0 bg-black/70 px-1 py-0.5 text-[10px] text-left text-white truncate">
+                                    {item.label}
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
                       </div>
                       {selectedExistingMedia ? (
                         <div className="mt-2 rounded border border-[#2f2f2f] bg-[#0f0f0f] p-2">
@@ -1716,19 +1632,44 @@ export default function PitchDeckEditorPage() {
                     </div>
 
                     <div className="mt-3 rounded border border-[#2a2a2a] bg-[#101010] p-3">
-                      <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">Generate with AI</p>
-                      <div className="flex flex-col md:flex-row gap-2">
-                        <select
-                          value={imageGenerationMode}
-                          onChange={(e) => setImageGenerationMode(e.target.value as ImageGenerationMode)}
-                          className="md:w-64 rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white"
+                      <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">Image actions</p>
+                      <div className="grid grid-cols-3 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setImageActionTab('prompt')}
+                          className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                            imageActionTab === 'prompt'
+                              ? 'bg-[#DC143C] text-white'
+                              : 'bg-[#141414] text-[#B3B3B3] hover:bg-[#1F1F1F] border border-[#3F3F46]'
+                          }`}
                         >
-                          <option value="prompt">Text Prompt</option>
-                          <option value="reference">Reference + Prompt</option>
-                        </select>
+                          Text to Image
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setImageActionTab('reference')}
+                          className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                            imageActionTab === 'reference'
+                              ? 'bg-[#DC143C] text-white'
+                              : 'bg-[#141414] text-[#B3B3B3] hover:bg-[#1F1F1F] border border-[#3F3F46]'
+                          }`}
+                        >
+                          Reference to Image
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setImageActionTab('upload')}
+                          className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                            imageActionTab === 'upload'
+                              ? 'bg-[#DC143C] text-white'
+                              : 'bg-[#141414] text-[#B3B3B3] hover:bg-[#1F1F1F] border border-[#3F3F46]'
+                          }`}
+                        >
+                          Upload Image
+                        </button>
                       </div>
 
-                      {imageGenerationMode === 'prompt' ? (
+                      {imageActionTab === 'prompt' ? (
                         <>
                           <textarea
                             value={promptGenerationText}
@@ -1766,28 +1707,10 @@ export default function PitchDeckEditorPage() {
                             </button>
                           </div>
                         </>
-                      ) : (
+                      ) : null}
+
+                      {imageActionTab === 'reference' ? (
                         <>
-                          <div className="mt-2 flex flex-col md:flex-row gap-2">
-                            <select
-                              value={referenceMediaId}
-                              onChange={(e) => setReferenceMediaId(e.target.value)}
-                              className="flex-1 rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white"
-                              disabled={existingMediaLoading || filteredExistingMedia.length === 0}
-                            >
-                              {filteredExistingMedia.length === 0 ? (
-                                <option value="">
-                                  {existingMediaLoading ? 'Loading screenplay images...' : 'No images found for selected filters'}
-                                </option>
-                              ) : (
-                                filteredExistingMedia.map((item) => (
-                                  <option key={item.id} value={item.id}>
-                                    {item.label}
-                                  </option>
-                                ))
-                              )}
-                            </select>
-                          </div>
                           {selectedReferenceMedia ? (
                             <div className="mt-2 rounded border border-[#2f2f2f] bg-[#0f0f0f] p-2">
                               <div className="grid grid-cols-[96px_1fr] gap-2 items-center">
@@ -1805,6 +1728,9 @@ export default function PitchDeckEditorPage() {
                               </div>
                             </div>
                           ) : null}
+                          <p className="mt-2 text-[11px] text-gray-500">
+                            Select the reference image above in "Use existing screenplay media", then generate from it.
+                          </p>
                           <textarea
                             value={referencePromptText}
                             onChange={(e) => setReferencePromptText(e.target.value)}
@@ -1825,7 +1751,69 @@ export default function PitchDeckEditorPage() {
                             </button>
                           </div>
                         </>
-                      )}
+                      ) : null}
+
+                      {imageActionTab === 'upload' ? (
+                        <>
+                          <div className="mt-2">
+                            <label className="block text-[11px] text-gray-400 mb-1">Paste image URL</label>
+                            <div className="flex items-center gap-2">
+                              <input
+                                value={
+                                  String(
+                                    (selectedImageBlock?.content && (selectedImageBlock.content as any).imageUrl) ||
+                                      ''
+                                  )
+                                }
+                                onChange={(e) => updateSelectedSlideImageUrl(e.target.value)}
+                                placeholder="https://..."
+                                className="flex-1 rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const currentImageUrl = String(
+                                    (selectedImageBlock?.content && (selectedImageBlock.content as any).imageUrl) || ''
+                                  ).trim();
+                                  if (!currentImageUrl) {
+                                    setImageActionError('Paste an image URL first.');
+                                    addImageAttempt('failed', 'upload', 'Failed: no URL to add to gallery.');
+                                    return;
+                                  }
+                                  appendSlotImageOption({
+                                    imageUrl: currentImageUrl,
+                                    sourceType: 'user_custom',
+                                    label: 'Manual URL',
+                                  });
+                                  setImageActionError(null);
+                                  setImageActionNotice('Manual URL added to slot gallery.');
+                                  addImageAttempt('success', 'upload', 'Added manual URL image to slot gallery.');
+                                }}
+                                className="rounded border border-[#3F3F46] px-3 py-2 text-sm text-gray-200 hover:bg-white/5"
+                              >
+                                Add URL
+                              </button>
+                            </div>
+                          </div>
+                          <div className="mt-2 flex items-center gap-2">
+                            <input
+                              type="file"
+                              accept="image/*"
+                              disabled={uploadingImage}
+                              onChange={(e) => {
+                                const file = e.target.files?.[0];
+                                void handleUploadImageToSlot(file);
+                                e.currentTarget.value = '';
+                              }}
+                              className="block w-full text-xs text-gray-300 file:mr-3 file:rounded file:border-0 file:bg-[#232323] file:px-3 file:py-1.5 file:text-xs file:text-gray-200"
+                            />
+                          </div>
+                          <p className="mt-1 text-[11px] text-gray-500">
+                            Uploads are added to this slide slot gallery. Credit cost: 0.
+                          </p>
+                        </>
+                      ) : null}
+
                       {imageModelsError ? <p className="mt-2 text-xs text-red-300">{imageModelsError}</p> : null}
                     </div>
 
@@ -1894,12 +1882,6 @@ export default function PitchDeckEditorPage() {
                         {new Date(lastImageCharge.at).toLocaleTimeString()}
                       </div>
                     ) : null}
-                    {!saving && lastRewriteCharge ? (
-                      <div className="text-violet-300">
-                        Charged {lastRewriteCharge.credits} credits (rewrite: {lastRewriteCharge.preset}) at{' '}
-                        {new Date(lastRewriteCharge.at).toLocaleTimeString()}
-                      </div>
-                    ) : null}
                   </div>
                   <button
                     onClick={saveSelectedSlide}
@@ -1914,6 +1896,20 @@ export default function PitchDeckEditorPage() {
           </section>
         </div>
       </main>
+
+      {rewriteModalOpen ? (
+        <RewriteModal
+          isOpen={rewriteModalOpen}
+          onClose={() => setRewriteModalOpen(false)}
+          selectedText={selectedSlidePrimaryText}
+          selectionRange={{ start: 0, end: selectedSlidePrimaryText.length }}
+          editorContent={selectedSlidePrimaryText}
+          onReplace={captureRewritePreview}
+          title="Rewrite Slide"
+          subtitle="Choose model + preset, then review before applying."
+          quickActions={PITCH_DECK_REWRITE_ACTIONS}
+        />
+      ) : null}
 
       {confirmSpendOpen ? (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">

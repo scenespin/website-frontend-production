@@ -192,7 +192,7 @@ function cleanFountainOutput(text) {
 }
 
 // Quick action buttons configuration
-const QUICK_ACTIONS = [
+const DEFAULT_QUICK_ACTIONS = [
   {
     id: 'dramatic',
     label: 'Make more dramatic',
@@ -229,7 +229,10 @@ export default function RewriteModal({
   selectedText,
   selectionRange,
   editorContent,
-  onReplace
+  onReplace,
+  title = 'Rewrite Selected Text',
+  subtitle = 'Rewrite selected text with AI assistance',
+  quickActions
 }) {
   const { state: chatState } = useChatContext();
   const { characters } = useScreenplay();
@@ -246,6 +249,8 @@ export default function RewriteModal({
     }
     return chatState.selectedModel || 'claude-sonnet-4-6';
   });
+
+  const resolvedQuickActions = Array.isArray(quickActions) && quickActions.length > 0 ? quickActions : DEFAULT_QUICK_ACTIONS;
 
   // Simple handler - Headless UI doesn't have the infinite loop issues that Radix UI had
   const handleModelChange = (value) => {
@@ -758,11 +763,9 @@ export default function RewriteModal({
                       </div>
                       <div className="flex-1">
                         <Dialog.Title as="h3" className="text-base font-semibold text-base-content">
-                          Rewrite Selected Text
+                          {title}
                         </Dialog.Title>
-                        <p className="text-xs text-base-content/60">
-                          Rewrite selected text with AI assistance
-                        </p>
+                        <p className="text-xs text-base-content/60">{subtitle}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -805,11 +808,9 @@ export default function RewriteModal({
                     <div className="flex items-center justify-between">
                       <div className="flex-1">
                         <Dialog.Title as="h3" className="text-base font-semibold text-base-content">
-                          Rewrite Selected Text
+                          {title}
                         </Dialog.Title>
-                        <p className="text-xs text-base-content/60">
-                          Rewrite selected text with AI assistance
-                        </p>
+                        <p className="text-xs text-base-content/60">{subtitle}</p>
                       </div>
                       <button
                         onClick={onClose}
@@ -853,8 +854,8 @@ export default function RewriteModal({
                     <div className="space-y-3">
                       <p className="text-xs font-medium text-base-content/80">Quick Actions</p>
                       <div className="grid grid-cols-2 gap-3">
-                        {QUICK_ACTIONS.map((action) => {
-                          const Icon = action.icon;
+                        {resolvedQuickActions.map((action) => {
+                          const Icon = action.icon || Wand2;
                           return (
                             <button
                               key={action.id}
