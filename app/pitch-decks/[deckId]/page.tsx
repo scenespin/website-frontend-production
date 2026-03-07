@@ -399,7 +399,6 @@ export default function PitchDeckEditorPage() {
   const [pendingImageAction, setPendingImageAction] = useState<'prompt' | 'reference' | null>(null);
   const [imageAttempts, setImageAttempts] = useState<ImageAttempt[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
-  const [lastImageCharge, setLastImageCharge] = useState<{ credits: number; action: 'prompt' | 'reference'; at: number } | null>(null);
   const [rewriteModalOpen, setRewriteModalOpen] = useState(false);
   const [rewriteError, setRewriteError] = useState<string | null>(null);
   const [rewriteNotice, setRewriteNotice] = useState<string | null>(null);
@@ -444,10 +443,6 @@ export default function PitchDeckEditorPage() {
     () => imageModels.filter((model) => ALLOWED_PITCH_DECK_IMAGE_MODELS.has(model.id)),
     [imageModels]
   );
-  const promptGenerationEstimate = useMemo(() => {
-    const selectedModel = imageModels.find((model) => model.id === promptGenerationModelId);
-    return selectedModel?.creditsPerImage ?? 0;
-  }, [imageModels, promptGenerationModelId]);
   const promptGenerationModel = useMemo(
     () => imageModels.find((model) => model.id === promptGenerationModelId) || null,
     [imageModels, promptGenerationModelId]
@@ -456,10 +451,6 @@ export default function PitchDeckEditorPage() {
     () => imageModels.find((model) => model.id === referenceGenerationModelId) || null,
     [imageModels, referenceGenerationModelId]
   );
-  const referenceGenerationEstimate = useMemo(() => {
-    const referenceModel = imageModels.find((model) => model.id === referenceGenerationModelId);
-    return referenceModel?.creditsPerImage ?? 1;
-  }, [imageModels, referenceGenerationModelId]);
   const maxReferenceCount = useMemo(
     () => getReferenceLimitByModel(referenceGenerationModelId),
     [referenceGenerationModelId]
@@ -498,7 +489,12 @@ export default function PitchDeckEditorPage() {
   }, [selectedImageContent, selectedSlotImageOptions]);
   const selectedSlideAttempts = useMemo(() => {
     if (!selectedSlide?.slideId) return [] as ImageAttempt[];
-    return imageAttempts.filter((attempt) => attempt.slideId === selectedSlide.slideId);
+    return imageAttempts.filter(
+      (attempt) =>
+        attempt.slideId === selectedSlide.slideId &&
+        attempt.status === 'success' &&
+        (attempt.action === 'prompt' || attempt.action === 'reference')
+    );
   }, [imageAttempts, selectedSlide]);
   const sourceScopedExistingMedia = useMemo(
     () => existingMedia.filter((item) => item.sourceType === existingSourceFilter),
@@ -1144,7 +1140,6 @@ export default function PitchDeckEditorPage() {
     setImageActionNotice(null);
     if (!selectedExistingMedia) {
       setImageActionError('Select an existing image first.');
-      addImageAttempt('failed', 'existing', 'Failed: no existing media selected.');
       return;
     }
     appendSlotImageOption({
@@ -1152,8 +1147,7 @@ export default function PitchDeckEditorPage() {
       sourceType: 'existing_media',
       label: selectedExistingMedia.label,
     });
-    addImageAttempt('success', 'existing', `Applied existing media: ${selectedExistingMedia.label}.`);
-    setImageActionNotice('Applied existing screenplay image to this slot (0 credits).');
+    setImageActionNotice('Added existing screenplay image to this slot gallery.');
   };
 
   const toggleReferenceMediaSelection = (mediaId: string) => {
@@ -1202,17 +1196,12 @@ export default function PitchDeckEditorPage() {
         label: `Prompt result (${promptGenerationModel?.label || promptGenerationModelId})`,
         s3Key: result.s3Key,
       });
-      if (typeof result.creditsDeducted === 'number') {
-        setLastImageCharge({ credits: result.creditsDeducted, action: 'prompt', at: Date.now() });
-      }
       addImageAttempt(
         'success',
         'prompt',
-        `Generated prompt image${typeof result.creditsDeducted === 'number' ? ` (${result.creditsDeducted} credits)` : ''}.`
+        'Generated image from prompt.'
       );
-      setImageActionNotice(
-        `Generated image${typeof result.creditsDeducted === 'number' ? ` (${result.creditsDeducted} credits)` : ''}.`
-      );
+      setImageActionNotice('Generated image from prompt.');
     } catch (err: any) {
       const message = err?.message || 'Failed to generate image from prompt';
       setImageActionError(message);
@@ -1263,17 +1252,12 @@ export default function PitchDeckEditorPage() {
         label: `Reference result (${primaryReference.label})`,
         s3Key: result.s3Key,
       });
-      if (typeof result.creditsDeducted === 'number') {
-        setLastImageCharge({ credits: result.creditsDeducted, action: 'reference', at: Date.now() });
-      }
       addImageAttempt(
         'success',
         'reference',
-        `Generated reference image${typeof result.creditsDeducted === 'number' ? ` (${result.creditsDeducted} credits)` : ''}.`
+        'Generated image from reference.'
       );
-      setImageActionNotice(
-        `Generated image from reference${typeof result.creditsDeducted === 'number' ? ` (${result.creditsDeducted} credits)` : ''}.`
-      );
+      setImageActionNotice('Generated image from reference.');
     } catch (err: any) {
       const message = err?.message || 'Failed to generate image from reference';
       setImageActionError(message);
@@ -1320,7 +1304,6 @@ export default function PitchDeckEditorPage() {
     if (!deckScreenplayId) {
       const message = 'Cannot upload image: screenplay context is missing.';
       setImageActionError(message);
-      addImageAttempt('failed', 'upload', `Failed: ${message}`);
       return;
     }
     setImageActionError(null);
@@ -1340,12 +1323,10 @@ export default function PitchDeckEditorPage() {
         label: `Upload - ${file.name}`,
         s3Key: uploaded.s3Key || undefined,
       });
-      setImageActionNotice('Uploaded image added to slot gallery (0 credits).');
-      addImageAttempt('success', 'upload', `Uploaded image: ${file.name}.`);
+      setImageActionNotice('Uploaded image added to slot gallery.');
     } catch (err: any) {
       const message = err?.message || 'Failed to upload image';
       setImageActionError(message);
-      addImageAttempt('failed', 'upload', `Failed: ${message}`);
     } finally {
       setUploadingImage(false);
     }
@@ -1567,10 +1548,16 @@ export default function PitchDeckEditorPage() {
                       type="button"
                       onClick={openRewriteForSlide}
                       disabled={saving}
-                      className="inline-flex items-center gap-1.5 rounded border border-[#3F3F46] px-2.5 py-1.5 text-xs text-gray-200 hover:bg-white/5 disabled:opacity-40"
+                      className="relative inline-flex items-center gap-1.5 overflow-hidden rounded-xl border-2 border-white/30 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur-lg shadow-lg disabled:opacity-40"
+                      style={{
+                        background: 'linear-gradient(135deg, rgba(220, 20, 60, 0.85) 0%, rgba(139, 0, 0, 0.85) 100%)',
+                      }}
                     >
-                      <Wand2 className="h-3.5 w-3.5" />
-                      Rewrite
+                      <div className="absolute inset-0 bg-gradient-to-br from-white/30 via-white/10 to-transparent pointer-events-none" />
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent pointer-events-none" />
+                      <div className="absolute top-0 left-1/4 h-1/3 w-1/2 rounded-full bg-white/20 blur-xl pointer-events-none" />
+                      <Wand2 className="relative z-10 h-3.5 w-3.5" />
+                      <span className="relative z-10">Rewrite</span>
                     </button>
                   </div>
                   <p className="mt-2 text-[11px] text-gray-500">
@@ -1679,18 +1666,6 @@ export default function PitchDeckEditorPage() {
                       </p>
                     </div>
 
-                    <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-2 text-xs">
-                      <div className="rounded border border-[#2f2f2f] bg-[#101010] px-2 py-1 text-gray-300">
-                        Use existing: <span className="text-emerald-300">0 credits</span>
-                      </div>
-                      <div className="rounded border border-[#2f2f2f] bg-[#101010] px-2 py-1 text-gray-300">
-                        Generate prompt: <span className="text-white">{promptGenerationEstimate} credits</span>
-                      </div>
-                      <div className="rounded border border-[#2f2f2f] bg-[#101010] px-2 py-1 text-gray-300">
-                        Generate reference: <span className="text-white">{referenceGenerationEstimate} credits</span>
-                      </div>
-                    </div>
-
                     <div className="mt-3 rounded border border-[#2a2a2a] bg-[#101010] p-3">
                       <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">Image actions</p>
                       <div className="grid grid-cols-4 gap-2">
@@ -1779,29 +1754,14 @@ export default function PitchDeckEditorPage() {
                               ))}
                             </select>
                           </div>
-                          <div className="mt-2">
-                            <select
-                              value={existingVariantFilter}
-                              onChange={(e) => setExistingVariantFilter(e.target.value)}
-                              className="w-full rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white"
-                              disabled={existingVariantOptions.length === 0}
-                            >
-                              <option value="all">All variants</option>
-                              {existingVariantOptions.map((option) => (
-                                <option key={option.value} value={option.value}>
-                                  {option.label}
-                                </option>
-                              ))}
-                            </select>
-                          </div>
                           <div className="mt-2 flex items-center justify-end">
                             <button
                               type="button"
                               onClick={applyExistingMediaToSlot}
                               disabled={!selectedExistingMedia}
-                              className="rounded border border-[#3F3F46] px-3 py-2 text-sm text-gray-200 hover:bg-white/5 disabled:opacity-40"
+                              className="rounded bg-[#DC143C] px-3 py-2 text-sm font-medium text-white hover:bg-[#b01030] disabled:opacity-50"
                             >
-                              Use Existing (0 credits)
+                              + Add to gallery
                             </button>
                           </div>
                           <div className="mt-2 rounded border border-[#2f2f2f] bg-[#0f0f0f] p-2">
@@ -1912,9 +1872,9 @@ export default function PitchDeckEditorPage() {
                               type="button"
                               onClick={requestGenerateFromPrompt}
                               disabled={uploadingImage || generatingFromPrompt || !promptGenerationText.trim() || !promptGenerationModelId}
-                              className="rounded border border-[#3F3F46] px-3 py-2 text-sm text-gray-200 hover:bg-white/5 disabled:opacity-40"
+                              className="rounded bg-[#DC143C] px-3 py-2 text-sm font-medium text-white hover:bg-[#b01030] disabled:opacity-50"
                             >
-                              {generatingFromPrompt ? 'Generating...' : `Generate (${promptGenerationEstimate} credits est.)`}
+                              {generatingFromPrompt ? 'Generating...' : 'Generate'}
                             </button>
                           </div>
                         </>
@@ -2005,11 +1965,9 @@ export default function PitchDeckEditorPage() {
                                 !referencePromptText.trim() ||
                                 !referenceGenerationModelId
                               }
-                              className="rounded border border-[#3F3F46] px-3 py-2 text-sm text-gray-200 hover:bg-white/5 disabled:opacity-40"
+                              className="rounded bg-[#DC143C] px-3 py-2 text-sm font-medium text-white hover:bg-[#b01030] disabled:opacity-50"
                             >
-                              {generatingFromReference
-                                ? 'Generating...'
-                                : `Generate from Reference (${referenceGenerationEstimate} credits est.)`}
+                              {generatingFromReference ? 'Generating...' : 'Generate from Reference'}
                             </button>
                           </div>
                           <p className="mt-2 text-[11px] text-gray-500">
@@ -2042,7 +2000,6 @@ export default function PitchDeckEditorPage() {
                                   ).trim();
                                   if (!currentImageUrl) {
                                     setImageActionError('Paste an image URL first.');
-                                    addImageAttempt('failed', 'upload', 'Failed: no URL to add to gallery.');
                                     return;
                                   }
                                   appendSlotImageOption({
@@ -2052,9 +2009,8 @@ export default function PitchDeckEditorPage() {
                                   });
                                   setImageActionError(null);
                                   setImageActionNotice('Manual URL added to slot gallery.');
-                                  addImageAttempt('success', 'upload', 'Added manual URL image to slot gallery.');
                                 }}
-                                className="rounded border border-[#3F3F46] px-3 py-2 text-sm text-gray-200 hover:bg-white/5"
+                                className="rounded bg-[#DC143C] px-3 py-2 text-sm font-medium text-white hover:bg-[#b01030] disabled:opacity-50"
                               >
                                 Add URL
                               </button>
@@ -2074,7 +2030,7 @@ export default function PitchDeckEditorPage() {
                             />
                           </div>
                           <p className="mt-1 text-[11px] text-gray-500">
-                            Uploads are added to this slide slot gallery. Credit cost: 0.
+                            Uploads are added to this slide slot gallery.
                           </p>
                         </>
                       ) : null}
@@ -2141,12 +2097,6 @@ export default function PitchDeckEditorPage() {
                     {!saving && saveStatus === 'saved' ? (
                       <span className="text-emerald-300">Saved{savedAt ? ` at ${new Date(savedAt).toLocaleTimeString()}` : ''}</span>
                     ) : null}
-                    {!saving && lastImageCharge ? (
-                      <div className="text-sky-300">
-                        Charged {lastImageCharge.credits} credits ({lastImageCharge.action}) at{' '}
-                        {new Date(lastImageCharge.at).toLocaleTimeString()}
-                      </div>
-                    ) : null}
                   </div>
                   <button
                     onClick={saveSelectedSlide}
@@ -2186,12 +2136,6 @@ export default function PitchDeckEditorPage() {
                 : 'Generate image from reference'}
             </p>
             <div className="mt-3 rounded border border-[#2a2a2a] bg-[#0b0b0b] p-3 text-sm">
-              <div className="flex items-center justify-between text-gray-300">
-                <span>Estimated credits</span>
-                <span className="font-semibold text-white">
-                  {pendingImageAction === 'prompt' ? promptGenerationEstimate : referenceGenerationEstimate}
-                </span>
-              </div>
               <div className="mt-1 flex items-center justify-between text-gray-400">
                 <span>Model</span>
                 <span>
