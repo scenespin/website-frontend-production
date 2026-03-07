@@ -313,3 +313,34 @@ export async function generatePitchDeckImageFromReference(input: {
   };
 }
 
+export async function exportPitchDeckPdf(
+  deckId: string,
+  input: {
+    includeImages?: boolean;
+    watermark?: {
+      enabled?: boolean;
+      text?: string;
+      opacity?: number;
+    };
+  } = {}
+): Promise<{ blob: Blob; fileName: string }> {
+  const response = await fetch(`/api/pitch-decks/${encodeURIComponent(deckId)}/export/pdf`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+    cache: 'no-store',
+  });
+
+  if (!response.ok) {
+    const json = await response.json().catch(() => null);
+    throw new Error(json?.error?.message || 'Failed to export pitch deck PDF');
+  }
+
+  const blob = await response.blob();
+  const contentDisposition = response.headers.get('content-disposition') || '';
+  const fileNameMatch = contentDisposition.match(/filename="?([^"]+)"?/i);
+  const fileName = fileNameMatch?.[1] || 'pitch-deck.pdf';
+
+  return { blob, fileName };
+}
+

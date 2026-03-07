@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import {
+  exportPitchDeckPdf,
   generatePitchDeckImageFromPrompt,
   generatePitchDeckImageFromReference,
   getPitchDeck,
@@ -83,6 +84,12 @@ export default function PitchDeckEditorPage() {
   const [pendingImageAction, setPendingImageAction] = useState<'prompt' | 'reference' | null>(null);
   const [imageAttempts, setImageAttempts] = useState<ImageAttempt[]>([]);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [lastImageCharge, setLastImageCharge] = useState<{ credits: number; action: 'prompt' | 'reference'; at: number } | null>(null);
+  const [exportModalOpen, setExportModalOpen] = useState(false);
+  const [exportingPdf, setExportingPdf] = useState(false);
+  const [exportIncludeImages, setExportIncludeImages] = useState(true);
+  const [exportWatermarkEnabled, setExportWatermarkEnabled] = useState(true);
+  const [exportWatermarkText, setExportWatermarkText] = useState('DRAFT');
 
   const { uploadFile: uploadImageToS3 } = useDirectS3Upload();
 
@@ -156,6 +163,12 @@ export default function PitchDeckEditorPage() {
     if (!selectedSlide?.slideId) return [] as ImageAttempt[];
     return imageAttempts.filter((attempt) => attempt.slideId === selectedSlide.slideId);
   }, [imageAttempts, selectedSlide]);
+
+  useEffect(() => {
+    if (deckStatus !== 'draft' && exportWatermarkText.trim().toUpperCase() === 'DRAFT') {
+      setExportWatermarkEnabled(false);
+    }
+  }, [deckStatus, exportWatermarkText]);
 
   const normalizeImageUrl = (value: unknown): string => {
     if (typeof value !== 'string') return '';
@@ -585,6 +598,9 @@ export default function PitchDeckEditorPage() {
         label: `Prompt result (${promptGenerationModel?.label || promptGenerationModelId})`,
         s3Key: result.s3Key,
       });
+      if (typeof result.creditsDeducted === 'number') {
+        setLastImageCharge({ credits: result.creditsDeducted, action: 'prompt', at: Date.now() });
+      }
       addImageAttempt(
         'success',
         'prompt',
@@ -630,6 +646,9 @@ export default function PitchDeckEditorPage() {
         label: `Reference result (${selectedReferenceMedia.label})`,
         s3Key: result.s3Key,
       });
+      if (typeof result.creditsDeducted === 'number') {
+        setLastImageCharge({ credits: result.creditsDeducted, action: 'reference', at: Date.now() });
+      }
       addImageAttempt(
         'success',
         'reference',
@@ -724,6 +743,35 @@ export default function PitchDeckEditorPage() {
     }
   };
 
+  const handleExportPdf = async () => {
+    if (!deckId) return;
+    setExportingPdf(true);
+    setError(null);
+    try {
+      const { blob, fileName } = await exportPitchDeckPdf(deckId, {
+        includeImages: exportIncludeImages,
+        watermark: {
+          enabled: exportWatermarkEnabled,
+          text: exportWatermarkText.trim() || 'DRAFT',
+          opacity: 0.12,
+        },
+      });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = fileName || 'pitch-deck.pdf';
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      URL.revokeObjectURL(url);
+      setExportModalOpen(false);
+    } catch (err: any) {
+      setError(err?.message || 'Failed to export PDF');
+    } finally {
+      setExportingPdf(false);
+    }
+  };
+
   const goToPreviousSlide = () => {
     if (selectedSlideIndex <= 0) return;
     const prevSlide = slides[selectedSlideIndex - 1];
@@ -797,6 +845,13 @@ export default function PitchDeckEditorPage() {
             </div>
           </div>
           <div className="flex items-center gap-2">
+            <button
+              onClick={() => setExportModalOpen(true)}
+              disabled={exportingPdf}
+              className="rounded border border-[#3F3F46] px-3 py-2 text-sm font-medium text-gray-200 hover:bg-white/5 disabled:opacity-50"
+            >
+              {exportingPdf ? 'Exporting PDF...' : 'Export PDF'}
+            </button>
             <button
               onClick={() =>
                 router.push(`/pitch-decks${deckScreenplayId ? `?screenplayId=${encodeURIComponent(deckScreenplayId)}` : ''}`)
@@ -1184,6 +1239,12 @@ export default function PitchDeckEditorPage() {
                     {!saving && saveStatus === 'saved' ? (
                       <span className="text-emerald-300">Saved{savedAt ? ` at ${new Date(savedAt).toLocaleTimeString()}` : ''}</span>
                     ) : null}
+                    {!saving && lastImageCharge ? (
+                      <div className="text-sky-300">
+                        Charged {lastImageCharge.credits} credits ({lastImageCharge.action}) at{' '}
+                        {new Date(lastImageCharge.at).toLocaleTimeString()}
+                      </div>
+                    ) : null}
                   </div>
                   <button
                     onClick={saveSelectedSlide}
@@ -1245,6 +1306,61 @@ export default function PitchDeckEditorPage() {
                 className="rounded bg-[#DC143C] px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
               >
                 Confirm and Generate
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {exportModalOpen ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
+          <div className="w-full max-w-md rounded border border-[#3F3F46] bg-[#101010] p-4">
+            <h3 className="text-base font-semibold text-white">Export pitch deck PDF</h3>
+            <p className="mt-2 text-sm text-gray-300">
+              Choose what to include in your final PDF export.
+            </p>
+            <div className="mt-4 space-y-3">
+              <label className="flex items-center gap-2 text-sm text-gray-200">
+                <input
+                  type="checkbox"
+                  checked={exportIncludeImages}
+                  onChange={(e) => setExportIncludeImages(e.target.checked)}
+                  className="h-4 w-4"
+                />
+                Include slide images
+              </label>
+              <label className="flex items-center gap-2 text-sm text-gray-200">
+                <input
+                  type="checkbox"
+                  checked={exportWatermarkEnabled}
+                  onChange={(e) => setExportWatermarkEnabled(e.target.checked)}
+                  className="h-4 w-4"
+                />
+                Add watermark
+              </label>
+              <input
+                value={exportWatermarkText}
+                onChange={(e) => setExportWatermarkText(e.target.value)}
+                disabled={!exportWatermarkEnabled}
+                placeholder="Watermark text (e.g., DRAFT, CONFIDENTIAL)"
+                className="w-full rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white disabled:opacity-50"
+              />
+            </div>
+            <div className="mt-4 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setExportModalOpen(false)}
+                className="rounded border border-[#3F3F46] px-3 py-2 text-sm text-gray-200 hover:bg-white/5"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleExportPdf}
+                disabled={exportingPdf}
+                className="rounded bg-[#DC143C] px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
+              >
+                {exportingPdf ? 'Exporting...' : 'Download PDF'}
               </button>
             </div>
           </div>
