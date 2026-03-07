@@ -97,24 +97,42 @@ export const useContextStore = create<ContextStore>()(
           set({ context: initialContext });
         }
         
-        set((state) => ({
-          context: {
-            ...state.context,
-            projectId,
-            projectName,
-            lastUpdated: new Date(),
-          },
-        }));
+        set((state) => {
+          if (
+            state.context.projectId === projectId &&
+            state.context.projectName === projectName
+          ) {
+            return state;
+          }
+
+          return {
+            context: {
+              ...state.context,
+              projectId,
+              projectName,
+              lastUpdated: new Date(),
+            },
+          };
+        });
       },
       
-      setCurrentScene: (sceneId, sceneName) => set((state) => ({
-        context: {
-          ...state.context,
-          currentSceneId: sceneId,
-          currentSceneName: sceneName,
-          lastUpdated: new Date(),
-        },
-      })),
+      setCurrentScene: (sceneId, sceneName) => set((state) => {
+        if (
+          state.context.currentSceneId === sceneId &&
+          state.context.currentSceneName === sceneName
+        ) {
+          return state;
+        }
+
+        return {
+          context: {
+            ...state.context,
+            currentSceneId: sceneId,
+            currentSceneName: sceneName,
+            lastUpdated: new Date(),
+          },
+        };
+      }),
       
       setCurrentBeat: (beatId, beatName) => set((state) => ({
         context: {
@@ -134,14 +152,23 @@ export const useContextStore = create<ContextStore>()(
         },
       })),
       
-      setCursorPosition: (position, line) => set((state) => ({
-        context: {
-          ...state.context,
-          cursorPosition: position,
-          cursorLine: line,
-          lastUpdated: new Date(),
-        },
-      })),
+      setCursorPosition: (position, line) => set((state) => {
+        if (
+          state.context.cursorPosition === position &&
+          state.context.cursorLine === line
+        ) {
+          return state;
+        }
+
+        return {
+          context: {
+            ...state.context,
+            cursorPosition: position,
+            cursorLine: line,
+            lastUpdated: new Date(),
+          },
+        };
+      }),
       
       clearContext: () => set({ context: initialContext }),
       
