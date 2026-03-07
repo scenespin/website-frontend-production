@@ -27,6 +27,8 @@ type ExistingMediaItem = {
   imageUrl: string;
 };
 
+type ImageGenerationMode = 'prompt' | 'reference';
+
 type SlotImageOption = {
   id: string;
   imageUrl: string;
@@ -72,6 +74,7 @@ export default function PitchDeckEditorPage() {
   const [promptGenerationModelId, setPromptGenerationModelId] = useState('flux2-pro-2k');
   const [referencePromptText, setReferencePromptText] = useState('');
   const [referenceMediaId, setReferenceMediaId] = useState('');
+  const [imageGenerationMode, setImageGenerationMode] = useState<ImageGenerationMode>('prompt');
   const [generatingFromPrompt, setGeneratingFromPrompt] = useState(false);
   const [generatingFromReference, setGeneratingFromReference] = useState(false);
   const [imageActionError, setImageActionError] = useState<string | null>(null);
@@ -154,6 +157,45 @@ export default function PitchDeckEditorPage() {
     return imageAttempts.filter((attempt) => attempt.slideId === selectedSlide.slideId);
   }, [imageAttempts, selectedSlide]);
 
+  const normalizeImageUrl = (value: unknown): string => {
+    if (typeof value !== 'string') return '';
+    const trimmed = value.trim();
+    if (!trimmed) return '';
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('data:image/')) {
+      return trimmed;
+    }
+    return '';
+  };
+
+  const collectImageUrlsFromUnknown = (value: unknown): string[] => {
+    const direct = normalizeImageUrl(value);
+    if (direct) return [direct];
+    if (Array.isArray(value)) {
+      return value.flatMap((entry) => collectImageUrlsFromUnknown(entry));
+    }
+    if (!value || typeof value !== 'object') return [];
+    const objectValue = value as Record<string, unknown>;
+    const candidateKeys = [
+      'imageUrl',
+      'url',
+      'thumbnailUrl',
+      'previewUrl',
+      'sourceImageUrl',
+      'originalImageUrl',
+      'portraitUrl',
+      'headshotUrl',
+    ];
+    const urls = candidateKeys
+      .map((key) => normalizeImageUrl(objectValue[key]))
+      .filter(Boolean);
+    return urls;
+  };
+
+  const extractEntityImageUrls = (entity: Record<string, unknown>, fields: string[]): string[] => {
+    const urls = fields.flatMap((field) => collectImageUrlsFromUnknown(entity[field]));
+    return Array.from(new Set(urls));
+  };
+
   useEffect(() => {
     if (!deckId || !featureEnabled) return;
 
@@ -194,9 +236,9 @@ export default function PitchDeckEditorPage() {
       setExistingMediaError(null);
       try {
         const [charactersRes, locationsRes, propsRes] = await Promise.all([
-          fetch(`/api/screenplays/${encodeURIComponent(deckScreenplayId)}/characters?context=creation`, { cache: 'no-store' }),
-          fetch(`/api/screenplays/${encodeURIComponent(deckScreenplayId)}/locations?context=creation`, { cache: 'no-store' }),
-          fetch(`/api/asset-bank?screenplayId=${encodeURIComponent(deckScreenplayId)}&context=creation`, { cache: 'no-store' }),
+          fetch(`/api/screenplays/${encodeURIComponent(deckScreenplayId)}/characters`, { cache: 'no-store' }),
+          fetch(`/api/screenplays/${encodeURIComponent(deckScreenplayId)}/locations`, { cache: 'no-store' }),
+          fetch(`/api/asset-bank?screenplayId=${encodeURIComponent(deckScreenplayId)}`, { cache: 'no-store' }),
         ]);
 
         const [charactersJson, locationsJson, propsJson] = await Promise.all([
@@ -208,19 +250,28 @@ export default function PitchDeckEditorPage() {
         const collected: ExistingMediaItem[] = [];
         const seen = new Set<string>();
         const pushMedia = (item: ExistingMediaItem) => {
-          if (!item.imageUrl || seen.has(item.imageUrl)) return;
-          seen.add(item.imageUrl);
+          const dedupeKey = `${item.sourceType}:${item.imageUrl}`;
+          if (!item.imageUrl || seen.has(dedupeKey)) return;
+          seen.add(dedupeKey);
           collected.push(item);
         };
 
         const characters = (charactersJson?.data?.characters || []) as any[];
         characters.forEach((character) => {
           const name = String(character?.name || 'Character');
-          const images = Array.isArray(character?.images) ? character.images : [];
-          images.forEach((img: any, index: number) => {
-            const imageUrl = String(img?.imageUrl || img?.url || '');
+          const characterId = String(character?.character_id || character?.id || name);
+          const imageUrls = extractEntityImageUrls(character as Record<string, unknown>, [
+            'images',
+            'referenceImages',
+            'poseReferences',
+            'angleReferences',
+            'media',
+            'portrait',
+            'headshot',
+          ]);
+          imageUrls.forEach((imageUrl, index) => {
             pushMedia({
-              id: `character:${character?.character_id || name}:${index}`,
+              id: `character:${characterId}:${index}`,
               label: `Character - ${name}${index > 0 ? ` (${index + 1})` : ''}`,
               sourceType: 'character',
               imageUrl,
@@ -231,11 +282,18 @@ export default function PitchDeckEditorPage() {
         const locations = (locationsJson?.data?.locations || []) as any[];
         locations.forEach((location) => {
           const name = String(location?.name || 'Location');
-          const images = Array.isArray(location?.images) ? location.images : [];
-          images.forEach((img: any, index: number) => {
-            const imageUrl = String(img?.imageUrl || img?.url || '');
+          const locationId = String(location?.location_id || location?.id || name);
+          const imageUrls = extractEntityImageUrls(location as Record<string, unknown>, [
+            'images',
+            'referenceImages',
+            'baseReference',
+            'angleVariations',
+            'backgrounds',
+            'media',
+          ]);
+          imageUrls.forEach((imageUrl, index) => {
             pushMedia({
-              id: `location:${location?.location_id || name}:${index}`,
+              id: `location:${locationId}:${index}`,
               label: `Location - ${name}${index > 0 ? ` (${index + 1})` : ''}`,
               sourceType: 'location',
               imageUrl,
@@ -246,11 +304,16 @@ export default function PitchDeckEditorPage() {
         const props = (propsJson?.assets || []) as any[];
         props.forEach((prop) => {
           const name = String(prop?.name || 'Prop');
-          const images = Array.isArray(prop?.images) ? prop.images : [];
-          images.forEach((img: any, index: number) => {
-            const imageUrl = String(img?.imageUrl || img?.url || '');
+          const propId = String(prop?.id || name);
+          const imageUrls = extractEntityImageUrls(prop as Record<string, unknown>, [
+            'images',
+            'referenceImages',
+            'angleReferences',
+            'media',
+          ]);
+          imageUrls.forEach((imageUrl, index) => {
             pushMedia({
-              id: `prop:${prop?.id || name}:${index}`,
+              id: `prop:${propId}:${index}`,
               label: `Prop - ${name}${index > 0 ? ` (${index + 1})` : ''}`,
               sourceType: 'prop',
               imageUrl,
@@ -966,86 +1029,100 @@ export default function PitchDeckEditorPage() {
                     </div>
 
                     <div className="mt-3 rounded border border-[#2a2a2a] bg-[#101010] p-3">
-                      <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">Generate from prompt</p>
-                      <textarea
-                        value={promptGenerationText}
-                        onChange={(e) => setPromptGenerationText(e.target.value)}
-                        rows={3}
-                        placeholder="Describe the image you want for this slide..."
-                        className="w-full rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white"
-                      />
-                      <div className="mt-2 flex flex-col md:flex-row gap-2">
-                        <select
-                          value={promptGenerationModelId}
-                          onChange={(e) => setPromptGenerationModelId(e.target.value)}
-                          className="flex-1 rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white"
-                          disabled={imageModelsLoading || imageModels.length === 0}
-                        >
-                          {imageModels.length === 0 ? (
-                            <option value="">
-                              {imageModelsLoading ? 'Loading models...' : 'No models found'}
-                            </option>
-                          ) : (
-                            imageModels.map((model) => (
-                              <option key={model.id} value={model.id}>
-                                {model.label || model.id} ({model.creditsPerImage} credits)
-                              </option>
-                            ))
-                          )}
-                        </select>
-                        <button
-                          type="button"
-                          onClick={requestGenerateFromPrompt}
-                          disabled={uploadingImage || generatingFromPrompt || !promptGenerationText.trim() || !promptGenerationModelId}
-                          className="rounded border border-[#3F3F46] px-3 py-2 text-sm text-gray-200 hover:bg-white/5 disabled:opacity-40"
-                        >
-                          {generatingFromPrompt ? 'Generating...' : `Generate (${promptGenerationEstimate} credits est.)`}
-                        </button>
-                      </div>
-                      {imageModelsError ? <p className="mt-2 text-xs text-red-300">{imageModelsError}</p> : null}
-                    </div>
-
-                    <div className="mt-3 rounded border border-[#2a2a2a] bg-[#101010] p-3">
-                      <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">Generate from reference image</p>
+                      <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">Generate with AI</p>
                       <div className="flex flex-col md:flex-row gap-2">
                         <select
-                          value={referenceMediaId}
-                          onChange={(e) => setReferenceMediaId(e.target.value)}
-                          className="flex-1 rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white"
-                          disabled={existingMediaLoading || existingMedia.length === 0}
+                          value={imageGenerationMode}
+                          onChange={(e) => setImageGenerationMode(e.target.value as ImageGenerationMode)}
+                          className="md:w-64 rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white"
                         >
-                          {existingMedia.length === 0 ? (
-                            <option value="">
-                              {existingMediaLoading ? 'Loading screenplay images...' : 'No screenplay images found'}
-                            </option>
-                          ) : (
-                            existingMedia.map((item) => (
-                              <option key={item.id} value={item.id}>
-                                {item.label}
-                              </option>
-                            ))
-                          )}
+                          <option value="prompt">Text Prompt</option>
+                          <option value="reference">Reference + Prompt</option>
                         </select>
                       </div>
-                      <textarea
-                        value={referencePromptText}
-                        onChange={(e) => setReferencePromptText(e.target.value)}
-                        rows={2}
-                        placeholder="Describe how to transform the reference image..."
-                        className="mt-2 w-full rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white"
-                      />
-                      <div className="mt-2 flex items-center justify-end">
-                        <button
-                          type="button"
-                          onClick={requestGenerateFromReference}
-                          disabled={uploadingImage || generatingFromReference || !selectedReferenceMedia || !referencePromptText.trim()}
-                          className="rounded border border-[#3F3F46] px-3 py-2 text-sm text-gray-200 hover:bg-white/5 disabled:opacity-40"
-                        >
-                          {generatingFromReference
-                            ? 'Generating...'
-                            : `Generate from Reference (${referenceGenerationEstimate} credits est.)`}
-                        </button>
-                      </div>
+
+                      {imageGenerationMode === 'prompt' ? (
+                        <>
+                          <textarea
+                            value={promptGenerationText}
+                            onChange={(e) => setPromptGenerationText(e.target.value)}
+                            rows={3}
+                            placeholder="Describe the image you want for this slide..."
+                            className="mt-2 w-full rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white"
+                          />
+                          <div className="mt-2 flex flex-col md:flex-row gap-2">
+                            <select
+                              value={promptGenerationModelId}
+                              onChange={(e) => setPromptGenerationModelId(e.target.value)}
+                              className="flex-1 rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white"
+                              disabled={imageModelsLoading || imageModels.length === 0}
+                            >
+                              {imageModels.length === 0 ? (
+                                <option value="">
+                                  {imageModelsLoading ? 'Loading models...' : 'No models found'}
+                                </option>
+                              ) : (
+                                imageModels.map((model) => (
+                                  <option key={model.id} value={model.id}>
+                                    {model.label || model.id} ({model.creditsPerImage} credits)
+                                  </option>
+                                ))
+                              )}
+                            </select>
+                            <button
+                              type="button"
+                              onClick={requestGenerateFromPrompt}
+                              disabled={uploadingImage || generatingFromPrompt || !promptGenerationText.trim() || !promptGenerationModelId}
+                              className="rounded border border-[#3F3F46] px-3 py-2 text-sm text-gray-200 hover:bg-white/5 disabled:opacity-40"
+                            >
+                              {generatingFromPrompt ? 'Generating...' : `Generate (${promptGenerationEstimate} credits est.)`}
+                            </button>
+                          </div>
+                        </>
+                      ) : (
+                        <>
+                          <div className="mt-2 flex flex-col md:flex-row gap-2">
+                            <select
+                              value={referenceMediaId}
+                              onChange={(e) => setReferenceMediaId(e.target.value)}
+                              className="flex-1 rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white"
+                              disabled={existingMediaLoading || existingMedia.length === 0}
+                            >
+                              {existingMedia.length === 0 ? (
+                                <option value="">
+                                  {existingMediaLoading ? 'Loading screenplay images...' : 'No screenplay images found'}
+                                </option>
+                              ) : (
+                                existingMedia.map((item) => (
+                                  <option key={item.id} value={item.id}>
+                                    {item.label}
+                                  </option>
+                                ))
+                              )}
+                            </select>
+                          </div>
+                          <textarea
+                            value={referencePromptText}
+                            onChange={(e) => setReferencePromptText(e.target.value)}
+                            rows={2}
+                            placeholder="Describe how to transform the reference image..."
+                            className="mt-2 w-full rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white"
+                          />
+                          <div className="mt-2 flex items-center justify-end">
+                            <button
+                              type="button"
+                              onClick={requestGenerateFromReference}
+                              disabled={uploadingImage || generatingFromReference || !selectedReferenceMedia || !referencePromptText.trim()}
+                              className="rounded border border-[#3F3F46] px-3 py-2 text-sm text-gray-200 hover:bg-white/5 disabled:opacity-40"
+                            >
+                              {generatingFromReference
+                                ? 'Generating...'
+                                : `Generate from Reference (${referenceGenerationEstimate} credits est.)`}
+                            </button>
+                          </div>
+                        </>
+                      )}
+                      {imageModelsError ? <p className="mt-2 text-xs text-red-300">{imageModelsError}</p> : null}
                     </div>
 
                     {uploadingImage ? <p className="mt-2 text-xs text-gray-300">Uploading image...</p> : null}

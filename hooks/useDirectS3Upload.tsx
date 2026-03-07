@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useCallback } from 'react';
+import { useAuth } from '@clerk/nextjs';
 
 export interface DirectS3UploadOptions {
   file: File;
@@ -48,6 +49,7 @@ export interface DirectS3UploadState {
  * ```
  */
 export function useDirectS3Upload() {
+  const { getToken } = useAuth();
   const [state, setState] = useState<DirectS3UploadState>({
     isUploading: false,
     progress: 0,
@@ -77,8 +79,19 @@ export function useDirectS3Upload() {
         `&fileType=${encodeURIComponent(file.type)}` +
         `&fileSize=${file.size}` +
         `&projectId=${encodeURIComponent(projectId)}`;
-      
-      const presignedResponse = await fetch(presignedUrl);
+
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) {
+        throw new Error('Authentication required. Please sign in again.');
+      }
+
+      const presignedResponse = await fetch(presignedUrl, {
+        method: 'GET',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+        cache: 'no-store',
+      });
       
       if (!presignedResponse.ok) {
         if (presignedResponse.status === 413) {
@@ -188,7 +201,7 @@ export function useDirectS3Upload() {
       
       throw error;
     }
-  }, []);
+  }, [getToken]);
 
   const reset = useCallback(() => {
     setState({ isUploading: false, progress: 0, error: null, s3Url: null, s3Key: null });
