@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { generatePitchDeckDraft, type PitchDeckTextMode, type PitchDeckType } from '@/utils/pitchDeckStorage';
 import { EditorSubNav } from '@/components/editor/EditorSubNav';
@@ -16,7 +16,7 @@ function isFeatureEnabled(): boolean {
   return process.env.NEXT_PUBLIC_ENABLE_PITCH_DECK_V1 === 'true';
 }
 
-export default function PitchDeckCreatePage() {
+function PitchDeckCreatePageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [screenplayId, setScreenplayId] = useState('');
@@ -213,6 +213,21 @@ export default function PitchDeckCreatePage() {
         </div>
       </main>
     </>
+  );
+}
+
+export default function PitchDeckCreatePage() {
+  return (
+    <Suspense
+      fallback={
+        <main className="p-8">
+          <h1 className="text-2xl font-semibold text-white">Create Pitch Deck</h1>
+          <p className="mt-2 text-sm text-gray-400">Loading...</p>
+        </main>
+      }
+    >
+      <PitchDeckCreatePageContent />
+    </Suspense>
   );
 }
 
