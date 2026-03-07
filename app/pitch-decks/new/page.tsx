@@ -2,7 +2,13 @@
 
 import { Suspense, useEffect, useMemo, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { generatePitchDeckDraft, type PitchDeckTextMode, type PitchDeckType } from '@/utils/pitchDeckStorage';
+import {
+  estimatePitchDeckCost,
+  generatePitchDeckDraft,
+  type PitchDeckCostEstimate,
+  type PitchDeckTextMode,
+  type PitchDeckType,
+} from '@/utils/pitchDeckStorage';
 import { EditorSubNav } from '@/components/editor/EditorSubNav';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 
@@ -20,6 +26,9 @@ function PitchDeckCreatePageContent() {
   const [includeBusinessSlides, setIncludeBusinessSlides] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [estimate, setEstimate] = useState<PitchDeckCostEstimate | null>(null);
+  const [estimating, setEstimating] = useState(false);
+  const [estimateError, setEstimateError] = useState<string | null>(null);
   const [screenplayTitle, setScreenplayTitle] = useState<string>('');
 
   const featureEnabled = isFeatureEnabled();
@@ -53,6 +62,38 @@ function PitchDeckCreatePageContent() {
       cancelled = true;
     };
   }, [currentScreenplayId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    const loadEstimate = async () => {
+      if (!currentScreenplayId) {
+        setEstimate(null);
+        return;
+      }
+      setEstimating(true);
+      setEstimateError(null);
+      try {
+        const result = await estimatePitchDeckCost({
+          screenplayId: currentScreenplayId,
+          deckType,
+          textMode,
+          includeBusinessSlides,
+        });
+        if (!cancelled) setEstimate(result);
+      } catch (err: any) {
+        if (!cancelled) {
+          setEstimate(null);
+          setEstimateError(err.message || 'Failed to estimate credits');
+        }
+      } finally {
+        if (!cancelled) setEstimating(false);
+      }
+    };
+    void loadEstimate();
+    return () => {
+      cancelled = true;
+    };
+  }, [currentScreenplayId, deckType, textMode, includeBusinessSlides]);
 
   const onCreate = async () => {
     setError(null);
@@ -138,6 +179,31 @@ function PitchDeckCreatePageContent() {
               value={templateId}
               onChange={(e) => setTemplateId(e.target.value)}
             />
+          </div>
+
+          <div className="rounded border border-[#3F3F46] bg-[#111] px-3 py-2">
+            <div className="flex items-center justify-between gap-3">
+              <div className="text-sm text-gray-300">Estimated credits</div>
+              {estimating ? (
+                <span className="text-xs text-gray-400">Calculating...</span>
+              ) : (
+                <span className="text-sm font-semibold text-white">
+                  {estimate?.estimate?.totalCredits ?? 0} credits
+                </span>
+              )}
+            </div>
+            {estimateError ? <p className="mt-1 text-xs text-red-300">{estimateError}</p> : null}
+            {estimate?.estimate?.breakdown?.length ? (
+              <div className="mt-2 space-y-1">
+                {estimate.estimate.breakdown.map((item) => (
+                  <div key={item.key} className="flex items-center justify-between text-xs text-gray-400">
+                    <span>{item.label}</span>
+                    <span>{item.credits}</span>
+                  </div>
+                ))}
+              </div>
+            ) : null}
+            {estimate?.note ? <p className="mt-2 text-[11px] text-gray-500">{estimate.note}</p> : null}
           </div>
 
           <div className="flex items-center justify-between gap-4 pt-2">

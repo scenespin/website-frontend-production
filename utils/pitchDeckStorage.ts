@@ -33,6 +33,23 @@ export interface PitchDeck {
   updatedAt?: string;
 }
 
+export interface PitchDeckCostEstimate {
+  screenplayId: string;
+  deckType: PitchDeckType;
+  textMode: PitchDeckTextMode;
+  includeBusinessSlides: boolean;
+  estimate: {
+    currency: 'credits';
+    totalCredits: number;
+    breakdown: Array<{
+      key: string;
+      label: string;
+      credits: number;
+    }>;
+  };
+  note?: string;
+}
+
 function unwrapResponse<T>(payload: any): T {
   if (!payload?.success) {
     const message = payload?.error?.message || 'Request failed';
@@ -59,6 +76,26 @@ export async function generatePitchDeckDraft(input: {
   const json = await response.json();
   if (!response.ok) {
     throw new Error(json?.error?.message || 'Failed to generate pitch deck draft');
+  }
+  return unwrapResponse(json);
+}
+
+export async function estimatePitchDeckCost(input: {
+  screenplayId: string;
+  deckType: PitchDeckType;
+  textMode: PitchDeckTextMode;
+  includeBusinessSlides?: boolean;
+}): Promise<PitchDeckCostEstimate> {
+  const response = await fetch('/api/pitch-decks/estimate-cost', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+    cache: 'no-store',
+  });
+
+  const json = await response.json();
+  if (!response.ok) {
+    throw new Error(json?.error?.message || 'Failed to estimate pitch deck cost');
   }
   return unwrapResponse(json);
 }
