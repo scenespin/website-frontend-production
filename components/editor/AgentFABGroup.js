@@ -103,6 +103,7 @@ export default function AgentFABGroup({
       >
         {/* Rewrite FAB - Always visible (works with or without text selection) */}
         <motion.button
+          data-editor-preserve-selection="true"
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -148,6 +149,7 @@ export default function AgentFABGroup({
 
         {/* Screenwriter FAB */}
         <motion.button
+          data-editor-preserve-selection="true"
           onClick={(e) => {
             e.preventDefault();
             e.stopPropagation();
@@ -183,6 +185,7 @@ export default function AgentFABGroup({
         {/* Wryda Tab FAB - Top of stack */}
         {onWrydaTabClick && (
           <motion.button
+            data-editor-preserve-selection="true"
             onClick={(e) => {
               e.preventDefault();
               e.stopPropagation();

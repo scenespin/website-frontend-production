@@ -899,8 +899,12 @@ export default function FountainEditor({
                     onSelect={handleSelectionChange}
                     onClick={handleSelectionChange}
                     onPointerUp={selection.handlers.onPointerUp}
-                    onBlur={() => {
+                    onBlur={(e) => {
                         if (isSettingHighlightRef.current) return;
+                        const nextTarget = e.relatedTarget as HTMLElement | null;
+                        if (nextTarget?.closest('[data-editor-preserve-selection="true"]')) {
+                            return;
+                        }
                         const ta = textareaRef.current;
                         if (!ta) return;
                         const cursorPos = ta.selectionStart;
