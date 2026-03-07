@@ -53,6 +53,7 @@ export function useEditorSelection(
     // Solution 6: Ref storage for immediate access (no React state delay)
     const selectionRef = useRef<{ start: number; end: number; text: string } | null>(null);
     const lastCaptureRef = useRef<{ start: number; end: number; at: number } | null>(null);
+    const lastAppliedSelectionRef = useRef<{ start: number; end: number } | null>(null);
     
     // Toolbar state
     const [showSelectionToolbar, setShowSelectionToolbar] = useState(false);
@@ -79,8 +80,16 @@ export function useEditorSelection(
             return;
         }
         lastCaptureRef.current = { start, end, at: now };
-        
-        console.log('[useEditorSelection] Selection captured - selection:', { start, end, length: end - start });
+
+        // Skip redundant updates when selection range is unchanged.
+        if (
+            lastAppliedSelectionRef.current &&
+            lastAppliedSelectionRef.current.start === start &&
+            lastAppliedSelectionRef.current.end === end
+        ) {
+            return;
+        }
+        lastAppliedSelectionRef.current = { start, end };
         
         // Update EditorContext with current selection
         setSelection(start, end);
@@ -102,8 +111,6 @@ export function useEditorSelection(
             setSelectedText(selected);
             setSelectionStart(start);
             setSelectionEnd(end);
-            
-            console.log('[useEditorSelection] Text selected:', selected.substring(0, 50) + '...');
             
             // Calculate toolbar position based on selection
             const rect = textareaRef.current.getBoundingClientRect();
@@ -164,6 +171,7 @@ export function useEditorSelection(
 
         selectionRef.current = null;
         lastCaptureRef.current = null;
+        lastAppliedSelectionRef.current = null;
         setSelectedText('');
         setSelectionStart(0);
         setSelectionEnd(0);
