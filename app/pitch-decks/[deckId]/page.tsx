@@ -275,7 +275,8 @@ export default function PitchDeckEditorPage() {
   const [existingMediaError, setExistingMediaError] = useState<string | null>(null);
   const [selectedExistingMediaId, setSelectedExistingMediaId] = useState('');
   const [existingSourceFilter, setExistingSourceFilter] = useState<ExistingMediaSourceFilter>('all');
-  const [existingGroupFilter, setExistingGroupFilter] = useState('all');
+  const [existingEntityFilter, setExistingEntityFilter] = useState('all');
+  const [existingVariantFilter, setExistingVariantFilter] = useState('all');
   const [imageModels, setImageModels] = useState<PitchDeckImageModel[]>([]);
   const [imageModelsLoading, setImageModelsLoading] = useState(false);
   const [imageModelsError, setImageModelsError] = useState<string | null>(null);
@@ -386,25 +387,48 @@ export default function PitchDeckEditorPage() {
     if (!selectedSlide?.slideId) return [] as ImageAttempt[];
     return imageAttempts.filter((attempt) => attempt.slideId === selectedSlide.slideId);
   }, [imageAttempts, selectedSlide]);
-  const filteredExistingMedia = useMemo(() => {
-    const sourceFiltered =
+  const sourceScopedExistingMedia = useMemo(
+    () =>
       existingSourceFilter === 'all'
         ? existingMedia
-        : existingMedia.filter((item) => item.sourceType === existingSourceFilter);
-    if (existingGroupFilter === 'all') return sourceFiltered;
-    return sourceFiltered.filter((item) => item.groupKey === existingGroupFilter);
-  }, [existingMedia, existingSourceFilter, existingGroupFilter]);
-  const existingGroupOptions = useMemo(() => {
-    const sourceFiltered =
-      existingSourceFilter === 'all'
-        ? existingMedia
-        : existingMedia.filter((item) => item.sourceType === existingSourceFilter);
+        : existingMedia.filter((item) => item.sourceType === existingSourceFilter),
+    [existingMedia, existingSourceFilter]
+  );
+  const existingEntityOptions = useMemo(() => {
     const map = new Map<string, string>();
-    sourceFiltered.forEach((item) => {
+    sourceScopedExistingMedia.forEach((item) => {
+      const entityFilterKey = `${item.sourceType}:${item.entityId}`;
+      if (map.has(entityFilterKey)) return;
+      const sourcePrefix =
+        existingSourceFilter === 'all'
+          ? `${item.sourceType.charAt(0).toUpperCase()}${item.sourceType.slice(1)} - `
+          : '';
+      map.set(entityFilterKey, `${sourcePrefix}${item.entityName}`);
+    });
+    return Array.from(map.entries())
+      .map(([value, label]) => ({ value, label }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [sourceScopedExistingMedia, existingSourceFilter]);
+  const entityScopedExistingMedia = useMemo(
+    () =>
+      existingEntityFilter === 'all'
+        ? sourceScopedExistingMedia
+        : sourceScopedExistingMedia.filter((item) => `${item.sourceType}:${item.entityId}` === existingEntityFilter),
+    [sourceScopedExistingMedia, existingEntityFilter]
+  );
+  const existingVariantOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    entityScopedExistingMedia.forEach((item) => {
       if (!map.has(item.groupKey)) map.set(item.groupKey, item.groupLabel);
     });
-    return Array.from(map.entries()).map(([value, label]) => ({ value, label }));
-  }, [existingMedia, existingSourceFilter]);
+    return Array.from(map.entries())
+      .map(([value, label]) => ({ value, label }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [entityScopedExistingMedia]);
+  const filteredExistingMedia = useMemo(() => {
+    if (existingVariantFilter === 'all') return entityScopedExistingMedia;
+    return entityScopedExistingMedia.filter((item) => item.groupKey === existingVariantFilter);
+  }, [entityScopedExistingMedia, existingVariantFilter]);
 
   useEffect(() => {
     if (deckStatus !== 'draft' && exportWatermarkText.trim().toUpperCase() === 'DRAFT') {
@@ -446,8 +470,6 @@ export default function PitchDeckEditorPage() {
     const candidateKeys = [
       'imageUrl',
       'url',
-      'thumbnailUrl',
-      'previewUrl',
       'sourceImageUrl',
       'originalImageUrl',
       'portraitUrl',
@@ -560,8 +582,12 @@ export default function PitchDeckEditorPage() {
       setExistingMediaError(null);
       try {
         const [charactersRes, locationsRes, propsRes] = await Promise.all([
-          fetch(`/api/screenplays/${encodeURIComponent(deckScreenplayId)}/characters`, { cache: 'no-store' }),
-          fetch(`/api/screenplays/${encodeURIComponent(deckScreenplayId)}/locations`, { cache: 'no-store' }),
+          fetch(`/api/screenplays/${encodeURIComponent(deckScreenplayId)}/characters?context=production-hub`, {
+            cache: 'no-store',
+          }),
+          fetch(`/api/screenplays/${encodeURIComponent(deckScreenplayId)}/locations?context=production-hub`, {
+            cache: 'no-store',
+          }),
           fetch(`/api/asset-bank?screenplayId=${encodeURIComponent(deckScreenplayId)}`, { cache: 'no-store' }),
         ]);
 
@@ -594,15 +620,15 @@ export default function PitchDeckEditorPage() {
             'headshot',
           ]);
           imageCandidates.forEach((candidate, index) => {
-            const outfitLabel = candidate.outfitName || 'All Outfits';
+            const outfitLabel = candidate.outfitName || 'Creation';
             pushMedia({
               id: `character:${characterId}:${index}`,
               label: `Character - ${name}${candidate.outfitName ? ` • ${candidate.outfitName}` : ''}${index > 0 ? ` (${index + 1})` : ''}`,
               sourceType: 'character',
               entityId: characterId,
               entityName: name,
-              groupKey: `character:${characterId}:${outfitLabel.toLowerCase()}`,
-              groupLabel: `${name} • ${outfitLabel}`,
+              groupKey: `outfit:${outfitLabel.toLowerCase()}`,
+              groupLabel: `Outfit: ${outfitLabel}`,
               outfitName: candidate.outfitName,
               imageUrl: candidate.imageUrl,
             });
@@ -622,23 +648,24 @@ export default function PitchDeckEditorPage() {
             'media',
           ]);
           imageCandidates.forEach((candidate, index) => {
-            const groupLabel =
+            const variantLabel =
               candidate.useCase === 'extreme-closeup'
-                ? 'Extreme close-ups'
+                ? 'Extreme close-up'
                 : candidate.backgroundType
-                  ? 'Backgrounds'
-                  : candidate.angle || candidate.sourceHint?.toLowerCase().includes('angle')
-                    ? 'Angles'
-                    : 'Creation Image';
-            const detail = candidate.angle || candidate.backgroundType || '';
+                  ? `Background: ${candidate.backgroundType}`
+                  : candidate.angle
+                    ? `Angle: ${candidate.angle}`
+                    : candidate.sourceHint?.toLowerCase().includes('angle')
+                      ? 'Angle'
+                      : 'Creation';
             pushMedia({
               id: `location:${locationId}:${index}`,
-              label: `Location - ${name} • ${groupLabel}${detail ? ` (${detail})` : ''}${index > 0 ? ` (${index + 1})` : ''}`,
+              label: `Location - ${name} • ${variantLabel}${index > 0 ? ` (${index + 1})` : ''}`,
               sourceType: 'location',
               entityId: locationId,
               entityName: name,
-              groupKey: `location:${locationId}:${groupLabel.toLowerCase()}`,
-              groupLabel: `${name} • ${groupLabel}`,
+              groupKey: `variant:${variantLabel.toLowerCase()}`,
+              groupLabel: variantLabel,
               angle: candidate.angle,
               backgroundType: candidate.backgroundType,
               imageUrl: candidate.imageUrl,
@@ -663,8 +690,8 @@ export default function PitchDeckEditorPage() {
               sourceType: 'prop',
               entityId: propId,
               entityName: name,
-              groupKey: `prop:${propId}:all`,
-              groupLabel: `${name} • All`,
+              groupKey: 'variant:all',
+              groupLabel: 'All',
               imageUrl: candidate.imageUrl,
             });
           });
@@ -717,10 +744,16 @@ export default function PitchDeckEditorPage() {
   }, [deckScreenplayId, featureEnabled]);
 
   useEffect(() => {
-    if (existingGroupFilter === 'all') return;
-    const exists = existingGroupOptions.some((option) => option.value === existingGroupFilter);
-    if (!exists) setExistingGroupFilter('all');
-  }, [existingGroupFilter, existingGroupOptions]);
+    if (existingEntityFilter === 'all') return;
+    const exists = existingEntityOptions.some((option) => option.value === existingEntityFilter);
+    if (!exists) setExistingEntityFilter('all');
+  }, [existingEntityFilter, existingEntityOptions]);
+
+  useEffect(() => {
+    if (existingVariantFilter === 'all') return;
+    const exists = existingVariantOptions.some((option) => option.value === existingVariantFilter);
+    if (!exists) setExistingVariantFilter('all');
+  }, [existingVariantFilter, existingVariantOptions]);
 
   useEffect(() => {
     if (filteredExistingMedia.length === 0) {
@@ -1592,7 +1625,8 @@ export default function PitchDeckEditorPage() {
                           value={existingSourceFilter}
                           onChange={(e) => {
                             setExistingSourceFilter(e.target.value as ExistingMediaSourceFilter);
-                            setExistingGroupFilter('all');
+                            setExistingEntityFilter('all');
+                            setExistingVariantFilter('all');
                           }}
                           className="rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white"
                         >
@@ -1602,13 +1636,31 @@ export default function PitchDeckEditorPage() {
                           <option value="prop">Props</option>
                         </select>
                         <select
-                          value={existingGroupFilter}
-                          onChange={(e) => setExistingGroupFilter(e.target.value)}
+                          value={existingEntityFilter}
+                          onChange={(e) => {
+                            setExistingEntityFilter(e.target.value);
+                            setExistingVariantFilter('all');
+                          }}
                           className="rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white"
-                          disabled={existingGroupOptions.length === 0}
+                          disabled={existingEntityOptions.length === 0}
                         >
-                          <option value="all">All groups</option>
-                          {existingGroupOptions.map((option) => (
+                          <option value="all">All {existingSourceFilter === 'all' ? 'entities' : existingSourceFilter + 's'}</option>
+                          {existingEntityOptions.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="mb-2">
+                        <select
+                          value={existingVariantFilter}
+                          onChange={(e) => setExistingVariantFilter(e.target.value)}
+                          className="w-full rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white"
+                          disabled={existingVariantOptions.length === 0}
+                        >
+                          <option value="all">All variants</option>
+                          {existingVariantOptions.map((option) => (
                             <option key={option.value} value={option.value}>
                               {option.label}
                             </option>
@@ -1654,7 +1706,7 @@ export default function PitchDeckEditorPage() {
                             <div className="min-w-0">
                               <p className="truncate text-xs text-white">{selectedExistingMedia.label}</p>
                               <p className="truncate text-[11px] text-gray-500">
-                                {selectedExistingMedia.sourceType} • {selectedExistingMedia.groupLabel}
+                                {selectedExistingMedia.sourceType} • {selectedExistingMedia.entityName} • {selectedExistingMedia.groupLabel}
                               </p>
                             </div>
                           </div>
@@ -1747,7 +1799,7 @@ export default function PitchDeckEditorPage() {
                                 <div className="min-w-0">
                                   <p className="truncate text-xs text-white">{selectedReferenceMedia.label}</p>
                                   <p className="truncate text-[11px] text-gray-500">
-                                    {selectedReferenceMedia.sourceType} • {selectedReferenceMedia.groupLabel}
+                                    {selectedReferenceMedia.sourceType} • {selectedReferenceMedia.entityName} • {selectedReferenceMedia.groupLabel}
                                   </p>
                                 </div>
                               </div>
