@@ -287,29 +287,32 @@ export async function generatePitchDeckImageFromPrompt(input: {
 }
 
 export async function generatePitchDeckImageFromReference(input: {
-  sourceImageUrl: string;
+  deckId: string;
+  sourceImageUrls: string[];
   editPrompt: string;
+  desiredModelId?: string;
 }): Promise<{ imageUrl: string; s3Key?: string; creditsDeducted?: number; modelUsed?: string }> {
-  const response = await fetch('/api/image/edit', {
+  const response = await fetch(`/api/pitch-decks/${encodeURIComponent(input.deckId)}/image/remix`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
-      sourceImageUrl: input.sourceImageUrl,
+      sourceImageUrls: input.sourceImageUrls,
       editPrompt: input.editPrompt,
-      desiredModelId: 'nano-banana',
+      desiredModelId: input.desiredModelId,
     }),
     cache: 'no-store',
   });
 
   const json = await response.json();
   if (!response.ok) {
-    throw new Error(json?.message || json?.error?.message || json?.error || 'Failed to generate image from reference');
+    throw new Error(json?.message || json?.error?.message || json?.error || 'Failed to remix image from references');
   }
+  const payload = json?.data || json;
   return {
-    imageUrl: json?.imageUrl,
-    s3Key: json?.s3Key,
-    creditsDeducted: json?.creditsDeducted,
-    modelUsed: json?.modelUsed,
+    imageUrl: payload?.imageUrl,
+    s3Key: payload?.s3Key,
+    creditsDeducted: payload?.creditsDeducted,
+    modelUsed: payload?.modelUsed,
   };
 }
 

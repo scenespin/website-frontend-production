@@ -39,7 +39,7 @@ type ExistingMediaItem = {
 
 type ExistingMediaSourceFilter = 'character' | 'location' | 'prop';
 
-type ImageActionTab = 'prompt' | 'reference' | 'upload';
+type ImageActionTab = 'library' | 'prompt' | 'reference' | 'upload';
 type RewriteQuickAction = {
   id: string;
   label: string;
@@ -98,6 +98,28 @@ const PITCH_DECK_REWRITE_ACTIONS: RewriteQuickAction[] = [
     styleClass: 'bg-[rgba(0,217,255,0.12)] border-[rgba(0,217,255,0.40)] hover:bg-[rgba(0,217,255,0.20)] text-white',
   },
 ];
+
+const ALLOWED_PITCH_DECK_IMAGE_MODELS = new Set([
+  'flux2-pro-2k',
+  'flux2-pro-4k',
+  'flux2-max-2k',
+  'flux2-max-4k-16:9',
+  'nano-banana-pro',
+  'nano-banana-pro-2k',
+]);
+
+const PITCH_DECK_IMAGE_MODEL_LABELS: Record<string, string> = {
+  'flux2-pro-2k': 'FLUX.2 [pro] (2K)',
+  'flux2-pro-4k': 'FLUX.2 [pro] (4K)',
+  'flux2-max-2k': 'FLUX.2 [max] (2K)',
+  'flux2-max-4k-16:9': 'FLUX.2 [max] (4K)',
+  'nano-banana-pro': 'Nano Banana Pro (4K)',
+  'nano-banana-pro-2k': 'Nano Banana Pro (2K)',
+};
+
+function getReferenceLimitByModel(modelId: string): number {
+  return modelId.includes('nano-banana-pro') ? 14 : 8;
+}
 
 type PdfImageLayout = 'text_only' | 'split_right' | 'split_left' | 'full_bleed';
 
@@ -366,7 +388,9 @@ export default function PitchDeckEditorPage() {
   const [promptGenerationModelId, setPromptGenerationModelId] = useState('flux2-pro-2k');
   const [referencePromptText, setReferencePromptText] = useState('');
   const [referenceMediaId, setReferenceMediaId] = useState('');
-  const [imageActionTab, setImageActionTab] = useState<ImageActionTab>('prompt');
+  const [referenceMediaIds, setReferenceMediaIds] = useState<string[]>([]);
+  const [referenceGenerationModelId, setReferenceGenerationModelId] = useState('nano-banana-pro-2k');
+  const [imageActionTab, setImageActionTab] = useState<ImageActionTab>('library');
   const [generatingFromPrompt, setGeneratingFromPrompt] = useState(false);
   const [generatingFromReference, setGeneratingFromReference] = useState(false);
   const [imageActionError, setImageActionError] = useState<string | null>(null);
@@ -408,9 +432,17 @@ export default function PitchDeckEditorPage() {
     () => existingMedia.find((item) => item.id === selectedExistingMediaId) || null,
     [existingMedia, selectedExistingMediaId]
   );
-  const selectedReferenceMedia = useMemo(
-    () => existingMedia.find((item) => item.id === referenceMediaId) || null,
-    [existingMedia, referenceMediaId]
+  const selectedReferenceMedia = useMemo(() => {
+    const primaryReferenceId = referenceMediaIds[0] || referenceMediaId;
+    return existingMedia.find((item) => item.id === primaryReferenceId) || null;
+  }, [existingMedia, referenceMediaId, referenceMediaIds]);
+  const selectedReferenceMediaList = useMemo(
+    () => referenceMediaIds.map((id) => existingMedia.find((item) => item.id === id)).filter(Boolean) as ExistingMediaItem[],
+    [existingMedia, referenceMediaIds]
+  );
+  const filteredPitchDeckImageModels = useMemo(
+    () => imageModels.filter((model) => ALLOWED_PITCH_DECK_IMAGE_MODELS.has(model.id)),
+    [imageModels]
   );
   const promptGenerationEstimate = useMemo(() => {
     const selectedModel = imageModels.find((model) => model.id === promptGenerationModelId);
@@ -421,13 +453,17 @@ export default function PitchDeckEditorPage() {
     [imageModels, promptGenerationModelId]
   );
   const referenceGenerationModel = useMemo(
-    () => imageModels.find((model) => model.id === 'nano-banana') || null,
-    [imageModels]
+    () => imageModels.find((model) => model.id === referenceGenerationModelId) || null,
+    [imageModels, referenceGenerationModelId]
   );
   const referenceGenerationEstimate = useMemo(() => {
-    const referenceModel = imageModels.find((model) => model.id === 'nano-banana');
+    const referenceModel = imageModels.find((model) => model.id === referenceGenerationModelId);
     return referenceModel?.creditsPerImage ?? 1;
-  }, [imageModels]);
+  }, [imageModels, referenceGenerationModelId]);
+  const maxReferenceCount = useMemo(
+    () => getReferenceLimitByModel(referenceGenerationModelId),
+    [referenceGenerationModelId]
+  );
   const selectedSlidePrimaryText = useMemo(
     () => String(selectedSlide?.blocks.find((block) => block.type === 'text')?.content || ''),
     [selectedSlide]
@@ -790,10 +826,20 @@ export default function PitchDeckEditorPage() {
         const models = await listImageGenerationModels();
         if (cancelled) return;
         setImageModels(models);
-        const preferred = models.find((model) => model.id === 'flux2-pro-2k') || models[0];
+        const allowedModels = models.filter((model) => ALLOWED_PITCH_DECK_IMAGE_MODELS.has(model.id));
+        const preferred = allowedModels.find((model) => model.id === 'flux2-pro-2k') || allowedModels[0];
         if (preferred) {
           setPromptGenerationModelId((current) =>
-            models.some((model) => model.id === current) ? current : preferred.id
+            allowedModels.some((model) => model.id === current) ? current : preferred.id
+          );
+        }
+        const preferredReference =
+          allowedModels.find((model) => model.id === 'nano-banana-pro-2k') ||
+          allowedModels.find((model) => model.id === 'nano-banana-pro') ||
+          preferred;
+        if (preferredReference) {
+          setReferenceGenerationModelId((current) =>
+            allowedModels.some((model) => model.id === current) ? current : preferredReference.id
           );
         }
       } catch (err: any) {
@@ -839,6 +885,18 @@ export default function PitchDeckEditorPage() {
       setReferenceMediaId(filteredExistingMedia[0].id);
     }
   }, [filteredExistingMedia, selectedExistingMediaId, referenceMediaId]);
+
+  useEffect(() => {
+    const validIds = new Set(existingMedia.map((item) => item.id));
+    setReferenceMediaIds((current) => current.filter((id) => validIds.has(id)));
+    if (referenceMediaId && !validIds.has(referenceMediaId)) {
+      setReferenceMediaId('');
+    }
+  }, [existingMedia, referenceMediaId]);
+
+  useEffect(() => {
+    setReferenceMediaIds((current) => current.slice(0, maxReferenceCount));
+  }, [maxReferenceCount]);
 
   useEffect(() => {
     setRewriteError(null);
@@ -1098,6 +1156,28 @@ export default function PitchDeckEditorPage() {
     setImageActionNotice('Applied existing screenplay image to this slot (0 credits).');
   };
 
+  const toggleReferenceMediaSelection = (mediaId: string) => {
+    setImageActionError(null);
+    setReferenceMediaIds((current) => {
+      if (current.includes(mediaId)) {
+        const next = current.filter((id) => id !== mediaId);
+        if (referenceMediaId === mediaId) {
+          setReferenceMediaId(next[0] || '');
+        }
+        return next;
+      }
+      if (current.length >= maxReferenceCount) {
+        setImageActionError(`This model supports up to ${maxReferenceCount} references.`);
+        return current;
+      }
+      const next = [...current, mediaId];
+      if (!referenceMediaId) {
+        setReferenceMediaId(mediaId);
+      }
+      return next;
+    });
+  };
+
   const runGenerateFromPrompt = async () => {
     if (!promptGenerationText.trim()) {
       setImageActionError('Add a prompt before generating an image.');
@@ -1143,8 +1223,14 @@ export default function PitchDeckEditorPage() {
   };
 
   const runGenerateFromReference = async () => {
-    if (!selectedReferenceMedia?.imageUrl) {
-      setImageActionError('Choose a reference image from screenplay media first.');
+    if (!deckId) {
+      setImageActionError('Pitch deck context is missing.');
+      addImageAttempt('failed', 'reference', 'Failed: deckId is missing.');
+      return;
+    }
+    const primaryReference = selectedReferenceMediaList[0] || selectedReferenceMedia;
+    if (!primaryReference?.imageUrl) {
+      setImageActionError('Choose at least one reference image first.');
       addImageAttempt('failed', 'reference', 'Failed: no reference media selected.');
       return;
     }
@@ -1157,9 +1243,16 @@ export default function PitchDeckEditorPage() {
     setImageActionNotice(null);
     setGeneratingFromReference(true);
     try {
+      const sourceImageUrls = selectedReferenceMediaList
+        .map((item) => item.imageUrl)
+        .filter((url) => typeof url === 'string' && url.trim().length > 0);
+      const normalizedSourceImageUrls =
+        sourceImageUrls.length > 0 ? sourceImageUrls : [primaryReference.imageUrl].filter(Boolean);
       const result = await generatePitchDeckImageFromReference({
-        sourceImageUrl: selectedReferenceMedia.imageUrl,
+        deckId,
+        sourceImageUrls: normalizedSourceImageUrls,
         editPrompt: referencePromptText.trim(),
+        desiredModelId: referenceGenerationModelId || undefined,
       });
       if (!result.imageUrl) {
         throw new Error('Reference generation returned no image URL');
@@ -1167,7 +1260,7 @@ export default function PitchDeckEditorPage() {
       appendSlotImageOption({
         imageUrl: result.imageUrl,
         sourceType: 'ai_generated',
-        label: `Reference result (${selectedReferenceMedia.label})`,
+        label: `Reference result (${primaryReference.label})`,
         s3Key: result.s3Key,
       });
       if (typeof result.creditsDeducted === 'number') {
@@ -1205,12 +1298,16 @@ export default function PitchDeckEditorPage() {
   };
 
   const requestGenerateFromReference = () => {
-    if (!selectedReferenceMedia?.imageUrl) {
-      setImageActionError('Choose a reference image from screenplay media first.');
+    if (!selectedReferenceMediaList[0] && !selectedReferenceMedia?.imageUrl) {
+      setImageActionError('Choose at least one reference image first.');
       return;
     }
     if (!referencePromptText.trim()) {
       setImageActionError('Add a reference prompt before generating.');
+      return;
+    }
+    if (!referenceGenerationModelId) {
+      setImageActionError('Select a remix model first.');
       return;
     }
     setImageActionError(null);
@@ -1594,132 +1691,20 @@ export default function PitchDeckEditorPage() {
                       </div>
                     </div>
 
-                    <div className="mt-4 rounded border border-[#2a2a2a] bg-[#101010] p-3">
-                      <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">Use existing screenplay media</p>
-                      <div className="mb-2 grid grid-cols-1 md:grid-cols-2 gap-2">
-                        <select
-                          value={existingSourceFilter}
-                          onChange={(e) => {
-                            setExistingSourceFilter(e.target.value as ExistingMediaSourceFilter);
-                            setExistingEntityFilter('all');
-                            setExistingVariantFilter('all');
-                          }}
-                          className="rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white"
-                        >
-                          <option value="character">Characters</option>
-                          <option value="location">Locations</option>
-                          <option value="prop">Props</option>
-                        </select>
-                        <select
-                          value={existingEntityFilter}
-                          onChange={(e) => {
-                            setExistingEntityFilter(e.target.value);
-                            setExistingVariantFilter('all');
-                          }}
-                          className="rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white"
-                          disabled={existingEntityOptions.length === 0}
-                        >
-                          <option value="all">
-                            {existingSourceFilter === 'character'
-                              ? 'All characters'
-                              : existingSourceFilter === 'location'
-                                ? 'All locations'
-                                : 'All props'}
-                          </option>
-                          {existingEntityOptions.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="mb-2">
-                        <select
-                          value={existingVariantFilter}
-                          onChange={(e) => setExistingVariantFilter(e.target.value)}
-                          className="w-full rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white"
-                          disabled={existingVariantOptions.length === 0}
-                        >
-                          <option value="all">All variants</option>
-                          {existingVariantOptions.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="flex items-center justify-end">
-                        <button
-                          type="button"
-                          onClick={applyExistingMediaToSlot}
-                          disabled={!selectedExistingMedia}
-                          className="rounded border border-[#3F3F46] px-3 py-2 text-sm text-gray-200 hover:bg-white/5 disabled:opacity-40"
-                        >
-                          Use Existing (0 credits)
-                        </button>
-                      </div>
-                      <div className="mt-2 rounded border border-[#2f2f2f] bg-[#0f0f0f] p-2">
-                        {filteredExistingMedia.length === 0 ? (
-                          <p className="text-xs text-gray-500">
-                            {existingMediaLoading ? 'Loading screenplay images...' : 'No images found for selected filters'}
-                          </p>
-                        ) : (
-                          <div className="grid grid-cols-3 md:grid-cols-5 gap-2">
-                            {filteredExistingMedia.map((item) => {
-                              const isActive = selectedExistingMediaId === item.id;
-                              return (
-                                <button
-                                  key={item.id}
-                                  type="button"
-                                  onClick={() => {
-                                    setSelectedExistingMediaId(item.id);
-                                    setReferenceMediaId(item.id);
-                                  }}
-                                  className={`relative overflow-hidden rounded border ${
-                                    isActive ? 'border-[#DC143C]' : 'border-[#3F3F46]'
-                                  } bg-[#151515]`}
-                                  title={item.label}
-                                >
-                                  <img
-                                    src={item.imageUrl}
-                                    alt={item.label}
-                                    className="h-20 w-full object-cover"
-                                    onError={(e) => {
-                                      (e.target as HTMLImageElement).style.opacity = '0.2';
-                                    }}
-                                  />
-                                  <div className="absolute inset-x-0 bottom-0 bg-black/70 px-1 py-0.5 text-[10px] text-left text-white truncate">
-                                    {item.label}
-                                  </div>
-                                </button>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                      {selectedExistingMedia ? (
-                        <div className="mt-2 rounded border border-[#2f2f2f] bg-[#0f0f0f] p-2">
-                          <div className="grid grid-cols-[96px_1fr] gap-2 items-center">
-                            <img
-                              src={selectedExistingMedia.imageUrl}
-                              alt={selectedExistingMedia.label}
-                              className="h-14 w-24 rounded border border-[#3F3F46] object-cover"
-                            />
-                            <div className="min-w-0">
-                              <p className="truncate text-xs text-white">{selectedExistingMedia.label}</p>
-                              <p className="truncate text-[11px] text-gray-500">
-                                {selectedExistingMedia.sourceType} • {selectedExistingMedia.entityName} • {selectedExistingMedia.groupLabel}
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      ) : null}
-                      {existingMediaError ? <p className="mt-2 text-xs text-red-300">{existingMediaError}</p> : null}
-                    </div>
-
                     <div className="mt-3 rounded border border-[#2a2a2a] bg-[#101010] p-3">
                       <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">Image actions</p>
-                      <div className="grid grid-cols-3 gap-2">
+                      <div className="grid grid-cols-4 gap-2">
+                        <button
+                          type="button"
+                          onClick={() => setImageActionTab('library')}
+                          className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                            imageActionTab === 'library'
+                              ? 'bg-[#DC143C] text-white'
+                              : 'bg-[#141414] text-[#B3B3B3] hover:bg-[#1F1F1F] border border-[#3F3F46]'
+                          }`}
+                        >
+                          Library
+                        </button>
                         <button
                           type="button"
                           onClick={() => setImageActionTab('prompt')}
@@ -1729,7 +1714,7 @@ export default function PitchDeckEditorPage() {
                               : 'bg-[#141414] text-[#B3B3B3] hover:bg-[#1F1F1F] border border-[#3F3F46]'
                           }`}
                         >
-                          Text to Image
+                          Prompt
                         </button>
                         <button
                           type="button"
@@ -1740,7 +1725,7 @@ export default function PitchDeckEditorPage() {
                               : 'bg-[#141414] text-[#B3B3B3] hover:bg-[#1F1F1F] border border-[#3F3F46]'
                           }`}
                         >
-                          Reference to Image
+                          Remix
                         </button>
                         <button
                           type="button"
@@ -1751,9 +1736,149 @@ export default function PitchDeckEditorPage() {
                               : 'bg-[#141414] text-[#B3B3B3] hover:bg-[#1F1F1F] border border-[#3F3F46]'
                           }`}
                         >
-                          Upload Image
+                          Upload
                         </button>
                       </div>
+
+                      {imageActionTab === 'library' ? (
+                        <>
+                          <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
+                            <select
+                              value={existingSourceFilter}
+                              onChange={(e) => {
+                                setExistingSourceFilter(e.target.value as ExistingMediaSourceFilter);
+                                setExistingEntityFilter('all');
+                                setExistingVariantFilter('all');
+                              }}
+                              className="rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white"
+                            >
+                              <option value="character">Characters</option>
+                              <option value="location">Locations</option>
+                              <option value="prop">Props</option>
+                            </select>
+                            <select
+                              value={existingEntityFilter}
+                              onChange={(e) => {
+                                setExistingEntityFilter(e.target.value);
+                                setExistingVariantFilter('all');
+                              }}
+                              className="rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white"
+                              disabled={existingEntityOptions.length === 0}
+                            >
+                              <option value="all">
+                                {existingSourceFilter === 'character'
+                                  ? 'All characters'
+                                  : existingSourceFilter === 'location'
+                                    ? 'All locations'
+                                    : 'All props'}
+                              </option>
+                              {existingEntityOptions.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="mt-2">
+                            <select
+                              value={existingVariantFilter}
+                              onChange={(e) => setExistingVariantFilter(e.target.value)}
+                              className="w-full rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white"
+                              disabled={existingVariantOptions.length === 0}
+                            >
+                              <option value="all">All variants</option>
+                              {existingVariantOptions.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
+                          <div className="mt-2 flex items-center justify-end">
+                            <button
+                              type="button"
+                              onClick={applyExistingMediaToSlot}
+                              disabled={!selectedExistingMedia}
+                              className="rounded border border-[#3F3F46] px-3 py-2 text-sm text-gray-200 hover:bg-white/5 disabled:opacity-40"
+                            >
+                              Use Existing (0 credits)
+                            </button>
+                          </div>
+                          <div className="mt-2 rounded border border-[#2f2f2f] bg-[#0f0f0f] p-2">
+                            {filteredExistingMedia.length === 0 ? (
+                              <p className="text-xs text-gray-500">
+                                {existingMediaLoading ? 'Loading screenplay images...' : 'No images found for selected filters'}
+                              </p>
+                            ) : (
+                              <div className="grid grid-cols-3 md:grid-cols-5 gap-2">
+                                {filteredExistingMedia.map((item) => {
+                                  const isActive = selectedExistingMediaId === item.id;
+                                  const isReferenceSelected = referenceMediaIds.includes(item.id);
+                                  return (
+                                    <button
+                                      key={item.id}
+                                      type="button"
+                                      onClick={() => {
+                                        setSelectedExistingMediaId(item.id);
+                                        setReferenceMediaId(item.id);
+                                      }}
+                                      className={`relative overflow-hidden rounded border ${
+                                        isActive ? 'border-[#DC143C]' : 'border-[#3F3F46]'
+                                      } bg-[#151515]`}
+                                      title={item.label}
+                                    >
+                                      <img
+                                        src={item.imageUrl}
+                                        alt={item.label}
+                                        className="h-20 w-full object-cover"
+                                        onError={(e) => {
+                                          (e.target as HTMLImageElement).style.opacity = '0.2';
+                                        }}
+                                      />
+                                      <button
+                                        type="button"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          toggleReferenceMediaSelection(item.id);
+                                        }}
+                                        className={`absolute left-1 top-1 rounded px-1.5 py-0.5 text-[10px] ${
+                                          isReferenceSelected
+                                            ? 'bg-[#DC143C] text-white'
+                                            : 'bg-black/70 text-gray-200 hover:bg-black/85'
+                                        }`}
+                                        title={isReferenceSelected ? 'Remove from remix references' : 'Add to remix references'}
+                                      >
+                                        {isReferenceSelected ? 'Ref added' : 'Add ref'}
+                                      </button>
+                                      <div className="absolute inset-x-0 bottom-0 bg-black/70 px-1 py-0.5 text-[10px] text-left text-white truncate">
+                                        {item.label}
+                                      </div>
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
+                          </div>
+                          {selectedExistingMedia ? (
+                            <div className="mt-2 rounded border border-[#2f2f2f] bg-[#0f0f0f] p-2">
+                              <div className="grid grid-cols-[96px_1fr] gap-2 items-center">
+                                <img
+                                  src={selectedExistingMedia.imageUrl}
+                                  alt={selectedExistingMedia.label}
+                                  className="h-14 w-24 rounded border border-[#3F3F46] object-cover"
+                                />
+                                <div className="min-w-0">
+                                  <p className="truncate text-xs text-white">{selectedExistingMedia.label}</p>
+                                  <p className="truncate text-[11px] text-gray-500">
+                                    {selectedExistingMedia.sourceType} • {selectedExistingMedia.entityName} • {selectedExistingMedia.groupLabel}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          ) : null}
+                          {existingMediaError ? <p className="mt-2 text-xs text-red-300">{existingMediaError}</p> : null}
+                        </>
+                      ) : null}
 
                       {imageActionTab === 'prompt' ? (
                         <>
@@ -1769,16 +1894,16 @@ export default function PitchDeckEditorPage() {
                               value={promptGenerationModelId}
                               onChange={(e) => setPromptGenerationModelId(e.target.value)}
                               className="flex-1 rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white"
-                              disabled={imageModelsLoading || imageModels.length === 0}
+                              disabled={imageModelsLoading || filteredPitchDeckImageModels.length === 0}
                             >
-                              {imageModels.length === 0 ? (
+                              {filteredPitchDeckImageModels.length === 0 ? (
                                 <option value="">
                                   {imageModelsLoading ? 'Loading models...' : 'No models found'}
                                 </option>
                               ) : (
-                                imageModels.map((model) => (
+                                filteredPitchDeckImageModels.map((model) => (
                                   <option key={model.id} value={model.id}>
-                                    {model.label || model.id} ({model.creditsPerImage} credits)
+                                    {(PITCH_DECK_IMAGE_MODEL_LABELS[model.id] || model.label || model.id)} ({model.creditsPerImage} credits)
                                   </option>
                                 ))
                               )}
@@ -1797,26 +1922,53 @@ export default function PitchDeckEditorPage() {
 
                       {imageActionTab === 'reference' ? (
                         <>
-                          {selectedReferenceMedia ? (
-                            <div className="mt-2 rounded border border-[#2f2f2f] bg-[#0f0f0f] p-2">
-                              <div className="grid grid-cols-[96px_1fr] gap-2 items-center">
-                                <img
-                                  src={selectedReferenceMedia.imageUrl}
-                                  alt={selectedReferenceMedia.label}
-                                  className="h-14 w-24 rounded border border-[#3F3F46] object-cover"
-                                />
-                                <div className="min-w-0">
-                                  <p className="truncate text-xs text-white">{selectedReferenceMedia.label}</p>
-                                  <p className="truncate text-[11px] text-gray-500">
-                                    {selectedReferenceMedia.sourceType} • {selectedReferenceMedia.entityName} • {selectedReferenceMedia.groupLabel}
-                                  </p>
-                                </div>
-                              </div>
+                          <div className="mt-2 rounded border border-[#2f2f2f] bg-[#0f0f0f] p-2">
+                            <div className="mb-2 flex items-center justify-between">
+                              <p className="text-[11px] text-gray-300">
+                                Source references ({selectedReferenceMediaList.length}/{maxReferenceCount})
+                              </p>
+                              <span className="text-[10px] text-gray-500">Primary = first thumbnail</span>
                             </div>
-                          ) : null}
-                          <p className="mt-2 text-[11px] text-gray-500">
-                            Select the reference image above in "Use existing screenplay media", then generate from it.
-                          </p>
+                            {selectedReferenceMediaList.length === 0 ? (
+                              <p className="text-[11px] text-gray-500">
+                                Add references from the Library tab. This model supports up to {maxReferenceCount}.
+                              </p>
+                            ) : (
+                              <div className="flex flex-wrap gap-1.5">
+                                {selectedReferenceMediaList.map((item, index) => (
+                                  <button
+                                    key={item.id}
+                                    type="button"
+                                    onClick={() => setReferenceMediaIds((current) => [item.id, ...current.filter((id) => id !== item.id)])}
+                                    className={`relative overflow-hidden rounded border ${
+                                      index === 0 ? 'border-[#DC143C]' : 'border-[#3F3F46]'
+                                    }`}
+                                    title={`${item.label}${index === 0 ? ' (primary)' : ''}`}
+                                  >
+                                    <img
+                                      src={item.imageUrl}
+                                      alt={item.label}
+                                      className="h-7 w-12 object-cover"
+                                      onError={(e) => {
+                                        (e.target as HTMLImageElement).style.opacity = '0.2';
+                                      }}
+                                    />
+                                    <button
+                                      type="button"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        toggleReferenceMediaSelection(item.id);
+                                      }}
+                                      className="absolute right-0 top-0 rounded-bl bg-black/75 px-1 text-[9px] text-white hover:bg-[#DC143C]"
+                                      title="Remove reference"
+                                    >
+                                      x
+                                    </button>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
                           <textarea
                             value={referencePromptText}
                             onChange={(e) => setReferencePromptText(e.target.value)}
@@ -1824,11 +1976,35 @@ export default function PitchDeckEditorPage() {
                             placeholder="Describe how to transform the reference image..."
                             className="mt-2 w-full rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white"
                           />
-                          <div className="mt-2 flex items-center justify-end">
+                          <div className="mt-2 flex flex-col md:flex-row gap-2">
+                            <select
+                              value={referenceGenerationModelId}
+                              onChange={(e) => setReferenceGenerationModelId(e.target.value)}
+                              className="flex-1 rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white"
+                              disabled={imageModelsLoading || filteredPitchDeckImageModels.length === 0}
+                            >
+                              {filteredPitchDeckImageModels.length === 0 ? (
+                                <option value="">
+                                  {imageModelsLoading ? 'Loading models...' : 'No models found'}
+                                </option>
+                              ) : (
+                                filteredPitchDeckImageModels.map((model) => (
+                                  <option key={model.id} value={model.id}>
+                                    {(PITCH_DECK_IMAGE_MODEL_LABELS[model.id] || model.label || model.id)} ({model.creditsPerImage} credits)
+                                  </option>
+                                ))
+                              )}
+                            </select>
                             <button
                               type="button"
                               onClick={requestGenerateFromReference}
-                              disabled={uploadingImage || generatingFromReference || !selectedReferenceMedia || !referencePromptText.trim()}
+                              disabled={
+                                uploadingImage ||
+                                generatingFromReference ||
+                                selectedReferenceMediaList.length === 0 ||
+                                !referencePromptText.trim() ||
+                                !referenceGenerationModelId
+                              }
                               className="rounded border border-[#3F3F46] px-3 py-2 text-sm text-gray-200 hover:bg-white/5 disabled:opacity-40"
                             >
                               {generatingFromReference
@@ -1836,6 +2012,9 @@ export default function PitchDeckEditorPage() {
                                 : `Generate from Reference (${referenceGenerationEstimate} credits est.)`}
                             </button>
                           </div>
+                          <p className="mt-2 text-[11px] text-gray-500">
+                            Multi-reference selection is enabled. The dedicated pitch deck remix route now receives all selected references; first thumbnail remains primary for ordering.
+                          </p>
                         </>
                       ) : null}
 
@@ -2017,8 +2196,14 @@ export default function PitchDeckEditorPage() {
                 <span>Model</span>
                 <span>
                   {pendingImageAction === 'prompt'
-                    ? promptGenerationModel?.label || promptGenerationModel?.id || 'Selected model'
-                    : referenceGenerationModel?.label || referenceGenerationModel?.id || 'nano-banana'}
+                    ? PITCH_DECK_IMAGE_MODEL_LABELS[promptGenerationModel?.id || ''] ||
+                      promptGenerationModel?.label ||
+                      promptGenerationModel?.id ||
+                      'Selected model'
+                    : PITCH_DECK_IMAGE_MODEL_LABELS[referenceGenerationModel?.id || ''] ||
+                      referenceGenerationModel?.label ||
+                      referenceGenerationModel?.id ||
+                      'Selected model'}
                 </span>
               </div>
             </div>
