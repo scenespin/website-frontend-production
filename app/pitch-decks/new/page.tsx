@@ -6,8 +6,10 @@ import {
   estimatePitchDeckCost,
   generatePitchDeckDraft,
   type PitchDeckCostEstimate,
+  type PitchDeckTemplate,
   type PitchDeckTextMode,
   type PitchDeckType,
+  listPitchDeckTemplates,
 } from '@/utils/pitchDeckStorage';
 import { EditorSubNav } from '@/components/editor/EditorSubNav';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
@@ -22,8 +24,15 @@ function PitchDeckCreatePageContent() {
   const { screenplayId: contextScreenplayId } = useScreenplay();
   const [deckType, setDeckType] = useState<PitchDeckType>('screenplay');
   const [templateId, setTemplateId] = useState('cinematic-dark-v1');
+  const [templates, setTemplates] = useState<PitchDeckTemplate[]>([]);
+  const [templatesLoading, setTemplatesLoading] = useState(true);
+  const [templatesError, setTemplatesError] = useState<string | null>(null);
+  const [deckTitle, setDeckTitle] = useState('');
+  const [deckTitleTouched, setDeckTitleTouched] = useState(false);
   const [textMode, setTextMode] = useState<PitchDeckTextMode>('auto_from_screenplay');
   const [includeBusinessSlides, setIncludeBusinessSlides] = useState(false);
+  const [plannedImageGenerations, setPlannedImageGenerations] = useState(0);
+  const [plannedAiRewrites, setPlannedAiRewrites] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [estimate, setEstimate] = useState<PitchDeckCostEstimate | null>(null);
@@ -65,6 +74,38 @@ function PitchDeckCreatePageContent() {
 
   useEffect(() => {
     let cancelled = false;
+    const loadTemplates = async () => {
+      setTemplatesLoading(true);
+      setTemplatesError(null);
+      try {
+        const payload = await listPitchDeckTemplates();
+        if (cancelled) return;
+        const nextTemplates = payload.templates || [];
+        setTemplates(nextTemplates);
+        const defaultTemplate = nextTemplates.find((template) => template.isDefault) || nextTemplates[0];
+        if (defaultTemplate && !nextTemplates.some((template) => template.templateId === templateId)) {
+          setTemplateId(defaultTemplate.templateId);
+        }
+      } catch (err: any) {
+        if (!cancelled) setTemplatesError(err.message || 'Failed to load templates');
+      } finally {
+        if (!cancelled) setTemplatesLoading(false);
+      }
+    };
+    void loadTemplates();
+    return () => {
+      cancelled = true;
+    };
+  }, [templateId]);
+
+  useEffect(() => {
+    if (!deckTitleTouched && screenplayTitle) {
+      setDeckTitle(`${screenplayTitle} - Pitch Deck`);
+    }
+  }, [screenplayTitle, deckTitleTouched]);
+
+  useEffect(() => {
+    let cancelled = false;
     const loadEstimate = async () => {
       if (!currentScreenplayId) {
         setEstimate(null);
@@ -77,7 +118,10 @@ function PitchDeckCreatePageContent() {
           screenplayId: currentScreenplayId,
           deckType,
           textMode,
+          templateId,
           includeBusinessSlides,
+          plannedImageGenerations,
+          plannedAiRewrites,
         });
         if (!cancelled) setEstimate(result);
       } catch (err: any) {
@@ -93,7 +137,15 @@ function PitchDeckCreatePageContent() {
     return () => {
       cancelled = true;
     };
-  }, [currentScreenplayId, deckType, textMode, includeBusinessSlides]);
+  }, [
+    currentScreenplayId,
+    deckType,
+    textMode,
+    templateId,
+    includeBusinessSlides,
+    plannedImageGenerations,
+    plannedAiRewrites,
+  ]);
 
   const onCreate = async () => {
     setError(null);
@@ -110,6 +162,7 @@ function PitchDeckCreatePageContent() {
         templateId,
         textMode,
         includeBusinessSlides,
+        titleOverride: deckTitle.trim() || undefined,
       });
       router.push(`/pitch-decks/${result.deckId}`);
     } catch (err: any) {
@@ -131,18 +184,22 @@ function PitchDeckCreatePageContent() {
   return (
     <>
       <EditorSubNav activeTab="pitch-decks" screenplayId={currentScreenplayId || undefined} />
-      <main className="p-8 max-w-3xl">
+      <main className="p-8 max-w-4xl">
         <h1 className="text-2xl font-semibold text-white">Create Pitch Deck</h1>
         <p className="mt-2 text-sm text-gray-400">Generate a structured deck draft for the current screenplay.</p>
 
         <div className="mt-6 space-y-4">
           <div>
-            <label className="block text-sm text-gray-300 mb-1">Current Screenplay</label>
-            <div className="rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white">
-              {currentScreenplayId
-                ? `${screenplayTitle || 'Untitled Screenplay'} - ${currentScreenplayId}`
-                : 'No screenplay selected'}
-            </div>
+            <label className="block text-sm text-gray-300 mb-1">Deck Name</label>
+            <input
+              className="w-full rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white"
+              value={deckTitle}
+              onChange={(e) => {
+                setDeckTitleTouched(true);
+                setDeckTitle(e.target.value);
+              }}
+              placeholder="My Festival Pitch Deck"
+            />
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -174,11 +231,59 @@ function PitchDeckCreatePageContent() {
 
           <div>
             <label className="block text-sm text-gray-300 mb-1">Template</label>
-            <input
-              className="w-full rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white"
-              value={templateId}
-              onChange={(e) => setTemplateId(e.target.value)}
-            />
+            {templatesLoading ? <p className="text-xs text-gray-400">Loading templates...</p> : null}
+            {templatesError ? <p className="text-xs text-red-300">{templatesError}</p> : null}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {templates.map((template) => {
+                const selected = template.templateId === templateId;
+                return (
+                  <button
+                    key={template.templateId}
+                    type="button"
+                    onClick={() => setTemplateId(template.templateId)}
+                    className={`rounded border p-3 text-left transition-colors ${
+                      selected
+                        ? 'border-[#DC143C] bg-[#DC143C]/10'
+                        : 'border-[#3F3F46] bg-[#111] hover:border-[#5a5a5a]'
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-sm font-semibold text-white">{template.name}</p>
+                      {template.isDefault ? (
+                        <span className="rounded border border-[#3F3F46] px-2 py-0.5 text-[10px] text-gray-300">Default</span>
+                      ) : null}
+                    </div>
+                    <p className="mt-1 text-xs text-gray-400">{template.description}</p>
+                    <p className="mt-2 text-[11px] text-gray-500">{template.styleSummary}</p>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm text-gray-300 mb-1">Planned Image Generations</label>
+              <input
+                type="number"
+                min={0}
+                max={50}
+                className="w-full rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white"
+                value={plannedImageGenerations}
+                onChange={(e) => setPlannedImageGenerations(Math.max(0, Number(e.target.value) || 0))}
+              />
+            </div>
+            <div>
+              <label className="block text-sm text-gray-300 mb-1">Planned AI Rewrites</label>
+              <input
+                type="number"
+                min={0}
+                max={50}
+                className="w-full rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white"
+                value={plannedAiRewrites}
+                onChange={(e) => setPlannedAiRewrites(Math.max(0, Number(e.target.value) || 0))}
+              />
+            </div>
           </div>
 
           <div className="rounded border border-[#3F3F46] bg-[#111] px-3 py-2">
@@ -203,7 +308,15 @@ function PitchDeckCreatePageContent() {
                 ))}
               </div>
             ) : null}
-            {estimate?.note ? <p className="mt-2 text-[11px] text-gray-500">{estimate.note}</p> : null}
+            {estimate?.estimate?.signals ? (
+              <div className="mt-2 text-[11px] text-gray-500">
+                Model: screenplay-aware beta • approx tokens {estimate.estimate.signals.estimatedTokens} • projected slides{' '}
+                {estimate.estimate.signals.projectedSlides}
+              </div>
+            ) : (
+              <div className="mt-2 text-[11px] text-gray-500">Estimate model: screenplay-aware beta</div>
+            )}
+            {estimate?.note ? <p className="mt-1 text-[11px] text-gray-500">{estimate.note}</p> : null}
           </div>
 
           <div className="flex items-center justify-between gap-4 pt-2">

@@ -41,13 +41,35 @@ export interface PitchDeckCostEstimate {
   estimate: {
     currency: 'credits';
     totalCredits: number;
+    estimatorVersion?: string;
     breakdown: Array<{
       key: string;
       label: string;
       credits: number;
     }>;
+    signals?: {
+      screenplayCharacters: number;
+      estimatedTokens: number;
+      projectedSlides: number;
+      plannedImageGenerations: number;
+      plannedAiRewrites: number;
+    };
   };
   note?: string;
+}
+
+export interface PitchDeckTemplate {
+  templateId: string;
+  name: string;
+  category: 'screenplay' | 'investor' | 'hybrid';
+  description: string;
+  styleSummary: string;
+  isDefault: boolean;
+  slideDefaults: {
+    recommendedDeckType: PitchDeckType;
+    includeBusinessSlides: boolean;
+  };
+  allowedBlockTypes: Array<'text' | 'image' | 'list' | 'metric'>;
 }
 
 function unwrapResponse<T>(payload: any): T {
@@ -84,7 +106,10 @@ export async function estimatePitchDeckCost(input: {
   screenplayId: string;
   deckType: PitchDeckType;
   textMode: PitchDeckTextMode;
+  templateId?: string;
   includeBusinessSlides?: boolean;
+  plannedImageGenerations?: number;
+  plannedAiRewrites?: number;
 }): Promise<PitchDeckCostEstimate> {
   const response = await fetch('/api/pitch-decks/estimate-cost', {
     method: 'POST',
@@ -96,6 +121,19 @@ export async function estimatePitchDeckCost(input: {
   const json = await response.json();
   if (!response.ok) {
     throw new Error(json?.error?.message || 'Failed to estimate pitch deck cost');
+  }
+  return unwrapResponse(json);
+}
+
+export async function listPitchDeckTemplates(): Promise<{ templates: PitchDeckTemplate[]; count: number }> {
+  const response = await fetch('/api/pitch-decks/templates', {
+    method: 'GET',
+    cache: 'no-store',
+  });
+
+  const json = await response.json();
+  if (!response.ok) {
+    throw new Error(json?.error?.message || 'Failed to load pitch deck templates');
   }
   return unwrapResponse(json);
 }

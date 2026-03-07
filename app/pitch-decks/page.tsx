@@ -15,7 +15,6 @@ function PitchDeckHubPageContent() {
   const searchParams = useSearchParams();
   const { screenplayId: contextScreenplayId } = useScreenplay();
 
-  const [screenplayTitle, setScreenplayTitle] = useState<string>('');
   const [decks, setDecks] = useState<PitchDeck[]>([]);
   const [loadingDecks, setLoadingDecks] = useState(false);
   const [deletingDeckId, setDeletingDeckId] = useState<string | null>(null);
@@ -27,32 +26,6 @@ function PitchDeckHubPageContent() {
     () => searchParams?.get('project') || searchParams?.get('screenplayId') || contextScreenplayId || '',
     [searchParams, contextScreenplayId]
   );
-
-  useEffect(() => {
-    let cancelled = false;
-    const loadTitle = async () => {
-      if (!currentScreenplayId) {
-        setScreenplayTitle('');
-        return;
-      }
-      try {
-        const response = await fetch('/api/screenplays/list?status=active&limit=100', { credentials: 'include' });
-        if (!response.ok) return;
-        const payload = await response.json();
-        const list = payload?.data?.screenplays || payload?.screenplays || [];
-        const match = list.find((item: any) => item?.screenplay_id === currentScreenplayId);
-        if (!cancelled) {
-          setScreenplayTitle(match?.title || '');
-        }
-      } catch {
-        if (!cancelled) setScreenplayTitle('');
-      }
-    };
-    void loadTitle();
-    return () => {
-      cancelled = true;
-    };
-  }, [currentScreenplayId]);
 
   useEffect(() => {
     let cancelled = false;
@@ -148,15 +121,6 @@ function PitchDeckHubPageContent() {
         </div>
 
         <div className="mt-6 space-y-4">
-          <div>
-            <label className="block text-sm text-gray-300 mb-1">Current Screenplay</label>
-            <div className="rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white">
-              {currentScreenplayId
-                ? `${screenplayTitle || 'Untitled Screenplay'} - ${currentScreenplayId}`
-                : 'No screenplay selected'}
-            </div>
-          </div>
-
           {error ? (
             <div className="rounded border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-300">{error}</div>
           ) : null}
