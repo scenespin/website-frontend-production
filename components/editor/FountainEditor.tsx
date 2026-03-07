@@ -441,8 +441,6 @@ export default function FountainEditor({
     // Contextual Navigation - Update global context when cursor moves
     useEffect(() => {
         if (!state.content || state.cursorPosition === undefined) return;
-        // Skip expensive context churn while text is actively selected.
-        if (state.selectionStart !== state.selectionEnd) return;
         
         // Extract scene context at current cursor position
         const context = extractEditorContext(state.content, state.cursorPosition);
@@ -457,7 +455,7 @@ export default function FountainEditor({
                 context.sceneContext.sceneHeading
             );
         }
-    }, [state.content, state.cursorPosition, state.selectionStart, state.selectionEnd, setGlobalCursor, setCurrentScene]);
+    }, [state.content, state.cursorPosition, setGlobalCursor, setCurrentScene]);
     
     // Handle paste events - ensures paste operations are tracked in undo stack
     // Uses insertText/replaceSelection (same as AI agents) for consistent undo/redo behavior
@@ -697,17 +695,10 @@ export default function FountainEditor({
         // Skip if we're currently setting highlight (prevents infinite loop)
         if (isSettingHighlightRef.current || !textareaRef.current) return;
         
-        const selectionStart = textareaRef.current.selectionStart;
-        const selectionEnd = textareaRef.current.selectionEnd;
-        const cursorPos = selectionStart;
+        const cursorPos = textareaRef.current.selectionStart;
         
         // Save cursor position to ref for cursor preservation
         savedCursorPositionRef.current = cursorPos;
-
-        // During active text selection, defer cursor/line churn until selection collapses.
-        if (selectionStart !== selectionEnd) {
-            return;
-        }
         
         setCursorPosition(cursorPos);
         
