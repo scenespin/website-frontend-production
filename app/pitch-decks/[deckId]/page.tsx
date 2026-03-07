@@ -1,8 +1,8 @@
 'use client';
 
 import { useEffect, useMemo, useState } from 'react';
-import { useParams } from 'next/navigation';
-import { getPitchDeck, updatePitchDeckSlide, type PitchDeckSlide, type PitchDeckBlock } from '@/utils/pitchDeckStorage';
+import { useParams, useRouter } from 'next/navigation';
+import { getPitchDeck, updatePitchDeck, updatePitchDeckSlide, type PitchDeckSlide, type PitchDeckBlock } from '@/utils/pitchDeckStorage';
 import { EditorSubNav } from '@/components/editor/EditorSubNav';
 
 function isFeatureEnabled(): boolean {
@@ -10,15 +10,19 @@ function isFeatureEnabled(): boolean {
 }
 
 export default function PitchDeckEditorPage() {
+  const router = useRouter();
   const params = useParams<{ deckId: string }>();
   const deckId = params?.deckId;
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [deckTitle, setDeckTitle] = useState('');
+  const [deckVersion, setDeckVersion] = useState<number>(1);
+  const [deckStatus, setDeckStatus] = useState<string>('draft');
   const [deckScreenplayId, setDeckScreenplayId] = useState<string | undefined>(undefined);
   const [slides, setSlides] = useState<PitchDeckSlide[]>([]);
   const [selectedSlideId, setSelectedSlideId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [renamingDeck, setRenamingDeck] = useState(false);
   const [saveStatus, setSaveStatus] = useState<'idle' | 'unsaved' | 'saved'>('idle');
   const [savedAt, setSavedAt] = useState<number | null>(null);
 
@@ -43,6 +47,8 @@ export default function PitchDeckEditorPage() {
         const data = await getPitchDeck(deckId);
         if (cancelled) return;
         setDeckTitle(data.deck.title);
+        setDeckVersion(data.deck.version);
+        setDeckStatus(data.deck.status || 'draft');
         setDeckScreenplayId(data.deck.screenplayId);
         setSlides(data.slides);
         setSelectedSlideId(data.slides[0]?.slideId || null);
@@ -141,6 +147,30 @@ export default function PitchDeckEditorPage() {
     setSavedAt(null);
   };
 
+  const handleRenameDeck = async () => {
+    if (!deckId) return;
+    const nextTitle = window.prompt('Rename pitch deck', deckTitle || '');
+    if (!nextTitle) return;
+    const trimmed = nextTitle.trim();
+    if (!trimmed || trimmed === deckTitle) return;
+
+    setRenamingDeck(true);
+    setError(null);
+    try {
+      const updated = await updatePitchDeck(deckId, {
+        expectedVersion: deckVersion,
+        title: trimmed,
+      });
+      setDeckTitle(updated.title);
+      setDeckVersion(updated.version);
+      setDeckStatus(updated.status);
+    } catch (err: any) {
+      setError(err.message || 'Failed to rename deck');
+    } finally {
+      setRenamingDeck(false);
+    }
+  };
+
   if (!featureEnabled) {
     return (
       <main className="p-8">
@@ -158,8 +188,36 @@ export default function PitchDeckEditorPage() {
     <>
       <EditorSubNav activeTab="pitch-decks" screenplayId={deckScreenplayId} />
       <main className="p-6 md:p-8">
-        <h1 className="text-2xl font-semibold text-white">{deckTitle || 'Pitch Deck'}</h1>
-        <p className="mt-2 text-sm text-gray-400">Pitch deck editor (isolated module).</p>
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-semibold text-white">{deckTitle || 'Pitch Deck'}</h1>
+            <div className="mt-2 flex items-center gap-2">
+              <span className="rounded border border-[#3F3F46] bg-[#111] px-2 py-0.5 text-xs text-gray-300">
+                Deck already created
+              </span>
+              <span className="rounded border border-[#3F3F46] bg-[#111] px-2 py-0.5 text-xs text-gray-300">
+                {deckStatus}
+              </span>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() =>
+                router.push(`/pitch-decks${deckScreenplayId ? `?screenplayId=${encodeURIComponent(deckScreenplayId)}` : ''}`)
+              }
+              className="rounded border border-[#3F3F46] px-3 py-2 text-sm font-medium text-gray-200 hover:bg-white/5"
+            >
+              Back to Decks
+            </button>
+            <button
+              onClick={handleRenameDeck}
+              disabled={renamingDeck}
+              className="rounded border border-[#3F3F46] px-3 py-2 text-sm font-medium text-gray-200 hover:bg-white/5 disabled:opacity-50"
+            >
+              {renamingDeck ? 'Renaming...' : 'Rename'}
+            </button>
+          </div>
+        </div>
 
         {error ? (
           <div className="mt-4 rounded border border-red-500/40 bg-red-500/10 px-3 py-2 text-sm text-red-300">
@@ -252,7 +310,7 @@ export default function PitchDeckEditorPage() {
                     disabled={saving}
                     className="rounded bg-[#DC143C] px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
                   >
-                    {saving ? 'Saving...' : 'Save Slide'}
+                    {saving ? 'Saving...' : 'Save Slide Changes'}
                   </button>
                 </div>
               </>
