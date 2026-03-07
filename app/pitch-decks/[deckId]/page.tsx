@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
+import { jsPDF } from 'jspdf';
 import {
-  exportPitchDeckPdf,
   generatePitchDeckImageFromPrompt,
   generatePitchDeckImageFromReference,
   getPitchDeck,
@@ -25,8 +25,17 @@ type ExistingMediaItem = {
   id: string;
   label: string;
   sourceType: 'character' | 'location' | 'prop';
+  entityId: string;
+  entityName: string;
+  groupKey: string;
+  groupLabel: string;
+  outfitName?: string;
+  angle?: string;
+  backgroundType?: string;
   imageUrl: string;
 };
+
+type ExistingMediaSourceFilter = 'all' | 'character' | 'location' | 'prop';
 
 type ImageGenerationMode = 'prompt' | 'reference';
 
@@ -48,6 +57,174 @@ type ImageAttempt = {
   at: string;
 };
 
+type PitchDeckPdfExportInput = {
+  deckTitle: string;
+  slides: PitchDeckSlide[];
+  includeImages: boolean;
+  watermarkEnabled: boolean;
+  watermarkText: string;
+};
+
+function sanitizeFileName(name: string): string {
+  const safe = (name || 'pitch-deck')
+    .replace(/[^a-zA-Z0-9_-]+/g, '-')
+    .replace(/-+/g, '-')
+    .replace(/^-|-$/g, '')
+    .toLowerCase();
+  return `${safe || 'pitch-deck'}.pdf`;
+}
+
+function getSlidePrimaryTextForExport(slide: PitchDeckSlide): string {
+  const textBlock = slide.blocks?.find((block) => block.type === 'text');
+  if (!textBlock) return '';
+  if (typeof textBlock.content === 'string') return textBlock.content;
+  if (textBlock.content && typeof (textBlock.content as any).text === 'string') {
+    return String((textBlock.content as any).text);
+  }
+  return '';
+}
+
+function getSlidePrimaryImageUrlForExport(slide: PitchDeckSlide): string {
+  const imageBlock = slide.blocks?.find((block) => block.type === 'image');
+  if (!imageBlock || typeof imageBlock.content !== 'object' || !imageBlock.content) return '';
+  const content = imageBlock.content as any;
+  const options = Array.isArray(content.imageOptions) ? content.imageOptions : [];
+  const activeId = typeof content.activeImageId === 'string' ? content.activeImageId : '';
+  if (activeId && options.length > 0) {
+    const active = options.find((option: any) => option?.id === activeId);
+    if (typeof active?.imageUrl === 'string') return active.imageUrl;
+  }
+  if (options.length > 0 && typeof options[0]?.imageUrl === 'string') return options[0].imageUrl;
+  return typeof content.imageUrl === 'string' ? content.imageUrl : '';
+}
+
+function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(new Error('Failed to read image data'));
+    reader.readAsDataURL(blob);
+  });
+}
+
+async function loadImageForPdf(
+  imageUrl: string
+): Promise<{ dataUrl: string; format: 'PNG' | 'JPEG' | 'WEBP' } | null> {
+  if (!imageUrl) return null;
+  try {
+    const response = await fetch(imageUrl, { cache: 'no-store' });
+    if (!response.ok) return null;
+    const blob = await response.blob();
+    const dataUrl = await blobToDataUrl(blob);
+    const mime = (blob.type || '').toLowerCase();
+    const format: 'PNG' | 'JPEG' | 'WEBP' = mime.includes('png')
+      ? 'PNG'
+      : mime.includes('webp')
+        ? 'WEBP'
+        : 'JPEG';
+    return { dataUrl, format };
+  } catch {
+    return null;
+  }
+}
+
+async function generatePitchDeckPdfClient(input: PitchDeckPdfExportInput): Promise<{ blob: Blob; fileName: string }> {
+  const pageWidth = 1152;
+  const pageHeight = 648;
+  const margin = 44;
+  const imageGap = 20;
+  const imageWidth = 410;
+  const imageHeight = pageHeight - margin * 2 - 60;
+  const textWidthNoImage = pageWidth - margin * 2;
+  const textWidthWithImage = pageWidth - margin * 2 - imageWidth - imageGap;
+
+  const doc = new jsPDF({
+    orientation: 'landscape',
+    unit: 'pt',
+    format: [pageWidth, pageHeight],
+    compress: true,
+  });
+
+  const orderedSlides = [...input.slides].sort((a, b) => a.orderIndex - b.orderIndex);
+
+  for (let index = 0; index < orderedSlides.length; index += 1) {
+    if (index > 0) doc.addPage([pageWidth, pageHeight], 'landscape');
+    const slide = orderedSlides[index];
+
+    doc.setFillColor(15, 15, 16);
+    doc.rect(0, 0, pageWidth, pageHeight, 'F');
+
+    if (input.watermarkEnabled && input.watermarkText.trim()) {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(72);
+      doc.setTextColor(70, 70, 75);
+      doc.text(input.watermarkText.trim().slice(0, 42), pageWidth / 2, pageHeight / 2, {
+        align: 'center',
+        angle: -28,
+      });
+    }
+
+    doc.setDrawColor(95, 95, 105);
+    doc.line(margin, margin + 44, pageWidth - margin, margin + 44);
+
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(28);
+    doc.setTextColor(240, 240, 245);
+    doc.text(slide.title || `Slide ${slide.orderIndex}`, margin, margin + 28);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(12);
+    doc.setTextColor(170, 170, 180);
+    doc.text(input.deckTitle || 'Pitch Deck', pageWidth - margin, margin + 28, { align: 'right' });
+
+    const bodyText = getSlidePrimaryTextForExport(slide) || 'No text provided for this slide.';
+    const imageUrl = input.includeImages ? getSlidePrimaryImageUrlForExport(slide) : '';
+    const hasImage = Boolean(imageUrl);
+
+    const textStartY = margin + 74;
+    const textMaxY = pageHeight - margin;
+    const textWidth = hasImage ? textWidthWithImage : textWidthNoImage;
+    const wrapped = doc.splitTextToSize(bodyText, textWidth);
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(17);
+    doc.setTextColor(232, 232, 238);
+    let cursorY = textStartY;
+    for (const line of wrapped) {
+      if (cursorY > textMaxY) break;
+      doc.text(line, margin, cursorY);
+      cursorY += 24;
+    }
+
+    if (hasImage) {
+      const resolvedImage = await loadImageForPdf(String(imageUrl));
+      if (resolvedImage) {
+        const imageX = pageWidth - margin - imageWidth;
+        const imageY = margin + 60;
+        doc.setDrawColor(65, 65, 70);
+        doc.roundedRect(imageX, imageY, imageWidth, imageHeight, 10, 10, 'S');
+        try {
+          doc.addImage(
+            resolvedImage.dataUrl,
+            resolvedImage.format,
+            imageX + 1,
+            imageY + 1,
+            imageWidth - 2,
+            imageHeight - 2
+          );
+        } catch {
+          // If a specific image fails to encode, keep PDF generation resilient.
+        }
+      }
+    }
+  }
+
+  return {
+    blob: doc.output('blob'),
+    fileName: sanitizeFileName(input.deckTitle || 'pitch-deck'),
+  };
+}
+
 export default function PitchDeckEditorPage() {
   const router = useRouter();
   const params = useParams<{ deckId: string }>();
@@ -68,6 +245,8 @@ export default function PitchDeckEditorPage() {
   const [existingMediaLoading, setExistingMediaLoading] = useState(false);
   const [existingMediaError, setExistingMediaError] = useState<string | null>(null);
   const [selectedExistingMediaId, setSelectedExistingMediaId] = useState('');
+  const [existingSourceFilter, setExistingSourceFilter] = useState<ExistingMediaSourceFilter>('all');
+  const [existingGroupFilter, setExistingGroupFilter] = useState('all');
   const [imageModels, setImageModels] = useState<PitchDeckImageModel[]>([]);
   const [imageModelsLoading, setImageModelsLoading] = useState(false);
   const [imageModelsError, setImageModelsError] = useState<string | null>(null);
@@ -163,6 +342,25 @@ export default function PitchDeckEditorPage() {
     if (!selectedSlide?.slideId) return [] as ImageAttempt[];
     return imageAttempts.filter((attempt) => attempt.slideId === selectedSlide.slideId);
   }, [imageAttempts, selectedSlide]);
+  const filteredExistingMedia = useMemo(() => {
+    const sourceFiltered =
+      existingSourceFilter === 'all'
+        ? existingMedia
+        : existingMedia.filter((item) => item.sourceType === existingSourceFilter);
+    if (existingGroupFilter === 'all') return sourceFiltered;
+    return sourceFiltered.filter((item) => item.groupKey === existingGroupFilter);
+  }, [existingMedia, existingSourceFilter, existingGroupFilter]);
+  const existingGroupOptions = useMemo(() => {
+    const sourceFiltered =
+      existingSourceFilter === 'all'
+        ? existingMedia
+        : existingMedia.filter((item) => item.sourceType === existingSourceFilter);
+    const map = new Map<string, string>();
+    sourceFiltered.forEach((item) => {
+      if (!map.has(item.groupKey)) map.set(item.groupKey, item.groupLabel);
+    });
+    return Array.from(map.entries()).map(([value, label]) => ({ value, label }));
+  }, [existingMedia, existingSourceFilter]);
 
   useEffect(() => {
     if (deckStatus !== 'draft' && exportWatermarkText.trim().toUpperCase() === 'DRAFT') {
@@ -180,14 +378,27 @@ export default function PitchDeckEditorPage() {
     return '';
   };
 
-  const collectImageUrlsFromUnknown = (value: unknown): string[] => {
+  type ImageCandidate = {
+    imageUrl: string;
+    outfitName?: string;
+    angle?: string;
+    backgroundType?: string;
+    useCase?: string;
+    sourceHint?: string;
+  };
+
+  const collectImageCandidatesFromUnknown = (value: unknown): ImageCandidate[] => {
     const direct = normalizeImageUrl(value);
-    if (direct) return [direct];
+    if (direct) return [{ imageUrl: direct }];
     if (Array.isArray(value)) {
-      return value.flatMap((entry) => collectImageUrlsFromUnknown(entry));
+      return value.flatMap((entry) => collectImageCandidatesFromUnknown(entry));
     }
     if (!value || typeof value !== 'object') return [];
     const objectValue = value as Record<string, unknown>;
+    const metadata =
+      objectValue.metadata && typeof objectValue.metadata === 'object'
+        ? (objectValue.metadata as Record<string, unknown>)
+        : {};
     const candidateKeys = [
       'imageUrl',
       'url',
@@ -198,15 +409,71 @@ export default function PitchDeckEditorPage() {
       'portraitUrl',
       'headshotUrl',
     ];
-    const urls = candidateKeys
+    const directCandidates = candidateKeys
       .map((key) => normalizeImageUrl(objectValue[key]))
-      .filter(Boolean);
-    return urls;
+      .filter(Boolean)
+      .map((imageUrl) => ({
+        imageUrl,
+        outfitName:
+          String(
+            objectValue.outfitName ||
+              metadata.outfitName ||
+              metadata.outfit ||
+              objectValue.outfit ||
+              ''
+          ).trim() || undefined,
+        angle: String(objectValue.angle || metadata.angle || '').trim() || undefined,
+        backgroundType:
+          String(objectValue.backgroundType || metadata.backgroundType || '').trim() || undefined,
+        useCase: String(objectValue.useCase || metadata.useCase || '').trim() || undefined,
+        sourceHint: String(objectValue.sourceType || metadata.sourceType || objectValue.source || metadata.source || '').trim() || undefined,
+      }));
+
+    const nestedKeys = [
+      'images',
+      'referenceImages',
+      'poseReferences',
+      'angleReferences',
+      'angleVariations',
+      'backgrounds',
+      'media',
+      'baseReference',
+      'portrait',
+      'headshot',
+    ];
+    const nestedCandidates = nestedKeys.flatMap((key) => collectImageCandidatesFromUnknown(objectValue[key]));
+
+    const deduped = new Map<string, ImageCandidate>();
+    [...directCandidates, ...nestedCandidates].forEach((candidate) => {
+      if (!candidate.imageUrl) return;
+      const dedupeKey = [
+        candidate.imageUrl,
+        candidate.outfitName || '',
+        candidate.angle || '',
+        candidate.backgroundType || '',
+        candidate.sourceHint || '',
+      ].join('|');
+      if (!deduped.has(dedupeKey)) deduped.set(dedupeKey, candidate);
+    });
+    return Array.from(deduped.values());
   };
 
-  const extractEntityImageUrls = (entity: Record<string, unknown>, fields: string[]): string[] => {
-    const urls = fields.flatMap((field) => collectImageUrlsFromUnknown(entity[field]));
-    return Array.from(new Set(urls));
+  const extractEntityImageCandidates = (entity: Record<string, unknown>, fields: string[]): ImageCandidate[] => {
+    const deduped = new Map<string, ImageCandidate>();
+    fields
+      .flatMap((field) => collectImageCandidatesFromUnknown(entity[field]))
+      .forEach((candidate) => {
+        const dedupeKey = [
+          candidate.imageUrl,
+          candidate.outfitName || '',
+          candidate.angle || '',
+          candidate.backgroundType || '',
+          candidate.sourceHint || '',
+          candidate.useCase || '',
+        ].join('|');
+        if (!deduped.has(dedupeKey)) deduped.set(dedupeKey, candidate);
+      });
+    return Array.from(deduped.values());
   };
 
   useEffect(() => {
@@ -263,7 +530,7 @@ export default function PitchDeckEditorPage() {
         const collected: ExistingMediaItem[] = [];
         const seen = new Set<string>();
         const pushMedia = (item: ExistingMediaItem) => {
-          const dedupeKey = `${item.sourceType}:${item.imageUrl}`;
+          const dedupeKey = `${item.sourceType}:${item.entityId}:${item.groupKey}:${item.imageUrl}`;
           if (!item.imageUrl || seen.has(dedupeKey)) return;
           seen.add(dedupeKey);
           collected.push(item);
@@ -273,7 +540,7 @@ export default function PitchDeckEditorPage() {
         characters.forEach((character) => {
           const name = String(character?.name || 'Character');
           const characterId = String(character?.character_id || character?.id || name);
-          const imageUrls = extractEntityImageUrls(character as Record<string, unknown>, [
+          const imageCandidates = extractEntityImageCandidates(character as Record<string, unknown>, [
             'images',
             'referenceImages',
             'poseReferences',
@@ -282,12 +549,18 @@ export default function PitchDeckEditorPage() {
             'portrait',
             'headshot',
           ]);
-          imageUrls.forEach((imageUrl, index) => {
+          imageCandidates.forEach((candidate, index) => {
+            const outfitLabel = candidate.outfitName || 'All Outfits';
             pushMedia({
               id: `character:${characterId}:${index}`,
-              label: `Character - ${name}${index > 0 ? ` (${index + 1})` : ''}`,
+              label: `Character - ${name}${candidate.outfitName ? ` • ${candidate.outfitName}` : ''}${index > 0 ? ` (${index + 1})` : ''}`,
               sourceType: 'character',
-              imageUrl,
+              entityId: characterId,
+              entityName: name,
+              groupKey: `character:${characterId}:${outfitLabel.toLowerCase()}`,
+              groupLabel: `${name} • ${outfitLabel}`,
+              outfitName: candidate.outfitName,
+              imageUrl: candidate.imageUrl,
             });
           });
         });
@@ -296,7 +569,7 @@ export default function PitchDeckEditorPage() {
         locations.forEach((location) => {
           const name = String(location?.name || 'Location');
           const locationId = String(location?.location_id || location?.id || name);
-          const imageUrls = extractEntityImageUrls(location as Record<string, unknown>, [
+          const imageCandidates = extractEntityImageCandidates(location as Record<string, unknown>, [
             'images',
             'referenceImages',
             'baseReference',
@@ -304,12 +577,27 @@ export default function PitchDeckEditorPage() {
             'backgrounds',
             'media',
           ]);
-          imageUrls.forEach((imageUrl, index) => {
+          imageCandidates.forEach((candidate, index) => {
+            const groupLabel =
+              candidate.useCase === 'extreme-closeup'
+                ? 'Extreme close-ups'
+                : candidate.backgroundType
+                  ? 'Backgrounds'
+                  : candidate.angle || candidate.sourceHint?.toLowerCase().includes('angle')
+                    ? 'Angles'
+                    : 'Creation Image';
+            const detail = candidate.angle || candidate.backgroundType || '';
             pushMedia({
               id: `location:${locationId}:${index}`,
-              label: `Location - ${name}${index > 0 ? ` (${index + 1})` : ''}`,
+              label: `Location - ${name} • ${groupLabel}${detail ? ` (${detail})` : ''}${index > 0 ? ` (${index + 1})` : ''}`,
               sourceType: 'location',
-              imageUrl,
+              entityId: locationId,
+              entityName: name,
+              groupKey: `location:${locationId}:${groupLabel.toLowerCase()}`,
+              groupLabel: `${name} • ${groupLabel}`,
+              angle: candidate.angle,
+              backgroundType: candidate.backgroundType,
+              imageUrl: candidate.imageUrl,
             });
           });
         });
@@ -318,18 +606,22 @@ export default function PitchDeckEditorPage() {
         props.forEach((prop) => {
           const name = String(prop?.name || 'Prop');
           const propId = String(prop?.id || name);
-          const imageUrls = extractEntityImageUrls(prop as Record<string, unknown>, [
+          const imageCandidates = extractEntityImageCandidates(prop as Record<string, unknown>, [
             'images',
             'referenceImages',
             'angleReferences',
             'media',
           ]);
-          imageUrls.forEach((imageUrl, index) => {
+          imageCandidates.forEach((candidate, index) => {
             pushMedia({
               id: `prop:${propId}:${index}`,
               label: `Prop - ${name}${index > 0 ? ` (${index + 1})` : ''}`,
               sourceType: 'prop',
-              imageUrl,
+              entityId: propId,
+              entityName: name,
+              groupKey: `prop:${propId}:all`,
+              groupLabel: `${name} • All`,
+              imageUrl: candidate.imageUrl,
             });
           });
         });
@@ -379,6 +671,26 @@ export default function PitchDeckEditorPage() {
       cancelled = true;
     };
   }, [deckScreenplayId, featureEnabled]);
+
+  useEffect(() => {
+    if (existingGroupFilter === 'all') return;
+    const exists = existingGroupOptions.some((option) => option.value === existingGroupFilter);
+    if (!exists) setExistingGroupFilter('all');
+  }, [existingGroupFilter, existingGroupOptions]);
+
+  useEffect(() => {
+    if (filteredExistingMedia.length === 0) {
+      setSelectedExistingMediaId('');
+      setReferenceMediaId('');
+      return;
+    }
+    if (!filteredExistingMedia.some((item) => item.id === selectedExistingMediaId)) {
+      setSelectedExistingMediaId(filteredExistingMedia[0].id);
+    }
+    if (!filteredExistingMedia.some((item) => item.id === referenceMediaId)) {
+      setReferenceMediaId(filteredExistingMedia[0].id);
+    }
+  }, [filteredExistingMedia, selectedExistingMediaId, referenceMediaId]);
 
   const updateSelectedSlideText = (nextText: string) => {
     if (!selectedSlide) return;
@@ -748,13 +1060,12 @@ export default function PitchDeckEditorPage() {
     setExportingPdf(true);
     setError(null);
     try {
-      const { blob, fileName } = await exportPitchDeckPdf(deckId, {
+      const { blob, fileName } = await generatePitchDeckPdfClient({
+        deckTitle,
+        slides,
         includeImages: exportIncludeImages,
-        watermark: {
-          enabled: exportWatermarkEnabled,
-          text: exportWatermarkText.trim() || 'DRAFT',
-          opacity: 0.12,
-        },
+        watermarkEnabled: exportWatermarkEnabled,
+        watermarkText: exportWatermarkText.trim() || 'DRAFT',
       });
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement('a');
@@ -1052,19 +1363,47 @@ export default function PitchDeckEditorPage() {
 
                     <div className="mt-4 rounded border border-[#2a2a2a] bg-[#101010] p-3">
                       <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">Use existing screenplay media</p>
+                      <div className="mb-2 grid grid-cols-1 md:grid-cols-2 gap-2">
+                        <select
+                          value={existingSourceFilter}
+                          onChange={(e) => {
+                            setExistingSourceFilter(e.target.value as ExistingMediaSourceFilter);
+                            setExistingGroupFilter('all');
+                          }}
+                          className="rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white"
+                        >
+                          <option value="all">All sources</option>
+                          <option value="character">Characters</option>
+                          <option value="location">Locations</option>
+                          <option value="prop">Props</option>
+                        </select>
+                        <select
+                          value={existingGroupFilter}
+                          onChange={(e) => setExistingGroupFilter(e.target.value)}
+                          className="rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white"
+                          disabled={existingGroupOptions.length === 0}
+                        >
+                          <option value="all">All groups</option>
+                          {existingGroupOptions.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                       <div className="flex flex-col md:flex-row gap-2">
                         <select
                           value={selectedExistingMediaId}
                           onChange={(e) => setSelectedExistingMediaId(e.target.value)}
                           className="flex-1 rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white"
-                          disabled={existingMediaLoading || existingMedia.length === 0}
+                          disabled={existingMediaLoading || filteredExistingMedia.length === 0}
                         >
-                          {existingMedia.length === 0 ? (
+                          {filteredExistingMedia.length === 0 ? (
                             <option value="">
-                              {existingMediaLoading ? 'Loading screenplay images...' : 'No screenplay images found'}
+                              {existingMediaLoading ? 'Loading screenplay images...' : 'No images found for selected filters'}
                             </option>
                           ) : (
-                            existingMedia.map((item) => (
+                            filteredExistingMedia.map((item) => (
                               <option key={item.id} value={item.id}>
                                 {item.label}
                               </option>
@@ -1080,6 +1419,23 @@ export default function PitchDeckEditorPage() {
                           Use Existing (0 credits)
                         </button>
                       </div>
+                      {selectedExistingMedia ? (
+                        <div className="mt-2 rounded border border-[#2f2f2f] bg-[#0f0f0f] p-2">
+                          <div className="grid grid-cols-[96px_1fr] gap-2 items-center">
+                            <img
+                              src={selectedExistingMedia.imageUrl}
+                              alt={selectedExistingMedia.label}
+                              className="h-14 w-24 rounded border border-[#3F3F46] object-cover"
+                            />
+                            <div className="min-w-0">
+                              <p className="truncate text-xs text-white">{selectedExistingMedia.label}</p>
+                              <p className="truncate text-[11px] text-gray-500">
+                                {selectedExistingMedia.sourceType} • {selectedExistingMedia.groupLabel}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+                      ) : null}
                       {existingMediaError ? <p className="mt-2 text-xs text-red-300">{existingMediaError}</p> : null}
                     </div>
 
@@ -1141,14 +1497,14 @@ export default function PitchDeckEditorPage() {
                               value={referenceMediaId}
                               onChange={(e) => setReferenceMediaId(e.target.value)}
                               className="flex-1 rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white"
-                              disabled={existingMediaLoading || existingMedia.length === 0}
+                              disabled={existingMediaLoading || filteredExistingMedia.length === 0}
                             >
-                              {existingMedia.length === 0 ? (
+                              {filteredExistingMedia.length === 0 ? (
                                 <option value="">
-                                  {existingMediaLoading ? 'Loading screenplay images...' : 'No screenplay images found'}
+                                  {existingMediaLoading ? 'Loading screenplay images...' : 'No images found for selected filters'}
                                 </option>
                               ) : (
-                                existingMedia.map((item) => (
+                                filteredExistingMedia.map((item) => (
                                   <option key={item.id} value={item.id}>
                                     {item.label}
                                   </option>
@@ -1156,6 +1512,23 @@ export default function PitchDeckEditorPage() {
                               )}
                             </select>
                           </div>
+                          {selectedReferenceMedia ? (
+                            <div className="mt-2 rounded border border-[#2f2f2f] bg-[#0f0f0f] p-2">
+                              <div className="grid grid-cols-[96px_1fr] gap-2 items-center">
+                                <img
+                                  src={selectedReferenceMedia.imageUrl}
+                                  alt={selectedReferenceMedia.label}
+                                  className="h-14 w-24 rounded border border-[#3F3F46] object-cover"
+                                />
+                                <div className="min-w-0">
+                                  <p className="truncate text-xs text-white">{selectedReferenceMedia.label}</p>
+                                  <p className="truncate text-[11px] text-gray-500">
+                                    {selectedReferenceMedia.sourceType} • {selectedReferenceMedia.groupLabel}
+                                  </p>
+                                </div>
+                              </div>
+                            </div>
+                          ) : null}
                           <textarea
                             value={referencePromptText}
                             onChange={(e) => setReferencePromptText(e.target.value)}

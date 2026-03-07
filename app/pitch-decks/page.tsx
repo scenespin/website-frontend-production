@@ -109,13 +109,17 @@ function PitchDeckHubPageContent() {
   return (
     <>
       <EditorSubNav activeTab="pitch-decks" screenplayId={currentScreenplayId || undefined} />
-      <main className="p-8 max-w-5xl">
+      <main className="max-w-7xl mx-auto px-2 md:px-4 py-3 md:py-8">
         <div className="flex items-center justify-between gap-4">
           <div>
             <h1 className="text-2xl font-semibold text-white">Pitch Decks</h1>
             <p className="mt-2 text-sm text-gray-400">Manage pitch decks for the current screenplay.</p>
           </div>
-          <button onClick={goToCreate} className="rounded bg-[#DC143C] px-4 py-2 text-sm font-medium text-white">
+          <button
+            onClick={goToCreate}
+            className="flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all hover:scale-105 shrink-0"
+            style={{ backgroundColor: '#DC143C', color: 'white' }}
+          >
             Create Pitch Deck
           </button>
         </div>
@@ -138,7 +142,8 @@ function PitchDeckHubPageContent() {
                   <p className="text-sm text-gray-300">No pitch decks found for this screenplay yet.</p>
                   <button
                     onClick={goToCreate}
-                    className="mt-4 rounded bg-[#DC143C] px-4 py-2 text-sm font-medium text-white"
+                    className="mt-4 flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all hover:scale-105 mx-auto"
+                    style={{ backgroundColor: '#DC143C', color: 'white' }}
                   >
                     Create Your First Pitch Deck
                   </button>
