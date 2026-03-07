@@ -13,7 +13,7 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
-import { FileText, Users, MapPin, Package, ChevronDown, UserPlus, History } from 'lucide-react';
+import { FileText, Users, MapPin, Package, Layout, UserPlus, History } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import EditableScreenplayTitle from './EditableScreenplayTitle';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
@@ -21,7 +21,7 @@ import CollaborationPanel from '@/components/collaboration/CollaborationPanel';
 import RoleBadge from '@/components/collaboration/RoleBadge';
 import ChangeHistoryPanel from '@/components/screenplay/ChangeHistoryPanel';
 
-export type EditorTab = 'write' | 'characters' | 'locations' | 'props';
+export type EditorTab = 'write' | 'characters' | 'locations' | 'props' | 'pitch-decks';
 
 interface EditorSubNavProps {
   activeTab?: EditorTab;
@@ -65,6 +65,15 @@ const TABS = [
     description: 'Props & assets',
     color: 'text-orange-500',
     activeColor: 'text-orange-600 dark:text-orange-400'
+  },
+  {
+    id: 'pitch-decks' as EditorTab,
+    label: 'Pitch Deck',
+    href: '/pitch-decks',
+    icon: Layout,
+    description: 'Pitch deck builder',
+    color: 'text-purple-500',
+    activeColor: 'text-purple-600 dark:text-purple-400'
   }
 ] as const;
 
@@ -82,6 +91,7 @@ export function EditorSubNav({ activeTab, className, screenplayId }: EditorSubNa
     if (pathname?.includes('/characters')) return 'characters';
     if (pathname?.includes('/locations')) return 'locations';
     if (pathname?.includes('/props')) return 'props';
+    if (pathname?.includes('/pitch-decks')) return 'pitch-decks';
     return 'write';
   };
 

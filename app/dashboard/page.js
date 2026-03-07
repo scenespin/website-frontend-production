@@ -25,7 +25,8 @@ import {
   MoreVertical,
   Users,
   MapPin,
-  Package
+  Package,
+  Layout
 } from 'lucide-react';
 import CreditWidget from '@/components/billing/CreditWidget';
 import LowCreditBanner from '@/components/billing/LowCreditBanner';
@@ -697,6 +698,11 @@ export default function Dashboard() {
     await handleDeleteProject(deleteConfirmModal.screenplayId);
   };
 
+  const handleCreatePitchDeck = (screenplayId) => {
+    if (!screenplayId) return;
+    router.push(`/pitch-decks?screenplayId=${encodeURIComponent(screenplayId)}`);
+  };
+
   if (loading) {
     return (
       <main className="min-h-screen bg-base-100 flex items-center justify-center">
@@ -998,6 +1004,16 @@ export default function Dashboard() {
                           <DropdownMenuItem
                             onClick={(e) => {
                               e.stopPropagation();
+                              handleCreatePitchDeck(screenplayId);
+                            }}
+                            className="cursor-pointer"
+                          >
+                            <Layout className="w-4 h-4 mr-2" />
+                            Create Pitch Deck
+                          </DropdownMenuItem>
+                          <DropdownMenuItem
+                            onClick={(e) => {
+                              e.stopPropagation();
                               setEditingScreenplayId(screenplayId);
                             }}
                             className="cursor-pointer"
@@ -1025,6 +1041,18 @@ export default function Dashboard() {
                       </DropdownMenu>
 
                       {/* Desktop: Hover-only buttons */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          handleCreatePitchDeck(screenplayId);
+                        }}
+                        className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-md hover:bg-cinema-red/15 text-base-content/60 hover:text-cinema-red transition-colors opacity-0 group-hover:opacity-100 text-xs font-medium"
+                        title="Create pitch deck"
+                      >
+                        <Layout className="w-3.5 h-3.5" />
+                        Pitch Deck
+                      </button>
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
@@ -1111,7 +1139,17 @@ export default function Dashboard() {
                       </div>
                     </Link>
                     <div className="flex items-center gap-3 flex-shrink-0">
-                      {/* Collaborators don't have edit/delete buttons - only view access */}
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          e.preventDefault();
+                          handleCreatePitchDeck(screenplayId);
+                        }}
+                        className="px-3 py-1.5 rounded-md border border-cinema-red/30 text-cinema-red hover:bg-cinema-red/10 transition-colors text-xs font-medium"
+                        title="Create pitch deck"
+                      >
+                        Create Pitch Deck
+                      </button>
                     </div>
                   </div>
                 );
