@@ -611,7 +611,6 @@ export default function EditorWorkspace() {
     
     // Insert scene type and trigger smart tab navigation
     const insertSceneTypeAndTab = useCallback((sceneType: { id: string; label: string }) => {
-        console.log('[NAV-DIAG] EditorWorkspace: Closing scene type dropdown, inserting:', sceneType.label);
         setShowSceneTypeDropdown(false);
         setSceneTypeDropdownPosition(null);
         
@@ -639,7 +638,6 @@ export default function EditorWorkspace() {
                 textarea.selectionEnd = newPos;
                 setCursorPosition(newPos);
                 // Trigger Tab key event
-                console.log('[NAV-DIAG] EditorWorkspace: Dispatching synthetic Tab event');
                 const tabEvent = new KeyboardEvent('keydown', {
                     key: 'Tab',
                     code: 'Tab',
@@ -686,36 +684,11 @@ export default function EditorWorkspace() {
             // Not a scene heading, calculate position and show dropdown
             const position = getCursorDropdownPosition();
             if (position) {
-                console.log('[NAV-DIAG] EditorWorkspace: Opening scene type dropdown');
                 setSceneTypeDropdownPosition(position);
                 setShowSceneTypeDropdown(true);
             }
         }
     }, [state.content]);
-    
-    // Track navigation attempts for diagnostics
-    useEffect(() => {
-        const handleClick = (e: MouseEvent) => {
-            const target = e.target as HTMLElement;
-            const link = target.closest('a[href]');
-            if (link) {
-                const href = link.getAttribute('href');
-                console.log('[NAV-DIAG] EditorWorkspace: Navigation link clicked:', href, 'at', performance.now());
-            }
-        };
-        
-        const handlePopState = () => {
-            console.log('[NAV-DIAG] EditorWorkspace: Browser back/forward button pressed');
-        };
-        
-        document.addEventListener('click', handleClick, true);
-        window.addEventListener('popstate', handlePopState);
-        
-        return () => {
-            document.removeEventListener('click', handleClick, true);
-            window.removeEventListener('popstate', handlePopState);
-        };
-    }, []);
 
     // Keyboard shortcuts
     useEffect(() => {

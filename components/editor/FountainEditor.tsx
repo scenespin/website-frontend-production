@@ -343,15 +343,6 @@ export default function FountainEditor({
     const wrydaTab = useWrydaTabNavigation(textareaRef);
     const WRYDA_TAB_ENABLED = process.env.NEXT_PUBLIC_WRYDA_TAB === 'true';
     
-    // Debug: Log feature flag status
-    useEffect(() => {
-        console.log('[WrydaTab] Feature flag status:', {
-            enabled: WRYDA_TAB_ENABLED,
-            envValue: process.env.NEXT_PUBLIC_WRYDA_TAB,
-            type: typeof process.env.NEXT_PUBLIC_WRYDA_TAB
-        });
-    }, [WRYDA_TAB_ENABLED]);
-    
     // Cleanup on unmount
     useEffect(() => {
         return () => {
@@ -592,7 +583,6 @@ export default function FountainEditor({
                 const isSceneHeading = /^(int|ext|est|i\/e|int\/ext|int\.\/ext\.|INT|EXT|EST|I\/E|INT\/EXT|INT\.\/EXT\.)/i.test(trimmedLine);
                 
                 if (isSceneHeading) {
-                    console.log('[WrydaTab] $ detected in handleChange, removing and triggering Tab navigation');
                     // Remove the $ from content
                     const newTextBefore = lines.slice(0, -1).concat(trimmedLine).join('\n');
                     newContent = newTextBefore + textAfterCursor;
@@ -611,7 +601,6 @@ export default function FountainEditor({
                                 preventDefault: () => {},
                                 stopPropagation: () => {}
                             } as React.KeyboardEvent<HTMLTextAreaElement>;
-                            console.log('[WrydaTab] Calling handleTab from handleChange');
                             wrydaTab.handleTab(syntheticEvent);
                         }
                     }, 0);
@@ -812,7 +801,6 @@ export default function FountainEditor({
                         if (WRYDA_TAB_ENABLED && wrydaTab.isSmartTypeOpen) {
                             // Dropdown is open - let it handle navigation keys
                             if (e.key === 'Tab' || e.key === 'Enter' || e.key === 'Escape' || e.key === 'ArrowUp' || e.key === 'ArrowDown') {
-                                console.log('[NAV-DIAG] FountainEditor: SmartType dropdown open, preventing default for:', e.key);
                                 // Prevent default to stop focus navigation, but let dropdown handle the key
                                 e.preventDefault();
                                 e.stopPropagation();
@@ -836,16 +824,12 @@ export default function FountainEditor({
                             // onKeyDown fires BEFORE character insertion, so currentLineText won't have $ yet
                             // Match lowercase variations: int, ext, i/e, int/ext, etc. (case-insensitive)
                             const trimmedLine = currentLineText.trim();
-                            console.log('[WrydaTab] $ key pressed, checking line:', trimmedLine);
                             
                             // Match scene heading types: INT, EXT, EST, I/E, INT/EXT, INT./EXT., etc. (case-insensitive)
                             // Also match partial types like "int", "ext", "i/e", "int/ext" (without periods)
                             const isSceneHeading = /^(int|ext|est|i\/e|int\/ext|int\.\/ext\.|INT|EXT|EST|I\/E|INT\/EXT|INT\.\/EXT\.)/i.test(trimmedLine);
                             
-                            console.log('[WrydaTab] Is scene heading?', isSceneHeading, 'Line:', trimmedLine);
-                            
                             if (isSceneHeading) {
-                                console.log('[WrydaTab] $ symbol pressed in scene heading, treating as Tab trigger...');
                                 // CRITICAL: Prevent $ from being inserted into textarea
                                 e.preventDefault();
                                 e.stopPropagation();
@@ -864,7 +848,6 @@ export default function FountainEditor({
                                             stopPropagation: () => {}
                                         } as React.KeyboardEvent<HTMLTextAreaElement>;
                                         
-                                        console.log('[WrydaTab] Calling handleTab with synthetic event');
                                         // Call handleTab with synthetic event (reuses all Tab logic)
                                         // handleTab will format the type and show location dropdown
                                         wrydaTab.handleTab(syntheticEvent);
@@ -872,8 +855,6 @@ export default function FountainEditor({
                                 }, 0);
                                 
                                 return;
-                            } else {
-                                console.log('[WrydaTab] Not a scene heading, allowing $ to be typed');
                             }
                             // If not in scene heading, allow $ to be typed normally
                             // Don't prevent default - let handleChange process it
@@ -881,14 +862,11 @@ export default function FountainEditor({
                         
                         // Try Wryda Tab navigation first if enabled
                         if (WRYDA_TAB_ENABLED && e.key === 'Tab' && !e.shiftKey) {
-                            console.log('[WrydaTab] Tab key pressed, attempting to handle...');
                             // Always prevent default when Wryda Tab is enabled to prevent focus navigation
                             e.preventDefault();
                             if (wrydaTab.handleTab(e)) {
-                                console.log('[WrydaTab] Tab handled by Wryda Tab navigation');
                                 return; // Handled by Wryda Tab navigation
                             } else {
-                                console.log('[WrydaTab] Tab not handled, but default prevented');
                                 // Default already prevented, just return to avoid focus navigation
                                 return;
                             }
