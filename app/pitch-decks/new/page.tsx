@@ -16,8 +16,16 @@ import { useScreenplay } from '@/contexts/ScreenplayContext';
 
 const AUTO_DRAFT_LLM_MODELS = [
   { id: 'claude-sonnet-4-6', name: 'Claude Sonnet 4.6', provider: 'Anthropic' },
+  { id: 'claude-opus-4-6', name: 'Claude Opus 4.6', provider: 'Anthropic' },
+  { id: 'claude-haiku-4-5', name: 'Claude Haiku 4.5', provider: 'Anthropic' },
   { id: 'gpt-5.1', name: 'GPT-5.1', provider: 'OpenAI' },
-  { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', provider: 'Google' },
+  { id: 'gpt-4o', name: 'GPT-4o', provider: 'OpenAI' },
+  { id: 'o3', name: 'O3', provider: 'OpenAI' },
+  { id: 'gemini-3-pro-preview', name: 'Gemini 3 Pro', provider: 'Google' },
+  { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'Google' },
+  { id: 'grok-4-0709', name: 'Grok 4', provider: 'xAI' },
+  { id: 'grok-4-1-fast-reasoning', name: 'Grok 4.1 Fast', provider: 'xAI' },
+  { id: 'grok-4-1-fast-non-reasoning', name: 'Grok 4.1 Fast Lite', provider: 'xAI' },
 ] as const;
 
 function isFeatureEnabled(): boolean {
