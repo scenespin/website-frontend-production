@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { jsPDF } from 'jspdf';
-import { Briefcase, Eye, Film, Megaphone, MoreVertical, Trash2 } from 'lucide-react';
+import { Briefcase, Eye, Film, Loader2, Megaphone, MoreVertical, Trash2 } from 'lucide-react';
 import {
   archivePitchDeckImage,
   generatePitchDeckImageFromPrompt,
@@ -22,7 +22,7 @@ import RewriteModal from '@/components/modals/RewriteModal';
 import { MediaLibraryBrowser } from '@/components/production/CharacterStudio/MediaLibraryBrowser';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useOptionalPitchDeckAdvisorContext, type PitchDeckStoryAdvisorContextPacket } from '@/contexts/PitchDeckAdvisorContext';
-import type { MediaFile } from '@/types/media';
+import type { FolderTreeNode, MediaFile } from '@/types/media';
 
 function isFeatureEnabled(): boolean {
   return process.env.NEXT_PUBLIC_ENABLE_PITCH_DECK_V1 === 'true';
@@ -121,6 +121,10 @@ const ALLOWED_PITCH_DECK_IMAGE_MODELS = new Set([
   'nano-banana-pro-2k',
 ]);
 const ALLOWED_PITCH_DECK_REFERENCE_MODELS = new Set([
+  'flux2-pro-2k',
+  'flux2-pro-4k',
+  'flux2-max-2k',
+  'flux2-max-4k-16:9',
   'nano-banana-pro',
   'nano-banana-pro-2k',
 ]);
@@ -445,6 +449,9 @@ export default function PitchDeckEditorPage() {
   const [existingEntityFilter, setExistingEntityFilter] = useState('all');
   const [existingVariantFilter, setExistingVariantFilter] = useState('all');
   const [showArchiveBrowser, setShowArchiveBrowser] = useState(false);
+  const [archiveBrowserResolving, setArchiveBrowserResolving] = useState(false);
+  const [archiveBrowserInitialFolderId, setArchiveBrowserInitialFolderId] = useState<string | null>(null);
+  const [archiveBrowserRestrictFolderId, setArchiveBrowserRestrictFolderId] = useState<string | null>(null);
   const [imageModels, setImageModels] = useState<PitchDeckImageModel[]>([]);
   const [imageModelsLoading, setImageModelsLoading] = useState(false);
   const [imageModelsError, setImageModelsError] = useState<string | null>(null);
@@ -1557,6 +1564,92 @@ export default function PitchDeckEditorPage() {
     return Array.from(byFolder.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
   }, [existingMedia]);
 
+  const findFolderById = useCallback((tree: FolderTreeNode[], folderId: string): FolderTreeNode | null => {
+    for (const node of tree) {
+      if (node.folderId === folderId) return node;
+      const child = findFolderById(node.children || [], folderId);
+      if (child) return child;
+    }
+    return null;
+  }, []);
+
+  const findFolderByName = useCallback((tree: FolderTreeNode[], normalizedName: string): FolderTreeNode | null => {
+    for (const node of tree) {
+      if (node.folderName.trim().toLowerCase() === normalizedName) return node;
+      const child = findFolderByName(node.children || [], normalizedName);
+      if (child) return child;
+    }
+    return null;
+  }, []);
+
+  const isFolderInsideSubtree = useCallback((subtreeRoot: FolderTreeNode, folderId: string): boolean => {
+    if (subtreeRoot.folderId === folderId) return true;
+    const children = subtreeRoot.children || [];
+    for (const child of children) {
+      if (isFolderInsideSubtree(child, folderId)) return true;
+    }
+    return false;
+  }, []);
+
+  const openArchiveBrowser = useCallback(async () => {
+    if (!deckScreenplayId) return;
+    setExistingSourceFilter('pitch_deck');
+    setArchiveBrowserResolving(true);
+    setImageActionError(null);
+
+    try {
+      const response = await fetch(`/api/media/folders/tree?screenplayId=${encodeURIComponent(deckScreenplayId)}`, {
+        cache: 'no-store',
+      });
+      if (!response.ok) {
+        throw new Error('Failed to load archive folders');
+      }
+      const payload = await response.json();
+      const tree: FolderTreeNode[] = Array.isArray(payload?.tree) ? payload.tree : [];
+
+      const pitchDeckRoot =
+        findFolderByName(tree, 'pitchdecks') ||
+        findFolderByName(tree, 'pitch decks');
+      const deckFolderName = `deck_${String(deckId || '').slice(-8).toLowerCase()}`;
+      const deckFolder =
+        pitchDeckRoot && Array.isArray(pitchDeckRoot.children)
+          ? findFolderByName(pitchDeckRoot.children, deckFolderName)
+          : null;
+
+      const resolvedRestrictFolderId =
+        deckFolder?.folderId ||
+        pitchDeckRoot?.folderId ||
+        deckArchiveRootFolderId ||
+        null;
+
+      let resolvedInitialFolderId = initialArchiveFolderId || resolvedRestrictFolderId;
+      if (resolvedRestrictFolderId && resolvedInitialFolderId) {
+        const restrictNode = findFolderById(tree, resolvedRestrictFolderId);
+        if (restrictNode && !isFolderInsideSubtree(restrictNode, resolvedInitialFolderId)) {
+          resolvedInitialFolderId = resolvedRestrictFolderId;
+        }
+      }
+
+      setArchiveBrowserRestrictFolderId(resolvedRestrictFolderId);
+      setArchiveBrowserInitialFolderId(resolvedInitialFolderId || null);
+    } catch (err: any) {
+      setArchiveBrowserRestrictFolderId(deckArchiveRootFolderId || null);
+      setArchiveBrowserInitialFolderId(initialArchiveFolderId || deckArchiveRootFolderId || null);
+      setImageActionError(err?.message || 'Could not resolve archive folder. Showing fallback view.');
+    } finally {
+      setArchiveBrowserResolving(false);
+      setShowArchiveBrowser(true);
+    }
+  }, [
+    deckId,
+    deckScreenplayId,
+    deckArchiveRootFolderId,
+    findFolderById,
+    findFolderByName,
+    initialArchiveFolderId,
+    isFolderInsideSubtree,
+  ]);
+
   const addFromArchiveBrowser = (files: MediaFile[]) => {
     if (!files || files.length === 0) {
       setImageActionError('Select at least one image from archive.');
@@ -1583,6 +1676,13 @@ export default function PitchDeckEditorPage() {
       setImageActionError('Selected files did not include valid image URLs.');
     }
   };
+
+  useEffect(() => {
+    setShowArchiveBrowser(false);
+    setArchiveBrowserResolving(false);
+    setArchiveBrowserInitialFolderId(null);
+    setArchiveBrowserRestrictFolderId(null);
+  }, [deckId]);
 
   const toggleReferenceMediaSelection = (mediaId: string) => {
     setImageActionError(null);
@@ -2233,16 +2333,23 @@ export default function PitchDeckEditorPage() {
                         <>
                           {showArchiveBrowser && deckScreenplayId ? (
                             <div className="mt-2 rounded border border-[#2f2f2f] bg-[#0f0f0f] p-2">
-                              <MediaLibraryBrowser
-                                screenplayId={deckScreenplayId}
-                                onSelectImages={addFromArchiveBrowser}
-                                filterTypes={['image']}
-                                allowMultiSelect={true}
-                                maxSelections={20}
-                                initialFolderId={initialArchiveFolderId}
-                                restrictToFolderSubtreeId={deckArchiveRootFolderId}
-                                onCancel={() => setShowArchiveBrowser(false)}
-                              />
+                              {archiveBrowserResolving ? (
+                                <div className="flex h-[240px] items-center justify-center gap-2 text-sm text-gray-300">
+                                  <Loader2 className="h-4 w-4 animate-spin" />
+                                  Resolving pitch deck archive folder...
+                                </div>
+                              ) : (
+                                <MediaLibraryBrowser
+                                  screenplayId={deckScreenplayId}
+                                  onSelectImages={addFromArchiveBrowser}
+                                  filterTypes={['image']}
+                                  allowMultiSelect={true}
+                                  maxSelections={20}
+                                  initialFolderId={archiveBrowserInitialFolderId ?? initialArchiveFolderId}
+                                  restrictToFolderSubtreeId={archiveBrowserRestrictFolderId ?? deckArchiveRootFolderId}
+                                  onCancel={() => setShowArchiveBrowser(false)}
+                                />
+                              )}
                             </div>
                           ) : null}
                           {!(showArchiveBrowser && existingSourceFilter === 'pitch_deck') ? (
@@ -2291,8 +2398,11 @@ export default function PitchDeckEditorPage() {
                             <button
                               type="button"
                               onClick={() => {
-                                setExistingSourceFilter('pitch_deck');
-                                setShowArchiveBrowser((prev) => !prev);
+                                if (showArchiveBrowser) {
+                                  setShowArchiveBrowser(false);
+                                  return;
+                                }
+                                void openArchiveBrowser();
                               }}
                               disabled={!deckScreenplayId}
                               className="mr-2 rounded border border-[#3F3F46] px-3 py-2 text-sm font-medium text-gray-200 hover:border-[#DC143C] hover:text-white disabled:opacity-50"
