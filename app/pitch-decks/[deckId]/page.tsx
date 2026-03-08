@@ -1543,8 +1543,8 @@ export default function PitchDeckEditorPage() {
     s3Key?: string;
     source: 'prompt' | 'reference' | 'upload' | 'manual';
     label?: string;
-  }) => {
-    if (!deckId || !selectedSlide?.slideId || !input.s3Key) return;
+  }): Promise<{ fileId?: string; folderId?: string; alreadyExisted?: boolean } | null> => {
+    if (!deckId || !selectedSlide?.slideId || !input.s3Key) return null;
     try {
       const archived = await archivePitchDeckImage({
         deckId,
@@ -1576,13 +1576,14 @@ export default function PitchDeckEditorPage() {
         if (prev.some((item) => item.imageUrl === nextArchiveItem.imageUrl)) return prev;
         return [nextArchiveItem, ...prev].slice(0, 400);
       });
-      setExistingSourceFilter('pitch_deck');
       existingMediaLoadedScopeRef.current = null;
       void refreshExistingMedia();
+      return archived;
     } catch {
       // Non-blocking: gallery flow should continue even if archive registration fails.
       existingMediaLoadedScopeRef.current = null;
       void refreshExistingMedia();
+      return null;
     }
   };
 
