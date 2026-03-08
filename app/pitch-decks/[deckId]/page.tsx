@@ -1546,6 +1546,17 @@ export default function PitchDeckEditorPage() {
     return firstArchive?.archiveFolderId || null;
   }, [existingMedia, selectedExistingMedia, selectedSlide?.slideId]);
 
+  const deckArchiveRootFolderId = useMemo(() => {
+    const archiveItems = existingMedia.filter((item) => item.sourceType === 'pitch_deck' && !!item.archiveFolderId);
+    if (archiveItems.length === 0) return null;
+    const byFolder = new Map<string, number>();
+    archiveItems.forEach((item) => {
+      const folderId = item.archiveFolderId as string;
+      byFolder.set(folderId, (byFolder.get(folderId) || 0) + 1);
+    });
+    return Array.from(byFolder.entries()).sort((a, b) => b[1] - a[1])[0]?.[0] || null;
+  }, [existingMedia]);
+
   const addFromArchiveBrowser = (files: MediaFile[]) => {
     if (!files || files.length === 0) {
       setImageActionError('Select at least one image from archive.');
@@ -2229,6 +2240,7 @@ export default function PitchDeckEditorPage() {
                                 allowMultiSelect={true}
                                 maxSelections={20}
                                 initialFolderId={initialArchiveFolderId}
+                                restrictToFolderSubtreeId={deckArchiveRootFolderId}
                                 onCancel={() => setShowArchiveBrowser(false)}
                               />
                             </div>

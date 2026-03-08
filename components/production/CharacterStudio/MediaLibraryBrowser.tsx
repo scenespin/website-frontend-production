@@ -89,6 +89,7 @@ interface MediaLibraryBrowserProps {
   maxSelections?: number;
   selectedFolderPath?: string[];
   initialFolderId?: string | null;
+  restrictToFolderSubtreeId?: string | null;
   onCancel?: () => void;
 }
 
@@ -100,6 +101,7 @@ export function MediaLibraryBrowser({
   maxSelections = 10,
   selectedFolderPath,
   initialFolderId,
+  restrictToFolderSubtreeId,
   onCancel
 }: MediaLibraryBrowserProps) {
   const [selectedImages, setSelectedImages] = useState<Set<string>>(new Set());
@@ -115,6 +117,13 @@ export function MediaLibraryBrowser({
       setSelectedFolderId(null);
     }
   }, [initialFolderId]);
+
+  useEffect(() => {
+    if (!restrictToFolderSubtreeId) return;
+    if (!selectedFolderId) {
+      setSelectedFolderId(restrictToFolderSubtreeId);
+    }
+  }, [restrictToFolderSubtreeId, selectedFolderId]);
   
   // Load folder tree for navigation
   const { 
@@ -125,11 +134,15 @@ export function MediaLibraryBrowser({
   // Load media files - filter by selected folder
   // When selectedFolderId is null (root), show all files from all folders
   // When a folder is selected, show only files in that folder
+  const effectiveFolderId = selectedFolderId || restrictToFolderSubtreeId || null;
   const { data: mediaFiles = [], isLoading } = useMediaFiles(
     screenplayId,
-    selectedFolderId || undefined, // folderId - filter by selected folder (undefined = all files)
+    effectiveFolderId || undefined, // folderId - filter by selected/restricted folder
     true, // enabled
-    !selectedFolderId // includeAllFolders - show all files when root is selected, only folder files when folder selected
+    false, // For archive picker, always scope to selected/restricted folder context
+    undefined,
+    undefined,
+    true // direct children only for predictable folder browsing behavior
   );
 
   // Filter to images only
@@ -187,7 +200,24 @@ export function MediaLibraryBrowser({
   };
 
   // Handle folder selection
+  const isFolderAllowed = (folderId: string | null, tree: FolderTreeNode[]): boolean => {
+    if (!restrictToFolderSubtreeId) return true;
+    if (!folderId) return false;
+    const contains = (nodes: FolderTreeNode[]): boolean => {
+      for (const node of nodes) {
+        if (node.folderId === folderId) return true;
+        if (Array.isArray(node.children) && contains(node.children)) return true;
+      }
+      return false;
+    };
+    const restrictedRoot = tree.find((node) => node.folderId === restrictToFolderSubtreeId);
+    if (!restrictedRoot) return folderId === restrictToFolderSubtreeId;
+    if (folderId === restrictToFolderSubtreeId) return true;
+    return contains(restrictedRoot.children || []);
+  };
+
   const handleFolderSelect = (folderId: string | null) => {
+    if (!isFolderAllowed(folderId, folderTree)) return;
     setSelectedFolderId(folderId);
     setSelectedImages(new Set()); // Clear selection when changing folders
   };
@@ -229,6 +259,11 @@ export function MediaLibraryBrowser({
 
   // Build folder tree with root
   const buildFolderTree = (): FolderNode[] => {
+    if (restrictToFolderSubtreeId) {
+      const restrictedRoot = folderTree.find((node) => node.folderId === restrictToFolderSubtreeId);
+      if (!restrictedRoot) return [];
+      return convertFolderTree([restrictedRoot]);
+    }
     const root: FolderNode = {
       id: 'root',
       name: 'All Files',
@@ -242,7 +277,7 @@ export function MediaLibraryBrowser({
   // Render folder node recursively
   const renderFolderNode = (node: FolderNode, level: number = 0): React.ReactNode => {
     const isExpanded = expandedFolders.has(node.id);
-    const isSelected = selectedFolderId === node.folderId || (node.id === 'root' && !selectedFolderId);
+    const isSelected = selectedFolderId === node.folderId || (!restrictToFolderSubtreeId && node.id === 'root' && !selectedFolderId);
     const hasChildren = node.children && node.children.length > 0;
 
     return (
@@ -327,7 +362,7 @@ export function MediaLibraryBrowser({
             {/* NOTE: Displayed as "Archive" to users, but backend/API still uses "Storage" or "media-library" */}
             <p className="text-xs text-[#808080]">
               {selectedImages.size} of {maxSelections} selected
-              {selectedFolderId && ` • Folder: ${folderNodes[0]?.children?.find(f => f.folderId === selectedFolderId)?.name || 'Unknown'}`}
+              {selectedFolderId && ` • Folder: ${selectedFolderId}`}
             </p>
           </div>
           <div className="flex gap-2">
@@ -359,10 +394,10 @@ export function MediaLibraryBrowser({
             <div className="text-center py-12">
               <FolderOpen className="w-12 h-12 text-[#808080] mx-auto mb-4" />
               <p className="text-[#808080] mb-2">
-                {selectedFolderId ? 'No images in this folder' : 'No images in Archive'}
+                {effectiveFolderId ? 'No images in this folder' : 'No images in Archive'}
               </p>
               <p className="text-xs text-[#6B7280]">
-                {selectedFolderId 
+                {effectiveFolderId
                   ? 'Navigate to a different folder or upload images here'
                   : 'Upload images to Archive first, or use the Upload button'}
               </p>
