@@ -101,6 +101,7 @@ export async function generatePitchDeckDraft(input: {
   textMode: PitchDeckTextMode;
   includeBusinessSlides?: boolean;
   titleOverride?: string;
+  desiredModelId?: string;
 }): Promise<{ deckId: string; status: string; slideCount: number; version: number }> {
   const response = await fetch('/api/pitch-decks/generate-draft', {
     method: 'POST',
