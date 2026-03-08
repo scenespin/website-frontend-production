@@ -19,8 +19,10 @@ import {
 import { EditorSubNav } from '@/components/editor/EditorSubNav';
 import { useDirectS3Upload } from '@/hooks/useDirectS3Upload';
 import RewriteModal from '@/components/modals/RewriteModal';
+import { MediaLibraryBrowser } from '@/components/production/CharacterStudio/MediaLibraryBrowser';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useOptionalPitchDeckAdvisorContext, type PitchDeckStoryAdvisorContextPacket } from '@/contexts/PitchDeckAdvisorContext';
+import type { MediaFile } from '@/types/media';
 
 function isFeatureEnabled(): boolean {
   return process.env.NEXT_PUBLIC_ENABLE_PITCH_DECK_V1 === 'true';
@@ -40,6 +42,7 @@ type ExistingMediaItem = {
   imageUrl: string;
   s3Key?: string;
   mediaFileId?: string;
+  archiveFolderId?: string;
   archiveDeckId?: string;
   archiveSlideId?: string;
 };
@@ -441,6 +444,7 @@ export default function PitchDeckEditorPage() {
   const [existingSourceFilter, setExistingSourceFilter] = useState<ExistingMediaSourceFilter>('character');
   const [existingEntityFilter, setExistingEntityFilter] = useState('all');
   const [existingVariantFilter, setExistingVariantFilter] = useState('all');
+  const [showArchiveBrowser, setShowArchiveBrowser] = useState(false);
   const [imageModels, setImageModels] = useState<PitchDeckImageModel[]>([]);
   const [imageModelsLoading, setImageModelsLoading] = useState(false);
   const [imageModelsError, setImageModelsError] = useState<string | null>(null);
@@ -1024,6 +1028,7 @@ export default function PitchDeckEditorPage() {
             imageUrl: `/api/media/file?key=${encodeURIComponent(s3Key)}`,
             s3Key,
             mediaFileId: typeof file.fileId === 'string' ? file.fileId : undefined,
+              archiveFolderId: typeof file.folderId === 'string' ? file.folderId : undefined,
             archiveDeckId: typeof metadata?.deckId === 'string' ? metadata.deckId : undefined,
             archiveSlideId: typeof metadata?.slideId === 'string' ? metadata.slideId : undefined,
           });
@@ -1459,6 +1464,7 @@ export default function PitchDeckEditorPage() {
         imageUrl: `/api/media/file?key=${encodeURIComponent(input.s3Key)}`,
         s3Key: input.s3Key,
         mediaFileId: archived.fileId,
+        archiveFolderId: archived.folderId,
         archiveDeckId: String(deckId),
         archiveSlideId: String(selectedSlide.slideId),
       };
@@ -1526,6 +1532,45 @@ export default function PitchDeckEditorPage() {
       label: selectedExistingMedia.label,
     });
     setImageActionNotice('Added existing screenplay image to this slot gallery.');
+  };
+
+  const initialArchiveFolderId = useMemo(() => {
+    if (selectedExistingMedia?.sourceType === 'pitch_deck' && selectedExistingMedia.archiveFolderId) {
+      return selectedExistingMedia.archiveFolderId;
+    }
+    const currentSlideArchive = existingMedia.find(
+      (item) => item.sourceType === 'pitch_deck' && item.archiveSlideId === selectedSlide?.slideId && !!item.archiveFolderId
+    );
+    if (currentSlideArchive?.archiveFolderId) return currentSlideArchive.archiveFolderId;
+    const firstArchive = existingMedia.find((item) => item.sourceType === 'pitch_deck' && !!item.archiveFolderId);
+    return firstArchive?.archiveFolderId || null;
+  }, [existingMedia, selectedExistingMedia, selectedSlide?.slideId]);
+
+  const addFromArchiveBrowser = (files: MediaFile[]) => {
+    if (!files || files.length === 0) {
+      setImageActionError('Select at least one image from archive.');
+      return;
+    }
+    let addedCount = 0;
+    files.forEach((file) => {
+      const s3Key = typeof file.s3Key === 'string' ? file.s3Key : '';
+      const imageUrl = s3Key ? `/api/media/file?key=${encodeURIComponent(s3Key)}` : (file.fileUrl || '');
+      if (!imageUrl) return;
+      appendSlotImageOption({
+        imageUrl,
+        sourceType: 'existing_media',
+        label: file.fileName || 'Archive image',
+        s3Key: s3Key || undefined,
+      });
+      addedCount += 1;
+    });
+    setShowArchiveBrowser(false);
+    if (addedCount > 0) {
+      setImageActionNotice(`Added ${addedCount} archive image${addedCount === 1 ? '' : 's'} to this slot gallery.`);
+      setImageActionError(null);
+    } else {
+      setImageActionError('Selected files did not include valid image URLs.');
+    }
   };
 
   const toggleReferenceMediaSelection = (mediaId: string) => {
@@ -2175,6 +2220,19 @@ export default function PitchDeckEditorPage() {
 
                       {imageActionTab === 'library' ? (
                         <>
+                          {showArchiveBrowser && deckScreenplayId ? (
+                            <div className="mt-2 rounded border border-[#2f2f2f] bg-[#0f0f0f] p-2">
+                              <MediaLibraryBrowser
+                                screenplayId={deckScreenplayId}
+                                onSelectImages={addFromArchiveBrowser}
+                                filterTypes={['image']}
+                                allowMultiSelect={true}
+                                maxSelections={20}
+                                initialFolderId={initialArchiveFolderId}
+                                onCancel={() => setShowArchiveBrowser(false)}
+                              />
+                            </div>
+                          ) : null}
                           <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
                             <select
                               value={existingSourceFilter}
@@ -2216,6 +2274,14 @@ export default function PitchDeckEditorPage() {
                             </select>
                           </div>
                           <div className="mt-2 flex items-center justify-end">
+                            <button
+                              type="button"
+                              onClick={() => setShowArchiveBrowser((prev) => !prev)}
+                              disabled={!deckScreenplayId}
+                              className="mr-2 rounded border border-[#3F3F46] px-3 py-2 text-sm font-medium text-gray-200 hover:border-[#DC143C] hover:text-white disabled:opacity-50"
+                            >
+                              {showArchiveBrowser ? 'Close browser' : 'Browse archive folder'}
+                            </button>
                             <button
                               type="button"
                               onClick={applyExistingMediaToSlot}

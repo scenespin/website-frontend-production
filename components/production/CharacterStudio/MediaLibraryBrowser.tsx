@@ -14,7 +14,7 @@
  * - Folder browsing (advanced feature - shows root folder structure)
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useState, useMemo } from 'react';
 import { FolderOpen, Check, Loader2, Folder, ChevronRight, ChevronDown, HardDrive, Cloud } from 'lucide-react';
 import { toast } from 'sonner';
 import type { MediaFile } from '@/types/media';
@@ -88,6 +88,7 @@ interface MediaLibraryBrowserProps {
   allowMultiSelect?: boolean;
   maxSelections?: number;
   selectedFolderPath?: string[];
+  initialFolderId?: string | null;
   onCancel?: () => void;
 }
 
@@ -98,11 +99,22 @@ export function MediaLibraryBrowser({
   allowMultiSelect = true,
   maxSelections = 10,
   selectedFolderPath,
+  initialFolderId,
   onCancel
 }: MediaLibraryBrowserProps) {
   const [selectedImages, setSelectedImages] = useState<Set<string>>(new Set());
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(['root']));
+
+  useEffect(() => {
+    if (typeof initialFolderId === 'string' && initialFolderId.trim().length > 0) {
+      setSelectedFolderId(initialFolderId);
+      return;
+    }
+    if (initialFolderId === null) {
+      setSelectedFolderId(null);
+    }
+  }, [initialFolderId]);
   
   // Load folder tree for navigation
   const { 
