@@ -45,6 +45,7 @@ type ExistingMediaItem = {
   archiveFolderId?: string;
   archiveDeckId?: string;
   archiveSlideId?: string;
+  createdAt?: string;
 };
 
 type ExistingMediaSourceFilter = 'character' | 'location' | 'prop' | 'pitch_deck';
@@ -653,15 +654,58 @@ export default function PitchDeckEditorPage() {
     if (typeof activeId === 'string' && activeId.trim()) return activeId;
     return selectedSlotImageOptions[0]?.id || '';
   }, [selectedImageContent, selectedSlotImageOptions]);
-  const selectedSlideAttempts = useMemo(() => {
+  const sessionSelectedSlideAttempts = useMemo(() => {
     if (!selectedSlide?.slideId) return [] as ImageAttempt[];
     return imageAttempts.filter(
-      (attempt) =>
-        attempt.slideId === selectedSlide.slideId &&
-        attempt.status === 'success' &&
-        (attempt.action === 'prompt' || attempt.action === 'reference')
+      (attempt) => attempt.slideId === selectedSlide.slideId && attempt.status === 'success'
     );
   }, [imageAttempts, selectedSlide]);
+
+  const recoveredSelectedSlideAttempts = useMemo(() => {
+    if (!selectedSlide?.slideId) return [] as ImageAttempt[];
+    const now = Date.now();
+    return existingMedia
+      .filter(
+        (item) =>
+          item.sourceType === 'pitch_deck' &&
+          item.archiveSlideId === selectedSlide.slideId &&
+          typeof item.imageUrl === 'string' &&
+          item.imageUrl.length > 0
+      )
+      .map((item) => {
+        const createdAt = typeof item.createdAt === 'string' ? item.createdAt : '';
+        const createdMs = createdAt ? new Date(createdAt).getTime() : NaN;
+        return {
+          id: `recovered_${item.id}`,
+          slideId: selectedSlide.slideId,
+          status: 'success' as const,
+          action: 'existing' as const,
+          message: 'Recovered archived image.',
+          at: Number.isFinite(createdMs) ? createdAt : new Date().toISOString(),
+          imageUrl: item.imageUrl,
+          archiveFileId: item.mediaFileId,
+          archiveFolderId: item.archiveFolderId,
+          _createdMs: Number.isFinite(createdMs) ? createdMs : Date.now(),
+        };
+      })
+      .filter((attempt) => now - attempt._createdMs <= IMAGE_ATTEMPTS_RETENTION_MS)
+      .map(({ _createdMs, ...attempt }) => attempt);
+  }, [existingMedia, selectedSlide?.slideId]);
+
+  const selectedSlideAttempts = useMemo(() => {
+    const sorted = [...sessionSelectedSlideAttempts, ...recoveredSelectedSlideAttempts].sort(
+      (a, b) => new Date(b.at).getTime() - new Date(a.at).getTime()
+    );
+    const deduped: ImageAttempt[] = [];
+    const seen = new Set<string>();
+    for (const attempt of sorted) {
+      const key = attempt.imageUrl ? `img:${attempt.imageUrl}` : `attempt:${attempt.id}`;
+      if (seen.has(key)) continue;
+      seen.add(key);
+      deduped.push(attempt);
+    }
+    return deduped.slice(0, 12);
+  }, [recoveredSelectedSlideAttempts, sessionSelectedSlideAttempts]);
 
   useEffect(() => {
     saveStatusRef.current = saveStatus;
@@ -1086,6 +1130,7 @@ export default function PitchDeckEditorPage() {
               archiveFolderId: typeof file.folderId === 'string' ? file.folderId : undefined,
             archiveDeckId: typeof metadata?.deckId === 'string' ? metadata.deckId : undefined,
             archiveSlideId: typeof metadata?.slideId === 'string' ? metadata.slideId : undefined,
+            createdAt: typeof file.createdAt === 'string' ? file.createdAt : undefined,
           });
         });
 
@@ -1645,7 +1690,6 @@ export default function PitchDeckEditorPage() {
 
   const openArchiveBrowser = useCallback(async () => {
     if (!deckScreenplayId) return;
-    setExistingSourceFilter('pitch_deck');
     setArchiveBrowserResolving(true);
     setImageActionError(null);
 
@@ -1709,8 +1753,8 @@ export default function PitchDeckEditorPage() {
 
   useEffect(() => {
     if (imageActionTab !== 'library') return;
-    if (existingSourceFilter !== 'pitch_deck') {
-      setExistingSourceFilter('pitch_deck');
+    if (existingSourceFilter === 'pitch_deck') {
+      setExistingSourceFilter('character');
       setExistingEntityFilter('all');
       setExistingVariantFilter('all');
     }
@@ -2430,6 +2474,43 @@ export default function PitchDeckEditorPage() {
                               )}
                             </div>
                           ) : null}
+                          <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
+                            <select
+                              value={existingSourceFilter}
+                              onChange={(e) => {
+                                setExistingSourceFilter(e.target.value as ExistingMediaSourceFilter);
+                                setExistingEntityFilter('all');
+                                setExistingVariantFilter('all');
+                              }}
+                              className="rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white"
+                            >
+                              <option value="character">Characters</option>
+                              <option value="location">Locations</option>
+                              <option value="prop">Props</option>
+                            </select>
+                            <select
+                              value={existingEntityFilter}
+                              onChange={(e) => {
+                                setExistingEntityFilter(e.target.value);
+                                setExistingVariantFilter('all');
+                              }}
+                              className="rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white"
+                              disabled={existingEntityOptions.length === 0}
+                            >
+                              <option value="all">
+                                {existingSourceFilter === 'character'
+                                  ? 'All characters'
+                                  : existingSourceFilter === 'location'
+                                    ? 'All locations'
+                                    : 'All props'}
+                              </option>
+                              {existingEntityOptions.map((option) => (
+                                <option key={option.value} value={option.value}>
+                                  {option.label}
+                                </option>
+                              ))}
+                            </select>
+                          </div>
                           <div className="mt-2 flex items-center justify-end">
                             <button
                               type="button"
@@ -2739,9 +2820,6 @@ export default function PitchDeckEditorPage() {
                               </button>
                             ))}
                           </div>
-                          <p className="mt-2 text-[11px] text-gray-500">
-                            Multi-reference selection is enabled. The dedicated pitch deck remix route now receives all selected references; first thumbnail remains primary for ordering.
-                          </p>
                         </>
                       ) : null}
 
