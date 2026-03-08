@@ -256,6 +256,7 @@ export async function generatePitchDeckImageFromPrompt(input: {
   prompt: string;
   providerId?: string;
   screenplayId?: string;
+  aspectRatio?: string;
 }): Promise<{ imageUrl: string; s3Key?: string; creditsDeducted?: number; modelUsed?: string }> {
   const response = await fetch('/api/image/generate', {
     method: 'POST',
@@ -263,6 +264,7 @@ export async function generatePitchDeckImageFromPrompt(input: {
     body: JSON.stringify({
       prompt: input.prompt,
       providerId: input.providerId,
+      aspectRatio: input.aspectRatio,
       ...(input.screenplayId
         ? {
             entityType: 'screenplay',
@@ -291,6 +293,7 @@ export async function generatePitchDeckImageFromReference(input: {
   sourceImageUrls: string[];
   editPrompt: string;
   desiredModelId?: string;
+  aspectRatio?: string;
 }): Promise<{ imageUrl: string; s3Key?: string; creditsDeducted?: number; modelUsed?: string }> {
   const response = await fetch(`/api/pitch-decks/${encodeURIComponent(input.deckId)}/image/remix`, {
     method: 'POST',
@@ -299,6 +302,7 @@ export async function generatePitchDeckImageFromReference(input: {
       sourceImageUrls: input.sourceImageUrls,
       editPrompt: input.editPrompt,
       desiredModelId: input.desiredModelId,
+      aspectRatio: input.aspectRatio,
     }),
     cache: 'no-store',
   });

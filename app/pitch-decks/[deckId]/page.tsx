@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { jsPDF } from 'jspdf';
-import { Wand2, Briefcase, Film, Megaphone, MoreVertical, Trash2 } from 'lucide-react';
+import { Briefcase, Film, Megaphone, MoreVertical, Trash2 } from 'lucide-react';
 import {
   archivePitchDeckImage,
   generatePitchDeckImageFromPrompt,
@@ -20,6 +20,7 @@ import { EditorSubNav } from '@/components/editor/EditorSubNav';
 import { useDirectS3Upload } from '@/hooks/useDirectS3Upload';
 import RewriteModal from '@/components/modals/RewriteModal';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
+import { useOptionalPitchDeckAdvisorContext, type PitchDeckStoryAdvisorContextPacket } from '@/contexts/PitchDeckAdvisorContext';
 
 function isFeatureEnabled(): boolean {
   return process.env.NEXT_PUBLIC_ENABLE_PITCH_DECK_V1 === 'true';
@@ -127,6 +128,8 @@ function getReferenceLimitByModel(modelId: string): number {
 }
 
 type PdfImageLayout = 'text_only' | 'split_right' | 'split_left' | 'full_bleed';
+type PitchDeckAspectRatio = '16:9' | '21:9' | '1:1' | '9:16' | '9:21';
+const PITCH_DECK_ASPECT_RATIOS: PitchDeckAspectRatio[] = ['16:9', '21:9', '1:1', '9:16', '9:21'];
 
 const PDF_LAYOUT_REGISTRY: Record<string, Partial<Record<string, PdfImageLayout>>> = {
   'cinematic-dark-v1': {
@@ -169,6 +172,12 @@ function getLayoutPreviewLabel(templateId: string | undefined, slideType: string
   return 'Text Only';
 }
 
+function getSuggestedAspectRatiosForLayout(layout: PdfImageLayout): PitchDeckAspectRatio[] {
+  if (layout === 'full_bleed') return ['16:9', '21:9', '1:1'];
+  if (layout === 'split_left' || layout === 'split_right') return ['1:1', '9:16', '9:21'];
+  return ['16:9', '1:1', '9:16'];
+}
+
 function sanitizeFileName(name: string): string {
   const safe = (name || 'pitch-deck')
     .replace(/[^a-zA-Z0-9_-]+/g, '-')
@@ -197,6 +206,19 @@ function getSlidePrimaryImageUrlForExport(slide: PitchDeckSlide): string {
   if (!activeId || options.length === 0) return '';
   const active = options.find((option: any) => option?.id === activeId);
   return typeof active?.imageUrl === 'string' ? active.imageUrl : '';
+}
+
+function getSlideImageLabelsForContext(slide: PitchDeckSlide): string[] {
+  const imageBlock = slide.blocks?.find((block) => block.type === 'image');
+  if (!imageBlock || typeof imageBlock.content !== 'object' || !imageBlock.content) return [];
+  const content = imageBlock.content as any;
+  const options = Array.isArray(content.imageOptions) ? content.imageOptions : [];
+  const labels: string[] = [];
+  options.forEach((option: any) => {
+    const label = typeof option?.label === 'string' ? option.label.trim() : '';
+    if (label) labels.push(label);
+  });
+  return Array.from(new Set(labels)).slice(0, 8);
 }
 
 function blobToDataUrl(blob: Blob): Promise<string> {
@@ -395,6 +417,8 @@ export default function PitchDeckEditorPage() {
   const [referenceMediaId, setReferenceMediaId] = useState('');
   const [referenceMediaIds, setReferenceMediaIds] = useState<string[]>([]);
   const [referenceGenerationModelId, setReferenceGenerationModelId] = useState('nano-banana-pro-2k');
+  const [promptAspectRatio, setPromptAspectRatio] = useState<PitchDeckAspectRatio>('16:9');
+  const [referenceAspectRatio, setReferenceAspectRatio] = useState<PitchDeckAspectRatio>('16:9');
   const [imageActionTab, setImageActionTab] = useState<ImageActionTab>('library');
   const [generatingFromPrompt, setGeneratingFromPrompt] = useState(false);
   const [generatingFromReference, setGeneratingFromReference] = useState(false);
@@ -419,6 +443,7 @@ export default function PitchDeckEditorPage() {
   const [exportWatermarkText, setExportWatermarkText] = useState('DRAFT');
 
   const { uploadFile: uploadImageToS3 } = useDirectS3Upload();
+  const pitchDeckAdvisorContext = useOptionalPitchDeckAdvisorContext();
 
   const featureEnabled = isFeatureEnabled();
   const selectedSlide = useMemo(
@@ -466,6 +491,62 @@ export default function PitchDeckEditorPage() {
     () => String(selectedSlide?.blocks.find((block) => block.type === 'text')?.content || ''),
     [selectedSlide]
   );
+  const selectedSlideLayout = useMemo<PdfImageLayout>(() => {
+    if (!selectedSlide) return 'split_right';
+    return getPdfLayout(deckTemplateId, selectedSlide.slideType, true);
+  }, [deckTemplateId, selectedSlide]);
+  const suggestedAspectRatios = useMemo(
+    () => getSuggestedAspectRatiosForLayout(selectedSlideLayout),
+    [selectedSlideLayout]
+  );
+  const pitchDeckStoryAdvisorPacket = useMemo<PitchDeckStoryAdvisorContextPacket | null>(() => {
+    if (!deckId) return null;
+
+    const slideSummaries = [...slides]
+      .sort((a, b) => a.orderIndex - b.orderIndex)
+      .slice(0, 20)
+      .map((slide) => ({
+        slideId: slide.slideId,
+        orderIndex: slide.orderIndex,
+        slideType: slide.slideType,
+        title: String(slide.title || '').slice(0, 140),
+        text: getSlidePrimaryTextForExport(slide).slice(0, 420),
+        imageLabels: getSlideImageLabelsForContext(slide),
+      }));
+
+    const selectedSummary = selectedSlide
+      ? {
+          slideId: selectedSlide.slideId,
+          orderIndex: selectedSlide.orderIndex,
+          slideType: selectedSlide.slideType,
+          title: String(selectedSlide.title || '').slice(0, 140),
+          text: selectedSlidePrimaryText.slice(0, 420),
+          imageLabels: getSlideImageLabelsForContext(selectedSlide),
+        }
+      : undefined;
+
+    return {
+      contextType: 'pitch_deck_plus_screenplay',
+      deckId,
+      screenplayId: deckScreenplayId,
+      deckTitle: deckTitle.slice(0, 160),
+      deckTemplateId,
+      deckStatus,
+      slideCount: slides.length,
+      selectedSlide: selectedSummary,
+      slides: slideSummaries,
+      generatedAt: new Date().toISOString(),
+    };
+  }, [
+    deckId,
+    slides,
+    selectedSlide,
+    selectedSlidePrimaryText,
+    deckScreenplayId,
+    deckTitle,
+    deckTemplateId,
+    deckStatus,
+  ]);
   const selectedImageContent = useMemo(() => {
     if (!selectedImageBlock || typeof selectedImageBlock.content !== 'object' || !selectedImageBlock.content) {
       return {};
@@ -935,6 +1016,12 @@ export default function PitchDeckEditorPage() {
   }, [maxReferenceCount]);
 
   useEffect(() => {
+    const suggestedPrimary = suggestedAspectRatios[0] || '16:9';
+    setPromptAspectRatio(suggestedPrimary);
+    setReferenceAspectRatio(suggestedPrimary);
+  }, [selectedSlideId, suggestedAspectRatios]);
+
+  useEffect(() => {
     setRewriteError(null);
     setRewriteNotice(null);
     setRewritePreviewText(null);
@@ -943,6 +1030,16 @@ export default function PitchDeckEditorPage() {
     setOpenImageMenuId(null);
     setConfirmRemoveImageId(null);
   }, [selectedSlideId]);
+
+  useEffect(() => {
+    pitchDeckAdvisorContext?.setPacket(pitchDeckStoryAdvisorPacket);
+  }, [pitchDeckStoryAdvisorPacket, pitchDeckAdvisorContext]);
+
+  useEffect(() => {
+    return () => {
+      pitchDeckAdvisorContext?.setPacket(null);
+    };
+  }, [pitchDeckAdvisorContext]);
 
   const updateSelectedSlideText = (nextText: string) => {
     if (!selectedSlide) return;
@@ -1260,6 +1357,7 @@ export default function PitchDeckEditorPage() {
         prompt: promptGenerationText.trim(),
         providerId: promptGenerationModelId || undefined,
         screenplayId: deckScreenplayId,
+        aspectRatio: promptAspectRatio,
       });
       if (!result.imageUrl) {
         throw new Error('Image generation returned no image URL');
@@ -1321,6 +1419,7 @@ export default function PitchDeckEditorPage() {
         sourceImageUrls: normalizedSourceImageUrls,
         editPrompt: referencePromptText.trim(),
         desiredModelId: referenceGenerationModelId || undefined,
+        aspectRatio: referenceAspectRatio,
       });
       if (!result.imageUrl) {
         throw new Error('Reference generation returned no image URL');
@@ -1645,7 +1744,7 @@ export default function PitchDeckEditorPage() {
                       <div className="absolute inset-0 bg-gradient-to-br from-white/30 via-white/10 to-transparent pointer-events-none" />
                       <div className="absolute inset-0 bg-gradient-to-t from-black/10 to-transparent pointer-events-none" />
                       <div className="absolute top-0 left-1/4 h-1/3 w-1/2 rounded-full bg-white/20 blur-xl pointer-events-none" />
-                      <Wand2 className="relative z-10 h-3.5 w-3.5" />
+                      <span className="relative z-10 text-base leading-none">💫</span>
                       <span className="relative z-10">Rewrite</span>
                     </button>
                   </div>
@@ -1997,6 +2096,17 @@ export default function PitchDeckEditorPage() {
                                 ))
                               )}
                             </select>
+                            <select
+                              value={promptAspectRatio}
+                              onChange={(e) => setPromptAspectRatio(e.target.value as PitchDeckAspectRatio)}
+                              className="rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white md:w-36"
+                            >
+                              {PITCH_DECK_ASPECT_RATIOS.map((ratio) => (
+                                <option key={ratio} value={ratio}>
+                                  {ratio}
+                                </option>
+                              ))}
+                            </select>
                             <button
                               type="button"
                               onClick={requestGenerateFromPrompt}
@@ -2005,6 +2115,23 @@ export default function PitchDeckEditorPage() {
                             >
                               {generatingFromPrompt ? 'Generating...' : 'Generate'}
                             </button>
+                          </div>
+                          <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px]">
+                            <span className="text-gray-500">Suggested for this slide:</span>
+                            {suggestedAspectRatios.map((ratio) => (
+                              <button
+                                key={`prompt-suggested-${ratio}`}
+                                type="button"
+                                onClick={() => setPromptAspectRatio(ratio)}
+                                className={`rounded border px-2 py-0.5 ${
+                                  promptAspectRatio === ratio
+                                    ? 'border-[#DC143C] text-[#DC143C]'
+                                    : 'border-[#3F3F46] text-gray-300 hover:border-[#DC143C]/60'
+                                }`}
+                              >
+                                {ratio}
+                              </button>
+                            ))}
                           </div>
                         </>
                       ) : null}
@@ -2019,9 +2146,18 @@ export default function PitchDeckEditorPage() {
                               <span className="text-[10px] text-gray-500">Primary = first thumbnail</span>
                             </div>
                             {selectedReferenceMediaList.length === 0 ? (
-                              <p className="text-[11px] text-gray-500">
-                                Add references from the Library tab. This model supports up to {maxReferenceCount}.
-                              </p>
+                              <div className="flex flex-col gap-1">
+                                <p className="text-[11px] text-gray-500">
+                                  Add references from the Library tab. This model supports up to {maxReferenceCount}.
+                                </p>
+                                <button
+                                  type="button"
+                                  onClick={() => setImageActionTab('library')}
+                                  className="w-fit text-[11px] text-[#DC143C] underline underline-offset-2 hover:text-[#ff4d6d]"
+                                >
+                                  Open Library tab
+                                </button>
+                              </div>
                             ) : (
                               <div className="flex flex-wrap gap-1.5">
                                 {selectedReferenceMediaList.map((item, index) => (
@@ -2084,6 +2220,17 @@ export default function PitchDeckEditorPage() {
                                 ))
                               )}
                             </select>
+                            <select
+                              value={referenceAspectRatio}
+                              onChange={(e) => setReferenceAspectRatio(e.target.value as PitchDeckAspectRatio)}
+                              className="rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white md:w-36"
+                            >
+                              {PITCH_DECK_ASPECT_RATIOS.map((ratio) => (
+                                <option key={ratio} value={ratio}>
+                                  {ratio}
+                                </option>
+                              ))}
+                            </select>
                             <button
                               type="button"
                               onClick={requestGenerateFromReference}
@@ -2098,6 +2245,23 @@ export default function PitchDeckEditorPage() {
                             >
                               {generatingFromReference ? 'Generating...' : 'Generate from Reference'}
                             </button>
+                          </div>
+                          <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px]">
+                            <span className="text-gray-500">Suggested for this slide:</span>
+                            {suggestedAspectRatios.map((ratio) => (
+                              <button
+                                key={`reference-suggested-${ratio}`}
+                                type="button"
+                                onClick={() => setReferenceAspectRatio(ratio)}
+                                className={`rounded border px-2 py-0.5 ${
+                                  referenceAspectRatio === ratio
+                                    ? 'border-[#DC143C] text-[#DC143C]'
+                                    : 'border-[#3F3F46] text-gray-300 hover:border-[#DC143C]/60'
+                                }`}
+                              >
+                                {ratio}
+                              </button>
+                            ))}
                           </div>
                           <p className="mt-2 text-[11px] text-gray-500">
                             Multi-reference selection is enabled. The dedicated pitch deck remix route now receives all selected references; first thumbnail remains primary for ordering.
@@ -2279,6 +2443,10 @@ export default function PitchDeckEditorPage() {
                       'Selected model'}
                 </span>
               </div>
+              <div className="mt-1 flex items-center justify-between text-gray-400">
+                <span>Aspect ratio</span>
+                <span>{pendingImageAction === 'prompt' ? promptAspectRatio : referenceAspectRatio}</span>
+              </div>
             </div>
             <p className="mt-3 text-xs text-gray-500">
               Credits are deducted when generation starts.
@@ -2312,7 +2480,7 @@ export default function PitchDeckEditorPage() {
           <div className="w-full max-w-md rounded border border-[#3F3F46] bg-[#101010] p-4">
             <h3 className="text-base font-semibold text-white">Remove image from slide?</h3>
             <p className="mt-2 text-sm text-gray-300">
-              This only removes the image from this slide gallery. Archived media remains in the Pitch Deck archive.
+              This only removes the image from this slide gallery. The original source media is not deleted.
             </p>
             <div className="mt-4 flex items-center justify-end gap-2">
               <button

@@ -413,6 +413,7 @@ function UnifiedChatPanelInner({
   sceneContext,
   editorContent,
   cursorPosition,
+  pitchDeckContextPacket,
   onWorkflowComplete
 }) {
   const { state, setMode, setModel, setInput, setSelectedTextContext, setEntityContextBanner, setSceneContext, clearContext, addMessage, closeMenus, setStreaming } = useChatContext();
@@ -1244,6 +1245,14 @@ function UnifiedChatPanelInner({
           characters: currentSceneContext.characters,
           pageNumber: currentSceneContext.pageNumber
         } : null;
+        const isPitchDeckRoute = pathname?.includes('/pitch-decks/');
+        const pitchDeckChatContext =
+          state.activeMode === 'chat' && isPitchDeckRoute && pitchDeckContextPacket
+            ? {
+                contextType: 'pitch_deck_plus_screenplay',
+                pitchDeckContext: pitchDeckContextPacket,
+              }
+            : {};
         
         // 🔥 DIAGNOSTIC: Log what we're sending to the API
         console.log('[UnifiedChatPanel] 📤 Sending to API:', {
@@ -1253,6 +1262,8 @@ function UnifiedChatPanelInner({
           userPromptLength: finalUserPrompt.length,
           hasSceneContext: !!apiSceneContext,
           sceneContext: apiSceneContext,
+          contextType: pitchDeckChatContext.contextType || 'screenplay_only',
+          hasPitchDeckContext: Boolean(pitchDeckChatContext.pitchDeckContext),
           conversationHistoryLength: conversationHistory.length,
           modelId: state.selectedModel || 'claude-sonnet-4-6'
         });
@@ -1264,7 +1275,8 @@ function UnifiedChatPanelInner({
             systemPrompt: systemPrompt,
             desiredModelId: state.selectedModel || 'claude-sonnet-4-6',
             conversationHistory,
-            sceneContext: apiSceneContext
+            sceneContext: apiSceneContext,
+            ...pitchDeckChatContext
             // attachments: attachedFiles.length > 0 ? attachedFiles : undefined // TODO: Re-enable when backend supports attachments
           },
           // onChunk - update streaming text
@@ -1645,7 +1657,8 @@ const UnifiedChatPanelInnerMemo = memo(UnifiedChatPanelInner, (prevProps, nextPr
     prevProps.onWorkflowComplete === nextProps.onWorkflowComplete &&
     prevProps.selectedTextContext === nextProps.selectedTextContext &&
     prevProps.initialPrompt === nextProps.initialPrompt &&
-    prevProps.initialMode === nextProps.initialMode
+    prevProps.initialMode === nextProps.initialMode &&
+    prevProps.pitchDeckContextPacket === nextProps.pitchDeckContextPacket
   );
 });
 
