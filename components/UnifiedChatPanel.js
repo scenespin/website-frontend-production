@@ -432,6 +432,7 @@ function UnifiedChatPanelInner({
   const { canUseAI, screenplayId } = useScreenplay();
   const pathname = usePathname(); // Get current page path for default mode
   const messagesEndRef = useRef(null);
+  const textareaRef = useRef(null);
   const activeStreamControllerRef = useRef(null);
   const fileInputRef = useRef(null);
   const { closeDrawer, isDrawerOpen } = useDrawer();
@@ -824,6 +825,29 @@ function UnifiedChatPanelInner({
     cursorPosition,
     onWorkflowComplete: handleWorkflowComplete
   }), [onInsert, editorContent, cursorPosition, handleWorkflowComplete]);
+
+  /**
+   * Auto-resize chat textarea as content grows.
+   * Keeps the existing max-height behavior and enables scroll past the cap.
+   */
+  const autoResizeTextarea = useCallback(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+
+    // Reset height first so shrink operations work when text is deleted.
+    textarea.style.height = 'auto';
+
+    const computedStyles = window.getComputedStyle(textarea);
+    const maxHeight = parseFloat(computedStyles.maxHeight) || 200;
+    const nextHeight = Math.min(textarea.scrollHeight, maxHeight);
+
+    textarea.style.height = `${nextHeight}px`;
+    textarea.style.overflowY = textarea.scrollHeight > maxHeight ? 'auto' : 'hidden';
+  }, []);
+
+  useEffect(() => {
+    autoResizeTextarea();
+  }, [state.input, autoResizeTextarea]);
 
   /**
    * Render the active mode panel
@@ -1598,8 +1622,13 @@ function UnifiedChatPanelInner({
               {/* text-base (16px) on mobile prevents iOS Safari auto-zoom when focusing input */}
               {/* Users can still manually pinch-to-zoom if needed */}
               <textarea
+                ref={textareaRef}
                 value={state.input}
-                onChange={(e) => setInput(e.target.value)}
+                onChange={(e) => {
+                  setInput(e.target.value);
+                  autoResizeTextarea();
+                }}
+                onInput={autoResizeTextarea}
                 onKeyDown={(e) => {
                   if (e.key === 'Enter' && !e.shiftKey) {
                     e.preventDefault();
