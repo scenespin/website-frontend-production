@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { jsPDF } from 'jspdf';
-import { Briefcase, Film, Megaphone, MoreVertical, Trash2 } from 'lucide-react';
+import { Briefcase, Eye, Film, Megaphone, MoreVertical, Trash2 } from 'lucide-react';
 import {
   archivePitchDeckImage,
   generatePitchDeckImageFromPrompt,
@@ -38,6 +38,7 @@ type ExistingMediaItem = {
   angle?: string;
   backgroundType?: string;
   imageUrl: string;
+  s3Key?: string;
   mediaFileId?: string;
   archiveDeckId?: string;
   archiveSlideId?: string;
@@ -457,6 +458,7 @@ export default function PitchDeckEditorPage() {
   const [imageAttempts, setImageAttempts] = useState<ImageAttempt[]>([]);
   const [openImageMenuId, setOpenImageMenuId] = useState<string | null>(null);
   const [confirmRemoveImageId, setConfirmRemoveImageId] = useState<string | null>(null);
+  const [imageViewerOption, setImageViewerOption] = useState<SlotImageOption | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [rewriteModalOpen, setRewriteModalOpen] = useState(false);
   const [rewriteError, setRewriteError] = useState<string | null>(null);
@@ -473,6 +475,9 @@ export default function PitchDeckEditorPage() {
   const { uploadFile: uploadImageToS3 } = useDirectS3Upload();
   const pitchDeckAdvisorContext = useOptionalPitchDeckAdvisorContext();
   const existingMediaLoadedScopeRef = useRef<string | null>(null);
+  const imageAutoSaveTimerRef = useRef<number | null>(null);
+  const saveStatusRef = useRef<'idle' | 'unsaved' | 'saved'>('idle');
+  const savingRef = useRef(false);
 
   const featureEnabled = isFeatureEnabled();
   const selectedSlide = useMemo(
@@ -629,6 +634,27 @@ export default function PitchDeckEditorPage() {
         (attempt.action === 'prompt' || attempt.action === 'reference')
     );
   }, [imageAttempts, selectedSlide]);
+
+  useEffect(() => {
+    saveStatusRef.current = saveStatus;
+  }, [saveStatus]);
+
+  useEffect(() => {
+    savingRef.current = saving;
+  }, [saving]);
+
+  const queueImageActionAutoSave = () => {
+    if (typeof window === 'undefined') return;
+    if (imageAutoSaveTimerRef.current) {
+      window.clearTimeout(imageAutoSaveTimerRef.current);
+    }
+    imageAutoSaveTimerRef.current = window.setTimeout(() => {
+      imageAutoSaveTimerRef.current = null;
+      if (savingRef.current) return;
+      if (saveStatusRef.current !== 'unsaved') return;
+      void saveSelectedSlide();
+    }, 500);
+  };
   const sourceScopedExistingMedia = useMemo(
     () => existingMedia.filter((item) => item.sourceType === existingSourceFilter),
     [existingMedia, existingSourceFilter]
@@ -974,6 +1000,7 @@ export default function PitchDeckEditorPage() {
               groupKey: `slide:${String(metadata?.slideId || slideLabel).toLowerCase()}`,
               groupLabel: `Slide: ${slideLabel}`,
               imageUrl: `/api/media/file?key=${encodeURIComponent(s3Key)}`,
+              s3Key,
               mediaFileId: typeof file.fileId === 'string' ? file.fileId : undefined,
               archiveDeckId: typeof metadata?.deckId === 'string' ? metadata.deckId : undefined,
               archiveSlideId: typeof metadata?.slideId === 'string' ? metadata.slideId : undefined,
@@ -1121,6 +1148,15 @@ export default function PitchDeckEditorPage() {
     };
   }, [pitchDeckAdvisorContext]);
 
+  useEffect(() => {
+    return () => {
+      if (typeof window !== 'undefined' && imageAutoSaveTimerRef.current) {
+        window.clearTimeout(imageAutoSaveTimerRef.current);
+        imageAutoSaveTimerRef.current = null;
+      }
+    };
+  }, []);
+
   const updateSelectedSlideText = (nextText: string) => {
     if (!selectedSlide) return;
     const currentBlocks = Array.isArray(selectedSlide.blocks) ? [...selectedSlide.blocks] : [];
@@ -1191,22 +1227,23 @@ export default function PitchDeckEditorPage() {
     const currentText = String(selectedSlide?.blocks.find((block) => block.type === 'text')?.content || '');
     setRewriteUndoText(rewriteOriginalText ?? currentText);
     updateSelectedSlideText(rewritePreviewText);
-    setRewriteNotice('Rewrite applied to slide text.');
+    setRewriteNotice('Rewrite applied. You can undo and re-apply this draft if needed.');
     setRewriteError(null);
-    setRewritePreviewText(null);
-    setRewriteOriginalText(null);
+    queueImageActionAutoSave();
   };
 
   const undoLastRewrite = () => {
     if (!rewriteUndoText) return;
     updateSelectedSlideText(rewriteUndoText);
     setRewriteUndoText(null);
-    setRewriteNotice('Undo complete. Previous slide text restored.');
+    setRewriteNotice('Undo complete. Previous slide text restored; preview is still available to re-apply.');
     setRewriteError(null);
+    queueImageActionAutoSave();
   };
 
   const saveSelectedSlide = async () => {
     if (!deckId || !selectedSlide) return;
+    if (savingRef.current) return;
     setSaving(true);
     setError(null);
     try {
@@ -1328,6 +1365,7 @@ export default function PitchDeckEditorPage() {
       activeImageId: nextOption.id,
       imageOptions: nextOptions,
     });
+    queueImageActionAutoSave();
   };
 
   const archiveSlotImageToPitchDeckLibrary = async (input: {
@@ -1337,7 +1375,7 @@ export default function PitchDeckEditorPage() {
   }) => {
     if (!deckId || !selectedSlide?.slideId || !input.s3Key) return;
     try {
-      await archivePitchDeckImage({
+      const archived = await archivePitchDeckImage({
         deckId,
         slideId: selectedSlide.slideId,
         slideType: selectedSlide.slideType,
@@ -1346,6 +1384,27 @@ export default function PitchDeckEditorPage() {
         label: input.label,
         source: input.source,
       });
+      const fallbackId = `pitchdeck_local_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+      const slideLabel = String(selectedSlide.title || selectedSlide.slideType || 'Slide');
+      const nextArchiveItem: ExistingMediaItem = {
+        id: `pitchdeck:${archived.fileId || fallbackId}`,
+        label: `Pitch Deck - ${slideLabel}`,
+        sourceType: 'pitch_deck',
+        entityId: String(deckId),
+        entityName: 'Pitch Deck Archive',
+        groupKey: `slide:${String(selectedSlide.slideId || slideLabel).toLowerCase()}`,
+        groupLabel: `Slide: ${slideLabel}`,
+        imageUrl: `/api/media/file?key=${encodeURIComponent(input.s3Key)}`,
+        s3Key: input.s3Key,
+        mediaFileId: archived.fileId,
+        archiveDeckId: String(deckId),
+        archiveSlideId: String(selectedSlide.slideId),
+      };
+      setExistingMedia((prev) => {
+        if (prev.some((item) => item.imageUrl === nextArchiveItem.imageUrl)) return prev;
+        return [nextArchiveItem, ...prev].slice(0, 400);
+      });
+      existingMediaLoadedScopeRef.current = null;
     } catch {
       // Non-blocking: gallery flow should continue even if archive registration fails.
     }
@@ -1360,6 +1419,7 @@ export default function PitchDeckEditorPage() {
     });
     setImageActionNotice(`Selected image option: ${option.label}`);
     setImageActionError(null);
+    queueImageActionAutoSave();
   };
 
   const removeSlotImageOption = (optionId: string) => {
@@ -1373,6 +1433,7 @@ export default function PitchDeckEditorPage() {
     });
     setImageActionNotice(`Removed image option: ${option.label}`);
     setImageActionError(null);
+    queueImageActionAutoSave();
   };
 
   const requestRemoveSlotImageOption = (optionId: string) => {
@@ -1491,6 +1552,13 @@ export default function PitchDeckEditorPage() {
     try {
       const sourceImageUrls = selectedReferenceMediaList
         .map((item) => item.imageUrl)
+        .map((url) => {
+          if (typeof window === 'undefined') return url;
+          if (!url) return url;
+          if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('data:image/')) return url;
+          if (url.startsWith('/')) return `${window.location.origin}${url}`;
+          return url;
+        })
         .filter((url) => typeof url === 'string' && url.trim().length > 0);
       const normalizedSourceImageUrls =
         sourceImageUrls.length > 0 ? sourceImageUrls : [primaryReference.imageUrl].filter(Boolean);
@@ -1935,6 +2003,16 @@ export default function PitchDeckEditorPage() {
                                       className="bg-[#0A0A0A] border border-[#3F3F46] shadow-lg"
                                       style={{ backgroundColor: '#0A0A0A' }}
                                     >
+                                      <DropdownMenuItem
+                                        className="text-white hover:bg-white/10 hover:text-white cursor-pointer focus:bg-white/10 focus:text-white"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          setImageViewerOption(option);
+                                        }}
+                                      >
+                                        <Eye className="w-4 h-4 mr-2" />
+                                        View image
+                                      </DropdownMenuItem>
                                       <DropdownMenuItem
                                         className="text-[#DC143C] hover:bg-[#DC143C]/10 hover:text-[#DC143C] cursor-pointer focus:bg-[#DC143C]/10 focus:text-[#DC143C]"
                                         onClick={(e) => {
@@ -2441,11 +2519,7 @@ export default function PitchDeckEditorPage() {
                       )}
                     </div>
                   </div>
-                ) : (
-                  <div className="mt-4 rounded border border-[#3F3F46] bg-[#121212] px-3 py-2 text-xs text-gray-500">
-                    No image slot on this slide for the current template.
-                  </div>
-                )}
+                ) : null}
 
                 <div className="mt-4 flex items-center justify-between">
                   <div className="flex items-center gap-2">
@@ -2577,6 +2651,30 @@ export default function PitchDeckEditorPage() {
               >
                 Remove
               </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {imageViewerOption ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 px-4">
+          <div className="w-full max-w-5xl rounded border border-[#3F3F46] bg-[#0f0f0f] p-3">
+            <div className="flex items-center justify-between gap-2">
+              <p className="truncate text-sm text-white">{imageViewerOption.label}</p>
+              <button
+                type="button"
+                onClick={() => setImageViewerOption(null)}
+                className="rounded border border-[#3F3F46] px-3 py-1.5 text-xs text-gray-200 hover:bg-white/5"
+              >
+                Close
+              </button>
+            </div>
+            <div className="mt-3 rounded border border-[#2a2a2a] bg-black/60 p-2">
+              <img
+                src={imageViewerOption.imageUrl}
+                alt={imageViewerOption.label}
+                className="max-h-[75vh] w-full rounded object-contain"
+              />
             </div>
           </div>
         </div>
