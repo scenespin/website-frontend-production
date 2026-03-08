@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { jsPDF } from 'jspdf';
 import { Briefcase, Eye, Film, Megaphone, MoreVertical, Trash2 } from 'lucide-react';
@@ -114,6 +114,10 @@ const ALLOWED_PITCH_DECK_IMAGE_MODELS = new Set([
   'flux2-pro-4k',
   'flux2-max-2k',
   'flux2-max-4k-16:9',
+  'nano-banana-pro',
+  'nano-banana-pro-2k',
+]);
+const ALLOWED_PITCH_DECK_REFERENCE_MODELS = new Set([
   'nano-banana-pro',
   'nano-banana-pro-2k',
 ]);
@@ -482,6 +486,7 @@ export default function PitchDeckEditorPage() {
   const selectedSlideIdRef = useRef<string | null>(null);
 
   const featureEnabled = isFeatureEnabled();
+  const mediaScopeKey = `${deckId || ''}:${deckScreenplayId || ''}`;
   const selectedSlide = useMemo(
     () => slides.find((slide) => slide.slideId === selectedSlideId) || null,
     [slides, selectedSlideId]
@@ -507,8 +512,12 @@ export default function PitchDeckEditorPage() {
     () => referenceMediaIds.map((id) => existingMedia.find((item) => item.id === id)).filter(Boolean) as ExistingMediaItem[],
     [existingMedia, referenceMediaIds]
   );
-  const filteredPitchDeckImageModels = useMemo(
+  const filteredPromptPitchDeckImageModels = useMemo(
     () => imageModels.filter((model) => ALLOWED_PITCH_DECK_IMAGE_MODELS.has(model.id)),
+    [imageModels]
+  );
+  const filteredReferencePitchDeckImageModels = useMemo(
+    () => imageModels.filter((model) => ALLOWED_PITCH_DECK_REFERENCE_MODELS.has(model.id)),
     [imageModels]
   );
   const promptGenerationModel = useMemo(
@@ -746,7 +755,7 @@ export default function PitchDeckEditorPage() {
     sourceHint?: string;
   };
 
-  const collectImageCandidatesFromUnknown = (value: unknown): ImageCandidate[] => {
+  const collectImageCandidatesFromUnknown = useCallback((value: unknown): ImageCandidate[] => {
     const direct = normalizeImageUrl(value);
     if (direct) return [{ imageUrl: direct }];
     if (Array.isArray(value)) {
@@ -813,9 +822,9 @@ export default function PitchDeckEditorPage() {
       if (!deduped.has(dedupeKey)) deduped.set(dedupeKey, candidate);
     });
     return Array.from(deduped.values());
-  };
+  }, []);
 
-  const extractEntityImageCandidates = (entity: Record<string, unknown>, fields: string[]): ImageCandidate[] => {
+  const extractEntityImageCandidates = useCallback((entity: Record<string, unknown>, fields: string[]): ImageCandidate[] => {
     const deduped = new Map<string, ImageCandidate>();
     fields
       .flatMap((field) => collectImageCandidatesFromUnknown(entity[field]))
@@ -831,7 +840,7 @@ export default function PitchDeckEditorPage() {
         if (!deduped.has(dedupeKey)) deduped.set(dedupeKey, candidate);
       });
     return Array.from(deduped.values());
-  };
+  }, [collectImageCandidatesFromUnknown]);
 
   useEffect(() => {
     if (!deckId || !featureEnabled) return;
@@ -865,181 +874,178 @@ export default function PitchDeckEditorPage() {
     };
   }, [deckId, featureEnabled]);
 
+  const refreshExistingMedia = useCallback(async (): Promise<boolean> => {
+    if (!deckScreenplayId || !featureEnabled) return false;
+    setExistingMediaLoading(true);
+    setExistingMediaError(null);
+    try {
+      const [charactersRes, locationsRes, propsRes, pitchDeckMediaRes] = await Promise.all([
+        fetch(`/api/screenplays/${encodeURIComponent(deckScreenplayId)}/characters?context=production-hub`, {
+          cache: 'no-store',
+        }),
+        fetch(`/api/screenplays/${encodeURIComponent(deckScreenplayId)}/locations?context=production-hub`, {
+          cache: 'no-store',
+        }),
+        fetch(`/api/asset-bank?screenplayId=${encodeURIComponent(deckScreenplayId)}`, { cache: 'no-store' }),
+        fetch(
+          `/api/media/list?screenplayId=${encodeURIComponent(deckScreenplayId)}&entityType=pitch-deck&limit=200`,
+          { cache: 'no-store' }
+        ),
+      ]);
+
+      const [charactersJson, locationsJson, propsJson, pitchDeckMediaJson] = await Promise.all([
+        charactersRes.ok ? charactersRes.json() : Promise.resolve({}),
+        locationsRes.ok ? locationsRes.json() : Promise.resolve({}),
+        propsRes.ok ? propsRes.json() : Promise.resolve({}),
+        pitchDeckMediaRes.ok ? pitchDeckMediaRes.json() : Promise.resolve({}),
+      ]);
+
+      const collected: ExistingMediaItem[] = [];
+      const seen = new Set<string>();
+      const pushMedia = (item: ExistingMediaItem) => {
+        const dedupeKey = `${item.sourceType}:${item.entityId}:${item.groupKey}:${item.imageUrl}`;
+        if (!item.imageUrl || seen.has(dedupeKey)) return;
+        seen.add(dedupeKey);
+        collected.push(item);
+      };
+
+      const characters = (charactersJson?.data?.characters || []) as any[];
+      characters.forEach((character) => {
+        const name = String(character?.name || 'Character');
+        const characterId = String(character?.character_id || character?.id || name);
+        const imageCandidates = extractEntityImageCandidates(character as Record<string, unknown>, [
+          'images',
+          'referenceImages',
+          'poseReferences',
+          'angleReferences',
+          'media',
+          'portrait',
+          'headshot',
+        ]);
+        imageCandidates.forEach((candidate, index) => {
+          const outfitLabel = candidate.outfitName || 'Creation';
+          pushMedia({
+            id: `character:${characterId}:${index}`,
+            label: `Character - ${name}${candidate.outfitName ? ` • ${candidate.outfitName}` : ''}${index > 0 ? ` (${index + 1})` : ''}`,
+            sourceType: 'character',
+            entityId: characterId,
+            entityName: name,
+            groupKey: `outfit:${outfitLabel.toLowerCase()}`,
+            groupLabel: `Outfit: ${outfitLabel}`,
+            outfitName: candidate.outfitName,
+            imageUrl: candidate.imageUrl,
+          });
+        });
+      });
+
+      const locations = (locationsJson?.data?.locations || []) as any[];
+      locations.forEach((location) => {
+        const name = String(location?.name || 'Location');
+        const locationId = String(location?.location_id || location?.id || name);
+        const imageCandidates = extractEntityImageCandidates(location as Record<string, unknown>, [
+          'images',
+          'referenceImages',
+          'baseReference',
+          'angleVariations',
+          'backgrounds',
+          'media',
+        ]);
+        imageCandidates.forEach((candidate, index) => {
+          const variantLabel =
+            candidate.useCase === 'extreme-closeup'
+              ? 'Extreme close-up'
+              : candidate.backgroundType
+                ? `Background: ${candidate.backgroundType}`
+                : candidate.angle
+                  ? `Angle: ${candidate.angle}`
+                  : candidate.sourceHint?.toLowerCase().includes('angle')
+                    ? 'Angle'
+                    : 'Creation';
+          pushMedia({
+            id: `location:${locationId}:${index}`,
+            label: `Location - ${name} • ${variantLabel}${index > 0 ? ` (${index + 1})` : ''}`,
+            sourceType: 'location',
+            entityId: locationId,
+            entityName: name,
+            groupKey: `variant:${variantLabel.toLowerCase()}`,
+            groupLabel: variantLabel,
+            angle: candidate.angle,
+            backgroundType: candidate.backgroundType,
+            imageUrl: candidate.imageUrl,
+          });
+        });
+      });
+
+      const props = (propsJson?.assets || []) as any[];
+      props.forEach((prop) => {
+        const name = String(prop?.name || 'Prop');
+        const propId = String(prop?.id || name);
+        const imageCandidates = extractEntityImageCandidates(prop as Record<string, unknown>, [
+          'images',
+          'referenceImages',
+          'angleReferences',
+          'media',
+        ]);
+        imageCandidates.forEach((candidate, index) => {
+          pushMedia({
+            id: `prop:${propId}:${index}`,
+            label: `Prop - ${name}${index > 0 ? ` (${index + 1})` : ''}`,
+            sourceType: 'prop',
+            entityId: propId,
+            entityName: name,
+            groupKey: 'variant:all',
+            groupLabel: 'All',
+            imageUrl: candidate.imageUrl,
+          });
+        });
+      });
+
+      const pitchDeckFiles = Array.isArray(pitchDeckMediaJson?.files) ? pitchDeckMediaJson.files : [];
+      pitchDeckFiles
+        .filter((file) => {
+          const metadata = file?.metadata || {};
+          const isDeckMatch = String(metadata?.deckId || '') === String(deckId);
+          const isImage = String(file?.mediaFileType || '').toLowerCase() === 'image';
+          const hasS3Key = typeof file?.s3Key === 'string' && file.s3Key.length > 0;
+          return isDeckMatch && isImage && hasS3Key;
+        })
+        .forEach((file, index) => {
+          const metadata = file?.metadata || {};
+          const s3Key = String(file.s3Key);
+          const slideLabel = String(metadata?.slideTitle || metadata?.slideType || 'Slide');
+          pushMedia({
+            id: `pitchdeck:${String(file.fileId || index)}`,
+            label: `Pitch Deck - ${slideLabel}`,
+            sourceType: 'pitch_deck',
+            entityId: String(metadata?.deckId || deckId),
+            entityName: 'Pitch Deck Archive',
+            groupKey: `slide:${String(metadata?.slideId || slideLabel).toLowerCase()}`,
+            groupLabel: `Slide: ${slideLabel}`,
+            imageUrl: `/api/media/file?key=${encodeURIComponent(s3Key)}`,
+            s3Key,
+            mediaFileId: typeof file.fileId === 'string' ? file.fileId : undefined,
+            archiveDeckId: typeof metadata?.deckId === 'string' ? metadata.deckId : undefined,
+            archiveSlideId: typeof metadata?.slideId === 'string' ? metadata.slideId : undefined,
+          });
+        });
+
+      setExistingMedia(collected);
+      setSelectedExistingMediaId((prev) => prev || collected[0]?.id || '');
+      setReferenceMediaId((prev) => prev || collected[0]?.id || '');
+      return true;
+    } catch (err: any) {
+      setExistingMedia([]);
+      setExistingMediaError(err?.message || 'Failed to load screenplay media');
+      return false;
+    } finally {
+      setExistingMediaLoading(false);
+    }
+  }, [deckId, deckScreenplayId, extractEntityImageCandidates, featureEnabled]);
+
   useEffect(() => {
     if (!deckScreenplayId || !featureEnabled) return;
 
     let cancelled = false;
-    const mediaScopeKey = `${deckId || ''}:${deckScreenplayId}`;
-    const loadExistingMedia = async (): Promise<boolean> => {
-      setExistingMediaLoading(true);
-      setExistingMediaError(null);
-      try {
-        const [charactersRes, locationsRes, propsRes, pitchDeckMediaRes] = await Promise.all([
-          fetch(`/api/screenplays/${encodeURIComponent(deckScreenplayId)}/characters?context=production-hub`, {
-            cache: 'no-store',
-          }),
-          fetch(`/api/screenplays/${encodeURIComponent(deckScreenplayId)}/locations?context=production-hub`, {
-            cache: 'no-store',
-          }),
-          fetch(`/api/asset-bank?screenplayId=${encodeURIComponent(deckScreenplayId)}`, { cache: 'no-store' }),
-          fetch(
-            `/api/media/list?screenplayId=${encodeURIComponent(deckScreenplayId)}&entityType=pitch-deck&limit=200`,
-            { cache: 'no-store' }
-          ),
-        ]);
-
-        const [charactersJson, locationsJson, propsJson, pitchDeckMediaJson] = await Promise.all([
-          charactersRes.ok ? charactersRes.json() : Promise.resolve({}),
-          locationsRes.ok ? locationsRes.json() : Promise.resolve({}),
-          propsRes.ok ? propsRes.json() : Promise.resolve({}),
-          pitchDeckMediaRes.ok ? pitchDeckMediaRes.json() : Promise.resolve({}),
-        ]);
-
-        const collected: ExistingMediaItem[] = [];
-        const seen = new Set<string>();
-        const pushMedia = (item: ExistingMediaItem) => {
-          const dedupeKey = `${item.sourceType}:${item.entityId}:${item.groupKey}:${item.imageUrl}`;
-          if (!item.imageUrl || seen.has(dedupeKey)) return;
-          seen.add(dedupeKey);
-          collected.push(item);
-        };
-
-        const characters = (charactersJson?.data?.characters || []) as any[];
-        characters.forEach((character) => {
-          const name = String(character?.name || 'Character');
-          const characterId = String(character?.character_id || character?.id || name);
-          const imageCandidates = extractEntityImageCandidates(character as Record<string, unknown>, [
-            'images',
-            'referenceImages',
-            'poseReferences',
-            'angleReferences',
-            'media',
-            'portrait',
-            'headshot',
-          ]);
-          imageCandidates.forEach((candidate, index) => {
-            const outfitLabel = candidate.outfitName || 'Creation';
-            pushMedia({
-              id: `character:${characterId}:${index}`,
-              label: `Character - ${name}${candidate.outfitName ? ` • ${candidate.outfitName}` : ''}${index > 0 ? ` (${index + 1})` : ''}`,
-              sourceType: 'character',
-              entityId: characterId,
-              entityName: name,
-              groupKey: `outfit:${outfitLabel.toLowerCase()}`,
-              groupLabel: `Outfit: ${outfitLabel}`,
-              outfitName: candidate.outfitName,
-              imageUrl: candidate.imageUrl,
-            });
-          });
-        });
-
-        const locations = (locationsJson?.data?.locations || []) as any[];
-        locations.forEach((location) => {
-          const name = String(location?.name || 'Location');
-          const locationId = String(location?.location_id || location?.id || name);
-          const imageCandidates = extractEntityImageCandidates(location as Record<string, unknown>, [
-            'images',
-            'referenceImages',
-            'baseReference',
-            'angleVariations',
-            'backgrounds',
-            'media',
-          ]);
-          imageCandidates.forEach((candidate, index) => {
-            const variantLabel =
-              candidate.useCase === 'extreme-closeup'
-                ? 'Extreme close-up'
-                : candidate.backgroundType
-                  ? `Background: ${candidate.backgroundType}`
-                  : candidate.angle
-                    ? `Angle: ${candidate.angle}`
-                    : candidate.sourceHint?.toLowerCase().includes('angle')
-                      ? 'Angle'
-                      : 'Creation';
-            pushMedia({
-              id: `location:${locationId}:${index}`,
-              label: `Location - ${name} • ${variantLabel}${index > 0 ? ` (${index + 1})` : ''}`,
-              sourceType: 'location',
-              entityId: locationId,
-              entityName: name,
-              groupKey: `variant:${variantLabel.toLowerCase()}`,
-              groupLabel: variantLabel,
-              angle: candidate.angle,
-              backgroundType: candidate.backgroundType,
-              imageUrl: candidate.imageUrl,
-            });
-          });
-        });
-
-        const props = (propsJson?.assets || []) as any[];
-        props.forEach((prop) => {
-          const name = String(prop?.name || 'Prop');
-          const propId = String(prop?.id || name);
-          const imageCandidates = extractEntityImageCandidates(prop as Record<string, unknown>, [
-            'images',
-            'referenceImages',
-            'angleReferences',
-            'media',
-          ]);
-          imageCandidates.forEach((candidate, index) => {
-            pushMedia({
-              id: `prop:${propId}:${index}`,
-              label: `Prop - ${name}${index > 0 ? ` (${index + 1})` : ''}`,
-              sourceType: 'prop',
-              entityId: propId,
-              entityName: name,
-              groupKey: 'variant:all',
-              groupLabel: 'All',
-              imageUrl: candidate.imageUrl,
-            });
-          });
-        });
-
-        const pitchDeckFiles = Array.isArray(pitchDeckMediaJson?.files) ? pitchDeckMediaJson.files : [];
-        pitchDeckFiles
-          .filter((file) => {
-            const metadata = file?.metadata || {};
-            const isDeckMatch = String(metadata?.deckId || '') === String(deckId);
-            const isImage = String(file?.mediaFileType || '').toLowerCase() === 'image';
-            const hasS3Key = typeof file?.s3Key === 'string' && file.s3Key.length > 0;
-            return isDeckMatch && isImage && hasS3Key;
-          })
-          .forEach((file, index) => {
-            const metadata = file?.metadata || {};
-            const s3Key = String(file.s3Key);
-            const slideLabel = String(metadata?.slideTitle || metadata?.slideType || 'Slide');
-            pushMedia({
-              id: `pitchdeck:${String(file.fileId || index)}`,
-              label: `Pitch Deck - ${slideLabel}`,
-              sourceType: 'pitch_deck',
-              entityId: String(metadata?.deckId || deckId),
-              entityName: 'Pitch Deck Archive',
-              groupKey: `slide:${String(metadata?.slideId || slideLabel).toLowerCase()}`,
-              groupLabel: `Slide: ${slideLabel}`,
-              imageUrl: `/api/media/file?key=${encodeURIComponent(s3Key)}`,
-              s3Key,
-              mediaFileId: typeof file.fileId === 'string' ? file.fileId : undefined,
-              archiveDeckId: typeof metadata?.deckId === 'string' ? metadata.deckId : undefined,
-              archiveSlideId: typeof metadata?.slideId === 'string' ? metadata.slideId : undefined,
-            });
-          });
-
-        if (!cancelled) {
-          setExistingMedia(collected);
-          setSelectedExistingMediaId((prev) => prev || collected[0]?.id || '');
-          setReferenceMediaId((prev) => prev || collected[0]?.id || '');
-        }
-        return true;
-      } catch (err: any) {
-        if (!cancelled) {
-          setExistingMedia([]);
-          setExistingMediaError(err?.message || 'Failed to load screenplay media');
-        }
-        return false;
-      } finally {
-        if (!cancelled) setExistingMediaLoading(false);
-      }
-    };
 
     const loadImageModels = async () => {
       setImageModelsLoading(true);
@@ -1048,20 +1054,20 @@ export default function PitchDeckEditorPage() {
         const models = await listImageGenerationModels();
         if (cancelled) return;
         setImageModels(models);
-        const allowedModels = models.filter((model) => ALLOWED_PITCH_DECK_IMAGE_MODELS.has(model.id));
-        const preferred = allowedModels.find((model) => model.id === 'flux2-pro-2k') || allowedModels[0];
+        const allowedPromptModels = models.filter((model) => ALLOWED_PITCH_DECK_IMAGE_MODELS.has(model.id));
+        const allowedReferenceModels = models.filter((model) => ALLOWED_PITCH_DECK_REFERENCE_MODELS.has(model.id));
+        const preferred = allowedPromptModels.find((model) => model.id === 'flux2-pro-2k') || allowedPromptModels[0];
         if (preferred) {
           setPromptGenerationModelId((current) =>
-            allowedModels.some((model) => model.id === current) ? current : preferred.id
+            allowedPromptModels.some((model) => model.id === current) ? current : preferred.id
           );
         }
         const preferredReference =
-          allowedModels.find((model) => model.id === 'nano-banana-pro-2k') ||
-          allowedModels.find((model) => model.id === 'nano-banana-pro') ||
-          preferred;
+          allowedReferenceModels.find((model) => model.id === 'nano-banana-pro-2k') ||
+          allowedReferenceModels.find((model) => model.id === 'nano-banana-pro');
         if (preferredReference) {
           setReferenceGenerationModelId((current) =>
-            allowedModels.some((model) => model.id === current) ? current : preferredReference.id
+            allowedReferenceModels.some((model) => model.id === current) ? current : preferredReference.id
           );
         }
       } catch (err: any) {
@@ -1076,7 +1082,7 @@ export default function PitchDeckEditorPage() {
 
     if (imageActionTab === 'library' && existingMediaLoadedScopeRef.current !== mediaScopeKey) {
       void (async () => {
-        const loaded = await loadExistingMedia();
+        const loaded = await refreshExistingMedia();
         if (!cancelled && loaded) {
           existingMediaLoadedScopeRef.current = mediaScopeKey;
         }
@@ -1087,7 +1093,43 @@ export default function PitchDeckEditorPage() {
     return () => {
       cancelled = true;
     };
-  }, [deckScreenplayId, featureEnabled, deckId, imageActionTab]);
+  }, [deckScreenplayId, featureEnabled, imageActionTab, mediaScopeKey, refreshExistingMedia]);
+
+  useEffect(() => {
+    if (imageActionTab !== 'library' || !deckScreenplayId || !featureEnabled) return;
+    let cancelled = false;
+    const pollIntervalMs = 8000;
+
+    const pollOnce = async () => {
+      if (cancelled) return;
+      if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
+      const loaded = await refreshExistingMedia();
+      if (!cancelled && loaded) {
+        existingMediaLoadedScopeRef.current = mediaScopeKey;
+      }
+    };
+
+    const onVisibilityChange = () => {
+      if (typeof document !== 'undefined' && document.visibilityState === 'visible') {
+        void pollOnce();
+      }
+    };
+
+    const intervalId = window.setInterval(() => {
+      void pollOnce();
+    }, pollIntervalMs);
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', onVisibilityChange);
+    }
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+      if (typeof document !== 'undefined') {
+        document.removeEventListener('visibilitychange', onVisibilityChange);
+      }
+    };
+  }, [deckScreenplayId, featureEnabled, imageActionTab, mediaScopeKey, refreshExistingMedia]);
 
   useEffect(() => {
     if (existingEntityFilter === 'all') return;
@@ -1424,9 +1466,13 @@ export default function PitchDeckEditorPage() {
         if (prev.some((item) => item.imageUrl === nextArchiveItem.imageUrl)) return prev;
         return [nextArchiveItem, ...prev].slice(0, 400);
       });
+      setExistingSourceFilter('pitch_deck');
       existingMediaLoadedScopeRef.current = null;
+      void refreshExistingMedia();
     } catch {
       // Non-blocking: gallery flow should continue even if archive registration fails.
+      existingMediaLoadedScopeRef.current = null;
+      void refreshExistingMedia();
     }
   };
 
@@ -1519,6 +1565,10 @@ export default function PitchDeckEditorPage() {
         providerId: promptGenerationModelId || undefined,
         screenplayId: deckScreenplayId,
         aspectRatio: promptAspectRatio,
+        deckId,
+        slideId: selectedSlide?.slideId,
+        slideType: selectedSlide?.slideType,
+        slideTitle: selectedSlide?.title,
       });
       if (!result.imageUrl) {
         throw new Error('Image generation returned no image URL');
@@ -1529,11 +1579,17 @@ export default function PitchDeckEditorPage() {
         label: `Prompt result (${promptGenerationModel?.label || promptGenerationModelId})`,
         s3Key: result.s3Key,
       });
-      await archiveSlotImageToPitchDeckLibrary({
-        s3Key: result.s3Key,
-        source: 'prompt',
-        label: `Prompt result (${promptGenerationModel?.label || promptGenerationModelId})`,
-      });
+      if (!result.archive && result.s3Key) {
+        await archiveSlotImageToPitchDeckLibrary({
+          s3Key: result.s3Key,
+          source: 'prompt',
+          label: `Prompt result (${promptGenerationModel?.label || promptGenerationModelId})`,
+        });
+      } else {
+        setExistingSourceFilter('pitch_deck');
+        existingMediaLoadedScopeRef.current = null;
+        void refreshExistingMedia();
+      }
       addImageAttempt(
         'success',
         'prompt',
@@ -1588,6 +1644,9 @@ export default function PitchDeckEditorPage() {
         editPrompt: referencePromptText.trim(),
         desiredModelId: referenceGenerationModelId || undefined,
         aspectRatio: referenceAspectRatio,
+        slideId: selectedSlide?.slideId,
+        slideType: selectedSlide?.slideType,
+        slideTitle: selectedSlide?.title,
       });
       if (!result.imageUrl) {
         throw new Error('Reference generation returned no image URL');
@@ -1598,11 +1657,17 @@ export default function PitchDeckEditorPage() {
         label: `Reference result (${primaryReference.label})`,
         s3Key: result.s3Key,
       });
-      await archiveSlotImageToPitchDeckLibrary({
-        s3Key: result.s3Key,
-        source: 'reference',
-        label: `Reference result (${primaryReference.label})`,
-      });
+      if (!result.archive && result.s3Key) {
+        await archiveSlotImageToPitchDeckLibrary({
+          s3Key: result.s3Key,
+          source: 'reference',
+          label: `Reference result (${primaryReference.label})`,
+        });
+      } else {
+        setExistingSourceFilter('pitch_deck');
+        existingMediaLoadedScopeRef.current = null;
+        void refreshExistingMedia();
+      }
       addImageAttempt(
         'success',
         'reference',
@@ -2260,14 +2325,14 @@ export default function PitchDeckEditorPage() {
                               value={promptGenerationModelId}
                               onChange={(e) => setPromptGenerationModelId(e.target.value)}
                               className="flex-1 rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white"
-                              disabled={imageModelsLoading || filteredPitchDeckImageModels.length === 0}
+                              disabled={imageModelsLoading || filteredPromptPitchDeckImageModels.length === 0}
                             >
-                              {filteredPitchDeckImageModels.length === 0 ? (
+                              {filteredPromptPitchDeckImageModels.length === 0 ? (
                                 <option value="">
                                   {imageModelsLoading ? 'Loading models...' : 'No models found'}
                                 </option>
                               ) : (
-                                filteredPitchDeckImageModels.map((model) => (
+                                filteredPromptPitchDeckImageModels.map((model) => (
                                   <option key={model.id} value={model.id}>
                                     {(PITCH_DECK_IMAGE_MODEL_LABELS[model.id] || model.label || model.id)} ({model.creditsPerImage} credits)
                                   </option>
@@ -2384,14 +2449,14 @@ export default function PitchDeckEditorPage() {
                               value={referenceGenerationModelId}
                               onChange={(e) => setReferenceGenerationModelId(e.target.value)}
                               className="flex-1 rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white"
-                              disabled={imageModelsLoading || filteredPitchDeckImageModels.length === 0}
+                              disabled={imageModelsLoading || filteredReferencePitchDeckImageModels.length === 0}
                             >
-                              {filteredPitchDeckImageModels.length === 0 ? (
+                              {filteredReferencePitchDeckImageModels.length === 0 ? (
                                 <option value="">
                                   {imageModelsLoading ? 'Loading models...' : 'No models found'}
                                 </option>
                               ) : (
-                                filteredPitchDeckImageModels.map((model) => (
+                                filteredReferencePitchDeckImageModels.map((model) => (
                                   <option key={model.id} value={model.id}>
                                     {(PITCH_DECK_IMAGE_MODEL_LABELS[model.id] || model.label || model.id)} ({model.creditsPerImage} credits)
                                   </option>

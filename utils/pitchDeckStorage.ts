@@ -258,14 +258,34 @@ export async function generatePitchDeckImageFromPrompt(input: {
   providerId?: string;
   screenplayId?: string;
   aspectRatio?: string;
-}): Promise<{ imageUrl: string; s3Key?: string; creditsDeducted?: number; modelUsed?: string }> {
-  const response = await fetch('/api/image/generate', {
+  deckId?: string;
+  slideId?: string;
+  slideType?: string;
+  slideTitle?: string;
+}): Promise<{
+  imageUrl: string;
+  s3Key?: string;
+  creditsDeducted?: number;
+  modelUsed?: string;
+  archive?: { fileId?: string; folderId?: string; alreadyExisted?: boolean } | null;
+}> {
+  const isDeckScoped = typeof input.deckId === 'string' && input.deckId.trim().length > 0;
+  const response = await fetch(
+    isDeckScoped ? `/api/pitch-decks/${encodeURIComponent(input.deckId as string)}/image/generate` : '/api/image/generate',
+    {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({
       prompt: input.prompt,
       providerId: input.providerId,
       aspectRatio: input.aspectRatio,
+      ...(isDeckScoped
+        ? {
+            slideId: input.slideId,
+            slideType: input.slideType,
+            slideTitle: input.slideTitle,
+          }
+        : {}),
       ...(input.screenplayId
         ? {
             entityType: 'screenplay',
@@ -281,11 +301,13 @@ export async function generatePitchDeckImageFromPrompt(input: {
   if (!response.ok) {
     throw new Error(json?.message || json?.error?.message || json?.error || 'Failed to generate image');
   }
+  const payload = json?.data || json;
   return {
-    imageUrl: json?.imageUrl,
-    s3Key: json?.s3Key,
-    creditsDeducted: json?.creditsDeducted,
-    modelUsed: json?.modelUsed,
+    imageUrl: payload?.imageUrl,
+    s3Key: payload?.s3Key,
+    creditsDeducted: payload?.creditsDeducted,
+    modelUsed: payload?.modelUsed,
+    archive: payload?.archive || null,
   };
 }
 
@@ -295,7 +317,16 @@ export async function generatePitchDeckImageFromReference(input: {
   editPrompt: string;
   desiredModelId?: string;
   aspectRatio?: string;
-}): Promise<{ imageUrl: string; s3Key?: string; creditsDeducted?: number; modelUsed?: string }> {
+  slideId?: string;
+  slideType?: string;
+  slideTitle?: string;
+}): Promise<{
+  imageUrl: string;
+  s3Key?: string;
+  creditsDeducted?: number;
+  modelUsed?: string;
+  archive?: { fileId?: string; folderId?: string; alreadyExisted?: boolean } | null;
+}> {
   const response = await fetch(`/api/pitch-decks/${encodeURIComponent(input.deckId)}/image/remix`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
@@ -304,6 +335,9 @@ export async function generatePitchDeckImageFromReference(input: {
       editPrompt: input.editPrompt,
       desiredModelId: input.desiredModelId,
       aspectRatio: input.aspectRatio,
+      slideId: input.slideId,
+      slideType: input.slideType,
+      slideTitle: input.slideTitle,
     }),
     cache: 'no-store',
   });
@@ -318,6 +352,7 @@ export async function generatePitchDeckImageFromReference(input: {
     s3Key: payload?.s3Key,
     creditsDeducted: payload?.creditsDeducted,
     modelUsed: payload?.modelUsed,
+    archive: payload?.archive || null,
   };
 }
 
