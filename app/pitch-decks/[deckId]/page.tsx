@@ -106,7 +106,7 @@ const PITCH_DECK_REWRITE_ACTIONS: RewriteQuickAction[] = [
   },
 ];
 
-const IMAGE_ACTION_TAB_STORAGE_KEY = 'pitchDeck:imageActionTab';
+const IMAGE_ACTION_TAB_STORAGE_KEY_PREFIX = 'pitchDeck:imageActionTab:deck:';
 const IMAGE_ACTION_TABS: ImageActionTab[] = ['library', 'prompt', 'reference', 'upload'];
 
 const ALLOWED_PITCH_DECK_IMAGE_MODELS = new Set([
@@ -478,6 +478,8 @@ export default function PitchDeckEditorPage() {
   const imageAutoSaveTimerRef = useRef<number | null>(null);
   const saveStatusRef = useRef<'idle' | 'unsaved' | 'saved'>('idle');
   const savingRef = useRef(false);
+  const slidesRef = useRef<PitchDeckSlide[]>([]);
+  const selectedSlideIdRef = useRef<string | null>(null);
 
   const featureEnabled = isFeatureEnabled();
   const selectedSlide = useMemo(
@@ -643,6 +645,14 @@ export default function PitchDeckEditorPage() {
     savingRef.current = saving;
   }, [saving]);
 
+  useEffect(() => {
+    slidesRef.current = slides;
+  }, [slides]);
+
+  useEffect(() => {
+    selectedSlideIdRef.current = selectedSlideId;
+  }, [selectedSlideId]);
+
   const queueImageActionAutoSave = () => {
     if (typeof window === 'undefined') return;
     if (imageAutoSaveTimerRef.current) {
@@ -699,16 +709,23 @@ export default function PitchDeckEditorPage() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    const savedTab = window.sessionStorage.getItem(IMAGE_ACTION_TAB_STORAGE_KEY);
+    if (!deckId) return;
+    const storageKey = `${IMAGE_ACTION_TAB_STORAGE_KEY_PREFIX}${deckId}`;
+    const savedTab = window.sessionStorage.getItem(storageKey);
     if (savedTab && IMAGE_ACTION_TABS.includes(savedTab as ImageActionTab)) {
       setImageActionTab(savedTab as ImageActionTab);
+      return;
     }
-  }, []);
+    // For new decks (or first visit), default to prompt.
+    setImageActionTab('prompt');
+  }, [deckId]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    window.sessionStorage.setItem(IMAGE_ACTION_TAB_STORAGE_KEY, imageActionTab);
-  }, [imageActionTab]);
+    if (!deckId) return;
+    const storageKey = `${IMAGE_ACTION_TAB_STORAGE_KEY_PREFIX}${deckId}`;
+    window.sessionStorage.setItem(storageKey, imageActionTab);
+  }, [deckId, imageActionTab]);
 
   const normalizeImageUrl = (value: unknown): string => {
     if (typeof value !== 'string') return '';
@@ -1242,16 +1259,19 @@ export default function PitchDeckEditorPage() {
   };
 
   const saveSelectedSlide = async () => {
-    if (!deckId || !selectedSlide) return;
+    if (!deckId) return;
     if (savingRef.current) return;
+    const currentSlideId = selectedSlideIdRef.current;
+    const currentSlide = currentSlideId ? slidesRef.current.find((slide) => slide.slideId === currentSlideId) : null;
+    if (!currentSlide) return;
     setSaving(true);
     setError(null);
     try {
-      const updated = await updatePitchDeckSlide(deckId, selectedSlide.slideId, {
-        expectedVersion: selectedSlide.version,
-        title: selectedSlide.title,
-        notes: selectedSlide.notes || '',
-        blocks: selectedSlide.blocks,
+      const updated = await updatePitchDeckSlide(deckId, currentSlide.slideId, {
+        expectedVersion: currentSlide.version,
+        title: currentSlide.title,
+        notes: currentSlide.notes || '',
+        blocks: currentSlide.blocks,
       });
       setSlides((prev) => prev.map((slide) => (slide.slideId === updated.slideId ? updated : slide)));
       setSaveStatus('saved');
