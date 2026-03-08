@@ -13,6 +13,7 @@ import {
 } from '@/utils/pitchDeckStorage';
 import { EditorSubNav } from '@/components/editor/EditorSubNav';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
+import { llmModels } from '@/lib/modelCatalog';
 
 function isFeatureEnabled(): boolean {
   return process.env.NEXT_PUBLIC_ENABLE_PITCH_DECK_V1 === 'true';
@@ -30,6 +31,7 @@ function PitchDeckCreatePageContent() {
   const [deckTitle, setDeckTitle] = useState('');
   const [deckTitleTouched, setDeckTitleTouched] = useState(false);
   const [textMode, setTextMode] = useState<PitchDeckTextMode>('auto_from_screenplay');
+  const [draftAiModelId, setDraftAiModelId] = useState('claude-sonnet-4-6');
   const [includeBusinessSlides, setIncludeBusinessSlides] = useState(false);
   const [plannedImageGenerations, setPlannedImageGenerations] = useState(0);
   const [plannedAiRewrites, setPlannedAiRewrites] = useState(0);
@@ -163,6 +165,7 @@ function PitchDeckCreatePageContent() {
         textMode,
         includeBusinessSlides,
         titleOverride: deckTitle.trim() || undefined,
+        desiredModelId: textMode === 'auto_plus_ai_polish' ? draftAiModelId : undefined,
       });
       router.push(`/pitch-decks/${result.deckId}`);
     } catch (err: any) {
@@ -228,6 +231,26 @@ function PitchDeckCreatePageContent() {
               </select>
             </div>
           </div>
+
+          {textMode === 'auto_plus_ai_polish' ? (
+            <div>
+              <label className="block text-sm text-gray-300 mb-1">AI Model (Auto + AI polish)</label>
+              <select
+                className="w-full rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white"
+                value={draftAiModelId}
+                onChange={(e) => setDraftAiModelId(e.target.value)}
+              >
+                {llmModels.map((model) => (
+                  <option key={model.id} value={model.id}>
+                    {model.name} ({model.provider})
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1 text-[11px] text-gray-500">
+                Used for AI polish pass on slide text seeded from screenplay context.
+              </p>
+            </div>
+          ) : null}
 
           <div>
             <label className="block text-sm text-gray-300 mb-1">Template</label>
