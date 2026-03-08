@@ -2245,7 +2245,8 @@ export default function PitchDeckEditorPage() {
                               />
                             </div>
                           ) : null}
-                          <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
+                          {!(showArchiveBrowser && existingSourceFilter === 'pitch_deck') ? (
+                            <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
                             <select
                               value={existingSourceFilter}
                               onChange={(e) => {
@@ -2284,81 +2285,89 @@ export default function PitchDeckEditorPage() {
                                 </option>
                               ))}
                             </select>
-                          </div>
+                            </div>
+                          ) : null}
                           <div className="mt-2 flex items-center justify-end">
                             <button
                               type="button"
-                              onClick={() => setShowArchiveBrowser((prev) => !prev)}
+                              onClick={() => {
+                                setExistingSourceFilter('pitch_deck');
+                                setShowArchiveBrowser((prev) => !prev);
+                              }}
                               disabled={!deckScreenplayId}
                               className="mr-2 rounded border border-[#3F3F46] px-3 py-2 text-sm font-medium text-gray-200 hover:border-[#DC143C] hover:text-white disabled:opacity-50"
                             >
                               {showArchiveBrowser ? 'Close browser' : 'Browse archive folder'}
                             </button>
-                            <button
-                              type="button"
-                              onClick={applyExistingMediaToSlot}
-                              disabled={!selectedExistingMedia}
-                              className="rounded bg-[#DC143C] px-3 py-2 text-sm font-medium text-white hover:bg-[#b01030] disabled:opacity-50"
-                            >
-                              + Add to gallery
-                            </button>
+                            {!(showArchiveBrowser && existingSourceFilter === 'pitch_deck') ? (
+                              <button
+                                type="button"
+                                onClick={applyExistingMediaToSlot}
+                                disabled={!selectedExistingMedia}
+                                className="rounded bg-[#DC143C] px-3 py-2 text-sm font-medium text-white hover:bg-[#b01030] disabled:opacity-50"
+                              >
+                                + Add to gallery
+                              </button>
+                            ) : null}
                           </div>
-                          <div className="mt-2 rounded border border-[#2f2f2f] bg-[#0f0f0f] p-2">
-                            {filteredExistingMedia.length === 0 ? (
-                              <p className="text-xs text-gray-500">
-                                {existingMediaLoading ? 'Loading screenplay images...' : 'No images found for selected filters'}
-                              </p>
-                            ) : (
-                              <div className="grid grid-cols-3 md:grid-cols-5 gap-2">
-                                {filteredExistingMedia.map((item) => {
-                                  const isActive = selectedExistingMediaId === item.id;
-                                  const isReferenceSelected = referenceMediaIds.includes(item.id);
-                                  return (
-                                    <button
-                                      key={item.id}
-                                      type="button"
-                                      onClick={() => {
-                                        setSelectedExistingMediaId(item.id);
-                                        setReferenceMediaId(item.id);
-                                      }}
-                                      className={`relative overflow-hidden rounded border ${
-                                        isActive ? 'border-[#DC143C]' : 'border-[#3F3F46]'
-                                      } bg-[#151515]`}
-                                      title={item.label}
-                                    >
-                                      <img
-                                        src={item.imageUrl}
-                                        alt={item.label}
-                                        className="h-20 w-full object-cover"
-                                        onError={(e) => {
-                                          (e.target as HTMLImageElement).style.opacity = '0.2';
-                                        }}
-                                      />
+                          {!(showArchiveBrowser && existingSourceFilter === 'pitch_deck') ? (
+                            <div className="mt-2 rounded border border-[#2f2f2f] bg-[#0f0f0f] p-2">
+                              {filteredExistingMedia.length === 0 ? (
+                                <p className="text-xs text-gray-500">
+                                  {existingMediaLoading ? 'Loading screenplay images...' : 'No images found for selected filters'}
+                                </p>
+                              ) : (
+                                <div className="grid grid-cols-3 md:grid-cols-5 gap-2">
+                                  {filteredExistingMedia.map((item) => {
+                                    const isActive = selectedExistingMediaId === item.id;
+                                    const isReferenceSelected = referenceMediaIds.includes(item.id);
+                                    return (
                                       <button
+                                        key={item.id}
                                         type="button"
-                                        onClick={(e) => {
-                                          e.stopPropagation();
-                                          toggleReferenceMediaSelection(item.id);
+                                        onClick={() => {
+                                          setSelectedExistingMediaId(item.id);
+                                          setReferenceMediaId(item.id);
                                         }}
-                                        className={`absolute left-1 top-1 rounded px-1.5 py-0.5 text-[10px] ${
-                                          isReferenceSelected
-                                            ? 'bg-[#DC143C] text-white'
-                                            : 'bg-black/70 text-gray-200 hover:bg-black/85'
-                                        }`}
-                                        title={isReferenceSelected ? 'Remove from remix references' : 'Add to remix references'}
+                                        className={`relative overflow-hidden rounded border ${
+                                          isActive ? 'border-[#DC143C]' : 'border-[#3F3F46]'
+                                        } bg-[#151515]`}
+                                        title={item.label}
                                       >
-                                        {isReferenceSelected ? 'Ref added' : 'Add ref'}
+                                        <img
+                                          src={item.imageUrl}
+                                          alt={item.label}
+                                          className="h-20 w-full object-cover"
+                                          onError={(e) => {
+                                            (e.target as HTMLImageElement).style.opacity = '0.2';
+                                          }}
+                                        />
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            toggleReferenceMediaSelection(item.id);
+                                          }}
+                                          className={`absolute left-1 top-1 rounded px-1.5 py-0.5 text-[10px] ${
+                                            isReferenceSelected
+                                              ? 'bg-[#DC143C] text-white'
+                                              : 'bg-black/70 text-gray-200 hover:bg-black/85'
+                                          }`}
+                                          title={isReferenceSelected ? 'Remove from remix references' : 'Add to remix references'}
+                                        >
+                                          {isReferenceSelected ? 'Ref added' : 'Add ref'}
+                                        </button>
+                                        <div className="absolute inset-x-0 bottom-0 bg-black/70 px-1 py-0.5 text-[10px] text-left text-white truncate">
+                                          {item.label}
+                                        </div>
                                       </button>
-                                      <div className="absolute inset-x-0 bottom-0 bg-black/70 px-1 py-0.5 text-[10px] text-left text-white truncate">
-                                        {item.label}
-                                      </div>
-                                    </button>
-                                  );
-                                })}
-                              </div>
-                            )}
-                          </div>
-                          {selectedExistingMedia ? (
+                                    );
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          ) : null}
+                          {selectedExistingMedia && !(showArchiveBrowser && existingSourceFilter === 'pitch_deck') ? (
                             <div className="mt-2 rounded border border-[#2f2f2f] bg-[#0f0f0f] p-2">
                               <div className="grid grid-cols-[96px_1fr] gap-2 items-center">
                                 <img

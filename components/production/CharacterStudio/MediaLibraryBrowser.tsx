@@ -104,6 +104,7 @@ export function MediaLibraryBrowser({
   restrictToFolderSubtreeId,
   onCancel
 }: MediaLibraryBrowserProps) {
+  const isRestrictedArchiveMode = !!restrictToFolderSubtreeId;
   const [selectedImages, setSelectedImages] = useState<Set<string>>(new Set());
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(['root']));
@@ -336,33 +337,37 @@ export function MediaLibraryBrowser({
 
   return (
     <div className="flex gap-4 h-[500px]">
-      {/* Folder Sidebar */}
-      <div className="w-64 bg-[#141414] border border-[#3F3F46] rounded-lg overflow-hidden flex flex-col">
-        <div className="p-4 border-b border-[#3F3F46]">
-          <h3 className="text-sm font-semibold text-[#FFFFFF]">Folders</h3>
-          <p className="text-xs text-[#808080] mt-1">Browse folder structure</p>
+      {/* Folder Sidebar (hidden in restricted archive mode) */}
+      {!isRestrictedArchiveMode ? (
+        <div className="w-64 bg-[#141414] border border-[#3F3F46] rounded-lg overflow-hidden flex flex-col">
+          <div className="p-4 border-b border-[#3F3F46]">
+            <h3 className="text-sm font-semibold text-[#FFFFFF]">Folders</h3>
+            <p className="text-xs text-[#808080] mt-1">Browse folder structure</p>
+          </div>
+          <div className="flex-1 overflow-y-auto p-2 space-y-1">
+            {folderTreeLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <Loader2 className="w-5 h-5 animate-spin text-[#808080]" />
+              </div>
+            ) : (
+              folderNodes.map(node => renderFolderNode(node))
+            )}
+          </div>
         </div>
-        <div className="flex-1 overflow-y-auto p-2 space-y-1">
-          {folderTreeLoading ? (
-            <div className="flex items-center justify-center py-8">
-              <Loader2 className="w-5 h-5 animate-spin text-[#808080]" />
-            </div>
-          ) : (
-            folderNodes.map(node => renderFolderNode(node))
-          )}
-        </div>
-      </div>
+      ) : null}
 
       {/* Main Content Area */}
       <div className="flex-1 space-y-4 overflow-hidden flex flex-col">
         {/* Header */}
         <div className="flex items-center justify-between flex-shrink-0">
           <div>
-            <h3 className="text-sm font-semibold text-white">Select Images from Archive</h3>
+            <h3 className="text-sm font-semibold text-white">
+              {isRestrictedArchiveMode ? 'Select Images from This Deck Archive' : 'Select Images from Archive'}
+            </h3>
             {/* NOTE: Displayed as "Archive" to users, but backend/API still uses "Storage" or "media-library" */}
             <p className="text-xs text-[#808080]">
               {selectedImages.size} of {maxSelections} selected
-              {selectedFolderId && ` • Folder: ${selectedFolderId}`}
+              {!isRestrictedArchiveMode && selectedFolderId ? ` • Folder: ${selectedFolderId}` : ''}
             </p>
           </div>
           <div className="flex gap-2">
