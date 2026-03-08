@@ -316,6 +316,29 @@ export async function generatePitchDeckImageFromReference(input: {
   };
 }
 
+export async function archivePitchDeckImage(input: {
+  deckId: string;
+  slideId: string;
+  slideType?: string;
+  slideTitle?: string;
+  s3Key: string;
+  label?: string;
+  source: 'prompt' | 'reference' | 'upload' | 'manual';
+}): Promise<{ fileId?: string; folderId?: string }> {
+  const response = await fetch(`/api/pitch-decks/${encodeURIComponent(input.deckId)}/image/archive`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(input),
+    cache: 'no-store',
+  });
+
+  const json = await response.json();
+  if (!response.ok) {
+    throw new Error(json?.error?.message || 'Failed to archive pitch deck image');
+  }
+  return unwrapResponse(json);
+}
+
 export async function exportPitchDeckPdf(
   deckId: string,
   input: {

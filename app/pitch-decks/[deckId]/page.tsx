@@ -3,8 +3,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { jsPDF } from 'jspdf';
-import { Wand2, Briefcase, Film, Megaphone, X } from 'lucide-react';
+import { Wand2, Briefcase, Film, Megaphone, MoreVertical, Trash2 } from 'lucide-react';
 import {
+  archivePitchDeckImage,
   generatePitchDeckImageFromPrompt,
   generatePitchDeckImageFromReference,
   getPitchDeck,
@@ -18,6 +19,7 @@ import {
 import { EditorSubNav } from '@/components/editor/EditorSubNav';
 import { useDirectS3Upload } from '@/hooks/useDirectS3Upload';
 import RewriteModal from '@/components/modals/RewriteModal';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 
 function isFeatureEnabled(): boolean {
   return process.env.NEXT_PUBLIC_ENABLE_PITCH_DECK_V1 === 'true';
@@ -26,7 +28,7 @@ function isFeatureEnabled(): boolean {
 type ExistingMediaItem = {
   id: string;
   label: string;
-  sourceType: 'character' | 'location' | 'prop';
+  sourceType: 'character' | 'location' | 'prop' | 'pitch_deck';
   entityId: string;
   entityName: string;
   groupKey: string;
@@ -35,9 +37,12 @@ type ExistingMediaItem = {
   angle?: string;
   backgroundType?: string;
   imageUrl: string;
+  mediaFileId?: string;
+  archiveDeckId?: string;
+  archiveSlideId?: string;
 };
 
-type ExistingMediaSourceFilter = 'character' | 'location' | 'prop';
+type ExistingMediaSourceFilter = 'character' | 'location' | 'prop' | 'pitch_deck';
 
 type ImageActionTab = 'library' | 'prompt' | 'reference' | 'upload';
 type RewriteQuickAction = {
@@ -398,6 +403,8 @@ export default function PitchDeckEditorPage() {
   const [confirmSpendOpen, setConfirmSpendOpen] = useState(false);
   const [pendingImageAction, setPendingImageAction] = useState<'prompt' | 'reference' | null>(null);
   const [imageAttempts, setImageAttempts] = useState<ImageAttempt[]>([]);
+  const [openImageMenuId, setOpenImageMenuId] = useState<string | null>(null);
+  const [confirmRemoveImageId, setConfirmRemoveImageId] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const [rewriteModalOpen, setRewriteModalOpen] = useState(false);
   const [rewriteError, setRewriteError] = useState<string | null>(null);
@@ -684,7 +691,7 @@ export default function PitchDeckEditorPage() {
       setExistingMediaLoading(true);
       setExistingMediaError(null);
       try {
-        const [charactersRes, locationsRes, propsRes] = await Promise.all([
+        const [charactersRes, locationsRes, propsRes, pitchDeckMediaRes] = await Promise.all([
           fetch(`/api/screenplays/${encodeURIComponent(deckScreenplayId)}/characters?context=production-hub`, {
             cache: 'no-store',
           }),
@@ -692,12 +699,17 @@ export default function PitchDeckEditorPage() {
             cache: 'no-store',
           }),
           fetch(`/api/asset-bank?screenplayId=${encodeURIComponent(deckScreenplayId)}`, { cache: 'no-store' }),
+          fetch(
+            `/api/media/list?screenplayId=${encodeURIComponent(deckScreenplayId)}&entityType=pitch-deck&limit=200`,
+            { cache: 'no-store' }
+          ),
         ]);
 
-        const [charactersJson, locationsJson, propsJson] = await Promise.all([
+        const [charactersJson, locationsJson, propsJson, pitchDeckMediaJson] = await Promise.all([
           charactersRes.ok ? charactersRes.json() : Promise.resolve({}),
           locationsRes.ok ? locationsRes.json() : Promise.resolve({}),
           propsRes.ok ? propsRes.json() : Promise.resolve({}),
+          pitchDeckMediaRes.ok ? pitchDeckMediaRes.json() : Promise.resolve({}),
         ]);
 
         const collected: ExistingMediaItem[] = [];
@@ -800,6 +812,34 @@ export default function PitchDeckEditorPage() {
           });
         });
 
+        const pitchDeckFiles = Array.isArray(pitchDeckMediaJson?.files) ? pitchDeckMediaJson.files : [];
+        pitchDeckFiles
+          .filter((file) => {
+            const metadata = file?.metadata || {};
+            const isDeckMatch = String(metadata?.deckId || '') === String(deckId);
+            const isImage = String(file?.mediaFileType || '').toLowerCase() === 'image';
+            const hasS3Key = typeof file?.s3Key === 'string' && file.s3Key.length > 0;
+            return isDeckMatch && isImage && hasS3Key;
+          })
+          .forEach((file, index) => {
+            const metadata = file?.metadata || {};
+            const s3Key = String(file.s3Key);
+            const slideLabel = String(metadata?.slideTitle || metadata?.slideType || 'Slide');
+            pushMedia({
+              id: `pitchdeck:${String(file.fileId || index)}`,
+              label: `Pitch Deck - ${slideLabel}`,
+              sourceType: 'pitch_deck',
+              entityId: String(metadata?.deckId || deckId),
+              entityName: 'Pitch Deck Archive',
+              groupKey: `slide:${String(metadata?.slideId || slideLabel).toLowerCase()}`,
+              groupLabel: `Slide: ${slideLabel}`,
+              imageUrl: `/api/media/file?key=${encodeURIComponent(s3Key)}`,
+              mediaFileId: typeof file.fileId === 'string' ? file.fileId : undefined,
+              archiveDeckId: typeof metadata?.deckId === 'string' ? metadata.deckId : undefined,
+              archiveSlideId: typeof metadata?.slideId === 'string' ? metadata.slideId : undefined,
+            });
+          });
+
         if (!cancelled) {
           setExistingMedia(collected);
           setSelectedExistingMediaId((prev) => prev || collected[0]?.id || '');
@@ -854,7 +894,7 @@ export default function PitchDeckEditorPage() {
     return () => {
       cancelled = true;
     };
-  }, [deckScreenplayId, featureEnabled]);
+  }, [deckScreenplayId, featureEnabled, deckId]);
 
   useEffect(() => {
     if (existingEntityFilter === 'all') return;
@@ -900,6 +940,8 @@ export default function PitchDeckEditorPage() {
     setRewritePreviewText(null);
     setRewriteOriginalText(null);
     setRewriteUndoText(null);
+    setOpenImageMenuId(null);
+    setConfirmRemoveImageId(null);
   }, [selectedSlideId]);
 
   const updateSelectedSlideText = (nextText: string) => {
@@ -1111,6 +1153,27 @@ export default function PitchDeckEditorPage() {
     });
   };
 
+  const archiveSlotImageToPitchDeckLibrary = async (input: {
+    s3Key?: string;
+    source: 'prompt' | 'reference' | 'upload' | 'manual';
+    label?: string;
+  }) => {
+    if (!deckId || !selectedSlide?.slideId || !input.s3Key) return;
+    try {
+      await archivePitchDeckImage({
+        deckId,
+        slideId: selectedSlide.slideId,
+        slideType: selectedSlide.slideType,
+        slideTitle: selectedSlide.title,
+        s3Key: input.s3Key,
+        label: input.label,
+        source: input.source,
+      });
+    } catch {
+      // Non-blocking: gallery flow should continue even if archive registration fails.
+    }
+  };
+
   const selectSlotImageOption = (optionId: string) => {
     const option = selectedSlotImageOptions.find((item) => item.id === optionId);
     if (!option) return;
@@ -1133,6 +1196,17 @@ export default function PitchDeckEditorPage() {
     });
     setImageActionNotice(`Removed image option: ${option.label}`);
     setImageActionError(null);
+  };
+
+  const requestRemoveSlotImageOption = (optionId: string) => {
+    setOpenImageMenuId(null);
+    setConfirmRemoveImageId(optionId);
+  };
+
+  const confirmRemoveSlotImageOption = () => {
+    if (!confirmRemoveImageId) return;
+    removeSlotImageOption(confirmRemoveImageId);
+    setConfirmRemoveImageId(null);
   };
 
   const applyExistingMediaToSlot = () => {
@@ -1196,6 +1270,11 @@ export default function PitchDeckEditorPage() {
         label: `Prompt result (${promptGenerationModel?.label || promptGenerationModelId})`,
         s3Key: result.s3Key,
       });
+      await archiveSlotImageToPitchDeckLibrary({
+        s3Key: result.s3Key,
+        source: 'prompt',
+        label: `Prompt result (${promptGenerationModel?.label || promptGenerationModelId})`,
+      });
       addImageAttempt(
         'success',
         'prompt',
@@ -1251,6 +1330,11 @@ export default function PitchDeckEditorPage() {
         sourceType: 'ai_generated',
         label: `Reference result (${primaryReference.label})`,
         s3Key: result.s3Key,
+      });
+      await archiveSlotImageToPitchDeckLibrary({
+        s3Key: result.s3Key,
+        source: 'reference',
+        label: `Reference result (${primaryReference.label})`,
       });
       addImageAttempt(
         'success',
@@ -1322,6 +1406,11 @@ export default function PitchDeckEditorPage() {
         sourceType: 'user_custom',
         label: `Upload - ${file.name}`,
         s3Key: uploaded.s3Key || undefined,
+      });
+      await archiveSlotImageToPitchDeckLibrary({
+        s3Key: uploaded.s3Key || undefined,
+        source: 'upload',
+        label: `Upload - ${file.name}`,
       });
       setImageActionNotice('Uploaded image added to slot gallery.');
     } catch (err: any) {
@@ -1642,17 +1731,44 @@ export default function PitchDeckEditorPage() {
                                     (e.target as HTMLImageElement).style.opacity = '0.2';
                                   }}
                                 />
-                                <button
-                                  type="button"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    removeSlotImageOption(option.id);
-                                  }}
-                                  className="absolute right-1 top-1 z-10 rounded bg-black/70 p-0.5 text-white hover:bg-[#DC143C]"
-                                  title="Remove image from slot"
-                                >
-                                  <X className="h-3.5 w-3.5" />
-                                </button>
+                                <div className="absolute top-1 right-1 z-10">
+                                  <DropdownMenu
+                                    open={openImageMenuId === option.id}
+                                    onOpenChange={(open) => {
+                                      setOpenImageMenuId(open ? option.id : null);
+                                    }}
+                                  >
+                                    <DropdownMenuTrigger asChild>
+                                      <button
+                                        type="button"
+                                        className="min-w-[28px] min-h-[28px] rounded-lg bg-[#DC143C]/90 p-1.5 transition-colors hover:bg-[#DC143C] flex items-center justify-center shadow-lg"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          if (openImageMenuId !== option.id) setOpenImageMenuId(option.id);
+                                        }}
+                                        title="Image actions"
+                                      >
+                                        <MoreVertical className="w-3.5 h-3.5 text-white" />
+                                      </button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent
+                                      align="end"
+                                      className="bg-[#0A0A0A] border border-[#3F3F46] shadow-lg"
+                                      style={{ backgroundColor: '#0A0A0A' }}
+                                    >
+                                      <DropdownMenuItem
+                                        className="text-[#DC143C] hover:bg-[#DC143C]/10 hover:text-[#DC143C] cursor-pointer focus:bg-[#DC143C]/10 focus:text-[#DC143C]"
+                                        onClick={(e) => {
+                                          e.stopPropagation();
+                                          requestRemoveSlotImageOption(option.id);
+                                        }}
+                                      >
+                                        <Trash2 className="w-4 h-4 mr-2" />
+                                        Remove from slide
+                                      </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                  </DropdownMenu>
+                                </div>
                                 <div className="absolute inset-x-0 bottom-0 bg-black/70 px-1 py-0.5 text-[10px] text-left text-white truncate">
                                   {option.label}
                                 </div>
@@ -1730,6 +1846,7 @@ export default function PitchDeckEditorPage() {
                               <option value="character">Characters</option>
                               <option value="location">Locations</option>
                               <option value="prop">Props</option>
+                              <option value="pitch_deck">Pitch Deck Archive</option>
                             </select>
                             <select
                               value={existingEntityFilter}
@@ -1745,7 +1862,9 @@ export default function PitchDeckEditorPage() {
                                   ? 'All characters'
                                   : existingSourceFilter === 'location'
                                     ? 'All locations'
-                                    : 'All props'}
+                                    : existingSourceFilter === 'prop'
+                                      ? 'All props'
+                                      : 'This deck archive'}
                               </option>
                               {existingEntityOptions.map((option) => (
                                 <option key={option.value} value={option.value}>
@@ -1832,6 +1951,16 @@ export default function PitchDeckEditorPage() {
                                   <p className="truncate text-[11px] text-gray-500">
                                     {selectedExistingMedia.sourceType} • {selectedExistingMedia.entityName} • {selectedExistingMedia.groupLabel}
                                   </p>
+                                  {selectedExistingMedia.sourceType === 'pitch_deck' ? (
+                                    <>
+                                      <p className="truncate text-[10px] text-gray-400 font-mono mt-0.5">
+                                        ID: {selectedExistingMedia.mediaFileId || selectedExistingMedia.id}
+                                      </p>
+                                      <p className="truncate text-[10px] text-gray-500 font-mono">
+                                        Deck: {selectedExistingMedia.archiveDeckId || deckId} • Slide: {selectedExistingMedia.archiveSlideId || 'n/a'}
+                                      </p>
+                                    </>
+                                  ) : null}
                                 </div>
                               </div>
                             </div>
@@ -2172,6 +2301,33 @@ export default function PitchDeckEditorPage() {
                 className="rounded bg-[#DC143C] px-3 py-2 text-sm font-medium text-white disabled:opacity-50"
               >
                 Confirm and Generate
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
+
+      {confirmRemoveImageId ? (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 px-4">
+          <div className="w-full max-w-md rounded border border-[#3F3F46] bg-[#101010] p-4">
+            <h3 className="text-base font-semibold text-white">Remove image from slide?</h3>
+            <p className="mt-2 text-sm text-gray-300">
+              This only removes the image from this slide gallery. Archived media remains in the Pitch Deck archive.
+            </p>
+            <div className="mt-4 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                onClick={() => setConfirmRemoveImageId(null)}
+                className="rounded border border-[#3F3F46] px-3 py-2 text-sm text-gray-200 hover:bg-white/5"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={confirmRemoveSlotImageOption}
+                className="rounded bg-[#DC143C] px-3 py-2 text-sm font-medium text-white hover:bg-[#b01030]"
+              >
+                Remove
               </button>
             </div>
           </div>
