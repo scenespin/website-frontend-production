@@ -350,11 +350,17 @@ function ChatModePanelInner({ onInsert, onWorkflowComplete, editorContent, curso
       const isPitchDeckRoute = pathname?.includes('/pitch-decks/');
       const hasPitchDeckContext =
         Boolean(isPitchDeckRoute && pitchDeckContextPacket && Array.isArray(pitchDeckContextPacket.slides));
+      const hasLinkedScreenplayInPitchDeck = Boolean(
+        hasPitchDeckContext &&
+        typeof pitchDeckContextPacket?.screenplayId === 'string' &&
+        pitchDeckContextPacket.screenplayId.trim().length > 0
+      );
       const contextSnapshot = {
         screenplay: Boolean(
           contextData?.content ||
           contextData?.currentScene ||
-          (typeof editorContent === 'string' && editorContent.trim().length > 0)
+          (typeof editorContent === 'string' && editorContent.trim().length > 0) ||
+          hasLinkedScreenplayInPitchDeck
         ),
         pitchDeck: hasPitchDeckContext,
         slideCount: hasPitchDeckContext

@@ -5,6 +5,10 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { deletePitchDeck, listPitchDecksByScreenplay, updatePitchDeck, type PitchDeck } from '@/utils/pitchDeckStorage';
 import { EditorSubNav } from '@/components/editor/EditorSubNav';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
+import {
+  useOptionalPitchDeckAdvisorContext,
+  type PitchDeckStoryAdvisorContextPacket,
+} from '@/contexts/PitchDeckAdvisorContext';
 
 function isFeatureEnabled(): boolean {
   return process.env.NEXT_PUBLIC_ENABLE_PITCH_DECK_V1 === 'true';
@@ -14,6 +18,7 @@ function PitchDeckHubPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { screenplayId: contextScreenplayId } = useScreenplay();
+  const pitchDeckAdvisorContext = useOptionalPitchDeckAdvisorContext();
 
   const [decks, setDecks] = useState<PitchDeck[]>([]);
   const [loadingDecks, setLoadingDecks] = useState(false);
@@ -26,6 +31,51 @@ function PitchDeckHubPageContent() {
     () => searchParams?.get('project') || searchParams?.get('screenplayId') || contextScreenplayId || '',
     [searchParams, contextScreenplayId]
   );
+
+  const pitchDeckWorkspacePacket = useMemo<PitchDeckStoryAdvisorContextPacket | null>(() => {
+    if (!currentScreenplayId) return null;
+    const deckSummaries = [...decks]
+      .sort((a, b) => {
+        const aTime = Date.parse(a.updatedAt || a.createdAt || '');
+        const bTime = Date.parse(b.updatedAt || b.createdAt || '');
+        return bTime - aTime;
+      })
+      .slice(0, 20)
+      .map((deck, index) => ({
+        slideId: deck.deckId,
+        orderIndex: index,
+        slideType: 'deck_summary',
+        title: String(deck.title || 'Untitled').slice(0, 140),
+        text: `Type: ${deck.deckType}. Status: ${deck.status}. Updated: ${deck.updatedAt || deck.createdAt || 'unknown'}.`.slice(
+          0,
+          420
+        ),
+        imageLabels: [],
+      }));
+
+    return {
+      contextType: 'pitch_deck_plus_screenplay',
+      deckId: 'pitch_deck_workspace',
+      screenplayId: currentScreenplayId,
+      deckTitle: 'Pitch Deck Workspace',
+      deckTemplateId: undefined,
+      deckStatus: deckSummaries.length ? 'workspace_loaded' : 'workspace_empty',
+      slideCount: deckSummaries.length,
+      selectedSlide: undefined,
+      slides: deckSummaries,
+      generatedAt: new Date().toISOString(),
+    };
+  }, [currentScreenplayId, decks]);
+
+  useEffect(() => {
+    pitchDeckAdvisorContext?.setPacket(pitchDeckWorkspacePacket);
+  }, [pitchDeckAdvisorContext, pitchDeckWorkspacePacket]);
+
+  useEffect(() => {
+    return () => {
+      pitchDeckAdvisorContext?.setPacket(null);
+    };
+  }, [pitchDeckAdvisorContext]);
 
   useEffect(() => {
     let cancelled = false;
