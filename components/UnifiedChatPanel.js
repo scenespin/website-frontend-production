@@ -855,6 +855,7 @@ function UnifiedChatPanelInner({
             {...commonProps}
             selectedTextContext={selectedTextContext || null}
             sceneContext={sceneContext || null}
+            pitchDeckContextPacket={pitchDeckContextPacket || null}
             onClearContext={onClearContext}
           />
         );
@@ -874,13 +875,19 @@ function UnifiedChatPanelInner({
         );
 
       default:
-        return <ChatModePanel {...commonProps} />;
+        return <ChatModePanel {...commonProps} pitchDeckContextPacket={pitchDeckContextPacket || null} />;
     }
   };
 
   // ============================================================================
   // MESSAGE HANDLING
   // ============================================================================
+  const buildContextAccessPolicyBlock = useCallback((snapshot) => {
+    const screenplayState = snapshot?.screenplay ? 'on' : 'off';
+    const pitchDeckState = snapshot?.pitchDeck ? 'on' : 'off';
+    const slideCount = Number.isFinite(Number(snapshot?.slideCount)) ? Number(snapshot.slideCount) : 0;
+    return `\n\n[CONTEXT ACCESS POLICY - STRICT]\n- You MUST only claim access to screenplay/pitch-deck content that is explicitly marked as available in this snapshot.\n- If context is unavailable, say so clearly and ask the user to provide the missing content.\n- Never imply you opened, browsed, or fetched files outside provided context.\n- Snapshot for this turn: screenplay=${screenplayState}, pitchDeck=${pitchDeckState}, pitchDeckSlideCount=${slideCount}.`;
+  }, []);
   
   /**
    * Handle voice input
@@ -1049,6 +1056,7 @@ function UnifiedChatPanelInner({
         let systemPrompt = '';
         let currentSceneContext = null;
         
+        let contextSnapshot = { screenplay: false, pitchDeck: false, slideCount: 0 };
         // STORY ADVISOR MODE: Use new intelligent context builder
         if (state.activeMode === 'chat') {
           // Base system prompt for Story Advisor
@@ -1159,6 +1167,21 @@ function UnifiedChatPanelInner({
           
           // Build context prompt string
           const contextPromptString = buildContextPromptString(contextData);
+          const isPitchDeckRoute = pathname?.includes('/pitch-decks/');
+          const hasPitchDeckContext =
+            Boolean(isPitchDeckRoute && pitchDeckContextPacket && Array.isArray(pitchDeckContextPacket.slides));
+          contextSnapshot = {
+            screenplay: Boolean(
+              contextData?.content ||
+              contextData?.currentScene ||
+              (typeof editorContent === 'string' && editorContent.trim().length > 0)
+            ),
+            pitchDeck: hasPitchDeckContext,
+            slideCount: hasPitchDeckContext
+              ? Number(pitchDeckContextPacket?.slideCount || pitchDeckContextPacket?.slides?.length || 0)
+              : 0,
+          };
+          const contextAccessPolicyBlock = buildContextAccessPolicyBlock(contextSnapshot);
           
           console.log('[UnifiedChatPanel] ✅ Context prompt string built:', {
             length: contextPromptString.length,
@@ -1166,7 +1189,7 @@ function UnifiedChatPanelInner({
           });
           
           // Build final system prompt
-          systemPrompt = systemPromptBase + contextPromptString;
+          systemPrompt = systemPromptBase + contextPromptString + contextAccessPolicyBlock;
           
           console.log('[UnifiedChatPanel] ✅ Final system prompt built:', {
             baseLength: systemPromptBase.length,
@@ -1253,6 +1276,12 @@ function UnifiedChatPanelInner({
                 pitchDeckContext: pitchDeckContextPacket,
               }
             : {};
+        const chatContextSnapshotPayload =
+          state.activeMode === 'chat'
+            ? {
+                contextSnapshot,
+              }
+            : {};
         
         // 🔥 DIAGNOSTIC: Log what we're sending to the API
         console.log('[UnifiedChatPanel] 📤 Sending to API:', {
@@ -1264,6 +1293,7 @@ function UnifiedChatPanelInner({
           sceneContext: apiSceneContext,
           contextType: pitchDeckChatContext.contextType || 'screenplay_only',
           hasPitchDeckContext: Boolean(pitchDeckChatContext.pitchDeckContext),
+          contextSnapshot,
           conversationHistoryLength: conversationHistory.length,
           modelId: state.selectedModel || 'claude-sonnet-4-6'
         });
@@ -1276,7 +1306,8 @@ function UnifiedChatPanelInner({
             desiredModelId: state.selectedModel || 'claude-sonnet-4-6',
             conversationHistory,
             sceneContext: apiSceneContext,
-            ...pitchDeckChatContext
+            ...pitchDeckChatContext,
+            ...chatContextSnapshotPayload
             // attachments: attachedFiles.length > 0 ? attachedFiles : undefined // TODO: Re-enable when backend supports attachments
           },
           // onChunk - update streaming text

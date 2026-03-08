@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useRef, useMemo, useCallback, memo } from 'react';
+import { usePathname } from 'next/navigation';
 import { useChatContext } from '@/contexts/ChatContext';
 import { useChatMode } from '@/hooks/useChatMode';
 import { useDrawer } from '@/contexts/DrawerContext';
@@ -15,9 +16,10 @@ import toast from 'react-hot-toast';
 
 // Story Advisor: No Fountain parsing needed (consultation only, no content generation)
 
-function ChatModePanelInner({ onInsert, onWorkflowComplete, editorContent, cursorPosition }) {
+function ChatModePanelInner({ onInsert, onWorkflowComplete, editorContent, cursorPosition, pitchDeckContextPacket }) {
   console.log('[ChatModePanel] 🔄 RENDER', { hasEditorContent: !!editorContent, cursorPosition });
   const { state, addMessage, setInput, setStreaming, clearMessagesForMode, setSceneContext, setSelectedTextContext } = useChatContext();
+  const pathname = usePathname();
   const { closeDrawer } = useDrawer();
   const {
     activeWorkflow,
@@ -345,6 +347,21 @@ function ChatModePanelInner({ onInsert, onWorkflowComplete, editorContent, curso
         
       // Build context prompt string from context data
       const contextPromptString = buildContextPromptString(contextData);
+      const isPitchDeckRoute = pathname?.includes('/pitch-decks/');
+      const hasPitchDeckContext =
+        Boolean(isPitchDeckRoute && pitchDeckContextPacket && Array.isArray(pitchDeckContextPacket.slides));
+      const contextSnapshot = {
+        screenplay: Boolean(
+          contextData?.content ||
+          contextData?.currentScene ||
+          (typeof editorContent === 'string' && editorContent.trim().length > 0)
+        ),
+        pitchDeck: hasPitchDeckContext,
+        slideCount: hasPitchDeckContext
+          ? Number(pitchDeckContextPacket?.slideCount || pitchDeckContextPacket?.slides?.length || 0)
+          : 0,
+      };
+      const contextAccessPolicyBlock = `\n\n[CONTEXT ACCESS POLICY - STRICT]\n- You MUST only claim access to screenplay/pitch-deck content that is explicitly marked as available in this snapshot.\n- If context is unavailable, say so clearly and ask the user to provide the missing content.\n- Never imply you opened, browsed, or fetched files outside provided context.\n- Snapshot for this turn: screenplay=${contextSnapshot.screenplay ? 'on' : 'off'}, pitchDeck=${contextSnapshot.pitchDeck ? 'on' : 'off'}, pitchDeckSlideCount=${contextSnapshot.slideCount}.`;
       
       console.log('[ChatModePanel] Context prompt string:', {
         contextStringLength: contextPromptString.length,
@@ -352,7 +369,7 @@ function ChatModePanelInner({ onInsert, onWorkflowComplete, editorContent, curso
       });
       
       // Build final system prompt with context
-      const systemPrompt = systemPromptBase + contextPromptString;
+      const systemPrompt = systemPromptBase + contextPromptString + contextAccessPolicyBlock;
       
       // Add user message
       addMessage({
@@ -369,7 +386,8 @@ function ChatModePanelInner({ onInsert, onWorkflowComplete, editorContent, curso
       console.log('[ChatModePanel] Story Advisor API call params:', {
         conversationHistoryLength: conversationHistory.length,
         systemPromptLength: systemPrompt.length,
-        userPromptLength: builtPrompt.length
+        userPromptLength: builtPrompt.length,
+        contextSnapshot,
       });
       
       // Prepare API request for Story Advisor consultation
@@ -383,7 +401,14 @@ function ChatModePanelInner({ onInsert, onWorkflowComplete, editorContent, curso
             act: contextData.currentScene.act,
             characters: contextData.currentScene.characters,
             pageNumber: contextData.currentScene.pageNumber
-          } : null
+          } : null,
+          contextSnapshot,
+          ...(hasPitchDeckContext
+            ? {
+                contextType: 'pitch_deck_plus_screenplay',
+                pitchDeckContext: pitchDeckContextPacket,
+              }
+            : {}),
       };
       
       // Call streaming AI API
@@ -670,7 +695,8 @@ export const ChatModePanel = memo(ChatModePanelInner, (prevProps, nextProps) => 
     prevProps.editorContent === nextProps.editorContent &&
     prevProps.cursorPosition === nextProps.cursorPosition &&
     prevProps.onInsert === nextProps.onInsert &&
-    prevProps.onWorkflowComplete === nextProps.onWorkflowComplete
+    prevProps.onWorkflowComplete === nextProps.onWorkflowComplete &&
+    prevProps.pitchDeckContextPacket === nextProps.pitchDeckContextPacket
   );
 });
 
