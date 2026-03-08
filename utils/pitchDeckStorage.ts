@@ -1,5 +1,5 @@
 export type PitchDeckType = 'screenplay' | 'investor';
-export type PitchDeckTextMode = 'manual_first' | 'auto_from_screenplay' | 'auto_plus_ai_polish';
+export type PitchDeckTextMode = 'manual_first' | 'auto_from_screenplay';
 
 export interface PitchDeckBlock {
   blockId: string;
@@ -101,7 +101,6 @@ export async function generatePitchDeckDraft(input: {
   textMode: PitchDeckTextMode;
   includeBusinessSlides?: boolean;
   titleOverride?: string;
-  desiredModelId?: string;
 }): Promise<{ deckId: string; status: string; slideCount: number; version: number }> {
   const response = await fetch('/api/pitch-decks/generate-draft', {
     method: 'POST',
