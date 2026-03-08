@@ -74,6 +74,9 @@ type ImageAttempt = {
   action: 'existing' | 'prompt' | 'reference' | 'upload';
   message: string;
   at: string;
+  imageUrl?: string;
+  archiveFileId?: string;
+  archiveFolderId?: string;
 };
 
 type PitchDeckPdfExportInput = {
@@ -110,6 +113,8 @@ const PITCH_DECK_REWRITE_ACTIONS: RewriteQuickAction[] = [
 ];
 
 const IMAGE_ACTION_TAB_STORAGE_KEY_PREFIX = 'pitchDeck:imageActionTab:deck:';
+const IMAGE_ATTEMPTS_STORAGE_KEY_PREFIX = 'pitchDeck:imageAttempts:deck:';
+const IMAGE_ATTEMPTS_RETENTION_MS = 12 * 60 * 60 * 1000;
 const IMAGE_ACTION_TABS: ImageActionTab[] = ['library', 'prompt', 'reference', 'upload'];
 
 const ALLOWED_PITCH_DECK_IMAGE_MODELS = new Set([
@@ -486,6 +491,7 @@ export default function PitchDeckEditorPage() {
   const [exportIncludeImages, setExportIncludeImages] = useState(true);
   const [exportWatermarkEnabled, setExportWatermarkEnabled] = useState(true);
   const [exportWatermarkText, setExportWatermarkText] = useState('DRAFT');
+  const [imageAttemptsHydrated, setImageAttemptsHydrated] = useState(false);
 
   const { uploadFile: uploadImageToS3 } = useDirectS3Upload();
   const pitchDeckAdvisorContext = useOptionalPitchDeckAdvisorContext();
@@ -746,6 +752,48 @@ export default function PitchDeckEditorPage() {
     const storageKey = `${IMAGE_ACTION_TAB_STORAGE_KEY_PREFIX}${deckId}`;
     window.sessionStorage.setItem(storageKey, imageActionTab);
   }, [deckId, imageActionTab]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!deckId) return;
+    const storageKey = `${IMAGE_ATTEMPTS_STORAGE_KEY_PREFIX}${deckId}`;
+    const raw = window.sessionStorage.getItem(storageKey);
+    if (!raw) {
+      setImageAttempts([]);
+      setImageAttemptsHydrated(true);
+      return;
+    }
+    try {
+      const parsed = JSON.parse(raw);
+      const now = Date.now();
+      const next = (Array.isArray(parsed) ? parsed : [])
+        .filter((attempt): attempt is ImageAttempt => !!attempt && typeof attempt === 'object')
+        .filter((attempt) => {
+          const atMs = new Date(attempt.at || 0).getTime();
+          return Number.isFinite(atMs) && now - atMs <= IMAGE_ATTEMPTS_RETENTION_MS;
+        })
+        .slice(0, 24);
+      setImageAttempts(next);
+    } catch {
+      setImageAttempts([]);
+    } finally {
+      setImageAttemptsHydrated(true);
+    }
+  }, [deckId]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!deckId || !imageAttemptsHydrated) return;
+    const storageKey = `${IMAGE_ATTEMPTS_STORAGE_KEY_PREFIX}${deckId}`;
+    const now = Date.now();
+    const retained = imageAttempts
+      .filter((attempt) => {
+        const atMs = new Date(attempt.at || 0).getTime();
+        return Number.isFinite(atMs) && now - atMs <= IMAGE_ATTEMPTS_RETENTION_MS;
+      })
+      .slice(0, 24);
+    window.sessionStorage.setItem(storageKey, JSON.stringify(retained));
+  }, [deckId, imageAttempts, imageAttemptsHydrated]);
 
   const normalizeImageUrl = (value: unknown): string => {
     if (typeof value !== 'string') return '';
@@ -1340,7 +1388,8 @@ export default function PitchDeckEditorPage() {
   const addImageAttempt = (
     status: ImageAttempt['status'],
     action: ImageAttempt['action'],
-    message: string
+    message: string,
+    extras?: Pick<ImageAttempt, 'imageUrl' | 'archiveFileId' | 'archiveFolderId'>
   ) => {
     const slideId = selectedSlide?.slideId || 'unknown';
     setImageAttempts((prev) => [
@@ -1351,6 +1400,9 @@ export default function PitchDeckEditorPage() {
         action,
         message,
         at: new Date().toISOString(),
+        imageUrl: extras?.imageUrl,
+        archiveFileId: extras?.archiveFileId,
+        archiveFolderId: extras?.archiveFolderId,
       },
       ...prev.slice(0, 24),
     ]);
@@ -1749,8 +1801,9 @@ export default function PitchDeckEditorPage() {
         label: `Prompt result (${promptGenerationModel?.label || promptGenerationModelId})`,
         s3Key: result.s3Key,
       });
+      let archiveInfo = result.archive || null;
       if (!result.archive && result.s3Key) {
-        await archiveSlotImageToPitchDeckLibrary({
+        archiveInfo = await archiveSlotImageToPitchDeckLibrary({
           s3Key: result.s3Key,
           source: 'prompt',
           label: `Prompt result (${promptGenerationModel?.label || promptGenerationModelId})`,
@@ -1763,7 +1816,12 @@ export default function PitchDeckEditorPage() {
       addImageAttempt(
         'success',
         'prompt',
-        'Generated image from prompt.'
+        'Generated image from prompt.',
+        {
+          imageUrl: result.s3Key ? `/api/media/file?key=${encodeURIComponent(result.s3Key)}` : result.imageUrl,
+          archiveFileId: archiveInfo?.fileId,
+          archiveFolderId: archiveInfo?.folderId,
+        }
       );
       setImageActionNotice('Generated image from prompt.');
     } catch (err: any) {
@@ -1827,8 +1885,9 @@ export default function PitchDeckEditorPage() {
         label: `Reference result (${primaryReference.label})`,
         s3Key: result.s3Key,
       });
+      let archiveInfo = result.archive || null;
       if (!result.archive && result.s3Key) {
-        await archiveSlotImageToPitchDeckLibrary({
+        archiveInfo = await archiveSlotImageToPitchDeckLibrary({
           s3Key: result.s3Key,
           source: 'reference',
           label: `Reference result (${primaryReference.label})`,
@@ -1841,7 +1900,12 @@ export default function PitchDeckEditorPage() {
       addImageAttempt(
         'success',
         'reference',
-        'Generated image from reference.'
+        'Generated image from reference.',
+        {
+          imageUrl: result.s3Key ? `/api/media/file?key=${encodeURIComponent(result.s3Key)}` : result.imageUrl,
+          archiveFileId: archiveInfo?.fileId,
+          archiveFolderId: archiveInfo?.folderId,
+        }
       );
       setImageActionNotice('Generated image from reference.');
     } catch (err: any) {
@@ -2763,7 +2827,33 @@ export default function PitchDeckEditorPage() {
                                     : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200'
                                 }`}
                               >
-                                <span className="truncate pr-2">{attempt.message}</span>
+                                <div className="min-w-0 pr-2">
+                                  <span className="truncate block">{attempt.message}</span>
+                                  {attempt.imageUrl ? (
+                                    <div className="mt-0.5 flex items-center gap-2 text-[10px]">
+                                      <button
+                                        type="button"
+                                        onClick={() => window.open(attempt.imageUrl, '_blank', 'noopener,noreferrer')}
+                                        className="underline text-emerald-200 hover:text-white"
+                                      >
+                                        Open image
+                                      </button>
+                                      <button
+                                        type="button"
+                                        onClick={() => {
+                                          appendSlotImageOption({
+                                            imageUrl: attempt.imageUrl as string,
+                                            sourceType: 'existing_media',
+                                            label: 'Recovered from recent attempt',
+                                          });
+                                        }}
+                                        className="underline text-emerald-200 hover:text-white"
+                                      >
+                                        Add to gallery
+                                      </button>
+                                    </div>
+                                  ) : null}
+                                </div>
                                 <span className="shrink-0 text-[10px] opacity-80">
                                   {new Date(attempt.at).toLocaleTimeString()}
                                 </span>
