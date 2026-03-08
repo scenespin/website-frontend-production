@@ -128,8 +128,29 @@ function getReferenceLimitByModel(modelId: string): number {
 }
 
 type PdfImageLayout = 'text_only' | 'split_right' | 'split_left' | 'full_bleed';
-type PitchDeckAspectRatio = '16:9' | '21:9' | '1:1' | '9:16' | '9:21';
-const PITCH_DECK_ASPECT_RATIOS: PitchDeckAspectRatio[] = ['16:9', '21:9', '1:1', '9:16', '9:21'];
+type PitchDeckAspectRatio = '1:1' | '2:3' | '3:2' | '3:4' | '4:3' | '4:5' | '5:4' | '9:16' | '16:9' | '21:9' | '9:21';
+const PITCH_DECK_ASPECT_RATIOS: PitchDeckAspectRatio[] = [
+  '1:1',
+  '2:3',
+  '3:2',
+  '3:4',
+  '4:3',
+  '4:5',
+  '5:4',
+  '9:16',
+  '16:9',
+  '21:9',
+  '9:21',
+];
+const MODEL_ASPECT_RATIO_SUPPORT: Partial<Record<string, PitchDeckAspectRatio[]>> = {
+  // Keep model-aware mapping explicit for safe future divergence.
+  'flux2-pro-2k': PITCH_DECK_ASPECT_RATIOS,
+  'flux2-pro-4k': PITCH_DECK_ASPECT_RATIOS,
+  'flux2-max-2k': PITCH_DECK_ASPECT_RATIOS,
+  'flux2-max-4k-16:9': PITCH_DECK_ASPECT_RATIOS,
+  'nano-banana-pro': PITCH_DECK_ASPECT_RATIOS,
+  'nano-banana-pro-2k': PITCH_DECK_ASPECT_RATIOS,
+};
 
 const PDF_LAYOUT_REGISTRY: Record<string, Partial<Record<string, PdfImageLayout>>> = {
   'cinematic-dark-v1': {
@@ -176,6 +197,10 @@ function getSuggestedAspectRatiosForLayout(layout: PdfImageLayout): PitchDeckAsp
   if (layout === 'full_bleed') return ['16:9', '21:9', '1:1'];
   if (layout === 'split_left' || layout === 'split_right') return ['1:1', '9:16', '9:21'];
   return ['16:9', '1:1', '9:16'];
+}
+
+function getAspectRatiosForModel(modelId: string): PitchDeckAspectRatio[] {
+  return MODEL_ASPECT_RATIO_SUPPORT[modelId] || PITCH_DECK_ASPECT_RATIOS;
 }
 
 function sanitizeFileName(name: string): string {
@@ -498,6 +523,22 @@ export default function PitchDeckEditorPage() {
   const suggestedAspectRatios = useMemo(
     () => getSuggestedAspectRatiosForLayout(selectedSlideLayout),
     [selectedSlideLayout]
+  );
+  const promptSupportedAspectRatios = useMemo(
+    () => getAspectRatiosForModel(promptGenerationModelId),
+    [promptGenerationModelId]
+  );
+  const referenceSupportedAspectRatios = useMemo(
+    () => getAspectRatiosForModel(referenceGenerationModelId),
+    [referenceGenerationModelId]
+  );
+  const suggestedPromptAspectRatios = useMemo(
+    () => suggestedAspectRatios.filter((ratio) => promptSupportedAspectRatios.includes(ratio)).slice(0, 3),
+    [suggestedAspectRatios, promptSupportedAspectRatios]
+  );
+  const suggestedReferenceAspectRatios = useMemo(
+    () => suggestedAspectRatios.filter((ratio) => referenceSupportedAspectRatios.includes(ratio)).slice(0, 3),
+    [suggestedAspectRatios, referenceSupportedAspectRatios]
   );
   const pitchDeckStoryAdvisorPacket = useMemo<PitchDeckStoryAdvisorContextPacket | null>(() => {
     if (!deckId) return null;
@@ -1020,6 +1061,18 @@ export default function PitchDeckEditorPage() {
     setPromptAspectRatio(suggestedPrimary);
     setReferenceAspectRatio(suggestedPrimary);
   }, [selectedSlideId, suggestedAspectRatios]);
+
+  useEffect(() => {
+    if (!promptSupportedAspectRatios.includes(promptAspectRatio)) {
+      setPromptAspectRatio(promptSupportedAspectRatios[0] || '16:9');
+    }
+  }, [promptAspectRatio, promptSupportedAspectRatios]);
+
+  useEffect(() => {
+    if (!referenceSupportedAspectRatios.includes(referenceAspectRatio)) {
+      setReferenceAspectRatio(referenceSupportedAspectRatios[0] || '16:9');
+    }
+  }, [referenceAspectRatio, referenceSupportedAspectRatios]);
 
   useEffect(() => {
     setRewriteError(null);
@@ -2101,7 +2154,7 @@ export default function PitchDeckEditorPage() {
                               onChange={(e) => setPromptAspectRatio(e.target.value as PitchDeckAspectRatio)}
                               className="rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white md:w-36"
                             >
-                              {PITCH_DECK_ASPECT_RATIOS.map((ratio) => (
+                              {promptSupportedAspectRatios.map((ratio) => (
                                 <option key={ratio} value={ratio}>
                                   {ratio}
                                 </option>
@@ -2118,7 +2171,7 @@ export default function PitchDeckEditorPage() {
                           </div>
                           <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px]">
                             <span className="text-gray-500">Suggested for this slide:</span>
-                            {suggestedAspectRatios.map((ratio) => (
+                            {suggestedPromptAspectRatios.map((ratio) => (
                               <button
                                 key={`prompt-suggested-${ratio}`}
                                 type="button"
@@ -2225,7 +2278,7 @@ export default function PitchDeckEditorPage() {
                               onChange={(e) => setReferenceAspectRatio(e.target.value as PitchDeckAspectRatio)}
                               className="rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white md:w-36"
                             >
-                              {PITCH_DECK_ASPECT_RATIOS.map((ratio) => (
+                              {referenceSupportedAspectRatios.map((ratio) => (
                                 <option key={ratio} value={ratio}>
                                   {ratio}
                                 </option>
@@ -2248,7 +2301,7 @@ export default function PitchDeckEditorPage() {
                           </div>
                           <div className="mt-2 flex flex-wrap items-center gap-1.5 text-[11px]">
                             <span className="text-gray-500">Suggested for this slide:</span>
-                            {suggestedAspectRatios.map((ratio) => (
+                            {suggestedReferenceAspectRatios.map((ratio) => (
                               <button
                                 key={`reference-suggested-${ratio}`}
                                 type="button"
