@@ -143,7 +143,7 @@ export function MediaLibraryBrowser({
     false, // For archive picker, always scope to selected/restricted folder context
     undefined,
     undefined,
-    true // direct children only for predictable folder browsing behavior
+    !isRestrictedArchiveMode // In restricted mode, include descendants (slide/deck subfolders)
   );
 
   // Filter to images only

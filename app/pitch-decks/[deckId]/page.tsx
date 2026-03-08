@@ -1617,12 +1617,17 @@ export default function PitchDeckEditorPage() {
           : null;
 
       const resolvedRestrictFolderId =
-        deckFolder?.folderId ||
         pitchDeckRoot?.folderId ||
         deckArchiveRootFolderId ||
         null;
 
-      let resolvedInitialFolderId = initialArchiveFolderId || resolvedRestrictFolderId;
+      // Open at PitchDecks root so users can see all pitch deck archive descendants.
+      // Keep deck folder as fallback only when no root exists.
+      let resolvedInitialFolderId =
+        pitchDeckRoot?.folderId ||
+        deckFolder?.folderId ||
+        initialArchiveFolderId ||
+        resolvedRestrictFolderId;
       if (resolvedRestrictFolderId && resolvedInitialFolderId) {
         const restrictNode = findFolderById(tree, resolvedRestrictFolderId);
         if (restrictNode && !isFolderInsideSubtree(restrictNode, resolvedInitialFolderId)) {
@@ -1649,6 +1654,15 @@ export default function PitchDeckEditorPage() {
     initialArchiveFolderId,
     isFolderInsideSubtree,
   ]);
+
+  useEffect(() => {
+    if (imageActionTab !== 'library') return;
+    if (existingSourceFilter !== 'pitch_deck') {
+      setExistingSourceFilter('pitch_deck');
+      setExistingEntityFilter('all');
+      setExistingVariantFilter('all');
+    }
+  }, [existingSourceFilter, imageActionTab]);
 
   const addFromArchiveBrowser = (files: MediaFile[]) => {
     if (!files || files.length === 0) {
@@ -2352,48 +2366,6 @@ export default function PitchDeckEditorPage() {
                               )}
                             </div>
                           ) : null}
-                          {!(showArchiveBrowser && existingSourceFilter === 'pitch_deck') ? (
-                            <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
-                            <select
-                              value={existingSourceFilter}
-                              onChange={(e) => {
-                                setExistingSourceFilter(e.target.value as ExistingMediaSourceFilter);
-                                setExistingEntityFilter('all');
-                                setExistingVariantFilter('all');
-                              }}
-                              className="rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white"
-                            >
-                              <option value="character">Characters</option>
-                              <option value="location">Locations</option>
-                              <option value="prop">Props</option>
-                              <option value="pitch_deck">Pitch Deck Archive</option>
-                            </select>
-                            <select
-                              value={existingEntityFilter}
-                              onChange={(e) => {
-                                setExistingEntityFilter(e.target.value);
-                                setExistingVariantFilter('all');
-                              }}
-                              className="rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white"
-                              disabled={existingEntityOptions.length === 0}
-                            >
-                              <option value="all">
-                                {existingSourceFilter === 'character'
-                                  ? 'All characters'
-                                  : existingSourceFilter === 'location'
-                                    ? 'All locations'
-                                    : existingSourceFilter === 'prop'
-                                      ? 'All props'
-                                      : 'This deck archive'}
-                              </option>
-                              {existingEntityOptions.map((option) => (
-                                <option key={option.value} value={option.value}>
-                                  {option.label}
-                                </option>
-                              ))}
-                            </select>
-                            </div>
-                          ) : null}
                           <div className="mt-2 flex items-center justify-end">
                             <button
                               type="button"
@@ -2409,7 +2381,7 @@ export default function PitchDeckEditorPage() {
                             >
                               {showArchiveBrowser ? 'Close browser' : 'Browse archive folder'}
                             </button>
-                            {!(showArchiveBrowser && existingSourceFilter === 'pitch_deck') ? (
+                            {!showArchiveBrowser ? (
                               <button
                                 type="button"
                                 onClick={applyExistingMediaToSlot}
@@ -2420,7 +2392,7 @@ export default function PitchDeckEditorPage() {
                               </button>
                             ) : null}
                           </div>
-                          {!(showArchiveBrowser && existingSourceFilter === 'pitch_deck') ? (
+                          {!showArchiveBrowser ? (
                             <div className="mt-2 rounded border border-[#2f2f2f] bg-[#0f0f0f] p-2">
                               {filteredExistingMedia.length === 0 ? (
                                 <p className="text-xs text-gray-500">
@@ -2477,7 +2449,7 @@ export default function PitchDeckEditorPage() {
                               )}
                             </div>
                           ) : null}
-                          {selectedExistingMedia && !(showArchiveBrowser && existingSourceFilter === 'pitch_deck') ? (
+                          {selectedExistingMedia && !showArchiveBrowser ? (
                             <div className="mt-2 rounded border border-[#2f2f2f] bg-[#0f0f0f] p-2">
                               <div className="grid grid-cols-[96px_1fr] gap-2 items-center">
                                 <img
