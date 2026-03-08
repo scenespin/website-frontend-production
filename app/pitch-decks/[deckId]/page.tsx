@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { jsPDF } from 'jspdf';
 import { Briefcase, Film, Megaphone, MoreVertical, Trash2 } from 'lucide-react';
@@ -104,6 +104,9 @@ const PITCH_DECK_REWRITE_ACTIONS: RewriteQuickAction[] = [
     styleClass: 'bg-[rgba(0,217,255,0.12)] border-[rgba(0,217,255,0.40)] hover:bg-[rgba(0,217,255,0.20)] text-white',
   },
 ];
+
+const IMAGE_ACTION_TAB_STORAGE_KEY = 'pitchDeck:imageActionTab';
+const IMAGE_ACTION_TABS: ImageActionTab[] = ['library', 'prompt', 'reference', 'upload'];
 
 const ALLOWED_PITCH_DECK_IMAGE_MODELS = new Set([
   'flux2-pro-2k',
@@ -444,7 +447,7 @@ export default function PitchDeckEditorPage() {
   const [referenceGenerationModelId, setReferenceGenerationModelId] = useState('nano-banana-pro-2k');
   const [promptAspectRatio, setPromptAspectRatio] = useState<PitchDeckAspectRatio>('16:9');
   const [referenceAspectRatio, setReferenceAspectRatio] = useState<PitchDeckAspectRatio>('16:9');
-  const [imageActionTab, setImageActionTab] = useState<ImageActionTab>('library');
+  const [imageActionTab, setImageActionTab] = useState<ImageActionTab>('prompt');
   const [generatingFromPrompt, setGeneratingFromPrompt] = useState(false);
   const [generatingFromReference, setGeneratingFromReference] = useState(false);
   const [imageActionError, setImageActionError] = useState<string | null>(null);
@@ -469,6 +472,7 @@ export default function PitchDeckEditorPage() {
 
   const { uploadFile: uploadImageToS3 } = useDirectS3Upload();
   const pitchDeckAdvisorContext = useOptionalPitchDeckAdvisorContext();
+  const existingMediaLoadedScopeRef = useRef<string | null>(null);
 
   const featureEnabled = isFeatureEnabled();
   const selectedSlide = useMemo(
@@ -667,6 +671,19 @@ export default function PitchDeckEditorPage() {
     }
   }, [deckStatus, exportWatermarkText]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const savedTab = window.sessionStorage.getItem(IMAGE_ACTION_TAB_STORAGE_KEY);
+    if (savedTab && IMAGE_ACTION_TABS.includes(savedTab as ImageActionTab)) {
+      setImageActionTab(savedTab as ImageActionTab);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.sessionStorage.setItem(IMAGE_ACTION_TAB_STORAGE_KEY, imageActionTab);
+  }, [imageActionTab]);
+
   const normalizeImageUrl = (value: unknown): string => {
     if (typeof value !== 'string') return '';
     const trimmed = value.trim();
@@ -809,7 +826,8 @@ export default function PitchDeckEditorPage() {
     if (!deckScreenplayId || !featureEnabled) return;
 
     let cancelled = false;
-    const loadExistingMedia = async () => {
+    const mediaScopeKey = `${deckId || ''}:${deckScreenplayId}`;
+    const loadExistingMedia = async (): Promise<boolean> => {
       setExistingMediaLoading(true);
       setExistingMediaError(null);
       try {
@@ -967,11 +985,13 @@ export default function PitchDeckEditorPage() {
           setSelectedExistingMediaId((prev) => prev || collected[0]?.id || '');
           setReferenceMediaId((prev) => prev || collected[0]?.id || '');
         }
+        return true;
       } catch (err: any) {
         if (!cancelled) {
           setExistingMedia([]);
           setExistingMediaError(err?.message || 'Failed to load screenplay media');
         }
+        return false;
       } finally {
         if (!cancelled) setExistingMediaLoading(false);
       }
@@ -1010,13 +1030,20 @@ export default function PitchDeckEditorPage() {
       }
     };
 
-    void loadExistingMedia();
+    if (imageActionTab === 'library' && existingMediaLoadedScopeRef.current !== mediaScopeKey) {
+      void (async () => {
+        const loaded = await loadExistingMedia();
+        if (!cancelled && loaded) {
+          existingMediaLoadedScopeRef.current = mediaScopeKey;
+        }
+      })();
+    }
     void loadImageModels();
 
     return () => {
       cancelled = true;
     };
-  }, [deckScreenplayId, featureEnabled, deckId]);
+  }, [deckScreenplayId, featureEnabled, deckId, imageActionTab]);
 
   useEffect(() => {
     if (existingEntityFilter === 'all') return;
