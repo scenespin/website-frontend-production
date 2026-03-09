@@ -87,6 +87,9 @@ type PitchDeckPdfExportInput = {
   includeImages: boolean;
   watermarkEnabled: boolean;
   watermarkText: string;
+  heroPanelStyle: 'rounded' | 'square';
+  heroPanelOpacity: 'soft' | 'medium' | 'strong';
+  heroPanelPosition: 'bottom' | 'lower_middle';
 };
 
 const PITCH_DECK_REWRITE_ACTIONS: RewriteQuickAction[] = [
@@ -545,11 +548,16 @@ async function generatePitchDeckPdfClient(input: PitchDeckPdfExportInput): Promi
 
             // Draw text panel over image for readable body copy
             const panelX = margin;
-            const panelY = pageHeight - 200;
+            const panelY = input.heroPanelPosition === 'lower_middle' ? pageHeight - 280 : pageHeight - 200;
             const panelW = pageWidth - margin * 2;
             const panelH = 150;
-            doc.setFillColor(10, 10, 12);
-            doc.roundedRect(panelX, panelY, panelW, panelH, 10, 10, 'F');
+            const panelTone = input.heroPanelOpacity === 'soft' ? 28 : input.heroPanelOpacity === 'strong' ? 6 : 14;
+            doc.setFillColor(panelTone, panelTone, panelTone + 2);
+            if (input.heroPanelStyle === 'square') {
+              doc.rect(panelX, panelY, panelW, panelH, 'F');
+            } else {
+              doc.roundedRect(panelX, panelY, panelW, panelH, 10, 10, 'F');
+            }
             doc.setFont('helvetica', 'normal');
             const heroFontSize = 15;
             const heroLineHeight = Math.round(heroFontSize * 1.35);
@@ -714,6 +722,9 @@ export default function PitchDeckEditorPage() {
   const [exportIncludeImages, setExportIncludeImages] = useState(true);
   const [exportWatermarkEnabled, setExportWatermarkEnabled] = useState(true);
   const [exportWatermarkText, setExportWatermarkText] = useState('DRAFT');
+  const [exportHeroPanelStyle, setExportHeroPanelStyle] = useState<'rounded' | 'square'>('rounded');
+  const [exportHeroPanelOpacity, setExportHeroPanelOpacity] = useState<'soft' | 'medium' | 'strong'>('medium');
+  const [exportHeroPanelPosition, setExportHeroPanelPosition] = useState<'bottom' | 'lower_middle'>('bottom');
   const [imageAttemptsHydrated, setImageAttemptsHydrated] = useState(false);
 
   const { uploadFile: uploadImageToS3 } = useDirectS3Upload();
@@ -2374,6 +2385,9 @@ export default function PitchDeckEditorPage() {
         includeImages: exportIncludeImages,
         watermarkEnabled: exportWatermarkEnabled,
         watermarkText: exportWatermarkText.trim() || 'DRAFT',
+        heroPanelStyle: exportHeroPanelStyle,
+        heroPanelOpacity: exportHeroPanelOpacity,
+        heroPanelPosition: exportHeroPanelPosition,
       });
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement('a');
@@ -2625,7 +2639,7 @@ export default function PitchDeckEditorPage() {
                 {hasSelectedImageSlot ? (
                   <div className="mt-4 rounded border border-[#3F3F46] bg-[#121212] p-3">
                     <div className="flex items-center justify-between gap-2">
-                      <p className="text-xs uppercase tracking-wide text-gray-400">Feature Image</p>
+                      <p className="text-xs uppercase tracking-wide text-gray-400">Slide Layout</p>
                       <div className="flex items-center gap-2">
                         <select
                           value={selectedSlideLayoutOverride || 'auto'}
@@ -2636,7 +2650,7 @@ export default function PitchDeckEditorPage() {
                                 : (event.target.value as PdfImageLayout)
                             )
                           }
-                          className="rounded border border-[#2f2f2f] bg-[#0f0f0f] px-2 py-1 text-[11px] text-gray-200"
+                          className="h-10 min-w-[260px] rounded border border-[#2f2f2f] bg-[#0f0f0f] px-3 text-sm text-gray-200"
                         >
                           <option value="auto">Auto (Template)</option>
                           {PDF_LAYOUT_SELECTOR_OPTIONS.map((option) => (
@@ -2645,7 +2659,7 @@ export default function PitchDeckEditorPage() {
                             </option>
                           ))}
                         </select>
-                        <span className="rounded border border-[#2f2f2f] bg-[#0f0f0f] px-2 py-0.5 text-[10px] text-gray-300">
+                        <span className="inline-flex h-10 items-center rounded border border-[#2f2f2f] bg-[#0f0f0f] px-3 text-sm text-gray-300">
                           Export layout: {getLayoutPreviewLabel(deckTemplateId, selectedSlide.slideType, selectedSlideLayoutOverride)}
                         </span>
                       </div>
@@ -3475,6 +3489,48 @@ export default function PitchDeckEditorPage() {
                 placeholder="Watermark text (e.g., DRAFT, CONFIDENTIAL)"
                 className="w-full rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white disabled:opacity-50"
               />
+              <div className="rounded border border-[#2a2a2a] bg-[#0d0d0d] p-3">
+                <p className="text-xs uppercase tracking-wide text-gray-400">Hero Text Panel</p>
+                <p className="mt-1 text-[11px] text-gray-500">
+                  Applies to full-bleed hero layouts only.
+                </p>
+                <div className="mt-3 grid grid-cols-1 gap-2">
+                  <label className="text-[11px] text-gray-400">
+                    Style
+                    <select
+                      value={exportHeroPanelStyle}
+                      onChange={(e) => setExportHeroPanelStyle(e.target.value as 'rounded' | 'square')}
+                      className="mt-1 h-9 w-full rounded border border-[#3F3F46] bg-[#141414] px-2 text-sm text-white"
+                    >
+                      <option value="rounded">Rounded</option>
+                      <option value="square">Square</option>
+                    </select>
+                  </label>
+                  <label className="text-[11px] text-gray-400">
+                    Opacity
+                    <select
+                      value={exportHeroPanelOpacity}
+                      onChange={(e) => setExportHeroPanelOpacity(e.target.value as 'soft' | 'medium' | 'strong')}
+                      className="mt-1 h-9 w-full rounded border border-[#3F3F46] bg-[#141414] px-2 text-sm text-white"
+                    >
+                      <option value="soft">Soft</option>
+                      <option value="medium">Medium</option>
+                      <option value="strong">Strong</option>
+                    </select>
+                  </label>
+                  <label className="text-[11px] text-gray-400">
+                    Position
+                    <select
+                      value={exportHeroPanelPosition}
+                      onChange={(e) => setExportHeroPanelPosition(e.target.value as 'bottom' | 'lower_middle')}
+                      className="mt-1 h-9 w-full rounded border border-[#3F3F46] bg-[#141414] px-2 text-sm text-white"
+                    >
+                      <option value="bottom">Bottom</option>
+                      <option value="lower_middle">Lower-middle</option>
+                    </select>
+                  </label>
+                </div>
+              </div>
             </div>
             <div className="mt-4 flex items-center justify-end gap-2">
               <button
