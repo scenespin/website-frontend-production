@@ -351,19 +351,20 @@ async function generatePitchDeckPdfClient(input: PitchDeckPdfExportInput): Promi
     const hasImage = Boolean(imageUrl);
     const layout = getPdfLayout(input.templateId, slide.slideType, hasImage);
     const textStartY = margin + 74;
-    const textMaxY = pageHeight - margin;
+    const textMaxY = pageHeight - margin - 8;
     const textWidth = layout === 'split_right' || layout === 'split_left' ? textWidthWithSplitImage : textWidthNoImage;
     const textStartX = layout === 'split_left' ? margin + splitImageWidth + splitGap : margin;
-    const wrapped = doc.splitTextToSize(bodyText, textWidth);
-
+    const bodyFontSize = 17;
+    const bodyLineHeight = Math.round(bodyFontSize * 1.4);
     doc.setFont('helvetica', 'normal');
-    doc.setFontSize(17);
+    doc.setFontSize(bodyFontSize);
     doc.setTextColor(232, 232, 238);
+    const wrapped = doc.splitTextToSize(bodyText, textWidth);
     let cursorY = textStartY;
     for (const line of wrapped) {
       if (cursorY > textMaxY) break;
       doc.text(line, textStartX, cursorY);
-      cursorY += 24;
+      cursorY += bodyLineHeight;
     }
 
     if (hasImage) {
@@ -393,15 +394,17 @@ async function generatePitchDeckPdfClient(input: PitchDeckPdfExportInput): Promi
             const panelH = 150;
             doc.setFillColor(10, 10, 12);
             doc.roundedRect(panelX, panelY, panelW, panelH, 10, 10, 'F');
-            const heroTextLines = doc.splitTextToSize(bodyText, panelW - 30);
             doc.setFont('helvetica', 'normal');
-            doc.setFontSize(15);
+            const heroFontSize = 15;
+            const heroLineHeight = Math.round(heroFontSize * 1.35);
+            doc.setFontSize(heroFontSize);
             doc.setTextColor(232, 232, 238);
+            const heroTextLines = doc.splitTextToSize(bodyText, panelW - 30);
             let heroY = panelY + 30;
             for (const line of heroTextLines) {
               if (heroY > panelY + panelH - 16) break;
               doc.text(line, panelX + 15, heroY);
-              heroY += 20;
+              heroY += heroLineHeight;
             }
           } else {
             const imageX = layout === 'split_left' ? margin : pageWidth - margin - splitImageWidth;
