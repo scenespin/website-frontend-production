@@ -157,6 +157,9 @@ export default function QuickPurchaseModal({ isOpen, onClose, onSuccess, current
 
           {/* Footer */}
           <div className="mt-6 pt-6 border-t border-[#3F3F46]">
+            <p className="text-xs text-gray-400 text-center mb-2">
+              By subscribing, you authorize Garden State Concentrate to charge you according to the terms until you cancel.
+            </p>
             <p className="text-xs text-gray-500 text-center mb-3">
               Your plan can be changed anytime in account settings.
             </p>
