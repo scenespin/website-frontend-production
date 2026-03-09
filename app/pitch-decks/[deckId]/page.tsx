@@ -291,6 +291,21 @@ function getSuggestedAspectRatiosForLayout(layout: PdfImageLayout): PitchDeckAsp
   return ['16:9', '1:1', '9:16'];
 }
 
+function getExportImageLimitForLayout(layout: PdfImageLayout): number {
+  if (layout === 'text_only') return 0;
+  if (layout === 'split_left_vcols3' || layout === 'split_right_vcols3') return 3;
+  if (layout === 'full_bleed_vcols4' || layout === 'split_left_grid4' || layout === 'split_right_grid4') return 4;
+  if (
+    layout === 'split_left_vcols2' ||
+    layout === 'split_right_vcols2' ||
+    layout === 'split_left_vstack2' ||
+    layout === 'split_right_vstack2'
+  ) {
+    return 2;
+  }
+  return 1;
+}
+
 function getAspectRatiosForModel(modelId: string): PitchDeckAspectRatio[] {
   return MODEL_ASPECT_RATIO_SUPPORT[modelId] || PITCH_DECK_ASPECT_RATIOS;
 }
@@ -906,6 +921,30 @@ export default function PitchDeckEditorPage() {
     if (typeof activeId === 'string' && activeId.trim()) return activeId;
     return selectedSlotImageOptions[0]?.id || '';
   }, [selectedImageContent, selectedSlotImageOptions]);
+  const orderedSlotImageOptionsForExport = useMemo(() => {
+    const active = activeSlotImageId
+      ? selectedSlotImageOptions.find((option) => option.id === activeSlotImageId) || null
+      : null;
+    const ordered = [...(active ? [active] : []), ...selectedSlotImageOptions];
+    const deduped: SlotImageOption[] = [];
+    const seen = new Set<string>();
+    ordered.forEach((option) => {
+      const key = typeof option.imageUrl === 'string' ? option.imageUrl : option.id;
+      if (seen.has(key)) return;
+      seen.add(key);
+      deduped.push(option);
+    });
+    return deduped;
+  }, [activeSlotImageId, selectedSlotImageOptions]);
+  const exportImageLimitForSelectedLayout = useMemo(
+    () => getExportImageLimitForLayout(selectedSlideLayout),
+    [selectedSlideLayout]
+  );
+  const exportImagesUsedCount = useMemo(
+    () => Math.min(orderedSlotImageOptionsForExport.length, exportImageLimitForSelectedLayout),
+    [orderedSlotImageOptionsForExport, exportImageLimitForSelectedLayout]
+  );
+  const exportHasIgnoredImages = orderedSlotImageOptionsForExport.length > exportImageLimitForSelectedLayout;
   const sessionSelectedSlideAttempts = useMemo(() => {
     if (!selectedSlide?.slideId) return [] as ImageAttempt[];
     return imageAttempts.filter(
@@ -2667,6 +2706,18 @@ export default function PitchDeckEditorPage() {
                     <p className="mt-2 text-[11px] text-gray-500">
                       Tip: Portrait-ish images (9:16, 9:21, 2:3) crop best in multi-column layouts.
                     </p>
+                    <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
+                      <span className="rounded border border-[#2f2f2f] bg-[#0f0f0f] px-2 py-0.5 text-gray-300">
+                        Used in export: {exportImagesUsedCount}
+                        {exportImageLimitForSelectedLayout > 0 ? ` / ${exportImageLimitForSelectedLayout}` : ''}
+                      </span>
+                      {exportHasIgnoredImages ? (
+                        <span className="rounded border border-amber-500/40 bg-amber-500/10 px-2 py-0.5 text-amber-200">
+                          This layout uses up to {exportImageLimitForSelectedLayout} image
+                          {exportImageLimitForSelectedLayout === 1 ? '' : 's'}; extras are ignored.
+                        </span>
+                      ) : null}
+                    </div>
 
                     <div className="mt-3 rounded border border-[#2a2a2a] bg-[#101010] p-3">
                       <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">
