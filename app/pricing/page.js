@@ -143,7 +143,7 @@ export default function PricingPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 px-4">
               <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg p-6 md:p-8">
                 <h3 className="text-xl md:text-2xl font-bold mb-2">Pro</h3>
-                <div className="text-3xl md:text-4xl font-extrabold mb-2">$29<span className="text-base md:text-lg text-gray-400">/month</span></div>
+                <div className="text-3xl md:text-4xl font-extrabold mb-2">$20<span className="text-base md:text-lg text-gray-400">/month</span></div>
                 <div className="bg-[#DC143C]/10 p-3 rounded-lg mb-4">
                   <p className="text-sm font-semibold">3,000 credits/month</p>
                 </div>
@@ -187,7 +187,7 @@ export default function PricingPage() {
                   <span className="px-3 py-1 bg-[#DC143C] text-white text-xs font-semibold rounded">MOST POPULAR</span>
                 </div>
                 <h3 className="text-xl md:text-2xl font-bold mb-2">Ultra</h3>
-                <div className="text-3xl md:text-4xl font-extrabold mb-2">$99<span className="text-base md:text-lg text-gray-400">/month</span></div>
+                <div className="text-3xl md:text-4xl font-extrabold mb-2">$60<span className="text-base md:text-lg text-gray-400">/month</span></div>
                 <div className="bg-[#DC143C]/10 p-3 rounded-lg mb-4">
                   <p className="text-sm font-semibold">12,000 credits/month</p>
                 </div>
@@ -228,7 +228,7 @@ export default function PricingPage() {
 
               <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg p-6 md:p-8">
                 <h3 className="text-xl md:text-2xl font-bold mb-2">Studio</h3>
-                <div className="text-3xl md:text-4xl font-extrabold mb-2">$399<span className="text-base md:text-lg text-gray-400">/month</span></div>
+                <div className="text-3xl md:text-4xl font-extrabold mb-2">$200<span className="text-base md:text-lg text-gray-400">/month</span></div>
                 <div className="bg-[#DC143C]/10 p-3 rounded-lg mb-4">
                   <p className="text-sm font-semibold">50,000 credits/month</p>
                 </div>

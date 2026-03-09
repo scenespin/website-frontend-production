@@ -14,7 +14,7 @@ const SUBSCRIPTION_PLANS = [
     id: "pro",
     name: "Pro",
     credits: 3000,
-    price: 29,
+    price: 20,
     period: "/month",
     priceId: config.stripe.plans[1]?.priceId,
     savings: "3% off",
@@ -29,7 +29,7 @@ const SUBSCRIPTION_PLANS = [
     id: "ultra",
     name: "Ultra",
     credits: 12000,
-    price: 99,
+    price: 60,
     period: "/month",
     priceId: config.stripe.plans[2]?.priceId,
     popular: true,
@@ -45,7 +45,7 @@ const SUBSCRIPTION_PLANS = [
     id: "studio",
     name: "Studio",
     credits: 50000,
-    price: 399,
+    price: 200,
     period: "/month",
     priceId: config.stripe.plans[3]?.priceId,
     savings: "17% off",
@@ -448,7 +448,7 @@ export default function BuyCreditsPage() {
               <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
               </svg>
-              Note: Your receipt will show "Garden State Concentrate LLC" - that's our parent company. Your purchase is for Wryda.ai services.
+              Note: Your receipt will show &quot;Garden State Concentrate LLC&quot; - that is our parent company. Your purchase is for Wryda.ai services.
             </span>
           </p>
         </div>

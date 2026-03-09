@@ -8,14 +8,13 @@ import {
   Calendar, 
   Shield, 
   CreditCard,
-  Settings,
   LogOut,
   ChevronRight,
-  Zap
+  Crown
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import AutoRechargeModal from '@/components/billing/AutoRechargeModal';
-import { getAutoRechargeSettings, CREDIT_PACKAGES } from '@/lib/stripe-client';
+import { getAutoRechargeSettings, getOverageSettings, updateOverageSettings, getSubscriptionDetails, cancelSubscription, CREDIT_PACKAGES } from '@/lib/stripe-client';
 
 export default function AccountPage() {
   const { user, isLoaded } = useUser();
@@ -26,11 +25,21 @@ export default function AccountPage() {
   const [autoRecharge, setAutoRecharge] = useState(null);
   const [loadingAutoRecharge, setLoadingAutoRecharge] = useState(true);
   const [showAutoRechargeModal, setShowAutoRechargeModal] = useState(false);
+  const [overage, setOverage] = useState(null);
+  const [loadingOverage, setLoadingOverage] = useState(true);
+  const [savingOverage, setSavingOverage] = useState(false);
+  const [overageEnabledDraft, setOverageEnabledDraft] = useState(false);
+  const [overageLimitDraft, setOverageLimitDraft] = useState('');
+  const [subscription, setSubscription] = useState(null);
+  const [loadingSubscription, setLoadingSubscription] = useState(true);
+  const [updatingSubscription, setUpdatingSubscription] = useState(false);
 
   useEffect(() => {
     if (user?.id) {
       fetchCreditBalance();
       fetchAutoRecharge();
+      fetchOverage();
+      fetchSubscription();
     }
   }, [user?.id]);
 
@@ -64,6 +73,89 @@ export default function AccountPage() {
       setAutoRecharge({ enabled: false });
     } finally {
       setLoadingAutoRecharge(false);
+    }
+  }
+
+  async function fetchOverage() {
+    try {
+      setLoadingOverage(true);
+      const settings = await getOverageSettings();
+      setOverage(settings);
+      setOverageEnabledDraft(!!settings?.enabled);
+      setOverageLimitDraft(
+        settings?.monthlyLimitUsd === null || settings?.monthlyLimitUsd === undefined
+          ? ''
+          : String(settings.monthlyLimitUsd)
+      );
+    } catch (error) {
+      console.error('Failed to fetch overage settings:', error);
+      setOverage({ enabled: false, monthlyLimitUsd: null, spendCurrentMonthUsd: 0, creditsUsedCurrentMonth: 0, periodKey: null });
+      setOverageEnabledDraft(false);
+      setOverageLimitDraft('');
+    } finally {
+      setLoadingOverage(false);
+    }
+  }
+
+  async function fetchSubscription() {
+    try {
+      setLoadingSubscription(true);
+      const details = await getSubscriptionDetails();
+      setSubscription(details);
+    } catch (error) {
+      console.error('Failed to fetch subscription:', error);
+      setSubscription(null);
+    } finally {
+      setLoadingSubscription(false);
+    }
+  }
+
+  async function handleSaveOverage() {
+    try {
+      setSavingOverage(true);
+      const parsed = overageLimitDraft.trim() === '' ? null : Number(overageLimitDraft);
+      if (overageEnabledDraft && (parsed === null || !Number.isFinite(parsed) || parsed <= 0)) {
+        alert('Set a positive monthly overage limit to enable overage.');
+        return;
+      }
+      if (parsed !== null && (!Number.isFinite(parsed) || parsed < 0)) {
+        alert('Monthly overage limit must be a non-negative number.');
+        return;
+      }
+
+      await updateOverageSettings(overageEnabledDraft, parsed);
+      await fetchOverage();
+    } catch (error) {
+      console.error('Failed to save overage settings:', error);
+      alert('Failed to save overage settings. Please try again.');
+    } finally {
+      setSavingOverage(false);
+    }
+  }
+
+  async function handleCancelAtPeriodEnd() {
+    try {
+      setUpdatingSubscription(true);
+      await cancelSubscription(true);
+      await fetchSubscription();
+    } catch (error) {
+      console.error('Failed to cancel subscription:', error);
+      alert('Failed to update subscription cancellation. Please try again.');
+    } finally {
+      setUpdatingSubscription(false);
+    }
+  }
+
+  async function handleReactivateSubscription() {
+    try {
+      setUpdatingSubscription(true);
+      await cancelSubscription(false);
+      await fetchSubscription();
+    } catch (error) {
+      console.error('Failed to reactivate subscription:', error);
+      alert('Failed to reactivate subscription. Please try again.');
+    } finally {
+      setUpdatingSubscription(false);
     }
   }
 
@@ -255,13 +347,140 @@ export default function AccountPage() {
                       {autoRecharge?.package && CREDIT_PACKAGES[autoRecharge.package] && (
                         <div className="mt-3 p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
                           <div className="text-xs text-green-400">
-                            When your credits drop below {autoRecharge.threshold?.toLocaleString() || '0'}, we'll automatically purchase {CREDIT_PACKAGES[autoRecharge.package].credits.toLocaleString()} credits for ${CREDIT_PACKAGES[autoRecharge.package].priceUSD}.
+                            When your credits drop below {autoRecharge.threshold?.toLocaleString() || '0'}, we will automatically purchase {CREDIT_PACKAGES[autoRecharge.package].credits.toLocaleString()} credits for ${CREDIT_PACKAGES[autoRecharge.package].priceUSD}.
                           </div>
                         </div>
                       )}
                     </div>
                   )}
                 </div>
+              )}
+            </div>
+          </div>
+
+          {/* Plan Management */}
+          <div className="bg-[#141414] rounded-lg border border-[#3F3F46] overflow-hidden">
+            <div className="px-6 py-4 border-b border-[#3F3F46]">
+              <h2 className="text-lg font-semibold text-white">Plan Management</h2>
+            </div>
+            <div className="p-6 space-y-4">
+              {loadingSubscription ? (
+                <div className="flex items-center justify-center py-4">
+                  <div className="w-6 h-6 border-2 border-cinema-red border-t-transparent rounded-full animate-spin"></div>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <Crown className="w-5 h-5 text-cinema-red" />
+                      <div>
+                        <div className="text-sm font-medium text-base-content">Current Plan</div>
+                        <div className="text-sm text-base-content/60 mt-1">
+                          {subscription?.planName || 'Free'}
+                          {subscription?.status ? ` • ${subscription.status}` : ''}
+                        </div>
+                      </div>
+                    </div>
+                    <button
+                      onClick={() => router.push('/buy-credits')}
+                      className="px-4 py-2 bg-cinema-red hover:bg-cinema-red/90 text-white rounded-lg text-sm font-medium transition-colors"
+                    >
+                      Upgrade or Change
+                    </button>
+                  </div>
+
+                  {subscription?.currentPeriodEnd && (
+                    <div className="text-xs text-base-content/60">
+                      Billing period ends: {new Date(subscription.currentPeriodEnd).toLocaleDateString()}
+                    </div>
+                  )}
+
+                  {subscription ? (
+                    <div className="pt-3 border-t border-[#3F3F46] flex gap-2 justify-end">
+                      {subscription.cancelAtPeriodEnd ? (
+                        <button
+                          onClick={handleReactivateSubscription}
+                          disabled={updatingSubscription}
+                          className="px-4 py-2 bg-[#0A0A0A] border border-[#3F3F46] hover:border-cinema-red text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                        >
+                          {updatingSubscription ? 'Updating...' : 'Reactivate'}
+                        </button>
+                      ) : (
+                        <button
+                          onClick={handleCancelAtPeriodEnd}
+                          disabled={updatingSubscription}
+                          className="px-4 py-2 bg-[#0A0A0A] border border-[#3F3F46] hover:border-cinema-red text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                        >
+                          {updatingSubscription ? 'Updating...' : 'Cancel at Period End'}
+                        </button>
+                      )}
+                    </div>
+                  ) : (
+                    <div className="text-xs text-base-content/60">You are on the free plan. Choose a paid plan to unlock monthly allocations and overage.</div>
+                  )}
+                </>
+              )}
+            </div>
+          </div>
+
+          {/* Overage Controls */}
+          <div className="bg-[#141414] rounded-lg border border-[#3F3F46] overflow-hidden">
+            <div className="px-6 py-4 border-b border-[#3F3F46]">
+              <h2 className="text-lg font-semibold text-white">On-Demand Overage</h2>
+            </div>
+            <div className="p-6 space-y-4">
+              {loadingOverage ? (
+                <div className="flex items-center justify-center py-4">
+                  <div className="w-6 h-6 border-2 border-cinema-red border-t-transparent rounded-full animate-spin"></div>
+                </div>
+              ) : (
+                <>
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <div className="text-sm font-medium text-base-content">Enable Overage</div>
+                      <div className="text-sm text-base-content/60 mt-1">
+                        Continue after credits run out, billed against a monthly cap.
+                      </div>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={overageEnabledDraft}
+                        onChange={(e) => setOverageEnabledDraft(e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-base-300 peer-focus:outline-none peer-focus:ring-2 peer-focus:ring-cinema-red rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cinema-red"></div>
+                    </label>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-base-content mb-2">
+                      Monthly Overage Limit (USD)
+                    </label>
+                    <input
+                      value={overageLimitDraft}
+                      onChange={(e) => setOverageLimitDraft(e.target.value)}
+                      placeholder="Example: 100"
+                      className="w-full px-3 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded-lg text-base-content"
+                    />
+                    <p className="text-xs text-base-content/60 mt-2">
+                      Overage requires a monthly cap. We bill incrementally as you use overage.
+                    </p>
+                    <p className="text-xs text-base-content/60 mt-1">
+                      Current cycle spend: ${Number(overage?.spendCurrentMonthUsd || 0).toFixed(2)} ({(overage?.creditsUsedCurrentMonth || 0).toLocaleString()} credits)
+                    </p>
+                  </div>
+
+                  <div className="flex justify-end">
+                    <button
+                      onClick={handleSaveOverage}
+                      disabled={savingOverage}
+                      className="px-4 py-2 bg-cinema-red hover:bg-cinema-red/90 text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                    >
+                      {savingOverage ? 'Saving...' : 'Save Overage Settings'}
+                    </button>
+                  </div>
+                </>
               )}
             </div>
           </div>

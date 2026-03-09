@@ -26,7 +26,7 @@ const Pricing = () => {
     },
     {
       name: "Pro",
-      price: "$29",
+      price: "$20",
       period: "/month",
       credits: "3,000 credits/month",
       description: "Same features. Just more credits.",
@@ -43,9 +43,9 @@ const Pricing = () => {
     },
     {
       name: "Ultra",
-      price: "$149",
+      price: "$60",
       period: "/month",
-      credits: "20,000 credits/month",
+      credits: "12,000 credits/month",
       description: "Production volume. Same features.",
       features: [
         "✅ Everything in Free",
@@ -61,9 +61,9 @@ const Pricing = () => {
     },
     {
       name: "Studio",
-      price: "$399",
+      price: "$200",
       period: "/month",
-      credits: "75,000 credits/month",
+      credits: "50,000 credits/month",
       description: "Enterprise teams. Same features.",
       features: [
         "✅ Everything in Free",

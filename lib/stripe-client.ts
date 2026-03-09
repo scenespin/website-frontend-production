@@ -13,10 +13,18 @@ export interface StripeCheckoutSession {
 export interface SubscriptionDetails {
     id: string;
     status: 'active' | 'canceled' | 'past_due' | 'unpaid' | 'incomplete';
-    currentPeriodEnd: string;
+    currentPeriodStart?: number;
+    currentPeriodEnd: number;
     cancelAtPeriodEnd: boolean;
     planName: string;
-    amount: number;
+    canceledAt?: number | null;
+    overage?: {
+        enabled: boolean;
+        monthly_limit_usd: number | null;
+        spend_current_month_usd: number;
+        credits_used_current_month: number;
+        period_key: string | null;
+    };
 }
 
 export interface PaymentMethod {
@@ -52,6 +60,14 @@ export interface AutoRechargeSettings {
     threshold: number;
     package: 'starter' | 'booster' | 'mega';
     paymentMethodId?: string;
+}
+
+export interface OverageSettings {
+    enabled: boolean;
+    monthlyLimitUsd: number | null;
+    spendCurrentMonthUsd: number;
+    creditsUsedCurrentMonth: number;
+    periodKey: string | null;
 }
 
 /**
@@ -102,7 +118,20 @@ export async function getSubscriptionDetails(): Promise<SubscriptionDetails | nu
         const response = await secureFetch('/api/billing/subscription', {
             method: 'GET',
         });
-        return response.subscription;
+        const data = response.data || response.subscription || response;
+        if (!data || data.status === 'none') {
+            return null;
+        }
+        return {
+            id: data.id,
+            status: data.status,
+            currentPeriodStart: data.current_period_start,
+            currentPeriodEnd: data.current_period_end,
+            cancelAtPeriodEnd: !!data.cancel_at_period_end,
+            planName: data.planName || data.plan_name || 'Free',
+            canceledAt: data.canceled_at ?? null,
+            overage: data.overage
+        };
     } catch (error) {
         console.error('Error fetching subscription:', error);
         return null;
@@ -112,9 +141,10 @@ export async function getSubscriptionDetails(): Promise<SubscriptionDetails | nu
 /**
  * Cancel subscription (at end of period)
  */
-export async function cancelSubscription(): Promise<void> {
+export async function cancelSubscription(cancelAtPeriodEnd: boolean = true): Promise<void> {
     await secureFetch('/api/billing/subscription/cancel', {
-        method: 'POST',
+        method: 'PUT',
+        body: JSON.stringify({ cancelAtPeriodEnd }),
     });
 }
 
@@ -159,7 +189,7 @@ export async function createCustomerPortalSession(
         method: 'POST',
         body: JSON.stringify({ returnUrl }),
     });
-    return response.url;
+    return response.data?.url || response.url || '';
 }
 
 /**
@@ -217,6 +247,25 @@ export async function disableAutoRecharge(): Promise<void> {
     });
 }
 
+export async function getOverageSettings(): Promise<OverageSettings> {
+    const response = await secureFetch('/api/billing/overage', { method: 'GET' });
+    const data = response.data || response;
+    return {
+        enabled: data.enabled || false,
+        monthlyLimitUsd: data.monthly_limit_usd ?? null,
+        spendCurrentMonthUsd: data.spend_current_month_usd || 0,
+        creditsUsedCurrentMonth: data.credits_used_current_month || 0,
+        periodKey: data.period_key || null,
+    };
+}
+
+export async function updateOverageSettings(enabled: boolean, monthlyLimitUsd: number | null): Promise<void> {
+    await secureFetch('/api/billing/overage', {
+        method: 'PUT',
+        body: JSON.stringify({ enabled, monthlyLimitUsd }),
+    });
+}
+
 /**
  * Credit package definitions (matches backend)
  */
@@ -256,11 +305,11 @@ export const CREDIT_PACKAGES = {
  * - 120 Ray Flash videos/month
  * - OR 40 Ray 2 premium videos/month
  * 
- * Ultra Plan: 12,000 monthly credits ($99)
+ * Ultra Plan: 12,000 monthly credits ($60)
  * - 480 Ray Flash videos/month
  * - OR 160 Ray 2 premium videos/month
  * 
- * Studio Plan: 50,000 monthly credits ($399)
+ * Studio Plan: 50,000 monthly credits ($200)
  * - 2,000 Ray Flash videos/month
  * - OR 666 Ray 2 premium videos/month
  */
@@ -281,7 +330,7 @@ export const SUBSCRIPTION_PLANS = {
     },
     'Pro Plan': {
         credits: 3000,
-        priceUSD: 29,
+        priceUSD: 20,
         priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_PRO,
         features: [
             '3,000 monthly credits',
@@ -296,7 +345,7 @@ export const SUBSCRIPTION_PLANS = {
     },
     'Ultra Plan': {
         credits: 12000,
-        priceUSD: 99,
+        priceUSD: 60,
         priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_ULTRA,
         features: [
             '12,000 monthly credits',
@@ -310,7 +359,7 @@ export const SUBSCRIPTION_PLANS = {
     },
     'Studio Plan': {
         credits: 50000,
-        priceUSD: 299,
+        priceUSD: 200,
         priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_STUDIO,
         features: [
             '50,000 monthly credits',
