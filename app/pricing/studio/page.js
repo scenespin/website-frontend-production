@@ -6,8 +6,8 @@ import logo from "@/app/icon.png";
 import { Check, Zap, Video, Sparkles, Shield, ArrowRight, Users, Building2, Rocket, Lock, Palette, Headphones } from "lucide-react";
 
 export const metadata = getSEOTags({
-  title: `Studio Plan - $200/month | 50,000 Credits | ${config.appName}`,
-  description: "Studio Plan: 50,000 monthly credits for enterprise teams. All features unlocked. Credits roll over. Cancel anytime. Perfect for large studios, production houses, and enterprise teams.",
+  title: `Studio Plan - $200/month | 24,000 Credits | ${config.appName}`,
+  description: "Studio Plan: 24,000 monthly credits for enterprise teams. All features unlocked. Credits roll over. Cancel anytime. Perfect for large studios, production houses, and enterprise teams.",
   canonicalUrlRelative: "/pricing/studio",
 });
 
@@ -58,7 +58,7 @@ export default function StudioPricingPage() {
               Enterprise Teams. Same Features.
             </h1>
             <p className="text-xl md:text-2xl text-gray-300 mb-8 max-w-2xl mx-auto">
-              Enterprise features for large studios and production houses. SSO, white labeling, API access, and dedicated support. 50,000 monthly credits included.
+              Enterprise features for large studios and production houses. SSO, white labeling, API access, and dedicated support. 24,000 monthly credits included.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center mb-12">
               <Link
@@ -88,13 +88,13 @@ export default function StudioPricingPage() {
                   $200<span className="text-2xl text-gray-400">/month</span>
                 </div>
                 <div className="bg-[#DC143C]/10 p-4 rounded-lg mb-6 inline-block">
-                  <p className="text-lg font-semibold">50,000 credits/month</p>
-                  <p className="text-sm text-gray-400 mt-1">Credits roll over up to 100,000</p>
+                  <p className="text-lg font-semibold">24,000 credits/month</p>
+                  <p className="text-sm text-gray-400 mt-1">Credits roll over up to 48,000</p>
                 </div>
                 <div className="bg-[#141414] p-4 rounded-lg mb-6 inline-block">
-                  <p className="text-xs text-gray-400 mb-1">Volume Discount</p>
-                  <p className="text-base font-semibold text-white">60% off pay-as-you-go</p>
-                  <p className="text-xs text-gray-500 mt-1">$0.00400 per credit (vs $0.01)</p>
+                  <p className="text-xs text-gray-400 mb-1">Plan Fit</p>
+                  <p className="text-base font-semibold text-white">Studio volume</p>
+                  <p className="text-xs text-gray-500 mt-1">Maximum monthly capacity for production teams</p>
                 </div>
                 <Link
                   href="/sign-up?plan=studio"
@@ -125,9 +125,9 @@ export default function StudioPricingPage() {
                     <Video className="w-6 h-6 text-[#DC143C]" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-lg mb-2">50,000 Monthly Credits</h3>
+                    <h3 className="font-semibold text-lg mb-2">24,000 Monthly Credits</h3>
                     <p className="text-gray-300 text-sm">
-                      Generate 2,000 Ray Flash videos or 666 Ray 2 premium videos every month. Credits roll over up to 100,000.
+                      Generate 960 Ray Flash videos or 320 Ray 2 premium videos every month. Credits roll over up to 48,000.
                     </p>
                   </div>
                 </div>
@@ -224,7 +224,7 @@ export default function StudioPricingPage() {
               <div className="text-center p-6">
                 <div className="text-4xl mb-4">🎬</div>
                 <h3 className="font-semibold text-lg mb-2">Large Studios</h3>
-                <p className="text-gray-300 text-sm">50,000 credits + SSO and white labeling for feature film production</p>
+                <p className="text-gray-300 text-sm">24,000 credits + SSO and white labeling for feature film production</p>
               </div>
               <div className="text-center p-6">
                 <div className="text-4xl mb-4">🏭</div>

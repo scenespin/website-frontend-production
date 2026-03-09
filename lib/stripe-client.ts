@@ -301,17 +301,17 @@ export const CREDIT_PACKAGES = {
  * - 2 Luma Ray Flash videos (25 credits each)
  * - OR 0.66 Luma Ray 2 premium video (75 credits)
  * 
- * Pro Plan: 3,000 monthly credits ($20)
- * - 120 Ray Flash videos/month
- * - OR 40 Ray 2 premium videos/month
+ * Pro Plan: 2,000 monthly credits ($20)
+ * - 80 Ray Flash videos/month
+ * - OR 26 Ray 2 premium videos/month
  * 
- * Ultra Plan: 12,000 monthly credits ($60)
- * - 480 Ray Flash videos/month
- * - OR 160 Ray 2 premium videos/month
+ * Ultra Plan: 7,000 monthly credits ($60)
+ * - 280 Ray Flash videos/month
+ * - OR 93 Ray 2 premium videos/month
  * 
- * Studio Plan: 50,000 monthly credits ($200)
- * - 2,000 Ray Flash videos/month
- * - OR 666 Ray 2 premium videos/month
+ * Studio Plan: 24,000 monthly credits ($200)
+ * - 960 Ray Flash videos/month
+ * - OR 320 Ray 2 premium videos/month
  */
 export const SUBSCRIPTION_PLANS = {
     'Free Plan': {
@@ -329,13 +329,13 @@ export const SUBSCRIPTION_PLANS = {
         ]
     },
     'Pro Plan': {
-        credits: 3000,
+        credits: 2000,
         priceUSD: 20,
         priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_PRO,
         features: [
-            '3,000 monthly credits',
-            '120 Ray Flash videos/month',
-            '40 Ray 2 premium videos/month',
+            '2,000 monthly credits',
+            '80 Ray Flash videos/month',
+            '26 Ray 2 premium videos/month',
             'Priority generation queue',
             'Commercial usage rights',
             'Higher resolution exports',
@@ -344,13 +344,13 @@ export const SUBSCRIPTION_PLANS = {
         popular: true
     },
     'Ultra Plan': {
-        credits: 12000,
+        credits: 7000,
         priceUSD: 60,
         priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_ULTRA,
         features: [
-            '12,000 monthly credits',
-            '480 Ray Flash videos/month',
-            '160 Ray 2 premium videos/month',
+            '7,000 monthly credits',
+            '280 Ray Flash videos/month',
+            '93 Ray 2 premium videos/month',
             'Team collaboration (5 members)',
             'Unlimited screenplays',
             'Fastest queue priority',
@@ -358,13 +358,13 @@ export const SUBSCRIPTION_PLANS = {
         ]
     },
     'Studio Plan': {
-        credits: 50000,
+        credits: 24000,
         priceUSD: 200,
         priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_STUDIO,
         features: [
-            '50,000 monthly credits',
-            '2,000 Ray Flash videos/month',
-            '666 Ray 2 premium videos/month',
+            '24,000 monthly credits',
+            '960 Ray Flash videos/month',
+            '320 Ray 2 premium videos/month',
             'Unlimited team members',
             'API access',
             '4K video exports',

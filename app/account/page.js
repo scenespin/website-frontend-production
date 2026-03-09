@@ -13,8 +13,7 @@ import {
   Crown
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import AutoRechargeModal from '@/components/billing/AutoRechargeModal';
-import { getAutoRechargeSettings, getOverageSettings, updateOverageSettings, getSubscriptionDetails, cancelSubscription, CREDIT_PACKAGES } from '@/lib/stripe-client';
+import { getOverageSettings, updateOverageSettings, getSubscriptionDetails, cancelSubscription } from '@/lib/stripe-client';
 
 export default function AccountPage() {
   const { user, isLoaded } = useUser();
@@ -22,9 +21,6 @@ export default function AccountPage() {
   const router = useRouter();
   const [credits, setCredits] = useState(null);
   const [loadingCredits, setLoadingCredits] = useState(true);
-  const [autoRecharge, setAutoRecharge] = useState(null);
-  const [loadingAutoRecharge, setLoadingAutoRecharge] = useState(true);
-  const [showAutoRechargeModal, setShowAutoRechargeModal] = useState(false);
   const [overage, setOverage] = useState(null);
   const [loadingOverage, setLoadingOverage] = useState(true);
   const [savingOverage, setSavingOverage] = useState(false);
@@ -37,7 +33,6 @@ export default function AccountPage() {
   useEffect(() => {
     if (user?.id) {
       fetchCreditBalance();
-      fetchAutoRecharge();
       fetchOverage();
       fetchSubscription();
     }
@@ -60,19 +55,6 @@ export default function AccountPage() {
       setCredits(0);
     } finally {
       setLoadingCredits(false);
-    }
-  }
-
-  async function fetchAutoRecharge() {
-    try {
-      setLoadingAutoRecharge(true);
-      const settings = await getAutoRechargeSettings();
-      setAutoRecharge(settings);
-    } catch (error) {
-      console.error('Failed to fetch auto-recharge:', error);
-      setAutoRecharge({ enabled: false });
-    } finally {
-      setLoadingAutoRecharge(false);
     }
   }
 
@@ -158,11 +140,6 @@ export default function AccountPage() {
       setUpdatingSubscription(false);
     }
   }
-
-  const handleAutoRechargeUpdate = () => {
-    fetchAutoRecharge();
-    setShowAutoRechargeModal(false);
-  };
 
   const handleSignOut = async () => {
     await signOut({ redirectUrl: '/' });
@@ -290,73 +267,6 @@ export default function AccountPage() {
               </div>
             </div>
           ))}
-
-          {/* Auto-Recharge Card */}
-          <div className="bg-[#141414] rounded-lg border border-[#3F3F46] overflow-hidden">
-            <div className="px-6 py-4 border-b border-[#3F3F46]">
-              <h2 className="text-lg font-semibold text-white">Auto-Recharge</h2>
-            </div>
-            <div className="p-6">
-              {loadingAutoRecharge ? (
-                <div className="flex items-center justify-center py-4">
-                  <div className="w-6 h-6 border-2 border-cinema-red border-t-transparent rounded-full animate-spin"></div>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <div className="text-sm font-medium text-base-content">Status</div>
-                      <div className="text-sm text-base-content/60 mt-1">
-                        {autoRecharge?.enabled ? (
-                          <span className="inline-flex items-center gap-2">
-                            <span className="w-2 h-2 bg-green-500 rounded-full"></span>
-                            Enabled
-                          </span>
-                        ) : (
-                          <span className="inline-flex items-center gap-2">
-                            <span className="w-2 h-2 bg-base-content/40 rounded-full"></span>
-                            Disabled
-                          </span>
-                        )}
-                      </div>
-                    </div>
-                    <button
-                      onClick={() => setShowAutoRechargeModal(true)}
-                      className="px-4 py-2 bg-cinema-red hover:bg-cinema-red/90 text-white rounded-lg text-sm font-medium transition-colors"
-                    >
-                      {autoRecharge?.enabled ? 'Manage' : 'Set Up'}
-                    </button>
-                  </div>
-
-                  {autoRecharge?.enabled && (
-                    <div className="pt-4 border-t border-[#3F3F46] space-y-2">
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-base-content/60">Package</span>
-                        <span className="text-base-content font-medium">
-                          {autoRecharge?.package 
-                            ? CREDIT_PACKAGES[autoRecharge.package]?.label || autoRecharge.package
-                            : 'Not set'}
-                        </span>
-                      </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <span className="text-base-content/60">Threshold</span>
-                        <span className="text-base-content font-medium">
-                          {autoRecharge?.threshold?.toLocaleString() || '0'} credits
-                        </span>
-                      </div>
-                      {autoRecharge?.package && CREDIT_PACKAGES[autoRecharge.package] && (
-                        <div className="mt-3 p-3 bg-green-500/10 border border-green-500/30 rounded-lg">
-                          <div className="text-xs text-green-400">
-                            When your credits drop below {autoRecharge.threshold?.toLocaleString() || '0'}, we will automatically purchase {CREDIT_PACKAGES[autoRecharge.package].credits.toLocaleString()} credits for ${CREDIT_PACKAGES[autoRecharge.package].priceUSD}.
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
 
           {/* Plan Management */}
           <div className="bg-[#141414] rounded-lg border border-[#3F3F46] overflow-hidden">
@@ -506,13 +416,6 @@ export default function AccountPage() {
         </div>
       </div>
 
-      {/* Auto-Recharge Modal */}
-      <AutoRechargeModal
-        isOpen={showAutoRechargeModal}
-        onClose={() => setShowAutoRechargeModal(false)}
-        onSuccess={handleAutoRechargeUpdate}
-        currentSettings={autoRecharge}
-      />
     </div>
   );
 }

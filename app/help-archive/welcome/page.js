@@ -132,7 +132,7 @@ export default function WelcomePage() {
 
           <ul>
             <li>Free users: 50 credits on signup + 10 credits/month</li>
-            <li>Subscriptions: 3,000 - 50,000 credits/month</li>
+            <li>Subscriptions: 2,000 - 24,000 credits/month</li>
             <li>Credits never expire</li>
             <li>No hidden fees</li>
           </ul>

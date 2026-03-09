@@ -29,9 +29,9 @@ const faqList = [
     answer: (
       <div className="space-y-2 leading-relaxed">
         <p><strong>Free Plan:</strong> 50 signup credits + 10 credits/month = ~1 professional 1080p video</p>
-        <p><strong>Pro Plan ($20/mo):</strong> 3,000 credits = ~60 professional 1080p videos</p>
-        <p><strong>Ultra Plan ($60/mo):</strong> 12,000 credits = ~240 professional videos</p>
-        <p><strong>Studio Plan ($200/mo):</strong> 50,000 credits = ~1,000 professional videos</p>
+        <p><strong>Pro Plan ($20/mo):</strong> 2,000 credits = ~40 professional 1080p videos</p>
+        <p><strong>Ultra Plan ($60/mo):</strong> 7,000 credits = ~140 professional videos</p>
+        <p><strong>Studio Plan ($200/mo):</strong> 24,000 credits = ~480 professional videos</p>
         <p className="pt-2"><strong>Credit costs by quality tier:</strong></p>
         <ul className="list-disc pl-5">
           <li>Professional 1080p: 50 credits per 5s</li>
@@ -81,14 +81,13 @@ const faqList = [
           <li>✅ Upload unlimited footage</li>
           <li>✅ No watermarks, no vendor lock-in</li>
         </ul>
-        <p><strong>The difference? Just how many credits you get per dollar:</strong></p>
+        <p><strong>The difference? Just how many monthly credits you need:</strong></p>
         <ul className="list-disc pl-5 space-y-1">
-          <li><strong>Pay-as-you-go:</strong> 1 credit = $0.01 (baseline price)</li>
-          <li><strong>Pro ($20/mo):</strong> 3,000 credits = ~33% discount</li>
-          <li><strong>Ultra ($60/mo):</strong> 12,000 credits = ~50% discount</li>
-          <li><strong>Studio ($200/mo):</strong> 50,000 credits = ~60% discount</li>
+          <li><strong>Pro ($20/mo):</strong> 2,000 credits (starter volume)</li>
+          <li><strong>Ultra ($60/mo):</strong> 7,000 credits (team volume)</li>
+          <li><strong>Studio ($200/mo):</strong> 24,000 credits (studio volume)</li>
         </ul>
-        <p className="font-semibold text-primary">Higher tiers = deeper discounts. Choose based on your monthly video needs!</p>
+        <p className="font-semibold text-primary">Choose based on your monthly production goals, not feature limits.</p>
       </div>
     ),
   },

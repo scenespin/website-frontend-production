@@ -71,20 +71,20 @@ export default function CreditsPage() {
                 <tr>
                   <td><strong>Pro</strong></td>
                   <td>$20/mo</td>
-                  <td>3,000</td>
-                  <td>33% better</td>
+                  <td>2,000</td>
+                  <td>3% better</td>
                 </tr>
                 <tr>
                   <td><strong>Ultra</strong></td>
                   <td>$60/mo</td>
-                  <td>12,000</td>
-                  <td>50% better</td>
+                  <td>7,000</td>
+                  <td>15% better</td>
                 </tr>
                 <tr>
                   <td><strong>Studio</strong></td>
                   <td>$200/mo</td>
-                  <td>50,000</td>
-                  <td>60% better</td>
+                  <td>24,000</td>
+                  <td>17% better</td>
                 </tr>
               </tbody>
             </table>
@@ -326,7 +326,7 @@ export default function CreditsPage() {
               <div className="card-body">
                 <h3 className="card-title text-base">4. Subscribe if Regular User</h3>
                 <ul className="text-sm space-y-1">
-                  <li>Pro: 3,000cr/month</li>
+            <li>Pro: 2,000cr/month</li>
                   <li>Better value than packs</li>
                   <li>Credits roll over (up to plan limit)</li>
                   <li>Cancel anytime</li>
@@ -355,17 +355,17 @@ export default function CreditsPage() {
           </div>
 
           <ul>
-            <li>Pro: Roll over up to 3,000cr</li>
-            <li>Ultra: Roll over up to 24,000cr</li>
-            <li>Studio: Roll over up to 100,000cr</li>
+            <li>Pro: Roll over up to 4,000cr</li>
+            <li>Ultra: Roll over up to 14,000cr</li>
+            <li>Studio: Roll over up to 48,000cr</li>
           </ul>
 
           <h3>Example:</h3>
           <ul>
-            <li>Pro plan (3,000cr/month)</li>
+            <li>Pro plan (2,000cr/month)</li>
             <li>Month 1: Use 2,000cr → Bank 1,000cr</li>
-            <li>Month 2: Get 3,000cr → Total 4,000cr available</li>
-            <li>Month 3: Get 3,000cr → Capped at 3,000cr total (plan limit)</li>
+            <li>Month 2: Get 2,000cr → Total 3,000cr available</li>
+            <li>Month 3: Get 2,000cr → Capped at 4,000cr total (plan limit)</li>
           </ul>
 
           <h2>What&apos;s NOT Limited by Credits</h2>

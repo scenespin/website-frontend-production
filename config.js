@@ -45,7 +45,7 @@ const config = {
         price: 20,
         priceAnchor: null,
         features: [
-          { name: "3,000 credits/month" },
+          { name: "2,000 credits/month" },
           { name: "Everything in Free" },
           { name: "All quality tiers unlocked" },
         ],
@@ -54,7 +54,7 @@ const config = {
         signupSubheadline:
           "More monthly credits for consistent writing, visual planning, and delivery workflows.",
         signupValueProp:
-          "3,000 monthly credits for frequent writing-agent and production runs.",
+          "2,000 monthly credits for frequent writing-agent and production runs.",
         targetAudience: "Active writers, creators, and small production teams",
       },
       {
@@ -64,7 +64,7 @@ const config = {
         price: 60,
         priceAnchor: null,
         features: [
-          { name: "12,000 credits/month" },
+          { name: "7,000 credits/month" },
           { name: "Everything in Free" },
           { name: "All quality tiers unlocked" },
           { name: "Perfect for studios & agencies" },
@@ -75,7 +75,7 @@ const config = {
         signupSubheadline:
           "High-capacity credits and priority support for teams shipping regularly.",
         signupValueProp:
-          "12,000 monthly credits for large projects and faster iteration cycles.",
+          "7,000 monthly credits for large projects and faster iteration cycles.",
         targetAudience: "Production companies, agencies, and high-volume teams",
       },
       {
@@ -85,7 +85,7 @@ const config = {
         price: 200,
         priceAnchor: null,
         features: [
-          { name: "50,000 credits/month" },
+          { name: "24,000 credits/month" },
           { name: "Everything in Free" },
           { name: "All quality tiers unlocked" },
           { name: "Massive production capacity" },
@@ -96,7 +96,7 @@ const config = {
         signupSubheadline:
           "Designed for studio teams that need reliability, control, and throughput.",
         signupValueProp:
-          "50,000 monthly credits with enterprise-grade capacity and support.",
+          "24,000 monthly credits with enterprise-grade capacity and support.",
         targetAudience: "Studios, enterprise production teams, and platform partners",
       },
     ],

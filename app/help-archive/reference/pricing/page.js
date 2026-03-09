@@ -60,7 +60,7 @@ export default function PricingReferencePage() {
                 <h3 className="card-title text-base">PRO</h3>
                 <div className="text-3xl font-bold">$20</div>
                 <p className="text-xs">/month</p>
-                <div className="text-sm font-bold mt-2">3,000 credits</div>
+                <div className="text-sm font-bold mt-2">2,000 credits</div>
                 <ul className="text-xs mt-2 space-y-1">
                   <li>✅ Commercial rights</li>
                   <li>✅ Credits roll over</li>
@@ -73,7 +73,7 @@ export default function PricingReferencePage() {
                 <h3 className="card-title text-base">ULTRA</h3>
                 <div className="text-3xl font-bold">$60</div>
                 <p className="text-xs">/month</p>
-                <div className="text-sm font-bold mt-2">12,000 credits</div>
+                <div className="text-sm font-bold mt-2">7,000 credits</div>
                 <ul className="text-xs mt-2 space-y-1">
                   <li>✅ Everything in Pro</li>
                   <li>✅ Team sharing</li>
@@ -86,7 +86,7 @@ export default function PricingReferencePage() {
                 <h3 className="card-title text-base">STUDIO</h3>
                 <div className="text-3xl font-bold">$200</div>
                 <p className="text-xs">/month</p>
-                <div className="text-sm font-bold mt-2">50,000 credits</div>
+                <div className="text-sm font-bold mt-2">24,000 credits</div>
                 <ul className="text-xs mt-2 space-y-1">
                   <li>✅ Everything in Ultra</li>
                   <li>✅ API access</li>

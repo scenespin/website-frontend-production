@@ -13,14 +13,14 @@ const SUBSCRIPTION_PLANS = [
   {
     id: "pro",
     name: "Pro",
-    credits: 3000,
+    credits: 2000,
     price: 20,
     period: "/month",
     priceId: config.stripe.plans[1]?.priceId,
-    savings: "33% off",
+    savings: "Starter volume",
     features: [
-      "3,000 credits/month",
-      "Credits roll over (up to 6,000)",
+      "2,000 credits/month",
+      "Credits roll over (up to 4,000)",
       "All features unlocked",
       "Cancel anytime"
     ],
@@ -28,15 +28,15 @@ const SUBSCRIPTION_PLANS = [
   {
     id: "ultra",
     name: "Ultra",
-    credits: 12000,
+    credits: 7000,
     price: 60,
     period: "/month",
     priceId: config.stripe.plans[2]?.priceId,
     popular: true,
-    savings: "50% off",
+    savings: "Team volume",
     features: [
-      "12,000 credits/month",
-      "Credits roll over (up to 24,000)",
+      "7,000 credits/month",
+      "Credits roll over (up to 14,000)",
       "All features unlocked",
       "Cancel anytime"
     ],
@@ -44,14 +44,14 @@ const SUBSCRIPTION_PLANS = [
   {
     id: "studio",
     name: "Studio",
-    credits: 50000,
+    credits: 24000,
     price: 200,
     period: "/month",
     priceId: config.stripe.plans[3]?.priceId,
-    savings: "60% off",
+    savings: "Studio volume",
     features: [
-      "50,000 credits/month",
-      "Credits roll over (up to 100,000)",
+      "24,000 credits/month",
+      "Credits roll over (up to 48,000)",
       "All features unlocked",
       "Cancel anytime"
     ],
@@ -197,7 +197,7 @@ export default function BuyCreditsPage() {
                     </div>
                     {plan.savings && (
                       <div className="inline-block mt-2 px-2 py-1 bg-green-500/20 text-green-400 text-xs rounded">
-                        {plan.savings} vs pay-as-you-go
+                        {plan.savings}
                       </div>
                     )}
                   </div>
@@ -243,8 +243,8 @@ export default function BuyCreditsPage() {
           </h4>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm text-gray-300">
             <div>
-              <strong className="text-white">Volume Discounts</strong>
-              <p className="text-gray-400">Save up to 17% compared to pay-as-you-go credit usage</p>
+              <strong className="text-white">Predictable Monthly Volume</strong>
+              <p className="text-gray-400">Choose the monthly credit level that fits your output goals</p>
             </div>
             <div>
               <strong className="text-white">Credits Roll Over</strong>

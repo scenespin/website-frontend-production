@@ -214,9 +214,9 @@ export const articles = [
           <h3 className={styles.h3}>Pricing Plans</h3>
           <ul className={styles.ul}>
             <li className={styles.li}><strong>Free:</strong> 50 signup + 10 credits/month = ~1 professional video</li>
-            <li className={styles.li}><strong>Pro ($20/mo):</strong> 3,000 credits = ~60 professional videos</li>
-            <li className={styles.li}><strong>Ultra ($60/mo):</strong> 12,000 credits = ~240 professional videos</li>
-            <li className={styles.li}><strong>Studio ($200/mo):</strong> 50,000 credits = ~1,000 professional videos</li>
+            <li className={styles.li}><strong>Pro ($20/mo):</strong> 2,000 credits = ~40 professional videos</li>
+            <li className={styles.li}><strong>Ultra ($60/mo):</strong> 7,000 credits = ~140 professional videos</li>
+            <li className={styles.li}><strong>Studio ($200/mo):</strong> 24,000 credits = ~480 professional videos</li>
           </ul>
           
           <h3 className={styles.h3}>Credit Costs by Quality</h3>

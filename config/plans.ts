@@ -94,11 +94,11 @@ export const PLAN_DETAILS: Record<PlanId, PlanDetails> = {
     price: '$20/month',
     priceUSD: 20,
     color: 'text-indigo-500',
-    credits: '3,000 AI credits/month',
+    credits: '2,000 AI credits/month',
     icon: '✨',
     keyFeatures: [
       'Three AI Writing Agents (Chat, Director, Precision Editor)',
-      '~60 Professional (1080p) or ~40 Premium (4K) videos/month',
+      '~80 Professional (1080p) or ~26 Premium (4K) videos/month',
       '1,000+ AI images/month',
       'Cloud sync & collaboration',
     ],
@@ -116,7 +116,7 @@ export const PLAN_DETAILS: Record<PlanId, PlanDetails> = {
     price: '$60/month',
     priceUSD: 60,
     color: 'text-purple-500',
-    credits: '12,000 AI credits/month',
+    credits: '7,000 AI credits/month',
     icon: '🎬',
     keyFeatures: [
       'Professional Video Generation at scale',
@@ -129,7 +129,7 @@ export const PLAN_DETAILS: Record<PlanId, PlanDetails> = {
     signupSubheadline:
       'High-capacity credits and priority support for teams shipping regularly.',
     signupValueProp:
-      'High monthly credits for large projects and faster iteration cycles.',
+      'Steady monthly credits for teams running regular production cycles.',
     targetAudience: 'Production companies, agencies, and high-volume teams',
   },
   [PLAN_IDS.STUDIO]: {
@@ -138,11 +138,11 @@ export const PLAN_DETAILS: Record<PlanId, PlanDetails> = {
     price: '$200/month',
     priceUSD: 200,
     color: 'text-rose-500',
-    credits: '50,000 AI credits/month',
+    credits: '24,000 AI credits/month',
     icon: '🏢',
     keyFeatures: [
-      '2,000 Ray Flash videos/month',
-      '666 Ray 2 premium videos/month',
+      '960 Ray Flash videos/month',
+      '320 Ray 2 premium videos/month',
       'Unlimited team members',
       'Enterprise support',
     ],
