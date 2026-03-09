@@ -235,11 +235,11 @@ const PDF_LAYOUT_SELECTOR_OPTIONS: Array<{ value: PdfImageLayout; label: string 
   { value: 'full_bleed', label: 'Hero Full Bleed' },
   { value: 'split_right', label: 'Split Right (Single)' },
   { value: 'split_left', label: 'Split Left (Single)' },
-  { value: 'split_right_vcols2', label: 'Split Right (2 Vertical Side-by-Side)' },
-  { value: 'split_left_vcols2', label: 'Split Left (2 Vertical Side-by-Side)' },
-  { value: 'split_right_vcols3', label: 'Split Right (3 Vertical Side-by-Side)' },
-  { value: 'split_left_vcols3', label: 'Split Left (3 Vertical Side-by-Side)' },
-  { value: 'full_bleed_vcols4', label: 'Hero Full Bleed (4 Vertical Side-by-Side)' },
+  { value: 'split_right_vcols2', label: 'Split Right (2 Columns)' },
+  { value: 'split_left_vcols2', label: 'Split Left (2 Columns)' },
+  { value: 'split_right_vcols3', label: 'Split Right (3 Columns)' },
+  { value: 'split_left_vcols3', label: 'Split Left (3 Columns)' },
+  { value: 'full_bleed_vcols4', label: 'Hero Full Bleed (4 Columns)' },
   { value: 'text_only', label: 'Text Only' },
 ];
 
@@ -257,11 +257,11 @@ function getLayoutPreviewLabelFor(layout: PdfImageLayout): string {
   if (layout === 'split_right_vstack2') return 'Split Right: 2 Vertical';
   if (layout === 'split_left_grid4') return 'Split Left: Collage (4)';
   if (layout === 'split_right_grid4') return 'Split Right: Collage (4)';
-  if (layout === 'split_left_vcols2') return 'Split Left: 2 Side-by-Side Vertical';
-  if (layout === 'split_right_vcols2') return 'Split Right: 2 Side-by-Side Vertical';
-  if (layout === 'split_left_vcols3') return 'Split Left: 3 Side-by-Side Vertical';
-  if (layout === 'split_right_vcols3') return 'Split Right: 3 Side-by-Side Vertical';
-  if (layout === 'full_bleed_vcols4') return 'Hero: 4 Side-by-Side Vertical';
+  if (layout === 'split_left_vcols2') return 'Split Left: 2 Columns';
+  if (layout === 'split_right_vcols2') return 'Split Right: 2 Columns';
+  if (layout === 'split_left_vcols3') return 'Split Left: 3 Columns';
+  if (layout === 'split_right_vcols3') return 'Split Right: 3 Columns';
+  if (layout === 'full_bleed_vcols4') return 'Hero: 4 Columns';
   return 'Text Only';
 }
 
@@ -2664,6 +2664,9 @@ export default function PitchDeckEditorPage() {
                         </span>
                       </div>
                     </div>
+                    <p className="mt-2 text-[11px] text-gray-500">
+                      Tip: Portrait-ish images (9:16, 9:21, 2:3) crop best in multi-column layouts.
+                    </p>
 
                     <div className="mt-3 rounded border border-[#2a2a2a] bg-[#101010] p-3">
                       <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">
