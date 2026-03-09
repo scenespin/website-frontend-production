@@ -108,23 +108,6 @@ export default function PricingPage() {
           </div>
         </section>
 
-        {/* Free Tier */}
-        <section className="py-20 bg-[#0A0A0A]">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="bg-[#141414] border-2 border-[#DC143C] rounded-lg p-6 md:p-8 text-center mx-4 md:mx-0">
-              <h2 className="text-2xl md:text-3xl font-bold mb-3 md:mb-4">Free Tier</h2>
-              <p className="text-xl md:text-2xl text-[#DC143C] font-bold mb-2">50 credits to start + 10 credits/month</p>
-              <p className="text-base md:text-lg text-gray-300 mb-4 md:mb-6">Everything unlocked. No credit card required.</p>
-              <Link
-                href="/sign-up"
-                className="inline-flex items-center justify-center px-6 py-3 bg-[#DC143C] text-white font-semibold rounded-lg hover:bg-[#B01030] transition-colors min-h-[44px] w-full sm:w-auto max-w-xs"
-              >
-                Start Free
-              </Link>
-            </div>
-          </div>
-        </section>
-
         {/* Subscriptions */}
         <section id="subscriptions" className="py-20 bg-[#141414]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
