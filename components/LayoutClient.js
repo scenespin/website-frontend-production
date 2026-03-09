@@ -20,7 +20,8 @@ import { fixCorruptedBeatsInLocalStorage } from "@/utils/fixCorruptedBeats";
 // Temporarily disabled - Mobile Debug Panel (bug drawer on mobile)
 // import { MobileDebugPanel } from "@/components/debug/MobileDebugPanel";
 
-// Newsletter sync: when a signed-in Clerk user loads the app, subscribe them to newsletter/onboarding once per session
+// Newsletter sync fallback: when a signed-in Clerk user loads the app, subscribe them once per session.
+// Intentionally uses enrollOnboarding=false until onboarding copy is approved for sends.
 const NewsletterSync = () => {
   const { user, isLoaded } = useUser();
 
@@ -43,7 +44,7 @@ const NewsletterSync = () => {
         name: user.fullName || null,
         user_id: user.id,
         source: "signup",
-        enrollOnboarding: true,
+        enrollOnboarding: false,
       }),
     }).catch((err) => console.warn("[NewsletterSync] subscribe failed:", err?.message || err));
   }, [isLoaded, user]);

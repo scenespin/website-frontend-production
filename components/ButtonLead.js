@@ -5,7 +5,8 @@ import { toast } from "react-hot-toast";
 import apiClient from "@/libs/api";
 
 // Newsletter signup form: email input + "Join newsletter" button.
-// Submits to /api/lead and /api/newsletter/subscribe (source: lead_form, enrollOnboarding: true).
+// Submits to /api/lead and /api/newsletter/subscribe (source: lead_form).
+// Intentionally uses enrollOnboarding=false until onboarding copy is approved for sends.
 // Use on landing, footer, or promo sections for marketing and promotions.
 const ButtonLead = ({ extraStyle }) => {
   const inputRef = useRef(null);
@@ -25,7 +26,7 @@ const ButtonLead = ({ extraStyle }) => {
         await apiClient.post("/newsletter/subscribe", {
           email,
           source: "lead_form",
-          enrollOnboarding: true,
+          enrollOnboarding: false,
         });
       } catch (newsletterErr) {
         console.warn("[ButtonLead] Newsletter subscribe failed:", newsletterErr?.message || newsletterErr);
