@@ -69,13 +69,13 @@ export default function CreditWidget() {
           <span className="text-xs text-base-content/60 leading-tight text-center mt-0.5">credits</span>
         </div>
 
-        {/* Plan & Billing Button */}
+        {/* Plans Button */}
         <button
           onClick={() => setShowQuickPurchase(true)}
           className="flex items-center gap-1.5 px-4 py-2 bg-base-200 hover:bg-base-300 rounded-lg border border-base-300/50 transition-colors text-sm font-medium text-base-content min-h-[40px]"
         >
           <span className="text-base">💰</span>
-          <span>Plan & Billing</span>
+          <span>Plans</span>
         </button>
 
         {/* Auto-Recharge Status Badge */}
