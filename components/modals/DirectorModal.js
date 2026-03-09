@@ -56,7 +56,7 @@ export default function DirectorModal({
   onInsert
 }) {
   const { state: chatState } = useChatContext();
-  const { characters } = useScreenplay();
+  const { characters, screenplayId } = useScreenplay();
   const [isLoading, setIsLoading] = useState(false);
   const [loadingStage, setLoadingStage] = useState(null); // 'building' | 'generating' | null
   const [abortController, setAbortController] = useState(null);
@@ -289,6 +289,7 @@ Rules:
           userPrompt: builtPrompt,
           systemPrompt: systemPrompt,
           desiredModelId: selectedModel,
+          screenplayId: typeof screenplayId === 'string' && screenplayId.trim() ? screenplayId.trim() : undefined,
           conversationHistory: [], // Empty for standalone request
           sceneContext: sceneContext ? {
             heading: sceneContext.heading,

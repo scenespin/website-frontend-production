@@ -18,7 +18,7 @@ import { Loader2, Send } from 'lucide-react';
 export function LocationModePanel({ onInsert, editorContent, cursorPosition }) {
   const { state, addMessage, setInput, setMode, setWorkflow, setWorkflowCompletion, setPlaceholder, setStreaming } = useChatContext();
   const { state: editorState, insertText, saveNow } = useEditor();
-  const { createLocation } = useScreenplay();
+  const { createLocation, screenplayId } = useScreenplay();
   const { closeDrawer } = useDrawer();
   const pathname = usePathname();
   const isEditorPage = pathname?.includes('/write') || pathname?.includes('/editor');
@@ -179,6 +179,7 @@ REQUIRED OUTPUT FORMAT:
             userPrompt: 'Generate the location profile based on all the answers provided.',
             systemPrompt: finalSystemPrompt,
             desiredModelId: selectedModel,
+            screenplayId: typeof screenplayId === 'string' && screenplayId.trim() ? screenplayId.trim() : undefined,
             conversationHistory,
             sceneContext: null
           },

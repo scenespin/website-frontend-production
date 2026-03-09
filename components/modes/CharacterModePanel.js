@@ -17,7 +17,7 @@ import toast from 'react-hot-toast';
 export function CharacterModePanel({ onInsert, editorContent, cursorPosition }) {
   const { state, addMessage, setInput, setMode, setWorkflow, setWorkflowCompletion, setPlaceholder, setStreaming } = useChatContext();
   const { state: editorState, insertText, saveNow } = useEditor();
-  const { createCharacter } = useScreenplay();
+  const { createCharacter, screenplayId } = useScreenplay();
   const { closeDrawer } = useDrawer();
   const pathname = usePathname();
   const isEditorPage = pathname?.includes('/write') || pathname?.includes('/editor');
@@ -199,6 +199,7 @@ REQUIRED OUTPUT FORMAT:
             userPrompt: 'Generate the character profile based on all the answers provided.',
             systemPrompt: finalSystemPrompt,
             desiredModelId: selectedModel,
+            screenplayId: typeof screenplayId === 'string' && screenplayId.trim() ? screenplayId.trim() : undefined,
             conversationHistory,
             sceneContext: null
           },
