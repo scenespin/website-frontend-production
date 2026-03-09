@@ -39,6 +39,30 @@ const MODE_CONFIG = {
 // Mode order: Only Story Advisor, Character, and Location
 const MODE_ORDER = ['chat', 'character', 'location'];
 
+// Conservative quick-fix caps for chat payload size.
+const MAX_CHAT_HISTORY_MESSAGES = 6;
+const MAX_CHAT_HISTORY_MESSAGE_CHARS = 1500;
+const MAX_SYSTEM_PROMPT_CHARS = 90000;
+
+function clampPromptText(value, maxChars) {
+  if (typeof value !== 'string') return '';
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  return trimmed.length > maxChars ? `${trimmed.slice(0, maxChars)}...` : trimmed;
+}
+
+function sanitizeConversationHistory(messages) {
+  if (!Array.isArray(messages)) return [];
+  return messages
+    .slice(-MAX_CHAT_HISTORY_MESSAGES)
+    .map((message) => {
+      const role = message?.role === 'assistant' ? 'assistant' : 'user';
+      const content = clampPromptText(message?.content, MAX_CHAT_HISTORY_MESSAGE_CHARS);
+      return content ? { role, content } : null;
+    })
+    .filter(Boolean);
+}
+
 // ============================================================================
 // PAGE-BASED AGENT FILTERING
 // ============================================================================
@@ -1069,11 +1093,8 @@ function UnifiedChatPanelInner({
       
       try {
         // Build conversation history (last 10 messages for this mode)
-        const modeMessages = state.messages.filter(m => m.mode === state.activeMode).slice(-10);
-        const conversationHistory = modeMessages.map(m => ({
-          role: m.role,
-          content: m.content
-        }));
+        const modeMessages = state.messages.filter(m => m.mode === state.activeMode);
+        const conversationHistory = sanitizeConversationHistory(modeMessages);
         
         // Build prompt - use rewrite prompt builder if selected text exists
         let finalUserPrompt = message;
@@ -1313,11 +1334,13 @@ function UnifiedChatPanelInner({
               }
             : {};
         
+        const boundedSystemPrompt = clampPromptText(systemPrompt, MAX_SYSTEM_PROMPT_CHARS);
+
         // 🔥 DIAGNOSTIC: Log what we're sending to the API
         console.log('[UnifiedChatPanel] 📤 Sending to API:', {
           mode: state.activeMode,
-          systemPromptLength: systemPrompt.length,
-          systemPromptPreview: systemPrompt.substring(0, 500) + (systemPrompt.length > 500 ? '...' : ''),
+          systemPromptLength: boundedSystemPrompt.length,
+          systemPromptPreview: boundedSystemPrompt.substring(0, 500) + (boundedSystemPrompt.length > 500 ? '...' : ''),
           userPromptLength: finalUserPrompt.length,
           hasSceneContext: !!apiSceneContext,
           sceneContext: apiSceneContext,
@@ -1332,7 +1355,7 @@ function UnifiedChatPanelInner({
         await api.chat.generateStream(
           {
             userPrompt: finalUserPrompt, // Use built prompt (rewrite or original)
-            systemPrompt: systemPrompt,
+            systemPrompt: boundedSystemPrompt,
             desiredModelId: state.selectedModel || 'claude-sonnet-4-6',
             conversationHistory,
             sceneContext: apiSceneContext,

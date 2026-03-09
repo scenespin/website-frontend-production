@@ -15,6 +15,28 @@ import { extractCreditError, getCreditErrorDisplayMessage, syncCreditsFromError 
 import toast from 'react-hot-toast';
 
 // Story Advisor: No Fountain parsing needed (consultation only, no content generation)
+const MAX_CHAT_HISTORY_MESSAGES = 6;
+const MAX_CHAT_HISTORY_MESSAGE_CHARS = 1500;
+const MAX_SYSTEM_PROMPT_CHARS = 90000;
+
+function clampPromptText(value, maxChars) {
+  if (typeof value !== 'string') return '';
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+  return trimmed.length > maxChars ? `${trimmed.slice(0, maxChars)}...` : trimmed;
+}
+
+function sanitizeConversationHistory(messages) {
+  if (!Array.isArray(messages)) return [];
+  return messages
+    .slice(-MAX_CHAT_HISTORY_MESSAGES)
+    .map((message) => {
+      const role = message?.role === 'assistant' ? 'assistant' : 'user';
+      const content = clampPromptText(message?.content, MAX_CHAT_HISTORY_MESSAGE_CHARS);
+      return content ? { role, content } : null;
+    })
+    .filter(Boolean);
+}
 
 function ChatModePanelInner({ onInsert, onWorkflowComplete, editorContent, cursorPosition, pitchDeckContextPacket }) {
   console.log('[ChatModePanel] 🔄 RENDER', { hasEditorContent: !!editorContent, cursorPosition });
@@ -236,10 +258,7 @@ function ChatModePanelInner({ onInsert, onWorkflowComplete, editorContent, curso
       
       // Get conversation history for token calculation
       // Use memoized chatMessages to prevent unnecessary recalculations
-      const conversationHistory = chatMessages.map(m => ({
-        role: m.role,
-        content: m.content
-      }));
+      const conversationHistory = sanitizeConversationHistory(chatMessages);
       
       // Base system prompt (without screenplay content)
       const systemPromptBase = `You are a professional screenplay consultant and screenwriter. Provide advice, analysis, creative guidance, and screenplay writing support.
@@ -375,7 +394,7 @@ function ChatModePanelInner({ onInsert, onWorkflowComplete, editorContent, curso
       });
       
       // Build final system prompt with context
-      const systemPrompt = systemPromptBase + contextPromptString + contextAccessPolicyBlock;
+      const systemPrompt = clampPromptText(systemPromptBase + contextPromptString + contextAccessPolicyBlock, MAX_SYSTEM_PROMPT_CHARS);
       
       // Add user message
       addMessage({
