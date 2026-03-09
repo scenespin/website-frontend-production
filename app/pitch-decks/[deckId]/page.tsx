@@ -632,10 +632,24 @@ export default function PitchDeckEditorPage() {
     }
     return selectedImageBlock.content as any;
   }, [selectedImageBlock]);
+  const buildMediaProxyUrl = useCallback((s3Key?: string): string => {
+    if (!s3Key) return '';
+    return `/api/media/file?key=${encodeURIComponent(s3Key)}`;
+  }, []);
   const selectedSlotImageOptions = useMemo(() => {
     const options = selectedImageContent.imageOptions;
     if (Array.isArray(options)) {
-      return options.filter((option: any) => option && typeof option.imageUrl === 'string') as SlotImageOption[];
+      return options
+        .filter((option: any) => option && typeof option.imageUrl === 'string')
+        .map((option: any) => {
+          const s3Key = typeof option?.s3Key === 'string' ? option.s3Key : undefined;
+          const imageUrl = s3Key ? buildMediaProxyUrl(s3Key) : option.imageUrl;
+          return {
+            ...option,
+            imageUrl,
+            s3Key,
+          } as SlotImageOption;
+        });
     }
     const legacyImageUrl = typeof selectedImageContent.imageUrl === 'string' ? selectedImageContent.imageUrl : '';
     if (!legacyImageUrl) return [] as SlotImageOption[];
@@ -648,7 +662,7 @@ export default function PitchDeckEditorPage() {
         createdAt: new Date().toISOString(),
       },
     ];
-  }, [selectedImageContent, selectedImageBlock]);
+  }, [buildMediaProxyUrl, selectedImageContent, selectedImageBlock]);
   const activeSlotImageId = useMemo(() => {
     const activeId = selectedImageContent.activeImageId;
     if (typeof activeId === 'string' && activeId.trim()) return activeId;
@@ -1522,17 +1536,18 @@ export default function PitchDeckEditorPage() {
       s3Key?: string;
     }
   ) => {
+    const persistentImageUrl = input.s3Key ? buildMediaProxyUrl(input.s3Key) : input.imageUrl;
     const nextOption: SlotImageOption = {
       id: `imgopt_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-      imageUrl: input.imageUrl,
+      imageUrl: persistentImageUrl,
       sourceType: input.sourceType,
       label: input.label,
       createdAt: new Date().toISOString(),
       s3Key: input.s3Key,
     };
-    const deduped = selectedSlotImageOptions.filter((option) => option.imageUrl !== input.imageUrl);
+    const deduped = selectedSlotImageOptions.filter((option) => option.imageUrl !== persistentImageUrl);
     const nextOptions = [nextOption, ...deduped].slice(0, 30);
-    updateSelectedSlideImageUrl(input.imageUrl, input.sourceType, {
+    updateSelectedSlideImageUrl(persistentImageUrl, input.sourceType, {
       activeImageId: nextOption.id,
       imageOptions: nextOptions,
     });
@@ -2153,7 +2168,14 @@ export default function PitchDeckEditorPage() {
               disabled={exportingPdf}
               className="rounded border border-[#3F3F46] px-3 py-2 text-sm font-medium text-gray-200 hover:bg-white/5 disabled:opacity-50"
             >
-              {exportingPdf ? 'Exporting PDF...' : 'Export PDF'}
+              {exportingPdf ? 'Exporting PDF...' : 'Export to PDF'}
+            </button>
+            <button
+              onClick={handleRenameDeck}
+              disabled={renamingDeck}
+              className="rounded border border-[#3F3F46] px-3 py-2 text-sm font-medium text-gray-200 hover:bg-white/5 disabled:opacity-50"
+            >
+              {renamingDeck ? 'Renaming...' : 'Rename'}
             </button>
             <button
               onClick={() =>
@@ -2162,13 +2184,6 @@ export default function PitchDeckEditorPage() {
               className="rounded border border-[#3F3F46] px-3 py-2 text-sm font-medium text-gray-200 hover:bg-white/5"
             >
               Back to Decks
-            </button>
-            <button
-              onClick={handleRenameDeck}
-              disabled={renamingDeck}
-              className="rounded border border-[#3F3F46] px-3 py-2 text-sm font-medium text-gray-200 hover:bg-white/5 disabled:opacity-50"
-            >
-              {renamingDeck ? 'Renaming...' : 'Rename'}
             </button>
           </div>
         </div>
@@ -2308,7 +2323,7 @@ export default function PitchDeckEditorPage() {
                 {hasSelectedImageSlot ? (
                   <div className="mt-4 rounded border border-[#3F3F46] bg-[#121212] p-3">
                     <div className="flex items-center justify-between gap-2">
-                      <p className="text-xs uppercase tracking-wide text-gray-400">Slide image slot</p>
+                      <p className="text-xs uppercase tracking-wide text-gray-400">Feature Image</p>
                       <span className="rounded border border-[#2f2f2f] bg-[#0f0f0f] px-2 py-0.5 text-[10px] text-gray-300">
                         Export layout: {getLayoutPreviewLabel(deckTemplateId, selectedSlide.slideType)}
                       </span>
@@ -2475,7 +2490,8 @@ export default function PitchDeckEditorPage() {
                               )}
                             </div>
                           ) : null}
-                          <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
+                          {!showArchiveBrowser ? (
+                            <div className="mt-2 grid grid-cols-1 md:grid-cols-2 gap-2">
                             <select
                               value={existingSourceFilter}
                               onChange={(e) => {
@@ -2511,7 +2527,8 @@ export default function PitchDeckEditorPage() {
                                 </option>
                               ))}
                             </select>
-                          </div>
+                            </div>
+                          ) : null}
                           <div className="mt-2 flex items-center justify-end">
                             <button
                               type="button"
@@ -2756,7 +2773,7 @@ export default function PitchDeckEditorPage() {
                             value={referencePromptText}
                             onChange={(e) => setReferencePromptText(e.target.value)}
                             rows={2}
-                            placeholder="Describe how to transform the reference image..."
+                            placeholder="Describe how to transform the reference image(s)..."
                             className="mt-2 w-full rounded bg-[#141414] border border-[#3F3F46] px-3 py-2 text-sm text-white"
                           />
                           <div className="mt-2 flex flex-col md:flex-row gap-2">
