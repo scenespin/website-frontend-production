@@ -863,6 +863,17 @@ export default function PitchDeckEditorPage() {
     return '';
   };
 
+  const isLikelySignedExpiringUrl = (value: string): boolean => {
+    const lower = value.toLowerCase();
+    return (
+      lower.includes('x-amz-signature=') ||
+      lower.includes('x-amz-algorithm=') ||
+      lower.includes('x-amz-credential=') ||
+      lower.includes('x-goog-signature=') ||
+      lower.includes('googleaccessid=')
+    );
+  };
+
   type ImageCandidate = {
     imageUrl: string;
     outfitName?: string;
@@ -1059,36 +1070,46 @@ export default function PitchDeckEditorPage() {
       locations.forEach((location) => {
         const name = String(location?.name || 'Location');
         const locationId = String(location?.location_id || location?.id || name);
-        const imageCandidates = extractEntityImageCandidates(location as Record<string, unknown>, [
-          'images',
-          'referenceImages',
-          'baseReference',
-          'angleVariations',
-          'backgrounds',
-          'media',
-        ]);
-        imageCandidates.forEach((candidate, index) => {
+        const canonicalImages = Array.isArray(location?.images) ? location.images : [];
+        canonicalImages.forEach((image: any, index: number) => {
+          const metadata = (typeof image?.metadata === 'object' && image.metadata) ? image.metadata : {};
+          const s3Key =
+            typeof image?.s3Key === 'string' && image.s3Key.trim().length > 0
+              ? image.s3Key.trim()
+              : typeof metadata?.s3Key === 'string' && metadata.s3Key.trim().length > 0
+                ? metadata.s3Key.trim()
+                : '';
+          const rawImageUrl = normalizeImageUrl(image?.imageUrl || image?.url || '');
+          if (!s3Key && (!rawImageUrl || isLikelySignedExpiringUrl(rawImageUrl))) {
+            return;
+          }
+          const imageUrl = s3Key ? `/api/media/file?key=${encodeURIComponent(s3Key)}` : rawImageUrl;
+          const angle = typeof metadata?.angle === 'string' ? metadata.angle : (typeof image?.angle === 'string' ? image.angle : undefined);
+          const backgroundType =
+            typeof metadata?.backgroundType === 'string'
+              ? metadata.backgroundType
+              : (typeof image?.backgroundType === 'string' ? image.backgroundType : undefined);
+          const sourceHint = typeof metadata?.source === 'string' ? metadata.source : '';
           const variantLabel =
-            candidate.useCase === 'extreme-closeup'
-              ? 'Extreme close-up'
-              : candidate.backgroundType
-                ? `Background: ${candidate.backgroundType}`
-                : candidate.angle
-                  ? `Angle: ${candidate.angle}`
-                  : candidate.sourceHint?.toLowerCase().includes('angle')
-                    ? 'Angle'
-                    : 'Creation';
+            backgroundType
+              ? `Background: ${backgroundType}`
+              : angle
+                ? `Angle: ${angle}`
+                : sourceHint.toLowerCase().includes('angle')
+                  ? 'Angle'
+                  : 'Creation';
           pushMedia({
-            id: `location:${locationId}:${index}`,
-            label: `Location - ${name} • ${variantLabel}${index > 0 ? ` (${index + 1})` : ''}`,
+            id: `location:${locationId}:${typeof image?.s3Key === 'string' ? image.s3Key : index}`,
+            label: `Location - ${name} • ${variantLabel}`,
             sourceType: 'location',
             entityId: locationId,
             entityName: name,
             groupKey: `variant:${variantLabel.toLowerCase()}`,
             groupLabel: variantLabel,
-            angle: candidate.angle,
-            backgroundType: candidate.backgroundType,
-            imageUrl: candidate.imageUrl,
+            angle: angle || undefined,
+            backgroundType: backgroundType || undefined,
+            imageUrl,
+            s3Key: s3Key || undefined,
           });
         });
       });
