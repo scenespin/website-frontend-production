@@ -109,7 +109,7 @@ export default function InsufficientCreditsModal({
 
               {/* Message */}
               <p className="text-sm text-base-content/80">
-                Purchase credits to continue using AI-powered features like video generation, 
+                Choose a monthly plan to continue using AI-powered features like video generation,
                 image creation, and more.
               </p>
 
@@ -122,7 +122,7 @@ export default function InsufficientCreditsModal({
                   className="flex-1 btn btn-primary bg-cinema-red hover:bg-cinema-red/90 border-none"
                 >
                   <Zap className="w-4 h-4 mr-2" />
-                  Add Credits
+                  View Plans
                 </button>
                 <button
                   onClick={() => {
@@ -131,7 +131,7 @@ export default function InsufficientCreditsModal({
                   }}
                   className="btn btn-outline border-base-300 hover:bg-base-200"
                 >
-                  View Packages
+                  Plan Details
                 </button>
               </div>
             </div>

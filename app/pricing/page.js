@@ -6,7 +6,7 @@ import logo from "@/app/icon.png";
 
 export const metadata = getSEOTags({
   title: `Pricing - Everything Free, Pay for Credits | ${config.appName}`,
-  description: "All features unlocked. Only pay for AI generation. Credit packages and subscriptions available. 50 free credits to start.",
+  description: "All features unlocked. Only pay for AI generation. Monthly plans available with included credits. 50 free credits to start.",
   canonicalUrlRelative: "/pricing",
 });
 
@@ -62,7 +62,7 @@ export default function PricingPage() {
               Start Free. Upgrade for More Credits.
             </h1>
             <p className="text-base sm:text-lg md:text-xl text-gray-300 max-w-3xl mx-auto mb-6 md:mb-8 px-4">
-              All features are unlocked on every plan. Your only decision is how many credits you want each month, or whether you prefer one-time credit packs.
+              All features are unlocked on every plan. Your only decision is how many credits you want each month.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center px-4">
               <Link
@@ -92,7 +92,7 @@ export default function PricingPage() {
               <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg p-4">
                 <p className="text-xs uppercase tracking-wide text-gray-500 mb-1">Step 3</p>
                 <p className="text-sm text-gray-200 font-medium">Upgrade only for volume</p>
-                <p className="text-xs text-gray-400 mt-1">Pick a monthly plan for lower per-credit cost, or top up anytime.</p>
+                <p className="text-xs text-gray-400 mt-1">Pick a monthly plan for lower per-credit cost as your usage grows.</p>
               </div>
             </div>
             <div className="mt-4 max-w-4xl mx-auto px-4">
@@ -265,123 +265,6 @@ export default function PricingPage() {
                     Learn more →
                   </Link>
                 </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Credit Packages */}
-        <section className="py-20 bg-[#0A0A0A]">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12 md:mb-16 px-4">
-              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 md:mb-4">
-                Credit Packages (One-Time Purchase)
-              </h2>
-              <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto">
-                Best for flexible or occasional usage. No monthly commitment and credits never expire.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 px-4">
-              <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-6 md:p-8">
-                <h3 className="text-xl md:text-2xl font-bold mb-2">Starter Pack</h3>
-                <div className="text-3xl md:text-4xl font-extrabold mb-2">$10</div>
-                <div className="bg-[#DC143C]/10 p-3 rounded-lg mb-4">
-                  <p className="text-sm font-semibold">500 credits</p>
-                </div>
-                <ul className="space-y-2 text-sm text-gray-300 mb-6">
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#DC143C]">✓</span>
-                    <span>Test scene generation workflows</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#DC143C]">✓</span>
-                    <span>Create character & location angle packages</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#DC143C]">✓</span>
-                    <span>Generate AI images for production</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#DC143C]">✓</span>
-                    <span>Model options and resolutions shown per generation</span>
-                  </li>
-                </ul>
-                <Link
-                  href="/buy-credits"
-                  className="block w-full text-center px-6 py-3 bg-[#DC143C] text-white font-semibold rounded-lg hover:bg-[#B01030] transition-colors min-h-[44px] flex items-center justify-center"
-                >
-                  Buy Credits
-                </Link>
-              </div>
-
-              <div className="bg-[#141414] border-2 border-[#DC143C] rounded-lg p-6 md:p-8 relative">
-                <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-1/2">
-                  <span className="px-3 py-1 bg-[#DC143C] text-white text-xs font-semibold rounded">BEST VALUE</span>
-                </div>
-                <h3 className="text-xl md:text-2xl font-bold mb-2">Booster Pack</h3>
-                <div className="text-3xl md:text-4xl font-extrabold mb-2">$25</div>
-                <div className="bg-[#DC143C]/10 p-3 rounded-lg mb-4">
-                  <p className="text-sm font-semibold">1,500 credits</p>
-                  <p className="text-xs text-gray-400 mt-1">17% discount</p>
-                </div>
-                <ul className="space-y-2 text-sm text-gray-300 mb-6">
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#DC143C]">✓</span>
-                    <span>Generate multiple scenes from screenplays</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#DC143C]">✓</span>
-                    <span>Build character & location libraries</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#DC143C]">✓</span>
-                    <span>Create angle packages (3-10 angles each)</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#DC143C]">✓</span>
-                    <span>Priority generation</span>
-                  </li>
-                </ul>
-                <Link
-                  href="/buy-credits"
-                  className="block w-full text-center px-6 py-3 bg-[#DC143C] text-white font-semibold rounded-lg hover:bg-[#B01030] transition-colors min-h-[44px] flex items-center justify-center"
-                >
-                  Buy Credits
-                </Link>
-              </div>
-
-              <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-6 md:p-8">
-                <h3 className="text-xl md:text-2xl font-bold mb-2">Mega Pack</h3>
-                <div className="text-3xl md:text-4xl font-extrabold mb-2">$60</div>
-                <div className="bg-[#DC143C]/10 p-3 rounded-lg mb-4">
-                  <p className="text-sm font-semibold">4,000 credits</p>
-                  <p className="text-xs text-gray-400 mt-1">25% discount</p>
-                </div>
-                <ul className="space-y-2 text-sm text-gray-300 mb-6">
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#DC143C]">✓</span>
-                    <span>Full production projects</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#DC143C]">✓</span>
-                    <span>Complete character & location libraries</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#DC143C]">✓</span>
-                    <span>Multiple angle packages (premium tiers)</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-[#DC143C]">✓</span>
-                    <span>Priority support</span>
-                  </li>
-                </ul>
-                <Link
-                  href="/buy-credits"
-                  className="block w-full text-center px-6 py-3 bg-[#DC143C] text-white font-semibold rounded-lg hover:bg-[#B01030] transition-colors min-h-[44px] flex items-center justify-center"
-                >
-                  Buy Credits
-                </Link>
               </div>
             </div>
           </div>
