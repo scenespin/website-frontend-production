@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation';
 import { useChatContext } from '@/contexts/ChatContext';
 import { useChatMode } from '@/hooks/useChatMode';
 import { useDrawer } from '@/contexts/DrawerContext';
+import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { RotateCcw } from 'lucide-react';
 import { MarkdownRenderer } from '../MarkdownRenderer';
 import { api } from '@/lib/api';
@@ -42,6 +43,7 @@ function ChatModePanelInner({ onInsert, onWorkflowComplete, editorContent, curso
   console.log('[ChatModePanel] 🔄 RENDER', { hasEditorContent: !!editorContent, cursorPosition });
   const { state, addMessage, setInput, setStreaming, clearMessagesForMode, setSceneContext, setSelectedTextContext } = useChatContext();
   const pathname = usePathname();
+  const { screenplayId } = useScreenplay();
   const { closeDrawer } = useDrawer();
   const {
     activeWorkflow,
@@ -420,6 +422,11 @@ function ChatModePanelInner({ onInsert, onWorkflowComplete, editorContent, curso
           userPrompt: builtPrompt,
           systemPrompt: systemPrompt,
           desiredModelId: selectedModel,
+          screenplayId: (typeof screenplayId === 'string' && screenplayId.trim())
+            ? screenplayId.trim()
+            : (typeof pitchDeckContextPacket?.screenplayId === 'string' && pitchDeckContextPacket.screenplayId.trim())
+              ? pitchDeckContextPacket.screenplayId.trim()
+              : undefined,
           conversationHistory,
           sceneContext: contextData.currentScene ? {
             heading: contextData.currentScene.heading,

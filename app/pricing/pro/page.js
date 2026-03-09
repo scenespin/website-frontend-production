@@ -6,7 +6,7 @@ import logo from "@/app/icon.png";
 import { Check, Zap, Video, Sparkles, Shield, ArrowRight } from "lucide-react";
 
 export const metadata = getSEOTags({
-  title: `Pro Plan - $29/month | 3,000 Credits | ${config.appName}`,
+  title: `Pro Plan - $20/month | 3,000 Credits | ${config.appName}`,
   description: "Pro Plan: 3,000 monthly credits for content creators. All features unlocked. Credits roll over. Cancel anytime. Perfect for YouTube creators, content marketers, and freelancers.",
   canonicalUrlRelative: "/pricing/pro",
 });
@@ -85,7 +85,7 @@ export default function ProPricingPage() {
               <div className="text-center mb-8">
                 <h2 className="text-3xl md:text-4xl font-bold mb-2">Pro Plan</h2>
                 <div className="text-5xl md:text-6xl font-extrabold text-[#DC143C] mb-2">
-                  $29<span className="text-2xl text-gray-400">/month</span>
+                  $20<span className="text-2xl text-gray-400">/month</span>
                 </div>
                 <div className="bg-[#DC143C]/10 p-4 rounded-lg mb-6 inline-block">
                   <p className="text-lg font-semibold">3,000 credits/month</p>
@@ -93,8 +93,8 @@ export default function ProPricingPage() {
                 </div>
                 <div className="bg-[#141414] p-4 rounded-lg mb-6 inline-block">
                   <p className="text-xs text-gray-400 mb-1">Volume Discount</p>
-                  <p className="text-base font-semibold text-white">3% off pay-as-you-go</p>
-                  <p className="text-xs text-gray-500 mt-1">$0.00967 per credit (vs $0.01)</p>
+                  <p className="text-base font-semibold text-white">33% off pay-as-you-go</p>
+                  <p className="text-xs text-gray-500 mt-1">$0.00667 per credit (vs $0.01)</p>
                 </div>
                 <Link
                   href="/sign-up?plan=pro"

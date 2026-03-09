@@ -12,6 +12,7 @@ export const PLAN_IDS = {
   FREE: 'free',
   PRO: 'pro',
   ULTRA: 'ultra',
+  STUDIO: 'studio',
 } as const;
 
 export type PlanId = typeof PLAN_IDS[keyof typeof PLAN_IDS];
@@ -23,6 +24,7 @@ export const PLAN_DISPLAY_NAMES: Record<PlanId, string> = {
   [PLAN_IDS.FREE]: 'Free Plan',
   [PLAN_IDS.PRO]: 'Pro Plan',
   [PLAN_IDS.ULTRA]: 'Ultra Plan',
+  [PLAN_IDS.STUDIO]: 'Studio Plan',
 };
 
 /**
@@ -33,12 +35,15 @@ export const LEGACY_PLAN_NAMES: Record<string, PlanId> = {
   'Free Plan': PLAN_IDS.FREE,
   'Pro Plan': PLAN_IDS.PRO,
   'Ultra Plan': PLAN_IDS.ULTRA,
+  'Studio Plan': PLAN_IDS.STUDIO,
   'Free': PLAN_IDS.FREE,
   'Pro': PLAN_IDS.PRO,
   'Ultra': PLAN_IDS.ULTRA,
+  'Studio': PLAN_IDS.STUDIO,
   'free': PLAN_IDS.FREE,
   'pro': PLAN_IDS.PRO,
   'ultra': PLAN_IDS.ULTRA,
+  'studio': PLAN_IDS.STUDIO,
 };
 
 /**
@@ -86,8 +91,8 @@ export const PLAN_DETAILS: Record<PlanId, PlanDetails> = {
   [PLAN_IDS.PRO]: {
     id: PLAN_IDS.PRO,
     displayName: PLAN_DISPLAY_NAMES[PLAN_IDS.PRO],
-    price: '$29/month',
-    priceUSD: 29,
+    price: '$20/month',
+    priceUSD: 20,
     color: 'text-indigo-500',
     credits: '3,000 AI credits/month',
     icon: '✨',
@@ -108,16 +113,16 @@ export const PLAN_DETAILS: Record<PlanId, PlanDetails> = {
   [PLAN_IDS.ULTRA]: {
     id: PLAN_IDS.ULTRA,
     displayName: PLAN_DISPLAY_NAMES[PLAN_IDS.ULTRA],
-    price: '$129/month',
-    priceUSD: 129,
+    price: '$60/month',
+    priceUSD: 60,
     color: 'text-purple-500',
-    credits: '15,000 AI credits/month',
+    credits: '12,000 AI credits/month',
     icon: '🎬',
     keyFeatures: [
-      'Professional Video Generation (~1,000s/month)',
+      'Professional Video Generation at scale',
       'All Premium AI Models',
-      'Video Chaining & Fast Mode',
-      '24/7 Priority Support',
+      'Team collaboration and faster throughput',
+      'Priority support',
     ],
     badge: 'Best Value',
     signupHeadline: 'Scale High-Volume Production',
@@ -126,6 +131,27 @@ export const PLAN_DETAILS: Record<PlanId, PlanDetails> = {
     signupValueProp:
       'High monthly credits for large projects and faster iteration cycles.',
     targetAudience: 'Production companies, agencies, and high-volume teams',
+  },
+  [PLAN_IDS.STUDIO]: {
+    id: PLAN_IDS.STUDIO,
+    displayName: PLAN_DISPLAY_NAMES[PLAN_IDS.STUDIO],
+    price: '$200/month',
+    priceUSD: 200,
+    color: 'text-rose-500',
+    credits: '50,000 AI credits/month',
+    icon: '🏢',
+    keyFeatures: [
+      '2,000 Ray Flash videos/month',
+      '666 Ray 2 premium videos/month',
+      'Unlimited team members',
+      'Enterprise support',
+    ],
+    signupHeadline: 'Enterprise Throughput',
+    signupSubheadline:
+      'Highest monthly credits for studios and teams running large production workloads.',
+    signupValueProp:
+      'Built for high-volume organizations that need scale and predictable billing.',
+    targetAudience: 'Studios, agencies, and enterprise production teams',
   },
 };
 

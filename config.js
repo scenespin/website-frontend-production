@@ -39,13 +39,10 @@ const config = {
       },
       {
         isFeatured: true,
-        priceId:
-          process.env.NODE_ENV === "development"
-            ? "price_1SKx4VICG7b2tCpeJWQJnGER" // $29/mo (test mode)
-            : "price_1Smba9ICG7b2tCpeg7QYsNYr", // $29/mo (live mode)
+        priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_PRO,
         name: "Pro",
         description: "Same features. Just more credits.",
-        price: 29,
+        price: 20,
         priceAnchor: null,
         features: [
           { name: "3,000 credits/month" },
@@ -61,13 +58,10 @@ const config = {
         targetAudience: "Active writers, creators, and small production teams",
       },
       {
-        priceId:
-          process.env.NODE_ENV === "development"
-            ? "price_1SNesiICG7b2tCpeTKDjOfHU" // $99/mo (test mode)
-            : "price_1SmbaAICG7b2tCpej3EDo7Vf", // $99/mo (live mode)
+        priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_ULTRA,
         name: "Ultra",
         description: "Production volume. Same features.",
-        price: 99,
+        price: 60,
         priceAnchor: null,
         features: [
           { name: "12,000 credits/month" },
@@ -85,13 +79,10 @@ const config = {
         targetAudience: "Production companies, agencies, and high-volume teams",
       },
       {
-        priceId:
-          process.env.NODE_ENV === "development"
-            ? "price_1SN5tWICG7b2tCpecu9dNwif" // $399/mo (test mode)
-            : "price_1SmbaBICG7b2tCpeyOXjzalB", // $399/mo (live mode)
+        priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID_STUDIO,
         name: "Studio",
         description: "Enterprise teams. Same features.",
-        price: 399,
+        price: 200,
         priceAnchor: null,
         features: [
           { name: "50,000 credits/month" },

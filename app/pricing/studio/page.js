@@ -6,7 +6,7 @@ import logo from "@/app/icon.png";
 import { Check, Zap, Video, Sparkles, Shield, ArrowRight, Users, Building2, Rocket, Lock, Palette, Headphones } from "lucide-react";
 
 export const metadata = getSEOTags({
-  title: `Studio Plan - $399/month | 50,000 Credits | ${config.appName}`,
+  title: `Studio Plan - $200/month | 50,000 Credits | ${config.appName}`,
   description: "Studio Plan: 50,000 monthly credits for enterprise teams. All features unlocked. Credits roll over. Cancel anytime. Perfect for large studios, production houses, and enterprise teams.",
   canonicalUrlRelative: "/pricing/studio",
 });
@@ -85,7 +85,7 @@ export default function StudioPricingPage() {
               <div className="text-center mb-8">
                 <h2 className="text-3xl md:text-4xl font-bold mb-2">Studio Plan</h2>
                 <div className="text-5xl md:text-6xl font-extrabold text-[#DC143C] mb-2">
-                  $399<span className="text-2xl text-gray-400">/month</span>
+                  $200<span className="text-2xl text-gray-400">/month</span>
                 </div>
                 <div className="bg-[#DC143C]/10 p-4 rounded-lg mb-6 inline-block">
                   <p className="text-lg font-semibold">50,000 credits/month</p>
@@ -93,8 +93,8 @@ export default function StudioPricingPage() {
                 </div>
                 <div className="bg-[#141414] p-4 rounded-lg mb-6 inline-block">
                   <p className="text-xs text-gray-400 mb-1">Volume Discount</p>
-                  <p className="text-base font-semibold text-white">17% off pay-as-you-go</p>
-                  <p className="text-xs text-gray-500 mt-1">$0.00798 per credit (vs $0.01)</p>
+                  <p className="text-base font-semibold text-white">60% off pay-as-you-go</p>
+                  <p className="text-xs text-gray-500 mt-1">$0.00400 per credit (vs $0.01)</p>
                 </div>
                 <Link
                   href="/sign-up?plan=studio"

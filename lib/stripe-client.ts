@@ -301,7 +301,7 @@ export const CREDIT_PACKAGES = {
  * - 2 Luma Ray Flash videos (25 credits each)
  * - OR 0.66 Luma Ray 2 premium video (75 credits)
  * 
- * Pro Plan: 3,000 monthly credits ($29)
+ * Pro Plan: 3,000 monthly credits ($20)
  * - 120 Ray Flash videos/month
  * - OR 40 Ray 2 premium videos/month
  * 

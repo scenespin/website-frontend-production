@@ -213,10 +213,10 @@ export const articles = [
           
           <h3 className={styles.h3}>Pricing Plans</h3>
           <ul className={styles.ul}>
-            <li className={styles.li}><strong>Free:</strong> 100 signup + 10 credits/month = ~2 professional videos</li>
-            <li className={styles.li}><strong>Pro ($29/mo):</strong> 3,000 credits = ~60 professional videos</li>
-            <li className={styles.li}><strong>Ultra ($149/mo):</strong> 20,000 credits = ~400 professional videos</li>
-            <li className={styles.li}><strong>Studio ($399/mo):</strong> 75,000 credits = ~1,500 professional videos</li>
+            <li className={styles.li}><strong>Free:</strong> 50 signup + 10 credits/month = ~1 professional video</li>
+            <li className={styles.li}><strong>Pro ($20/mo):</strong> 3,000 credits = ~60 professional videos</li>
+            <li className={styles.li}><strong>Ultra ($60/mo):</strong> 12,000 credits = ~240 professional videos</li>
+            <li className={styles.li}><strong>Studio ($200/mo):</strong> 50,000 credits = ~1,000 professional videos</li>
           </ul>
           
           <h3 className={styles.h3}>Credit Costs by Quality</h3>
@@ -276,7 +276,7 @@ export const articles = [
             No feature paywalls. No vendor lock-in.
           </p>
           <p className={styles.p}>
-            <strong>Wryda.ai Pro: $348/year</strong> - but that&apos;s <em>just for AI services</em>, 
+            <strong>Wryda.ai Pro: $240/year</strong> - but that&apos;s <em>just for AI services</em>, 
             not software. You&apos;re getting $1,776 worth of professional tools for free. 
             End subscription fatigue. Start creating.
           </p>

@@ -6,7 +6,7 @@ import logo from "@/app/icon.png";
 import { Check, Zap, Video, Sparkles, Shield, ArrowRight, Users } from "lucide-react";
 
 export const metadata = getSEOTags({
-  title: `Ultra Plan - $99/month | 12,000 Credits | ${config.appName}`,
+  title: `Ultra Plan - $60/month | 12,000 Credits | ${config.appName}`,
   description: "Ultra Plan: 12,000 monthly credits for production companies and agencies. All features unlocked. Credits roll over. Cancel anytime. Perfect for studios, agencies, and high-volume creators.",
   canonicalUrlRelative: "/pricing/ultra",
 });
@@ -88,7 +88,7 @@ export default function UltraPricingPage() {
               <div className="text-center mb-8">
                 <h2 className="text-3xl md:text-4xl font-bold mb-2">Ultra Plan</h2>
                 <div className="text-5xl md:text-6xl font-extrabold text-[#DC143C] mb-2">
-                  $99<span className="text-2xl text-gray-400">/month</span>
+                  $60<span className="text-2xl text-gray-400">/month</span>
                 </div>
                 <div className="bg-[#DC143C]/10 p-4 rounded-lg mb-6 inline-block">
                   <p className="text-lg font-semibold">12,000 credits/month</p>
@@ -96,8 +96,8 @@ export default function UltraPricingPage() {
                 </div>
                 <div className="bg-[#141414] p-4 rounded-lg mb-6 inline-block">
                   <p className="text-xs text-gray-400 mb-1">Volume Discount</p>
-                  <p className="text-base font-semibold text-white">15% off pay-as-you-go</p>
-                  <p className="text-xs text-gray-500 mt-1">$0.00825 per credit (vs $0.01)</p>
+                  <p className="text-base font-semibold text-white">50% off pay-as-you-go</p>
+                  <p className="text-xs text-gray-500 mt-1">$0.00500 per credit (vs $0.01)</p>
                 </div>
                 <Link
                   href="/sign-up?plan=ultra"

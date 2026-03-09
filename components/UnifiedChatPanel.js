@@ -1357,6 +1357,7 @@ function UnifiedChatPanelInner({
             userPrompt: finalUserPrompt, // Use built prompt (rewrite or original)
             systemPrompt: boundedSystemPrompt,
             desiredModelId: state.selectedModel || 'claude-sonnet-4-6',
+            screenplayId: typeof screenplayId === 'string' && screenplayId.trim() ? screenplayId.trim() : undefined,
             conversationHistory,
             sceneContext: apiSceneContext,
             ...pitchDeckChatContext,

@@ -17,7 +17,7 @@ const SUBSCRIPTION_PLANS = [
     price: 20,
     period: "/month",
     priceId: config.stripe.plans[1]?.priceId,
-    savings: "3% off",
+    savings: "33% off",
     features: [
       "3,000 credits/month",
       "Credits roll over (up to 6,000)",
@@ -33,7 +33,7 @@ const SUBSCRIPTION_PLANS = [
     period: "/month",
     priceId: config.stripe.plans[2]?.priceId,
     popular: true,
-    savings: "15% off",
+    savings: "50% off",
     features: [
       "12,000 credits/month",
       "Credits roll over (up to 24,000)",
@@ -48,7 +48,7 @@ const SUBSCRIPTION_PLANS = [
     price: 200,
     period: "/month",
     priceId: config.stripe.plans[3]?.priceId,
-    savings: "17% off",
+    savings: "60% off",
     features: [
       "50,000 credits/month",
       "Credits roll over (up to 100,000)",

@@ -29,9 +29,9 @@ const faqList = [
     answer: (
       <div className="space-y-2 leading-relaxed">
         <p><strong>Free Plan:</strong> 50 signup credits + 10 credits/month = ~1 professional 1080p video</p>
-        <p><strong>Pro Plan ($29/mo):</strong> 3,000 credits = ~60 professional 1080p videos</p>
-        <p><strong>Ultra Plan ($149/mo):</strong> 20,000 credits = ~400 professional videos</p>
-        <p><strong>Studio Plan ($399/mo):</strong> 75,000 credits = ~1,500 professional videos</p>
+        <p><strong>Pro Plan ($20/mo):</strong> 3,000 credits = ~60 professional 1080p videos</p>
+        <p><strong>Ultra Plan ($60/mo):</strong> 12,000 credits = ~240 professional videos</p>
+        <p><strong>Studio Plan ($200/mo):</strong> 50,000 credits = ~1,000 professional videos</p>
         <p className="pt-2"><strong>Credit costs by quality tier:</strong></p>
         <ul className="list-disc pl-5">
           <li>Professional 1080p: 50 credits per 5s</li>
@@ -84,9 +84,9 @@ const faqList = [
         <p><strong>The difference? Just how many credits you get per dollar:</strong></p>
         <ul className="list-disc pl-5 space-y-1">
           <li><strong>Pay-as-you-go:</strong> 1 credit = $0.01 (baseline price)</li>
-          <li><strong>Pro ($29/mo):</strong> 3,000 credits = ~3% discount</li>
-          <li><strong>Ultra ($149/mo):</strong> 20,000 credits = ~25% discount</li>
-          <li><strong>Studio ($399/mo):</strong> 75,000 credits = ~47% discount</li>
+          <li><strong>Pro ($20/mo):</strong> 3,000 credits = ~33% discount</li>
+          <li><strong>Ultra ($60/mo):</strong> 12,000 credits = ~50% discount</li>
+          <li><strong>Studio ($200/mo):</strong> 50,000 credits = ~60% discount</li>
         </ul>
         <p className="font-semibold text-primary">Higher tiers = deeper discounts. Choose based on your monthly video needs!</p>
       </div>

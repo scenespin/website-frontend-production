@@ -70,21 +70,21 @@ export default function CreditsPage() {
               <tbody>
                 <tr>
                   <td><strong>Pro</strong></td>
-                  <td>$29/mo</td>
+                  <td>$20/mo</td>
                   <td>3,000</td>
-                  <td>3% better</td>
+                  <td>33% better</td>
                 </tr>
                 <tr>
                   <td><strong>Ultra</strong></td>
-                  <td>$149/mo</td>
-                  <td>20,000</td>
-                  <td>17% better</td>
+                  <td>$60/mo</td>
+                  <td>12,000</td>
+                  <td>50% better</td>
                 </tr>
                 <tr>
                   <td><strong>Studio</strong></td>
-                  <td>$399/mo</td>
-                  <td>75,000</td>
-                  <td>20% better</td>
+                  <td>$200/mo</td>
+                  <td>50,000</td>
+                  <td>60% better</td>
                 </tr>
               </tbody>
             </table>
@@ -356,8 +356,8 @@ export default function CreditsPage() {
 
           <ul>
             <li>Pro: Roll over up to 3,000cr</li>
-            <li>Ultra: Roll over up to 20,000cr</li>
-            <li>Studio: Roll over up to 75,000cr</li>
+            <li>Ultra: Roll over up to 24,000cr</li>
+            <li>Studio: Roll over up to 100,000cr</li>
           </ul>
 
           <h3>Example:</h3>
