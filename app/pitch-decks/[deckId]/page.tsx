@@ -148,7 +148,20 @@ function getReferenceLimitByModel(modelId: string): number {
   return modelId.includes('nano-banana-pro') ? 14 : 8;
 }
 
-type PdfImageLayout = 'text_only' | 'split_right' | 'split_left' | 'full_bleed';
+type PdfImageLayout =
+  | 'text_only'
+  | 'split_right'
+  | 'split_left'
+  | 'full_bleed'
+  | 'split_right_vstack2'
+  | 'split_left_vstack2'
+  | 'split_right_grid4'
+  | 'split_left_grid4'
+  | 'split_right_vcols2'
+  | 'split_left_vcols2'
+  | 'split_right_vcols3'
+  | 'split_left_vcols3'
+  | 'full_bleed_vcols4';
 type PitchDeckAspectRatio = '1:1' | '2:3' | '3:2' | '3:4' | '4:3' | '4:5' | '5:4' | '9:16' | '16:9' | '21:9' | '9:21';
 const PITCH_DECK_ASPECT_RATIOS: PitchDeckAspectRatio[] = [
   '1:1',
@@ -199,24 +212,79 @@ const PDF_LAYOUT_REGISTRY: Record<string, Partial<Record<string, PdfImageLayout>
   },
 };
 
+const PDF_LAYOUT_VALUES: PdfImageLayout[] = [
+  'text_only',
+  'split_right',
+  'split_left',
+  'full_bleed',
+  'split_right_vstack2',
+  'split_left_vstack2',
+  'split_right_grid4',
+  'split_left_grid4',
+  'split_right_vcols2',
+  'split_left_vcols2',
+  'split_right_vcols3',
+  'split_left_vcols3',
+  'full_bleed_vcols4',
+];
+
+const PDF_LAYOUT_SELECTOR_OPTIONS: Array<{ value: PdfImageLayout; label: string }> = [
+  { value: 'full_bleed', label: 'Hero Full Bleed' },
+  { value: 'split_right', label: 'Split Right (Single)' },
+  { value: 'split_left', label: 'Split Left (Single)' },
+  { value: 'split_right_vcols2', label: 'Split Right (2 Vertical Side-by-Side)' },
+  { value: 'split_left_vcols2', label: 'Split Left (2 Vertical Side-by-Side)' },
+  { value: 'split_right_vcols3', label: 'Split Right (3 Vertical Side-by-Side)' },
+  { value: 'split_left_vcols3', label: 'Split Left (3 Vertical Side-by-Side)' },
+  { value: 'full_bleed_vcols4', label: 'Hero Full Bleed (4 Vertical Side-by-Side)' },
+  { value: 'text_only', label: 'Text Only' },
+];
+
 function getPdfLayout(templateId: string | undefined, slideType: string, hasImage: boolean): PdfImageLayout {
   if (!hasImage) return 'text_only';
   const templateLayouts = (templateId && PDF_LAYOUT_REGISTRY[templateId]) || {};
   return templateLayouts[slideType] || 'split_right';
 }
 
-function getLayoutPreviewLabel(templateId: string | undefined, slideType: string): string {
-  const templateLayouts = (templateId && PDF_LAYOUT_REGISTRY[templateId]) || {};
-  const layout = templateLayouts[slideType] || 'split_right';
+function getLayoutPreviewLabelFor(layout: PdfImageLayout): string {
   if (layout === 'full_bleed') return 'Full Bleed Hero';
   if (layout === 'split_left') return 'Split: Image Left';
   if (layout === 'split_right') return 'Split: Image Right';
+  if (layout === 'split_left_vstack2') return 'Split Left: 2 Vertical';
+  if (layout === 'split_right_vstack2') return 'Split Right: 2 Vertical';
+  if (layout === 'split_left_grid4') return 'Split Left: Collage (4)';
+  if (layout === 'split_right_grid4') return 'Split Right: Collage (4)';
+  if (layout === 'split_left_vcols2') return 'Split Left: 2 Side-by-Side Vertical';
+  if (layout === 'split_right_vcols2') return 'Split Right: 2 Side-by-Side Vertical';
+  if (layout === 'split_left_vcols3') return 'Split Left: 3 Side-by-Side Vertical';
+  if (layout === 'split_right_vcols3') return 'Split Right: 3 Side-by-Side Vertical';
+  if (layout === 'full_bleed_vcols4') return 'Hero: 4 Side-by-Side Vertical';
   return 'Text Only';
 }
 
+function getLayoutPreviewLabel(templateId: string | undefined, slideType: string, override?: PdfImageLayout): string {
+  if (override) return getLayoutPreviewLabelFor(override);
+  const templateLayouts = (templateId && PDF_LAYOUT_REGISTRY[templateId]) || {};
+  const layout = templateLayouts[slideType] || 'split_right';
+  return getLayoutPreviewLabelFor(layout);
+}
+
 function getSuggestedAspectRatiosForLayout(layout: PdfImageLayout): PitchDeckAspectRatio[] {
-  if (layout === 'full_bleed') return ['16:9', '21:9', '1:1'];
-  if (layout === 'split_left' || layout === 'split_right') return ['1:1', '9:16', '9:21'];
+  if (layout === 'full_bleed' || layout === 'full_bleed_vcols4') return ['16:9', '21:9', '1:1'];
+  if (
+    layout === 'split_left' ||
+    layout === 'split_right' ||
+    layout === 'split_left_vstack2' ||
+    layout === 'split_right_vstack2' ||
+    layout === 'split_left_grid4' ||
+    layout === 'split_right_grid4' ||
+    layout === 'split_left_vcols2' ||
+    layout === 'split_right_vcols2' ||
+    layout === 'split_left_vcols3' ||
+    layout === 'split_right_vcols3'
+  ) {
+    return ['9:16', '9:21', '1:1'];
+  }
   return ['16:9', '1:1', '9:16'];
 }
 
@@ -243,6 +311,15 @@ function getSlidePrimaryTextForExport(slide: PitchDeckSlide): string {
   return '';
 }
 
+function getSlideImageExportLayoutOverride(slide: PitchDeckSlide): PdfImageLayout | undefined {
+  const imageBlock = slide.blocks?.find((block) => block.type === 'image');
+  if (!imageBlock || typeof imageBlock.content !== 'object' || !imageBlock.content) return undefined;
+  const content = imageBlock.content as any;
+  const candidate = typeof content.exportLayout === 'string' ? content.exportLayout : '';
+  if (!candidate) return undefined;
+  return PDF_LAYOUT_VALUES.includes(candidate as PdfImageLayout) ? (candidate as PdfImageLayout) : undefined;
+}
+
 function getSlidePrimaryImageUrlForExport(slide: PitchDeckSlide): string {
   const imageBlock = slide.blocks?.find((block) => block.type === 'image');
   if (!imageBlock || typeof imageBlock.content !== 'object' || !imageBlock.content) return '';
@@ -252,6 +329,20 @@ function getSlidePrimaryImageUrlForExport(slide: PitchDeckSlide): string {
   if (!activeId || options.length === 0) return '';
   const active = options.find((option: any) => option?.id === activeId);
   return typeof active?.imageUrl === 'string' ? active.imageUrl : '';
+}
+
+function getSlideOrderedImageUrlsForExport(slide: PitchDeckSlide): string[] {
+  const imageBlock = slide.blocks?.find((block) => block.type === 'image');
+  if (!imageBlock || typeof imageBlock.content !== 'object' || !imageBlock.content) return [];
+  const content = imageBlock.content as any;
+  const options = Array.isArray(content.imageOptions) ? content.imageOptions : [];
+  const activeId = typeof content.activeImageId === 'string' ? content.activeImageId : '';
+  const active = activeId ? options.find((option: any) => option?.id === activeId) : null;
+  const urls = [
+    typeof active?.imageUrl === 'string' ? active.imageUrl : '',
+    ...options.map((option: any) => (typeof option?.imageUrl === 'string' ? option.imageUrl : '')),
+  ].filter((url) => typeof url === 'string' && url.trim().length > 0);
+  return Array.from(new Set(urls));
 }
 
 function getSlideImageLabelsForContext(slide: PitchDeckSlide): string[] {
@@ -297,15 +388,56 @@ async function loadImageForPdf(
   }
 }
 
+async function renderCoverImageDataUrl(
+  sourceDataUrl: string,
+  targetWidth: number,
+  targetHeight: number
+): Promise<string> {
+  if (typeof window === 'undefined') return sourceDataUrl;
+  return new Promise((resolve) => {
+    const image = new window.Image();
+    image.onload = () => {
+      const canvas = document.createElement('canvas');
+      const width = Math.max(1, Math.round(targetWidth));
+      const height = Math.max(1, Math.round(targetHeight));
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) {
+        resolve(sourceDataUrl);
+        return;
+      }
+      const sourceRatio = image.width / image.height;
+      const targetRatio = width / height;
+      let sx = 0;
+      let sy = 0;
+      let sw = image.width;
+      let sh = image.height;
+      if (sourceRatio > targetRatio) {
+        sw = image.height * targetRatio;
+        sx = (image.width - sw) / 2;
+      } else if (sourceRatio < targetRatio) {
+        sh = image.width / targetRatio;
+        sy = (image.height - sh) / 2;
+      }
+      ctx.drawImage(image, sx, sy, sw, sh, 0, 0, width, height);
+      resolve(canvas.toDataURL('image/jpeg', 0.92));
+    };
+    image.onerror = () => resolve(sourceDataUrl);
+    image.src = sourceDataUrl;
+  });
+}
+
 async function generatePitchDeckPdfClient(input: PitchDeckPdfExportInput): Promise<{ blob: Blob; fileName: string }> {
   const pageWidth = 1152;
   const pageHeight = 648;
   const margin = 44;
-  const splitGap = 20;
-  const splitImageWidth = 410;
-  const splitImageHeight = pageHeight - margin * 2 - 60;
+  const headerHeight = 84;
+  const splitImageWidth = 430;
+  const splitImageHeight = pageHeight - headerHeight;
+  const tileGap = 10;
   const textWidthNoImage = pageWidth - margin * 2;
-  const textWidthWithSplitImage = pageWidth - margin * 2 - splitImageWidth - splitGap;
+  const textWidthWithSplitImage = pageWidth - splitImageWidth - margin * 2 - 14;
 
   const doc = new jsPDF({
     orientation: 'landscape',
@@ -347,13 +479,25 @@ async function generatePitchDeckPdfClient(input: PitchDeckPdfExportInput): Promi
     doc.text(input.deckTitle || 'Pitch Deck', pageWidth - margin, margin + 28, { align: 'right' });
 
     const bodyText = getSlidePrimaryTextForExport(slide) || 'No text provided for this slide.';
-    const imageUrl = input.includeImages ? getSlidePrimaryImageUrlForExport(slide) : '';
-    const hasImage = Boolean(imageUrl);
-    const layout = getPdfLayout(input.templateId, slide.slideType, hasImage);
+    const imageUrls = input.includeImages ? getSlideOrderedImageUrlsForExport(slide) : [];
+    const hasImage = imageUrls.length > 0;
+    const layoutOverride = getSlideImageExportLayoutOverride(slide);
+    const layout = layoutOverride || getPdfLayout(input.templateId, slide.slideType, hasImage);
+    const isSplitLayout =
+      layout === 'split_right' ||
+      layout === 'split_left' ||
+      layout === 'split_right_vstack2' ||
+      layout === 'split_left_vstack2' ||
+      layout === 'split_right_grid4' ||
+      layout === 'split_left_grid4' ||
+      layout === 'split_right_vcols2' ||
+      layout === 'split_left_vcols2' ||
+      layout === 'split_right_vcols3' ||
+      layout === 'split_left_vcols3';
     const textStartY = margin + 74;
     const textMaxY = pageHeight - margin - 8;
-    const textWidth = layout === 'split_right' || layout === 'split_left' ? textWidthWithSplitImage : textWidthNoImage;
-    const textStartX = layout === 'split_left' ? margin + splitImageWidth + splitGap : margin;
+    const textWidth = isSplitLayout ? textWidthWithSplitImage : textWidthNoImage;
+    const textStartX = layout.includes('split_left') ? splitImageWidth + margin * 0.6 : margin;
     const bodyFontSize = 17;
     const bodyLineHeight = Math.round(bodyFontSize * 1.4);
     doc.setFont('helvetica', 'normal');
@@ -368,11 +512,23 @@ async function generatePitchDeckPdfClient(input: PitchDeckPdfExportInput): Promi
     }
 
     if (hasImage) {
-      const resolvedImage = await loadImageForPdf(String(imageUrl));
-      if (resolvedImage) {
+      const resolvedImages = (
+        await Promise.all(imageUrls.slice(0, 4).map((url) => loadImageForPdf(String(url))))
+      ).filter((image): image is { dataUrl: string; format: 'PNG' | 'JPEG' | 'WEBP' } => Boolean(image));
+      if (resolvedImages.length > 0) {
         try {
-          if (layout === 'full_bleed') {
-            doc.addImage(resolvedImage.dataUrl, resolvedImage.format, 0, 0, pageWidth, pageHeight);
+          const drawCover = async (
+            source: { dataUrl: string; format: 'PNG' | 'JPEG' | 'WEBP' },
+            x: number,
+            y: number,
+            w: number,
+            h: number
+          ) => {
+            const covered = await renderCoverImageDataUrl(source.dataUrl, w, h);
+            doc.addImage(covered, 'JPEG', x, y, w, h);
+          };
+
+          const drawHeroHeaderAndTextPanel = () => {
             // Re-draw top bar content for legibility over hero image
             doc.setFillColor(8, 8, 10);
             doc.rect(0, 0, pageWidth, 84, 'F');
@@ -406,19 +562,82 @@ async function generatePitchDeckPdfClient(input: PitchDeckPdfExportInput): Promi
               doc.text(line, panelX + 15, heroY);
               heroY += heroLineHeight;
             }
+          };
+
+          if (layout === 'full_bleed') {
+            const fullBleed = await renderCoverImageDataUrl(resolvedImages[0].dataUrl, pageWidth, pageHeight);
+            doc.addImage(fullBleed, 'JPEG', 0, 0, pageWidth, pageHeight);
+            drawHeroHeaderAndTextPanel();
+          } else if (layout === 'full_bleed_vcols4') {
+            const heroCount = Math.max(1, Math.min(4, resolvedImages.length));
+            const heroTileW = (pageWidth - tileGap * (heroCount - 1)) / heroCount;
+            for (let i = 0; i < heroCount; i += 1) {
+              const x = i * (heroTileW + tileGap);
+              await drawCover(resolvedImages[i], x, 0, heroTileW, pageHeight);
+            }
+            drawHeroHeaderAndTextPanel();
           } else {
-            const imageX = layout === 'split_left' ? margin : pageWidth - margin - splitImageWidth;
-            const imageY = margin + 60;
-            doc.setDrawColor(65, 65, 70);
-            doc.roundedRect(imageX, imageY, splitImageWidth, splitImageHeight, 10, 10, 'S');
-            doc.addImage(
-              resolvedImage.dataUrl,
-              resolvedImage.format,
-              imageX + 1,
-              imageY + 1,
-              splitImageWidth - 2,
-              splitImageHeight - 2
-            );
+            const paneX = layout.includes('split_left') ? 0 : pageWidth - splitImageWidth;
+            const paneY = headerHeight;
+            const paneW = splitImageWidth;
+            const paneH = splitImageHeight;
+
+            if (layout === 'split_left' || layout === 'split_right') {
+              await drawCover(resolvedImages[0], paneX, paneY, paneW, paneH);
+            } else if (layout === 'split_left_vcols2' || layout === 'split_right_vcols2') {
+              if (resolvedImages.length < 2) {
+                await drawCover(resolvedImages[0], paneX, paneY, paneW, paneH);
+              } else {
+                const tileW = (paneW - tileGap) / 2;
+                await drawCover(resolvedImages[0], paneX, paneY, tileW, paneH);
+                await drawCover(resolvedImages[1], paneX + tileW + tileGap, paneY, tileW, paneH);
+              }
+            } else if (layout === 'split_left_vcols3' || layout === 'split_right_vcols3') {
+              if (resolvedImages.length < 2) {
+                await drawCover(resolvedImages[0], paneX, paneY, paneW, paneH);
+              } else if (resolvedImages.length < 3) {
+                const tileW = (paneW - tileGap) / 2;
+                await drawCover(resolvedImages[0], paneX, paneY, tileW, paneH);
+                await drawCover(resolvedImages[1], paneX + tileW + tileGap, paneY, tileW, paneH);
+              } else {
+                const tileW = (paneW - tileGap * 2) / 3;
+                await drawCover(resolvedImages[0], paneX, paneY, tileW, paneH);
+                await drawCover(resolvedImages[1], paneX + tileW + tileGap, paneY, tileW, paneH);
+                await drawCover(resolvedImages[2], paneX + (tileW + tileGap) * 2, paneY, tileW, paneH);
+              }
+            } else if (layout === 'split_left_vstack2' || layout === 'split_right_vstack2') {
+              if (resolvedImages.length < 2) {
+                await drawCover(resolvedImages[0], paneX, paneY, paneW, paneH);
+              } else {
+                const tileH = (paneH - tileGap) / 2;
+                await drawCover(resolvedImages[0], paneX, paneY, paneW, tileH);
+                await drawCover(resolvedImages[1], paneX, paneY + tileH + tileGap, paneW, tileH);
+              }
+            } else if (layout === 'split_left_grid4' || layout === 'split_right_grid4') {
+              if (resolvedImages.length < 2) {
+                // Graceful fallback to a single split image when gallery has 1 image.
+                await drawCover(resolvedImages[0], paneX, paneY, paneW, paneH);
+              } else if (resolvedImages.length < 4) {
+                // Graceful fallback to two vertical tiles when gallery has 2-3 images.
+                const tileH = (paneH - tileGap) / 2;
+                await drawCover(resolvedImages[0], paneX, paneY, paneW, tileH);
+                await drawCover(resolvedImages[1], paneX, paneY + tileH + tileGap, paneW, tileH);
+              } else {
+                const tileW = (paneW - tileGap) / 2;
+                const tileH = (paneH - tileGap) / 2;
+                const tiles = [
+                  [paneX, paneY],
+                  [paneX + tileW + tileGap, paneY],
+                  [paneX, paneY + tileH + tileGap],
+                  [paneX + tileW + tileGap, paneY + tileH + tileGap],
+                ] as Array<[number, number]>;
+                for (let tileIndex = 0; tileIndex < tiles.length; tileIndex += 1) {
+                  const source = resolvedImages[tileIndex];
+                  const [tileX, tileY] = tiles[tileIndex];
+                  await drawCover(source, tileX, tileY, tileW, tileH);
+                }
+              }
+            }
           }
         } catch {
           // If a specific image fails to encode, keep PDF generation resilient.
@@ -557,10 +776,15 @@ export default function PitchDeckEditorPage() {
     () => String(selectedSlide?.blocks.find((block) => block.type === 'text')?.content || ''),
     [selectedSlide]
   );
+  const selectedSlideLayoutOverride = useMemo(
+    () => (selectedSlide ? getSlideImageExportLayoutOverride(selectedSlide) : undefined),
+    [selectedSlide]
+  );
   const selectedSlideLayout = useMemo<PdfImageLayout>(() => {
     if (!selectedSlide) return 'split_right';
-    return getPdfLayout(deckTemplateId, selectedSlide.slideType, true);
-  }, [deckTemplateId, selectedSlide]);
+    const hasImage = getSlideOrderedImageUrlsForExport(selectedSlide).length > 0;
+    return selectedSlideLayoutOverride || getPdfLayout(deckTemplateId, selectedSlide.slideType, hasImage);
+  }, [deckTemplateId, selectedSlide, selectedSlideLayoutOverride]);
   const suggestedAspectRatios = useMemo(
     () => getSuggestedAspectRatiosForLayout(selectedSlideLayout),
     [selectedSlideLayout]
@@ -1552,6 +1776,60 @@ export default function PitchDeckEditorPage() {
     setSaveStatus('unsaved');
   };
 
+  const updateSelectedSlideExportLayout = (nextLayout: 'auto' | PdfImageLayout) => {
+    if (!selectedSlide) return;
+    const currentBlocks = Array.isArray(selectedSlide.blocks) ? [...selectedSlide.blocks] : [];
+    const imageIndex = currentBlocks.findIndex((block) => block.type === 'image');
+    const baseImageBlock: PitchDeckBlock =
+      imageIndex >= 0
+        ? currentBlocks[imageIndex]
+        : {
+            blockId: `block_image_${Date.now()}`,
+            type: 'image',
+            content: {
+              imageUrl: '',
+              imageOptions: [],
+              activeImageId: '',
+            },
+            sourceType: 'user_custom',
+            lockedByUser: true,
+          };
+    const baseContent =
+      typeof baseImageBlock.content === 'object' && baseImageBlock.content
+        ? { ...(baseImageBlock.content as Record<string, unknown>) }
+        : {};
+
+    if (nextLayout === 'auto') {
+      delete (baseContent as any).exportLayout;
+    } else {
+      (baseContent as any).exportLayout = nextLayout;
+    }
+
+    const updatedImageBlock: PitchDeckBlock = {
+      ...baseImageBlock,
+      content: baseContent,
+    };
+
+    if (imageIndex >= 0) {
+      currentBlocks[imageIndex] = updatedImageBlock;
+    } else {
+      currentBlocks.push(updatedImageBlock);
+    }
+
+    setSlides((prev) =>
+      prev.map((slide) =>
+        slide.slideId === selectedSlide.slideId
+          ? {
+              ...slide,
+              blocks: currentBlocks,
+            }
+          : slide
+      )
+    );
+    setSaveStatus('unsaved');
+    queueImageActionAutoSave();
+  };
+
   const appendSlotImageOption = (
     input: {
       imageUrl: string;
@@ -2348,9 +2626,29 @@ export default function PitchDeckEditorPage() {
                   <div className="mt-4 rounded border border-[#3F3F46] bg-[#121212] p-3">
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-xs uppercase tracking-wide text-gray-400">Feature Image</p>
-                      <span className="rounded border border-[#2f2f2f] bg-[#0f0f0f] px-2 py-0.5 text-[10px] text-gray-300">
-                        Export layout: {getLayoutPreviewLabel(deckTemplateId, selectedSlide.slideType)}
-                      </span>
+                      <div className="flex items-center gap-2">
+                        <select
+                          value={selectedSlideLayoutOverride || 'auto'}
+                          onChange={(event) =>
+                            updateSelectedSlideExportLayout(
+                              event.target.value === 'auto'
+                                ? 'auto'
+                                : (event.target.value as PdfImageLayout)
+                            )
+                          }
+                          className="rounded border border-[#2f2f2f] bg-[#0f0f0f] px-2 py-1 text-[11px] text-gray-200"
+                        >
+                          <option value="auto">Auto (Template)</option>
+                          {PDF_LAYOUT_SELECTOR_OPTIONS.map((option) => (
+                            <option key={option.value} value={option.value}>
+                              {option.label}
+                            </option>
+                          ))}
+                        </select>
+                        <span className="rounded border border-[#2f2f2f] bg-[#0f0f0f] px-2 py-0.5 text-[10px] text-gray-300">
+                          Export layout: {getLayoutPreviewLabel(deckTemplateId, selectedSlide.slideType, selectedSlideLayoutOverride)}
+                        </span>
+                      </div>
                     </div>
 
                     <div className="mt-3 rounded border border-[#2a2a2a] bg-[#101010] p-3">
