@@ -17,7 +17,7 @@ import { getOverageSettings, updateOverageSettings, getSubscriptionDetails, canc
 
 export default function AccountPage() {
   const { user, isLoaded } = useUser();
-  const { signOut } = useAuth();
+  const { signOut, getToken } = useAuth();
   const router = useRouter();
   const [credits, setCredits] = useState(null);
   const [loadingCredits, setLoadingCredits] = useState(true);
@@ -47,8 +47,9 @@ export default function AccountPage() {
   async function fetchCreditBalance() {
     try {
       const { api, setAuthTokenGetter } = await import('@/lib/api');
-      const { getToken } = await import('@clerk/nextjs');
-      setAuthTokenGetter(() => getToken({ template: 'wryda-backend' }));
+      if (typeof getToken === 'function') {
+        setAuthTokenGetter(() => getToken({ template: 'wryda-backend' }));
+      }
       
       const response = await api.user.getCredits();
       // FIX: API response is response.data.data.balance (not response.data.balance)
