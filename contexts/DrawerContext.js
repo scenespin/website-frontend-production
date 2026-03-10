@@ -24,8 +24,13 @@ export function DrawerProvider({ children }) {
   };
 
   const closeDrawer = () => {
+    if (typeof window !== 'undefined' && window.__WRYDA_CHAT_STREAMING) {
+      window.dispatchEvent(new CustomEvent('chat:close-blocked'));
+      return false;
+    }
     setIsDrawerOpen(false);
     setLaunchTrigger(null);
+    return true;
   };
 
   const toggleDrawer = () => {

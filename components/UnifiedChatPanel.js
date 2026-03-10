@@ -40,6 +40,7 @@ const MAX_CHAT_HISTORY_MESSAGES = 6;
 const MAX_CHAT_HISTORY_MESSAGE_CHARS = 1500;
 const MAX_SYSTEM_PROMPT_CHARS = 90000;
 const DEFAULT_HIGH_COST_WARNING_CREDITS = 40;
+const HIGH_COST_ESTIMATE_MULTIPLIER = 2;
 
 const MODEL_COST_PER_MILLION_USD = {
   'claude-sonnet-4-6': 7.0,
@@ -73,7 +74,8 @@ function estimateStoryAdvisorCreditCost({ prompt, systemPrompt, conversationHist
   const retailUsd = baseCostUsd / (1 - marginPercent / 100);
 
   return {
-    estimatedCredits: Math.max(1, Math.ceil(retailUsd * 100)),
+    // Conservative buffer: server-side retrieval context can increase effective token volume.
+    estimatedCredits: Math.max(1, Math.ceil(retailUsd * 100 * HIGH_COST_ESTIMATE_MULTIPLIER)),
   };
 }
 
@@ -929,6 +931,22 @@ function UnifiedChatPanelInner({
     autoResizeTextarea();
   }, [state.input, autoResizeTextarea]);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.__WRYDA_CHAT_STREAMING = Boolean(state.isStreaming);
+    return () => {
+      window.__WRYDA_CHAT_STREAMING = false;
+    };
+  }, [state.isStreaming]);
+
+  useEffect(() => {
+    const onCloseBlocked = () => {
+      toast('Please wait for the current response to finish before closing.', { icon: '⏳' });
+    };
+    window.addEventListener('chat:close-blocked', onCloseBlocked);
+    return () => window.removeEventListener('chat:close-blocked', onCloseBlocked);
+  }, []);
+
   /**
    * Render the active mode panel
    */
@@ -1706,7 +1724,7 @@ function UnifiedChatPanelInner({
       {pendingCostWarning && (
         <div className="mx-2 sm:mx-3 md:mx-4 mb-2 px-3 py-2 rounded-lg border border-amber-500/40 bg-amber-500/10">
           <div className="text-sm text-amber-100">
-            This request is estimated at about <strong>{pendingCostWarning.estimatedCredits} credits</strong>.
+            This request is estimated at about <strong>{pendingCostWarning.estimatedCredits} credits</strong> (conservative estimate).
             Continue?
           </div>
           <div className="mt-2 flex items-center gap-2">
