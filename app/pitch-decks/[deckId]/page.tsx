@@ -3217,7 +3217,7 @@ export default function PitchDeckEditorPage() {
                                           }`}
                                           title={isReferenceSelected ? 'Remove from remix references' : 'Add to remix references'}
                                         >
-                                          {isReferenceSelected ? 'Ref added' : 'Add ref'}
+                                          {isReferenceSelected ? 'Remix' : 'Add remix'}
                                         </button>
                                         <div className="absolute inset-x-0 bottom-0 bg-black/70 px-1 py-0.5 text-[10px] text-left text-white truncate">
                                           {item.label}
