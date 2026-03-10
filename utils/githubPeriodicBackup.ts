@@ -1,5 +1,3 @@
-const GITHUB_CONFIG_KEY = 'screenplay_github_config';
-
 export const PERIODIC_EVALUATION_INTERVAL_MS = 60 * 1000; // 60s tick
 export const PERIODIC_BACKUP_COOLDOWN_MS = 15 * 60 * 1000; // 15m minimum between periodic commits
 
@@ -42,41 +40,6 @@ export type PeriodicBackupResult =
 export function isGitHubPeriodicBackupEnabled(): boolean {
   // Use direct access so Next.js can inline NEXT_PUBLIC env at build time.
   return process.env.NEXT_PUBLIC_ENABLE_GITHUB_PERIODIC_BACKUP === 'true';
-}
-
-interface StoredGitHubConfig {
-  owner: string;
-  repo: string;
-  branch?: string;
-}
-
-export function normalizeGitHubConfig(rawConfig: unknown): StoredGitHubConfig | null {
-  if (!rawConfig || typeof rawConfig !== 'object') return null;
-
-  const candidate = rawConfig as Record<string, unknown>;
-  const owner = candidate.owner;
-  const repo = candidate.repo;
-  const branch = candidate.branch;
-
-  if (typeof owner !== 'string' || !owner.trim()) return null;
-  if (typeof repo !== 'string' || !repo.trim()) return null;
-
-  return {
-    owner: owner.trim(),
-    repo: repo.trim(),
-    branch: typeof branch === 'string' && branch.trim() ? branch.trim() : 'main'
-  };
-}
-
-function getStoredGitHubConfig(): StoredGitHubConfig | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    const raw = localStorage.getItem(GITHUB_CONFIG_KEY);
-    if (!raw) return null;
-    return normalizeGitHubConfig(JSON.parse(raw));
-  } catch {
-    return null;
-  }
 }
 
 function isValidScreenplayId(screenplayId: string): boolean {

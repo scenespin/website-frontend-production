@@ -6,6 +6,7 @@
 
 import { useCallback, useEffect } from 'react';
 import type { TimelineProject, SaveStatus } from '../useTimeline';
+import { readStoredScreenplayGitHubConfig } from '@/utils/screenplayGitHubConfig';
 
 export interface TimelineSaveOptions {
   projectId?: string;
@@ -85,18 +86,11 @@ export function useTimelineSave(
    */
   const saveToGitHub = useCallback(async (projectData: TimelineProject) => {
     try {
-      // Get GitHub config from localStorage
-      const githubConfigStr = localStorage.getItem('screenplay_github_config');
-      if (!githubConfigStr) {
+      const githubConfig = readStoredScreenplayGitHubConfig(projectId || projectData.id);
+      if (!githubConfig) {
         console.log('[Timeline] GitHub not connected, skipping GitHub backup');
         return;
       }
-      
-      const githubConfig = JSON.parse(githubConfigStr) as {
-        owner?: string;
-        repo?: string;
-        branch?: string;
-      };
       if (!githubConfig.owner || !githubConfig.repo) {
         console.log('[Timeline] GitHub config incomplete, skipping GitHub backup');
         return;
@@ -129,7 +123,7 @@ export function useTimelineSave(
       console.error('[Timeline] GitHub backup failed:', error);
       // Don't throw - localStorage and DynamoDB are primary backups
     }
-  }, []);
+  }, [projectId]);
 
   /**
    * Add failed save to retry queue

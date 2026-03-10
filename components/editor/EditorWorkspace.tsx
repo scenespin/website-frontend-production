@@ -33,6 +33,10 @@ import {
     initializeGitHubAIAuditLedgerRetries,
     isAIDisclosureEnabled,
 } from '@/utils/aiDisclosureStorage';
+import {
+    clearStoredScreenplayGitHubConfig,
+    readStoredScreenplayGitHubConfig
+} from '@/utils/screenplayGitHubConfig';
 import type { Scene } from '../../types/screenplay';
 import { Sheet, SheetContent, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import SceneTypeDropdown from './SceneTypeDropdown';
@@ -105,14 +109,12 @@ export default function EditorWorkspace() {
     
     useEffect(() => {
         try {
-            const configStr = localStorage.getItem('screenplay_github_config');
-            if (configStr) {
-                setGithubConfig(JSON.parse(configStr));
-            }
+            const config = readStoredScreenplayGitHubConfig(screenplayId);
+            setGithubConfig(config);
         } catch (err) {
             console.error('[EditorWorkspace] Failed to load GitHub config:', err);
         }
-    }, []);  // Feature 0111: No longer depend on screenplay.isConnected
+    }, [screenplayId]);  // Feature 0111: No longer depend on screenplay.isConnected
 
     useEffect(() => {
         if (!aiDisclosureEnabled) return;
@@ -952,7 +954,7 @@ Tip:
                                             </div>
                                             <button 
                                                 onClick={() => {
-                                                    localStorage.removeItem('screenplay_github_config');
+                                                    clearStoredScreenplayGitHubConfig(screenplayId);
                                                     setGithubConfig(null);
                                                 }}
                                                 className="btn btn-error btn-sm"

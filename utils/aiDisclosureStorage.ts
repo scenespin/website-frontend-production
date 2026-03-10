@@ -1,3 +1,9 @@
+import {
+  readStoredScreenplayGitHubConfig,
+  writeStoredScreenplayGitHubConfig,
+  type ScreenplayGitHubConfig,
+} from '@/utils/screenplayGitHubConfig';
+
 export type AIDisclosureSource =
   | 'story_advisor_ai'
   | 'rewrite_ai'
@@ -45,11 +51,7 @@ export type AIDisclosureEventPayload = Omit<
   'event_id' | 'screenplay_id' | 'user_id' | 'timestamp'
 >;
 
-type GitHubLedgerConfig = {
-  owner: string;
-  repo: string;
-  branch?: string;
-};
+type GitHubLedgerConfig = ScreenplayGitHubConfig;
 
 type PendingGitHubLedgerItem = {
   screenplayId: string;
@@ -136,7 +138,7 @@ async function appendEventToGitHubAuditLedgerSafe(
   if (!getBackendToken) return;
 
   try {
-    const config = readGitHubLedgerConfigFromStorage();
+    const config = await resolveGitHubLedgerConfig(screenplayId, getBackendToken);
     if (!config) return;
 
     await flushPendingGitHubLedgerQueueSafe(getBackendToken, 'next-event');
@@ -151,9 +153,10 @@ async function appendEventToGitHubAuditLedgerSafe(
       token,
     });
   } catch (error) {
+    const fallbackConfig = readGitHubLedgerConfigFromStorage(screenplayId);
     enqueuePendingLedgerItem({
       screenplayId,
-      config: readGitHubLedgerConfigFromStorage() || { owner: '', repo: '' },
+      config: fallbackConfig || { owner: '', repo: '' },
       event,
       lastError: error instanceof Error ? error.message : String(error),
     });
@@ -404,27 +407,12 @@ export const __aiDisclosureLedgerTestUtils = {
   },
 };
 
-function readGitHubLedgerConfigFromStorage(): GitHubLedgerConfig | null {
-  if (typeof window === 'undefined') return null;
-  try {
-    const raw = localStorage.getItem('screenplay_github_config');
-    if (!raw) return null;
+function readGitHubLedgerConfigFromStorage(screenplayId?: string): GitHubLedgerConfig | null {
+  return readStoredScreenplayGitHubConfig(screenplayId);
+}
 
-    const parsed = JSON.parse(raw) as {
-      owner?: string;
-      repo?: string;
-      branch?: string;
-    };
-
-    if (!parsed?.owner || !parsed?.repo) return null;
-    return {
-      owner: parsed.owner,
-      repo: parsed.repo,
-      branch: parsed.branch,
-    };
-  } catch {
-    return null;
-  }
+function persistGitHubLedgerConfig(screenplayId: string, config: GitHubLedgerConfig): void {
+  writeStoredScreenplayGitHubConfig(config, screenplayId);
 }
 
 export async function listAIDisclosureEvents(
@@ -470,8 +458,53 @@ export async function getAIDisclosureReport(screenplayId: string): Promise<any> 
   return result.data;
 }
 
-export function getGitHubLedgerConfig(): GitHubLedgerConfig | null {
-  return readGitHubLedgerConfigFromStorage();
+export function getGitHubLedgerConfig(screenplayId?: string): GitHubLedgerConfig | null {
+  return readGitHubLedgerConfigFromStorage(screenplayId);
+}
+
+export async function resolveGitHubLedgerConfig(
+  screenplayId: string,
+  getBackendToken?: () => Promise<string | null>
+): Promise<GitHubLedgerConfig | null> {
+  const fromStorage = readGitHubLedgerConfigFromStorage(screenplayId);
+  if (fromStorage) return fromStorage;
+  if (!screenplayId || !screenplayId.startsWith('screenplay_')) return null;
+
+  const backendUrl =
+    process.env.NEXT_PUBLIC_BACKEND_URL ||
+    process.env.NEXT_PUBLIC_API_URL ||
+    'https://backend.wryda.ai';
+  let authToken: string | null = null;
+  if (getBackendToken) {
+    try {
+      authToken = await getBackendToken();
+    } catch {
+      authToken = null;
+    }
+  }
+
+  const response = await fetch(
+    `${backendUrl}/api/github/screenplay/context?screenplayId=${encodeURIComponent(screenplayId)}`,
+    {
+      headers: authToken ? { Authorization: `Bearer ${authToken}` } : undefined,
+    }
+  );
+  const payload = await response.json().catch(() => null);
+  if (!response.ok || !payload?.success) {
+    return null;
+  }
+
+  if (!payload?.canonicalConfigured || !payload?.repoOwner || !payload?.repoName) {
+    return null;
+  }
+
+  const config: GitHubLedgerConfig = {
+    owner: String(payload.repoOwner),
+    repo: String(payload.repoName),
+    branch: typeof payload?.branch === 'string' ? payload.branch : undefined,
+  };
+  persistGitHubLedgerConfig(screenplayId, config);
+  return config;
 }
 
 /**
@@ -481,7 +514,10 @@ export function getGitHubLedgerConfig(): GitHubLedgerConfig | null {
  */
 let syncInProgress = false;
 
-export async function syncAIAuditLedgerToGitHub(screenplayId: string): Promise<{
+export async function syncAIAuditLedgerToGitHub(
+  screenplayId: string,
+  options?: { getBackendToken?: () => Promise<string | null> }
+): Promise<{
   success: boolean;
   totalInReport?: number;
   alreadyInLedger?: number;
@@ -489,7 +525,7 @@ export async function syncAIAuditLedgerToGitHub(screenplayId: string): Promise<{
   errors?: string[];
   message?: string;
 }> {
-  const config = readGitHubLedgerConfigFromStorage();
+  const config = await resolveGitHubLedgerConfig(screenplayId, options?.getBackendToken);
   if (!config?.owner || !config?.repo) {
     return { success: false, message: 'GitHub repository not connected. Connect in Settings or Version History.' };
   }
@@ -509,9 +545,9 @@ export async function syncAIAuditLedgerToGitHub(screenplayId: string): Promise<{
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         screenplayId,
+        // Owner/repo are optional now; backend resolves canonical screenplay mapping.
         owner: config.owner,
         repo: config.repo,
-        branch: config.branch || undefined,
       }),
     });
 
@@ -550,7 +586,7 @@ export async function getAIAuditEvidenceManifest(params: {
   snapshotType?: string;
   snapshotVersion?: string;
 }): Promise<any> {
-  const config = readGitHubLedgerConfigFromStorage();
+  const config = readGitHubLedgerConfigFromStorage(params.screenplayId);
   if (!config) {
     throw new Error('GitHub repository is not connected for this screenplay');
   }

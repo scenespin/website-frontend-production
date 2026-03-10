@@ -6,6 +6,7 @@
  */
 
 import { useState, useCallback, useEffect, useRef } from 'react';
+import { readStoredScreenplayGitHubConfig } from '@/utils/screenplayGitHubConfig';
 
 // ==================== UTILITY FUNCTIONS ====================
 
@@ -1251,17 +1252,11 @@ export function useTimeline(options: UseTimelineOptions = {}) {
     // Note: enableGitHubBackup check removed - this is always available as manual export
     
     try {
-      const githubConfigRaw = localStorage.getItem('screenplay_github_config');
-      if (!githubConfigRaw) {
+      const githubConfig = readStoredScreenplayGitHubConfig(projectId || projectData.id);
+      if (!githubConfig) {
         console.log('[Timeline] GitHub backup not configured - connect your repository in settings');
         return false;
       }
-
-      const githubConfig = JSON.parse(githubConfigRaw) as {
-        owner?: string;
-        repo?: string;
-        branch?: string;
-      };
       if (!githubConfig.owner || !githubConfig.repo) {
         console.log('[Timeline] GitHub backup config is incomplete');
         return false;
@@ -1324,7 +1319,7 @@ export function useTimeline(options: UseTimelineOptions = {}) {
       console.error('[Timeline] GitHub export failed:', error);
       return false;
     }
-  }, []); // No dependencies - always available
+  }, [projectId]); // Scoped by screenplay/project id when available
 
   /**
    * Manual Export to GitHub (wrapper function with user feedback)

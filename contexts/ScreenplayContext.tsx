@@ -243,8 +243,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         CHARACTERS: 'screenplay_characters_v1',
         LOCATIONS: 'screenplay_locations_v1',
         RELATIONSHIPS: 'screenplay_relationships_v1',
-        LAST_SAVED: 'screenplay_last_saved',
-        GITHUB_CONFIG: 'screenplay_github_config'
+        LAST_SAVED: 'screenplay_last_saved'
     };
 
     // ========================================================================

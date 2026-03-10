@@ -259,10 +259,6 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
         }));
     }, []);
 
-    // Get GitHub config from localStorage (optional export feature)
-    const githubConfigStr = typeof window !== 'undefined' ? localStorage.getItem('screenplay_github_config') : null;
-    const githubConfig = githubConfigStr ? JSON.parse(githubConfigStr) : null;
-    
     // Manual save function - defined before setContent so it can be used in dependencies
     const saveNow = useCallback(async () => {
         // Feature 0187: Check if editor is locked before saving

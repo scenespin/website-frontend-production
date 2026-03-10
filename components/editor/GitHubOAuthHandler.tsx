@@ -5,6 +5,10 @@ import { useSearchParams } from 'next/navigation';
 import { useAuth } from '@clerk/nextjs';
 import { toast } from 'sonner';
 import { syncAIAuditLedgerToGitHub } from '@/utils/aiDisclosureStorage';
+import {
+    readStoredScreenplayGitHubConfig,
+    writeStoredScreenplayGitHubConfig
+} from '@/utils/screenplayGitHubConfig';
 
 interface GitHubRepository {
     name?: string;
@@ -92,15 +96,12 @@ export default function GitHubOAuthHandler({ screenplayId }: { screenplayId?: st
                     }
                 }
                 try {
-                    const existingRaw = localStorage.getItem('screenplay_github_config');
-                    if (existingRaw) {
-                        const existingConfig = JSON.parse(existingRaw) as Partial<StoredGitHubConfig>;
-                        const existingMatch = repositories.find((repo) =>
-                            repo.owner === existingConfig.owner && repo.name === existingConfig.repo
+                    const existingConfig = readStoredScreenplayGitHubConfig(screenplayId) as Partial<StoredGitHubConfig> | null;
+                    if (existingConfig) {
+                        const existingMatch = repositories.find(
+                            (repo) => repo.owner === existingConfig.owner && repo.name === existingConfig.repo
                         );
-                        if (existingMatch) {
-                            selected = existingMatch;
-                        }
+                        if (existingMatch) selected = existingMatch;
                     }
                 } catch (readError) {
                     console.warn('[GitHub OAuth] Unable to reuse existing repository selection:', readError);
@@ -115,7 +116,7 @@ export default function GitHubOAuthHandler({ screenplayId }: { screenplayId?: st
                     repo: selected.name,
                     branch: 'main'
                 };
-                localStorage.setItem('screenplay_github_config', JSON.stringify(githubConfig));
+                writeStoredScreenplayGitHubConfig(githubConfig, screenplayId);
 
                 if (screenplayId && screenplayId.startsWith('screenplay_') && !canonicalConfigured) {
                     try {
@@ -149,7 +150,9 @@ export default function GitHubOAuthHandler({ screenplayId }: { screenplayId?: st
 
                 // Auto-sync AI audit ledger so report and GitHub stay aligned (no need for user to remember Sync)
                 if (screenplayId && typeof screenplayId === 'string' && screenplayId.startsWith('screenplay_')) {
-                    syncAIAuditLedgerToGitHub(screenplayId)
+                    syncAIAuditLedgerToGitHub(screenplayId, {
+                        getBackendToken: async () => getToken({ template: 'wryda-backend' })
+                    })
                         .then((result) => {
                             if (result.success && result.synced && result.synced > 0) {
                                 toast.success(`Audit log: ${result.synced} event(s) synced to GitHub.`);

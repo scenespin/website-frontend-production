@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useEffect, useMemo, useState } from 'react';
+import { useAuth } from '@clerk/nextjs';
 import { toast } from 'sonner';
 import {
   AIDisclosureConsentStatus,
@@ -10,6 +11,7 @@ import {
   getAIDisclosureReport,
   updateAIDisclosureConsent,
   syncAIAuditLedgerToGitHub,
+  resolveGitHubLedgerConfig,
 } from '@/utils/aiDisclosureStorage';
 import { downloadAIDisclosureSubmissionBundle } from '@/utils/aiDisclosureExport';
 
@@ -46,10 +48,13 @@ export default function AIDisclosurePanel({
   screenplayId,
   screenplayTitle,
 }: AIDisclosurePanelProps) {
+  const { getToken } = useAuth();
   const [loading, setLoading] = useState(false);
   const [savingConsent, setSavingConsent] = useState(false);
   const [exportingSubmission, setExportingSubmission] = useState(false);
   const [syncingToGitHub, setSyncingToGitHub] = useState(false);
+  const [githubConfigReady, setGitHubConfigReady] = useState(false);
+  const [githubConfigLoading, setGitHubConfigLoading] = useState(false);
   const [events, setEvents] = useState<AIDisclosureEvent[]>([]);
   const [report, setReport] = useState<any>(null);
   const [consentForm, setConsentForm] = useState<ConsentFormState>({
@@ -95,6 +100,37 @@ export default function AIDisclosurePanel({
 
     void loadReport();
   }, [isOpen, screenplayId]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+    let cancelled = false;
+
+    const loadGitHubConfig = async () => {
+      setGitHubConfigLoading(true);
+      try {
+        const config = await resolveGitHubLedgerConfig(
+          screenplayId,
+          async () => getToken({ template: 'wryda-backend' })
+        );
+        if (!cancelled) {
+          setGitHubConfigReady(Boolean(config?.owner && config?.repo));
+        }
+      } catch {
+        if (!cancelled) {
+          setGitHubConfigReady(false);
+        }
+      } finally {
+        if (!cancelled) {
+          setGitHubConfigLoading(false);
+        }
+      }
+    };
+
+    void loadGitHubConfig();
+    return () => {
+      cancelled = true;
+    };
+  }, [isOpen, screenplayId, getToken]);
 
   if (!isOpen) return null;
 
@@ -154,14 +190,16 @@ export default function AIDisclosurePanel({
   };
 
   const handleSyncToGitHub = async () => {
-    const config = getGitHubLedgerConfig();
+    const config = getGitHubLedgerConfig(screenplayId);
     if (!config?.owner || !config?.repo) {
       toast.error('Connect GitHub in Version History first.');
       return;
     }
     setSyncingToGitHub(true);
     try {
-      const result = await syncAIAuditLedgerToGitHub(screenplayId);
+      const result = await syncAIAuditLedgerToGitHub(screenplayId, {
+        getBackendToken: async () => getToken({ template: 'wryda-backend' }),
+      });
       if (result.success) {
         if (result.message?.includes('already in progress')) {
           toast.info(result.message);
@@ -290,7 +328,7 @@ export default function AIDisclosurePanel({
                   </button>
                   <button
                     onClick={handleSyncToGitHub}
-                    disabled={syncingToGitHub || !getGitHubLedgerConfig()}
+                    disabled={syncingToGitHub || githubConfigLoading || !githubConfigReady}
                     className="btn btn-sm btn-outline"
                     title="Push missing events from this report to your GitHub audit ledger so they stay aligned"
                   >
