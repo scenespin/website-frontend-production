@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { jsPDF } from 'jspdf';
-import { Briefcase, Eye, Film, Loader2, Megaphone, MoreVertical, Trash2 } from 'lucide-react';
+import { Briefcase, Eye, Film, Layers, Loader2, Megaphone, MoreVertical, Trash2 } from 'lucide-react';
 import {
   archivePitchDeckImage,
   generatePitchDeckImageFromPrompt,
@@ -2926,15 +2926,19 @@ export default function PitchDeckEditorPage() {
                       ) : null}
                     </div>
 
-                    <div className="mt-3 rounded border border-[#2a2a2a] bg-[#101010] p-3">
-                      <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">
-                        Slot gallery ({selectedSlotImageOptions.length})
+                    <div className="mt-3 rounded border border-[#5a4f66] bg-[#16121d] p-3">
+                      <p className="mb-1 flex items-center gap-1.5 text-xs uppercase tracking-wide text-gray-300">
+                        <Layers className="h-3.5 w-3.5 text-[#c4b5fd]" />
+                        Working Canvas ({selectedSlotImageOptions.length})
+                      </p>
+                      <p className="mb-2 text-[11px] text-gray-500">
+                        Select and order images for this slide export.
                       </p>
                       <p className="mb-2 text-[11px] text-gray-500">
                         Click thumbnails to select images for PDF export. Re-selecting a removed tile appends it to the end of export order.
                       </p>
                       {selectedSlotImageOptions.length === 0 ? (
-                        <p className="text-xs text-gray-500">No saved options yet for this slot.</p>
+                        <p className="text-xs text-gray-500">No images in Working Canvas yet.</p>
                       ) : (
                         <div className="grid grid-cols-3 md:grid-cols-5 gap-2">
                           {selectedSlotImageOptions.map((option) => {
@@ -3025,13 +3029,14 @@ export default function PitchDeckEditorPage() {
                           })}
                         </div>
                       )}
-                      <p className="mt-2 text-[11px] text-gray-500">
-                        Generate/upload as many options as you want, then click one thumbnail to make it the active slide image.
-                      </p>
+                      <p className="mt-2 text-[11px] text-gray-500">Working Canvas is your slide design destination.</p>
                     </div>
 
                     <div className="mt-3 rounded border border-[#2a2a2a] bg-[#101010] p-3">
                       <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">Image actions</p>
+                      <p className="mb-2 text-[11px] text-gray-500">
+                        Add or generate images, then move them into the Working Canvas.
+                      </p>
                       <div className="grid grid-cols-4 gap-2">
                         <button
                           type="button"
