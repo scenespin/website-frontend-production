@@ -524,33 +524,20 @@ export default function FountainEditor({
                 const rangeStart = fullSelectionStart;
                 const rangeEnd = fullSelectionStart + pastedText.length;
                 const sceneHeading = getNearestSceneHeading(state.content, rangeStart);
-
-                toast('Track this paste for your disclosure report?', {
-                    duration: 9000,
-                    action: {
-                        label: 'Track',
-                        onClick: () => {
-                            void createAIDisclosureEventSafe(screenplay.screenplayId!, {
-                                source: 'story_advisor_ai',
-                                feature: 'copy_paste',
-                                range_start: rangeStart,
-                                range_end: rangeEnd,
-                                scene_heading: sceneHeading,
-                                preview: buildAIDisclosurePreview(pastedText),
-                                confidence: 'confirmed',
-                                meta: {
-                                    marker_id: matchedMarker.markerId,
-                                    marker_created_at: matchedMarker.createdAt,
-                                },
-                            }, async () => getToken({ template: 'wryda-backend' }));
-                            toast.success('Added to disclosure report.');
-                        },
+                void createAIDisclosureEventSafe(screenplay.screenplayId!, {
+                    source: 'story_advisor_ai',
+                    feature: 'copy_paste',
+                    range_start: rangeStart,
+                    range_end: rangeEnd,
+                    scene_heading: sceneHeading,
+                    preview: buildAIDisclosurePreview(pastedText),
+                    confidence: 'confirmed',
+                    meta: {
+                        marker_id: matchedMarker.markerId,
+                        marker_created_at: matchedMarker.createdAt,
                     },
-                    cancel: {
-                        label: 'Dismiss',
-                        onClick: () => {},
-                    },
-                });
+                }, async () => getToken({ template: 'wryda-backend' }));
+                toast.success('Added to AI disclosure report.');
             }
         }
         
