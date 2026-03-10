@@ -910,7 +910,18 @@ export default function PitchDeckEditorPage() {
       return options
         .filter((option: any) => option && typeof option.imageUrl === 'string')
         .map((option: any) => {
-          const s3Key = typeof option?.s3Key === 'string' ? option.s3Key : undefined;
+          const directS3Key = typeof option?.s3Key === 'string' ? option.s3Key.trim() : '';
+          const fallbackMatch =
+            !directS3Key && typeof option?.label === 'string'
+              ? existingMedia.find(
+                  (item) =>
+                    typeof item?.s3Key === 'string' &&
+                    item.s3Key.length > 0 &&
+                    typeof item?.label === 'string' &&
+                    item.label === option.label
+                )
+              : null;
+          const s3Key = directS3Key || fallbackMatch?.s3Key || undefined;
           const imageUrl = s3Key ? buildMediaProxyUrl(s3Key) : option.imageUrl;
           return {
             ...option,
@@ -930,7 +941,7 @@ export default function PitchDeckEditorPage() {
         createdAt: new Date().toISOString(),
       },
     ];
-  }, [buildMediaProxyUrl, selectedImageContent, selectedImageBlock]);
+  }, [buildMediaProxyUrl, existingMedia, selectedImageContent, selectedImageBlock]);
   const activeSlotImageId = useMemo(() => {
     const activeId = selectedImageContent.activeImageId;
     if (typeof activeId === 'string' && activeId.trim()) return activeId;
