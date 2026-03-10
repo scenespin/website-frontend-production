@@ -201,30 +201,45 @@ function PitchDeckHubPageContent() {
               ) : (
                 <div className="space-y-3">
                   {decks.map((deck) => (
-                    <div key={deck.deckId} className="rounded border border-[#2a2a2a] bg-[#161616] p-4">
+                    <div
+                      key={deck.deckId}
+                      role="button"
+                      tabIndex={0}
+                      onClick={() => router.push(`/pitch-decks/${deck.deckId}`)}
+                      onKeyDown={(event) => {
+                        if (event.key === 'Enter' || event.key === ' ') {
+                          event.preventDefault();
+                          router.push(`/pitch-decks/${deck.deckId}`);
+                        }
+                      }}
+                      className="rounded border border-[#2a2a2a] bg-[#161616] p-4 cursor-pointer transition-colors hover:bg-[#1b1b1b] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#DC143C]/60"
+                    >
                       <div className="flex items-center justify-between gap-4">
-                        <button
-                          onClick={() => router.push(`/pitch-decks/${deck.deckId}`)}
-                          className="text-left hover:opacity-90"
-                        >
+                        <div className="text-left">
                           <h3 className="text-sm font-semibold text-white">{deck.title}</h3>
                           <p className="mt-1 text-xs text-gray-400">
                             {deck.deckType === 'investor' ? 'Investor' : 'Screenplay'} • {deck.status}
                           </p>
-                        </button>
+                        </div>
                         <div className="flex items-center gap-3">
                           <span className="text-xs text-gray-500">
                             Updated {deck.updatedAt ? new Date(deck.updatedAt).toLocaleDateString() : '-'}
                           </span>
                           <button
-                            onClick={() => onRenameDeck(deck)}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              onRenameDeck(deck);
+                            }}
                             disabled={renamingDeckId === deck.deckId || deletingDeckId === deck.deckId}
                             className="rounded border border-[#3F3F46] px-3 py-1.5 text-xs font-medium text-gray-200 hover:bg-white/5 disabled:opacity-50"
                           >
                             {renamingDeckId === deck.deckId ? 'Renaming...' : 'Rename'}
                           </button>
                           <button
-                            onClick={() => onDeleteDeck(deck.deckId)}
+                            onClick={(event) => {
+                              event.stopPropagation();
+                              onDeleteDeck(deck.deckId);
+                            }}
                             disabled={deletingDeckId === deck.deckId || renamingDeckId === deck.deckId}
                             className="rounded border border-red-500/40 px-3 py-1.5 text-xs font-medium text-red-300 hover:bg-red-500/10 disabled:opacity-50"
                           >
