@@ -239,13 +239,13 @@ const PDF_LAYOUT_SELECTOR_OPTIONS: Array<{ value: PdfImageLayout; label: string 
   { value: 'full_bleed', label: 'Hero Full Bleed' },
   { value: 'full_bleed_split2', label: 'Hero Full Bleed (50/50 Split)' },
   { value: 'full_bleed_vcols3', label: 'Hero Full Bleed (3 Columns)' },
+  { value: 'full_bleed_vcols4', label: 'Hero Full Bleed (4 Columns)' },
   { value: 'split_right', label: 'Split Right (Single)' },
   { value: 'split_left', label: 'Split Left (Single)' },
   { value: 'split_right_vcols2', label: 'Split Right (2 Columns)' },
   { value: 'split_left_vcols2', label: 'Split Left (2 Columns)' },
   { value: 'split_right_vcols3', label: 'Split Right (3 Columns)' },
   { value: 'split_left_vcols3', label: 'Split Left (3 Columns)' },
-  { value: 'full_bleed_vcols4', label: 'Hero Full Bleed (4 Columns)' },
   { value: 'text_only', label: 'Text Only' },
 ];
 
