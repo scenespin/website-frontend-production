@@ -70,6 +70,26 @@ export interface OverageSettings {
     periodKey: string | null;
 }
 
+export interface BillingUsageHistoryItem {
+    id: string;
+    timestamp: number;
+    occurredAt: string;
+    eventType: string;
+    eventLabel: string;
+    provider: string | null;
+    creditsDeducted: number;
+    tokensConsumed: number;
+}
+
+export interface BillingUsageHistoryResponse {
+    items: BillingUsageHistoryItem[];
+    page: {
+        limit: number;
+        nextCursor: string | null;
+        hasMore: boolean;
+    };
+}
+
 /**
  * Create a Stripe checkout session for subscription
  */
@@ -264,6 +284,27 @@ export async function updateOverageSettings(enabled: boolean, monthlyLimitUsd: n
         method: 'PUT',
         body: JSON.stringify({ enabled, monthlyLimitUsd }),
     });
+}
+
+export async function getBillingUsageHistory(input?: {
+    limit?: number;
+    cursor?: string | null;
+}): Promise<BillingUsageHistoryResponse> {
+    const params = new URLSearchParams();
+    if (input?.limit) params.set('limit', String(input.limit));
+    if (input?.cursor) params.set('cursor', input.cursor);
+    const query = params.toString();
+    const path = query ? `/api/billing/usage-history?${query}` : '/api/billing/usage-history';
+    const response = await secureFetch(path, { method: 'GET' });
+    const data = response.data || response;
+    return {
+        items: Array.isArray(data?.items) ? data.items : [],
+        page: {
+            limit: Number(data?.page?.limit || input?.limit || 20),
+            nextCursor: data?.page?.nextCursor || null,
+            hasMore: Boolean(data?.page?.hasMore),
+        },
+    };
 }
 
 /**

@@ -13,7 +13,7 @@ import {
   Crown
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
-import { getOverageSettings, updateOverageSettings, getSubscriptionDetails, cancelSubscription } from '@/lib/stripe-client';
+import { getOverageSettings, updateOverageSettings, getSubscriptionDetails, cancelSubscription, getBillingUsageHistory } from '@/lib/stripe-client';
 
 export default function AccountPage() {
   const { user, isLoaded } = useUser();
@@ -29,12 +29,17 @@ export default function AccountPage() {
   const [subscription, setSubscription] = useState(null);
   const [loadingSubscription, setLoadingSubscription] = useState(true);
   const [updatingSubscription, setUpdatingSubscription] = useState(false);
+  const [usageItems, setUsageItems] = useState([]);
+  const [usageCursor, setUsageCursor] = useState(null);
+  const [loadingUsage, setLoadingUsage] = useState(true);
+  const [loadingMoreUsage, setLoadingMoreUsage] = useState(false);
 
   useEffect(() => {
     if (user?.id) {
       fetchCreditBalance();
       fetchOverage();
       fetchSubscription();
+      fetchUsageHistory({ append: false });
     }
   }, [user?.id]);
 
@@ -89,6 +94,33 @@ export default function AccountPage() {
       setSubscription(null);
     } finally {
       setLoadingSubscription(false);
+    }
+  }
+
+  async function fetchUsageHistory({ append }) {
+    try {
+      if (append) {
+        setLoadingMoreUsage(true);
+      } else {
+        setLoadingUsage(true);
+      }
+      const response = await getBillingUsageHistory({
+        limit: 20,
+        cursor: append ? usageCursor : null,
+      });
+      const items = Array.isArray(response?.items) ? response.items : [];
+      setUsageItems((prev) => (append ? [...prev, ...items] : items));
+      setUsageCursor(response?.page?.nextCursor || null);
+    } catch (error) {
+      console.error('Failed to fetch usage history:', error);
+      if (!append) setUsageItems([]);
+      setUsageCursor(null);
+    } finally {
+      if (append) {
+        setLoadingMoreUsage(false);
+      } else {
+        setLoadingUsage(false);
+      }
     }
   }
 
@@ -391,6 +423,65 @@ export default function AccountPage() {
                     </button>
                   </div>
                 </>
+              )}
+            </div>
+          </div>
+
+          {/* Usage History */}
+          <div className="bg-[#141414] rounded-lg border border-[#3F3F46] overflow-hidden">
+            <div className="px-6 py-4 border-b border-[#3F3F46]">
+              <h2 className="text-lg font-semibold text-white">Usage History</h2>
+              <p className="text-xs text-base-content/60 mt-1">
+                Credit charges by event. Billing MVP shows credits only.
+              </p>
+            </div>
+            <div className="p-6">
+              {loadingUsage ? (
+                <div className="flex items-center justify-center py-4">
+                  <div className="w-6 h-6 border-2 border-cinema-red border-t-transparent rounded-full animate-spin"></div>
+                </div>
+              ) : usageItems.length === 0 ? (
+                <div className="text-sm text-base-content/60">No usage yet.</div>
+              ) : (
+                <div className="space-y-4">
+                  <div className="overflow-x-auto rounded-lg border border-[#3F3F46]">
+                    <table className="w-full text-sm">
+                      <thead className="bg-[#0F0F10] text-base-content/70">
+                        <tr>
+                          <th className="text-left px-4 py-3 font-medium">Date</th>
+                          <th className="text-left px-4 py-3 font-medium">Activity</th>
+                          <th className="text-left px-4 py-3 font-medium">Provider</th>
+                          <th className="text-right px-4 py-3 font-medium">Credits</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-[#3F3F46]">
+                        {usageItems.map((item) => (
+                          <tr key={item.id} className="hover:bg-[#1A1A1A]">
+                            <td className="px-4 py-3 text-base-content/80 whitespace-nowrap">
+                              {new Date(item.occurredAt).toLocaleString()}
+                            </td>
+                            <td className="px-4 py-3 text-base-content">{item.eventLabel}</td>
+                            <td className="px-4 py-3 text-base-content/70">{item.provider || '-'}</td>
+                            <td className="px-4 py-3 text-right font-medium text-base-content">
+                              {Number(item.creditsDeducted || 0).toLocaleString()}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  {usageCursor && (
+                    <div className="flex justify-end">
+                      <button
+                        onClick={() => fetchUsageHistory({ append: true })}
+                        disabled={loadingMoreUsage}
+                        className="px-4 py-2 bg-[#0A0A0A] border border-[#3F3F46] hover:border-cinema-red text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                      >
+                        {loadingMoreUsage ? 'Loading...' : 'Load More'}
+                      </button>
+                    </div>
+                  )}
+                </div>
               )}
             </div>
           </div>
