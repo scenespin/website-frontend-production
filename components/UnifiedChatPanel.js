@@ -39,45 +39,6 @@ const MODE_ORDER = ['chat'];
 const MAX_CHAT_HISTORY_MESSAGES = 6;
 const MAX_CHAT_HISTORY_MESSAGE_CHARS = 1500;
 const MAX_SYSTEM_PROMPT_CHARS = 90000;
-const DEFAULT_HIGH_COST_WARNING_CREDITS = 40;
-const HIGH_COST_ESTIMATE_MULTIPLIER = 2;
-
-const MODEL_COST_PER_MILLION_USD = {
-  'claude-sonnet-4-6': 7.0,
-  'claude-opus-4-6': 12.0,
-  'claude-haiku-4-5': 2.5,
-  'gpt-5.1': 10.0,
-  'gpt-4o': 5.0,
-  o3: 8.0,
-  'gemini-3-pro-preview': 9.0,
-  'gemini-2.5-flash': 2.0,
-  'grok-4-0709': 9.0,
-  'grok-4-1-fast-reasoning': 1.0,
-  'grok-4-1-fast-non-reasoning': 1.0,
-};
-
-function estimateStoryAdvisorCreditCost({ prompt, systemPrompt, conversationHistory, selectedModel }) {
-  const conversationText = (conversationHistory || [])
-    .map((msg) => `${msg.role}: ${msg.content || ''}`)
-    .join('\n');
-  const totalChars = `${prompt || ''}\n${systemPrompt || ''}\n${conversationText}`.length;
-  const estimatedInputTokens = Math.ceil(totalChars / 4);
-  const estimatedOutputTokens = estimatedInputTokens * 2;
-  const totalEstimatedTokens = estimatedInputTokens + estimatedOutputTokens;
-
-  const modelCostPerMillion = MODEL_COST_PER_MILLION_USD[selectedModel] ?? 8.0;
-  const marginPercentRaw = Number(process.env.NEXT_PUBLIC_UNIFIED_LLM_MARGIN_PERCENT || '75');
-  const marginPercent = Number.isFinite(marginPercentRaw)
-    ? Math.min(95, Math.max(0, marginPercentRaw))
-    : 75;
-  const baseCostUsd = (totalEstimatedTokens / 1_000_000) * modelCostPerMillion;
-  const retailUsd = baseCostUsd / (1 - marginPercent / 100);
-
-  return {
-    // Conservative buffer: server-side retrieval context can increase effective token volume.
-    estimatedCredits: Math.max(1, Math.ceil(retailUsd * 100 * HIGH_COST_ESTIMATE_MULTIPLIER)),
-  };
-}
 
 function clampPromptText(value, maxChars) {
   if (typeof value !== 'string') return '';
@@ -501,9 +462,7 @@ function UnifiedChatPanelInner({
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [pendingCostWarning, setPendingCostWarning] = useState(null);
   const recognitionRef = useRef(null);
-  const costWarningResolverRef = useRef(null);
   
   // Cloud save prompt state
   const [cloudSavePrompt, setCloudSavePrompt] = useState({
@@ -910,21 +869,6 @@ function UnifiedChatPanelInner({
 
     textarea.style.height = `${nextHeight}px`;
     textarea.style.overflowY = textarea.scrollHeight > maxHeight ? 'auto' : 'hidden';
-  }, []);
-
-  const requestCostWarningConfirmation = useCallback((estimatedCredits) => {
-    return new Promise((resolve) => {
-      costWarningResolverRef.current = resolve;
-      setPendingCostWarning({ estimatedCredits });
-    });
-  }, []);
-
-  const resolveCostWarningConfirmation = useCallback((accepted) => {
-    if (costWarningResolverRef.current) {
-      costWarningResolverRef.current(accepted);
-      costWarningResolverRef.current = null;
-    }
-    setPendingCostWarning(null);
   }, []);
 
   useEffect(() => {
@@ -1395,29 +1339,6 @@ function UnifiedChatPanelInner({
         
         const boundedSystemPrompt = clampPromptText(systemPrompt, MAX_SYSTEM_PROMPT_CHARS);
 
-        if (state.activeMode === 'chat') {
-          const costEstimate = estimateStoryAdvisorCreditCost({
-            prompt: finalUserPrompt,
-            systemPrompt: boundedSystemPrompt,
-            conversationHistory,
-            selectedModel: state.selectedModel || 'claude-sonnet-4-6',
-          });
-          const highCostWarningThresholdRaw = Number(
-            process.env.NEXT_PUBLIC_CHAT_HIGH_COST_WARNING_CREDITS || String(DEFAULT_HIGH_COST_WARNING_CREDITS)
-          );
-          const highCostWarningThreshold = Number.isFinite(highCostWarningThresholdRaw)
-            ? Math.max(1, highCostWarningThresholdRaw)
-            : DEFAULT_HIGH_COST_WARNING_CREDITS;
-
-          if (costEstimate.estimatedCredits >= highCostWarningThreshold) {
-            const shouldContinue = await requestCostWarningConfirmation(costEstimate.estimatedCredits);
-            if (!shouldContinue) {
-              setStreaming(false, '');
-              return;
-            }
-          }
-        }
-
         // 🔥 DIAGNOSTIC: Log what we're sending to the API
         console.log('[UnifiedChatPanel] 📤 Sending to API:', {
           mode: state.activeMode,
@@ -1720,32 +1641,6 @@ function UnifiedChatPanelInner({
       {/* Anchor for auto-scrolling */}
       <div ref={messagesEndRef} />
 
-      {/* In-panel high-cost confirmation (avoids browser confirm friction) */}
-      {pendingCostWarning && (
-        <div className="mx-2 sm:mx-3 md:mx-4 mb-2 px-3 py-2 rounded-lg border border-amber-500/40 bg-amber-500/10">
-          <div className="text-sm text-amber-100">
-            This request is estimated at about <strong>{pendingCostWarning.estimatedCredits} credits</strong> (conservative estimate).
-            Continue?
-          </div>
-          <div className="mt-2 flex items-center gap-2">
-            <button
-              type="button"
-              onClick={() => resolveCostWarningConfirmation(false)}
-              className="px-3 py-1.5 text-xs rounded-md bg-[#1F1F1F] border border-[#3F3F46] text-[#E5E7EB] hover:bg-[#2A2A2A]"
-            >
-              Cancel
-            </button>
-            <button
-              type="button"
-              onClick={() => resolveCostWarningConfirmation(true)}
-              className="px-3 py-1.5 text-xs rounded-md bg-amber-500 text-black hover:bg-amber-400 font-medium"
-            >
-              OK, continue
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Chat Input - Modern AI Chat Style */}
       {/* Always show input - Character/Location panels use this input but handle sending themselves */}
       <div className="flex-shrink-0 border-t border-[#3F3F46] bg-[#0A0A0A]">
@@ -1811,6 +1706,11 @@ function UnifiedChatPanelInner({
         <ModeSelector />
         {/* Only show LLM selector for AI Agents */}
         {MODE_CONFIG[state.activeMode]?.isAgent && <LLMModelSelector />}
+        {state.activeMode === 'chat' && (
+          <div className="ml-auto text-[11px] text-base-content/50 whitespace-nowrap">
+            Complex prompts can use more credits. Check Usage History in Account.
+          </div>
+        )}
       </div>
         
         {/* Hidden file input - TODO: Re-enable when backend supports image/file analysis */}

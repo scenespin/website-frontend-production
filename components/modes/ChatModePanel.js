@@ -19,45 +19,6 @@ import toast from 'react-hot-toast';
 const MAX_CHAT_HISTORY_MESSAGES = 6;
 const MAX_CHAT_HISTORY_MESSAGE_CHARS = 1500;
 const MAX_SYSTEM_PROMPT_CHARS = 90000;
-const DEFAULT_HIGH_COST_WARNING_CREDITS = 40;
-
-const MODEL_COST_PER_MILLION_USD = {
-  'claude-sonnet-4-6': 7.0,
-  'claude-opus-4-6': 12.0,
-  'claude-haiku-4-5': 2.5,
-  'gpt-5.1': 10.0,
-  'gpt-4o': 5.0,
-  'o3': 8.0,
-  'gemini-3-pro-preview': 9.0,
-  'gemini-2.5-flash': 2.0,
-  'grok-4-0709': 9.0,
-  'grok-4-1-fast-reasoning': 1.0,
-  'grok-4-1-fast-non-reasoning': 1.0,
-};
-
-function estimateStoryAdvisorCreditCost({ prompt, systemPrompt, conversationHistory, selectedModel }) {
-  const conversationText = (conversationHistory || [])
-    .map((msg) => `${msg.role}: ${msg.content || ''}`)
-    .join('\n');
-  const totalChars = `${prompt || ''}\n${systemPrompt || ''}\n${conversationText}`.length;
-  const estimatedInputTokens = Math.ceil(totalChars / 4);
-  const estimatedOutputTokens = estimatedInputTokens * 2;
-  const totalEstimatedTokens = estimatedInputTokens + estimatedOutputTokens;
-
-  const modelCostPerMillion = MODEL_COST_PER_MILLION_USD[selectedModel] ?? 8.0;
-  const marginPercentRaw = Number(process.env.NEXT_PUBLIC_UNIFIED_LLM_MARGIN_PERCENT || '75');
-  const marginPercent = Number.isFinite(marginPercentRaw)
-    ? Math.min(95, Math.max(0, marginPercentRaw))
-    : 75;
-  const baseCostUsd = (totalEstimatedTokens / 1_000_000) * modelCostPerMillion;
-  const retailUsd = baseCostUsd / (1 - marginPercent / 100);
-
-  return {
-    estimatedInputTokens,
-    totalEstimatedTokens,
-    estimatedCredits: Math.max(1, Math.ceil(retailUsd * 100)),
-  };
-}
 
 function clampPromptText(value, maxChars) {
   if (typeof value !== 'string') return '';
@@ -456,29 +417,6 @@ function ChatModePanelInner({ onInsert, onWorkflowComplete, editorContent, curso
         contextSnapshot,
       });
 
-      const costEstimate = estimateStoryAdvisorCreditCost({
-        prompt: builtPrompt,
-        systemPrompt,
-        conversationHistory,
-        selectedModel,
-      });
-      const highCostWarningThresholdRaw = Number(process.env.NEXT_PUBLIC_CHAT_HIGH_COST_WARNING_CREDITS || String(DEFAULT_HIGH_COST_WARNING_CREDITS));
-      const highCostWarningThreshold = Number.isFinite(highCostWarningThresholdRaw)
-        ? Math.max(1, highCostWarningThresholdRaw)
-        : DEFAULT_HIGH_COST_WARNING_CREDITS;
-
-      if (costEstimate.estimatedCredits >= highCostWarningThreshold) {
-        const shouldContinue = window.confirm(
-          `This request is estimated at about ${costEstimate.estimatedCredits} credits.\n\n` +
-          `Large screenplay analysis can cost more because it sends broader context.\n\n` +
-          `Click OK to continue or Cancel to revise your prompt.`
-        );
-        if (!shouldContinue) {
-          setIsSending(false);
-          return;
-        }
-      }
-      
       // Prepare API request for Story Advisor consultation
       const apiRequestData = {
           userPrompt: builtPrompt,
