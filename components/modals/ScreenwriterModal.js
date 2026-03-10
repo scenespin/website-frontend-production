@@ -265,6 +265,8 @@ CRITICAL SPACING RULES (Fountain.io spec):
           userPrompt: builtPrompt,
           systemPrompt: systemPrompt,
           desiredModelId: selectedModel,
+          agentMode: 'screenwriter',
+          interactionType: 'screenwriter',
           screenplayId: typeof screenplayId === 'string' && screenplayId.trim() ? screenplayId.trim() : undefined,
           conversationHistory: [], // Empty for standalone request
           sceneContext: sceneContext ? {

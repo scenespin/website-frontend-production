@@ -76,6 +76,8 @@ export interface BillingUsageHistoryItem {
     occurredAt: string;
     eventType: string;
     eventLabel: string;
+    interactionType?: string | null;
+    agentMode?: string | null;
     provider: string | null;
     creditsDeducted: number;
     tokensConsumed: number;

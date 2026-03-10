@@ -1363,7 +1363,13 @@ function UnifiedChatPanelInner({
             screenplayId: typeof screenplayId === 'string' && screenplayId.trim() ? screenplayId.trim() : undefined,
             conversationHistory,
             sceneContext: apiSceneContext,
-            ...(state.activeMode === 'chat' ? { analysisMode: 'story_advisor' } : {}),
+            ...(state.activeMode === 'chat'
+              ? {
+                  analysisMode: 'story_advisor',
+                  agentMode: 'story_advisor',
+                  interactionType: 'story_advisor',
+                }
+              : {}),
             ...pitchDeckChatContext,
             ...chatContextSnapshotPayload
             // attachments: attachedFiles.length > 0 ? attachedFiles : undefined // TODO: Re-enable when backend supports attachments

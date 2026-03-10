@@ -199,6 +199,8 @@ REQUIRED OUTPUT FORMAT:
             userPrompt: 'Generate the character profile based on all the answers provided.',
             systemPrompt: finalSystemPrompt,
             desiredModelId: selectedModel,
+            agentMode: 'character',
+            interactionType: 'character',
             screenplayId: typeof screenplayId === 'string' && screenplayId.trim() ? screenplayId.trim() : undefined,
             conversationHistory,
             sceneContext: null

@@ -179,6 +179,8 @@ REQUIRED OUTPUT FORMAT:
             userPrompt: 'Generate the location profile based on all the answers provided.',
             systemPrompt: finalSystemPrompt,
             desiredModelId: selectedModel,
+            agentMode: 'location',
+            interactionType: 'location',
             screenplayId: typeof screenplayId === 'string' && screenplayId.trim() ? screenplayId.trim() : undefined,
             conversationHistory,
             sceneContext: null

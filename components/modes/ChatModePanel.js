@@ -422,6 +422,8 @@ function ChatModePanelInner({ onInsert, onWorkflowComplete, editorContent, curso
           userPrompt: builtPrompt,
           systemPrompt: systemPrompt,
           analysisMode: 'story_advisor',
+          agentMode: 'story_advisor',
+          interactionType: 'story_advisor',
           desiredModelId: selectedModel,
           screenplayId: (typeof screenplayId === 'string' && screenplayId.trim())
             ? screenplayId.trim()

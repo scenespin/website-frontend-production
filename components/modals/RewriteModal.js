@@ -427,6 +427,8 @@ export default function RewriteModal({
           userPrompt: builtPrompt,
           systemPrompt: systemPrompt,
           desiredModelId: selectedModel,
+          agentMode: 'rewrite',
+          interactionType: 'rewrite',
           screenplayId: typeof screenplayId === 'string' && screenplayId.trim() ? screenplayId.trim() : undefined,
           conversationHistory: [], // Empty for rewrite (standalone)
           sceneContext: sceneContext ? {

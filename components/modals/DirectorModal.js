@@ -289,6 +289,8 @@ Rules:
           userPrompt: builtPrompt,
           systemPrompt: systemPrompt,
           desiredModelId: selectedModel,
+          agentMode: 'director',
+          interactionType: 'director',
           screenplayId: typeof screenplayId === 'string' && screenplayId.trim() ? screenplayId.trim() : undefined,
           conversationHistory: [], // Empty for standalone request
           sceneContext: sceneContext ? {

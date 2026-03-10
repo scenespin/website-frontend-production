@@ -453,7 +453,7 @@ export default function AccountPage() {
             <div className="px-6 py-4 border-b border-[#3F3F46]">
               <h2 className="text-lg font-semibold text-white">Usage History</h2>
               <p className="text-xs text-base-content/60 mt-1">
-                Credit charges by event. Billing MVP shows credits only.
+                Track credit usage by tool (Story Advisor, Rewrite, Director, and more). Values are shown in credits.
               </p>
             </div>
             <div className="p-6">
