@@ -1580,7 +1580,7 @@ function UnifiedChatPanelInner({
 
   return (
     <div 
-      className="flex flex-col h-full bg-[#0A0A0A]" 
+      className="relative flex flex-col h-full bg-[#0A0A0A]" 
       onClick={handleContainerClick}
     >
 
@@ -1706,12 +1706,12 @@ function UnifiedChatPanelInner({
         <ModeSelector />
         {/* Only show LLM selector for AI Agents */}
         {MODE_CONFIG[state.activeMode]?.isAgent && <LLMModelSelector />}
-        {state.activeMode === 'chat' && (
-          <div className="ml-auto text-[11px] text-base-content/50 whitespace-nowrap">
-            Complex prompts can use more credits. Check Usage History in Account.
-          </div>
-        )}
       </div>
+      {state.activeMode === 'chat' && (
+        <div className="pointer-events-none absolute bottom-1.5 right-3 sm:right-4 text-[11px] text-base-content/55 whitespace-nowrap">
+          Complex prompts can use more credits. Check Usage History in Account.
+        </div>
+      )}
         
         {/* Hidden file input - TODO: Re-enable when backend supports image/file analysis */}
         {/* <input
