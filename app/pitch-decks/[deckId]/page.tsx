@@ -156,6 +156,7 @@ type PdfImageLayout =
   | 'split_right'
   | 'split_left'
   | 'full_bleed'
+  | 'full_bleed_split2'
   | 'split_right_vstack2'
   | 'split_left_vstack2'
   | 'split_right_grid4'
@@ -220,6 +221,7 @@ const PDF_LAYOUT_VALUES: PdfImageLayout[] = [
   'split_right',
   'split_left',
   'full_bleed',
+  'full_bleed_split2',
   'split_right_vstack2',
   'split_left_vstack2',
   'split_right_grid4',
@@ -233,6 +235,7 @@ const PDF_LAYOUT_VALUES: PdfImageLayout[] = [
 
 const PDF_LAYOUT_SELECTOR_OPTIONS: Array<{ value: PdfImageLayout; label: string }> = [
   { value: 'full_bleed', label: 'Hero Full Bleed' },
+  { value: 'full_bleed_split2', label: 'Hero Full Bleed (50/50 Split)' },
   { value: 'split_right', label: 'Split Right (Single)' },
   { value: 'split_left', label: 'Split Left (Single)' },
   { value: 'split_right_vcols2', label: 'Split Right (2 Columns)' },
@@ -251,6 +254,7 @@ function getPdfLayout(templateId: string | undefined, slideType: string, hasImag
 
 function getLayoutPreviewLabelFor(layout: PdfImageLayout): string {
   if (layout === 'full_bleed') return 'Full Bleed Hero';
+  if (layout === 'full_bleed_split2') return 'Full Bleed Hero: 50/50 Split';
   if (layout === 'split_left') return 'Split: Image Left';
   if (layout === 'split_right') return 'Split: Image Right';
   if (layout === 'split_left_vstack2') return 'Split Left: 2 Vertical';
@@ -273,7 +277,9 @@ function getLayoutPreviewLabel(templateId: string | undefined, slideType: string
 }
 
 function getSuggestedAspectRatiosForLayout(layout: PdfImageLayout): PitchDeckAspectRatio[] {
-  if (layout === 'full_bleed' || layout === 'full_bleed_vcols4') return ['16:9', '21:9', '1:1'];
+  if (layout === 'full_bleed' || layout === 'full_bleed_vcols4' || layout === 'full_bleed_split2') {
+    return ['16:9', '21:9', '1:1'];
+  }
   if (
     layout === 'split_left' ||
     layout === 'split_right' ||
@@ -293,6 +299,7 @@ function getSuggestedAspectRatiosForLayout(layout: PdfImageLayout): PitchDeckAsp
 
 function getExportImageLimitForLayout(layout: PdfImageLayout): number {
   if (layout === 'text_only') return 0;
+  if (layout === 'full_bleed_split2') return 2;
   if (layout === 'split_left_vcols3' || layout === 'split_right_vcols3') return 3;
   if (layout === 'full_bleed_vcols4' || layout === 'split_left_grid4' || layout === 'split_right_grid4') return 4;
   if (
@@ -336,6 +343,14 @@ function getSlideImageExportLayoutOverride(slide: PitchDeckSlide): PdfImageLayou
   const candidate = typeof content.exportLayout === 'string' ? content.exportLayout : '';
   if (!candidate) return undefined;
   return PDF_LAYOUT_VALUES.includes(candidate as PdfImageLayout) ? (candidate as PdfImageLayout) : undefined;
+}
+
+function getSlideImageEnabled(slide: PitchDeckSlide): boolean {
+  const imageBlock = slide.blocks?.find((block) => block.type === 'image');
+  if (!imageBlock || typeof imageBlock.content !== 'object' || !imageBlock.content) return true;
+  const content = imageBlock.content as any;
+  if (typeof content.imageEnabled !== 'boolean') return true;
+  return content.imageEnabled;
 }
 
 function getSlidePrimaryImageUrlForExport(slide: PitchDeckSlide): string {
@@ -509,10 +524,11 @@ async function generatePitchDeckPdfClient(input: PitchDeckPdfExportInput): Promi
     doc.text(input.deckTitle || 'Pitch Deck', pageWidth - margin, margin + 28, { align: 'right' });
 
     const bodyText = getSlidePrimaryTextForExport(slide) || 'No text provided for this slide.';
-    const imageUrls = input.includeImages ? getSlideOrderedImageUrlsForExport(slide) : [];
+    const imageEnabled = getSlideImageEnabled(slide);
+    const imageUrls = input.includeImages && imageEnabled ? getSlideOrderedImageUrlsForExport(slide) : [];
     const hasImage = imageUrls.length > 0;
     const layoutOverride = getSlideImageExportLayoutOverride(slide);
-    const layout = layoutOverride || getPdfLayout(input.templateId, slide.slideType, hasImage);
+    const layout = !imageEnabled ? 'text_only' : layoutOverride || getPdfLayout(input.templateId, slide.slideType, hasImage);
     const isSplitLayout =
       layout === 'split_right' ||
       layout === 'split_left' ||
@@ -610,6 +626,16 @@ async function generatePitchDeckPdfClient(input: PitchDeckPdfExportInput): Promi
           if (layout === 'full_bleed') {
             const fullBleed = await renderCoverImageDataUrl(resolvedImages[0].dataUrl, pageWidth, pageHeight);
             doc.addImage(fullBleed, 'JPEG', 0, 0, pageWidth, pageHeight);
+            drawHeroHeaderAndTextPanel();
+          } else if (layout === 'full_bleed_split2') {
+            if (resolvedImages.length < 2) {
+              const fullBleed = await renderCoverImageDataUrl(resolvedImages[0].dataUrl, pageWidth, pageHeight);
+              doc.addImage(fullBleed, 'JPEG', 0, 0, pageWidth, pageHeight);
+            } else {
+              const heroTileW = pageWidth / 2;
+              await drawCover(resolvedImages[0], 0, 0, heroTileW, pageHeight);
+              await drawCover(resolvedImages[1], heroTileW, 0, heroTileW, pageHeight);
+            }
             drawHeroHeaderAndTextPanel();
           } else if (layout === 'full_bleed_vcols4') {
             const heroCount = Math.max(1, Math.min(4, resolvedImages.length));
@@ -826,11 +852,25 @@ export default function PitchDeckEditorPage() {
     () => (selectedSlide ? getSlideImageExportLayoutOverride(selectedSlide) : undefined),
     [selectedSlide]
   );
+  const selectableImageLayouts = useMemo(
+    () => PDF_LAYOUT_SELECTOR_OPTIONS.filter((option) => option.value !== 'text_only'),
+    []
+  );
+  const selectedSlideLayoutControlValue = useMemo(() => {
+    if (!selectedSlideLayoutOverride) return 'auto';
+    if (selectedSlideLayoutOverride === 'text_only') return 'auto';
+    return selectedSlideLayoutOverride;
+  }, [selectedSlideLayoutOverride]);
+  const selectedSlideImageEnabled = useMemo(
+    () => (selectedSlide ? getSlideImageEnabled(selectedSlide) : true),
+    [selectedSlide]
+  );
   const selectedSlideLayout = useMemo<PdfImageLayout>(() => {
     if (!selectedSlide) return 'split_right';
+    if (!selectedSlideImageEnabled) return 'text_only';
     const hasImage = getSlideOrderedImageUrlsForExport(selectedSlide).length > 0;
     return selectedSlideLayoutOverride || getPdfLayout(deckTemplateId, selectedSlide.slideType, hasImage);
-  }, [deckTemplateId, selectedSlide, selectedSlideLayoutOverride]);
+  }, [deckTemplateId, selectedSlide, selectedSlideImageEnabled, selectedSlideLayoutOverride]);
   const suggestedAspectRatios = useMemo(
     () => getSuggestedAspectRatiosForLayout(selectedSlideLayout),
     [selectedSlideLayout]
@@ -2007,6 +2047,55 @@ export default function PitchDeckEditorPage() {
     queueImageActionAutoSave();
   };
 
+  const updateSelectedSlideImageEnabled = (enabled: boolean) => {
+    if (!selectedSlide) return;
+    const currentBlocks = Array.isArray(selectedSlide.blocks) ? [...selectedSlide.blocks] : [];
+    const imageIndex = currentBlocks.findIndex((block) => block.type === 'image');
+    const baseImageBlock: PitchDeckBlock =
+      imageIndex >= 0
+        ? currentBlocks[imageIndex]
+        : {
+            blockId: `block_image_${Date.now()}`,
+            type: 'image',
+            content: {
+              imageUrl: '',
+              imageOptions: [],
+              activeImageId: '',
+            },
+            sourceType: 'user_custom',
+            lockedByUser: true,
+          };
+    const baseContent =
+      typeof baseImageBlock.content === 'object' && baseImageBlock.content
+        ? { ...(baseImageBlock.content as Record<string, unknown>) }
+        : {};
+    (baseContent as any).imageEnabled = enabled;
+
+    const updatedImageBlock: PitchDeckBlock = {
+      ...baseImageBlock,
+      content: baseContent,
+    };
+
+    if (imageIndex >= 0) {
+      currentBlocks[imageIndex] = updatedImageBlock;
+    } else {
+      currentBlocks.push(updatedImageBlock);
+    }
+
+    setSlides((prev) =>
+      prev.map((slide) =>
+        slide.slideId === selectedSlide.slideId
+          ? {
+              ...slide,
+              blocks: currentBlocks,
+            }
+          : slide
+      )
+    );
+    setSaveStatus('unsaved');
+    queueImageActionAutoSave();
+  };
+
   const appendSlotImageOption = (
     input: {
       imageUrl: string;
@@ -2885,34 +2974,67 @@ export default function PitchDeckEditorPage() {
                 {hasSelectedImageSlot ? (
                   <div className="mt-4 rounded border border-[#3F3F46] bg-[#121212] p-3">
                     <div className="flex items-center justify-between gap-2">
-                      <p className="text-xs uppercase tracking-wide text-gray-400">Slide Layout</p>
-                      <div className="flex items-center gap-2">
-                        <select
-                          value={selectedSlideLayoutOverride || 'auto'}
-                          onChange={(event) =>
-                            updateSelectedSlideExportLayout(
-                              event.target.value === 'auto'
-                                ? 'auto'
-                                : (event.target.value as PdfImageLayout)
-                            )
-                          }
-                          className="h-10 min-w-[260px] rounded border border-[#2f2f2f] bg-[#0f0f0f] px-3 text-sm text-gray-200"
-                        >
-                          <option value="auto">Auto (Template)</option>
-                          {PDF_LAYOUT_SELECTOR_OPTIONS.map((option) => (
-                            <option key={option.value} value={option.value}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </select>
-                        <span className="inline-flex h-10 items-center rounded border border-[#2f2f2f] bg-[#0f0f0f] px-3 text-sm text-gray-300">
-                          Export layout: {getLayoutPreviewLabel(deckTemplateId, selectedSlide.slideType, selectedSlideLayoutOverride)}
-                        </span>
+                      <div className="flex items-center gap-3">
+                        <p className="text-xs uppercase tracking-wide text-gray-400">Slide Layout</p>
+                        <div className="inline-flex items-center rounded border border-[#2f2f2f] bg-[#0f0f0f] p-1">
+                          <button
+                            type="button"
+                            onClick={() => updateSelectedSlideImageEnabled(true)}
+                            className={`rounded px-2 py-1 text-[11px] ${
+                              selectedSlideImageEnabled
+                                ? 'bg-emerald-600/30 text-emerald-200'
+                                : 'text-gray-400 hover:text-gray-200'
+                            }`}
+                          >
+                            Slide Image: On
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => updateSelectedSlideImageEnabled(false)}
+                            className={`rounded px-2 py-1 text-[11px] ${
+                              !selectedSlideImageEnabled
+                                ? 'bg-[#DC143C]/25 text-[#ffb3c0]'
+                                : 'text-gray-400 hover:text-gray-200'
+                            }`}
+                          >
+                            Off
+                          </button>
+                        </div>
                       </div>
+                      {selectedSlideImageEnabled ? (
+                        <div className="flex items-center gap-2">
+                          <select
+                            value={selectedSlideLayoutControlValue}
+                            onChange={(event) =>
+                              updateSelectedSlideExportLayout(
+                                event.target.value === 'auto'
+                                  ? 'auto'
+                                  : (event.target.value as PdfImageLayout)
+                              )
+                            }
+                            className="h-10 min-w-[260px] rounded border border-[#2f2f2f] bg-[#0f0f0f] px-3 text-sm text-gray-200"
+                          >
+                            <option value="auto">Auto (Template)</option>
+                            {selectableImageLayouts.map((option) => (
+                              <option key={option.value} value={option.value}>
+                                {option.label}
+                              </option>
+                            ))}
+                          </select>
+                          <span className="inline-flex h-10 items-center rounded border border-[#2f2f2f] bg-[#0f0f0f] px-3 text-sm text-gray-300">
+                            Export layout: {getLayoutPreviewLabel(deckTemplateId, selectedSlide.slideType, selectedSlideLayoutOverride)}
+                          </span>
+                        </div>
+                      ) : null}
                     </div>
                     <p className="mt-2 text-[11px] text-gray-500">
                       Tip: Portrait-ish images (9:16, 9:21, 2:3) crop best in multi-column layouts.
                     </p>
+                    {!selectedSlideImageEnabled ? (
+                      <p className="mt-2 rounded border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-[11px] text-amber-200">
+                        Slide image is off for this slide. Export renders this slide as text-only while preserving all canvas history.
+                      </p>
+                    ) : null}
                     <div className="mt-2 flex flex-wrap items-center gap-2 text-[11px]">
                       <span className="rounded border border-[#2f2f2f] bg-[#0f0f0f] px-2 py-0.5 text-gray-300">
                         Used in export: {exportImagesUsedCount}
@@ -2926,6 +3048,8 @@ export default function PitchDeckEditorPage() {
                       ) : null}
                     </div>
 
+                    {selectedSlideImageEnabled ? (
+                      <>
                     <div className="mt-3 rounded border border-[#5a4f66] bg-[#16121d] p-3">
                       <p className="mb-1 flex items-center gap-1.5 text-xs uppercase tracking-wide text-gray-300">
                         <Layers className="h-3.5 w-3.5 text-[#c4b5fd]" />
@@ -3575,6 +3699,8 @@ export default function PitchDeckEditorPage() {
                         </div>
                       )}
                     </div>
+                      </>
+                    ) : null}
                   </div>
                 ) : null}
 
