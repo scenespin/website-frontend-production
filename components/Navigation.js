@@ -112,6 +112,7 @@ export default function Navigation() {
         { name: 'Characters', href: buildEditorHref('/characters'), icon: Users, description: 'Cast management' },
         { name: 'Locations', href: buildEditorHref('/locations'), icon: MapPin, description: 'Scene settings' },
         { name: 'Props', href: buildEditorHref('/props'), icon: Package, description: 'Props & assets' },
+        { name: 'Pitch Decks', href: buildEditorHref('/pitch-decks'), icon: Layout, description: 'Deck editor & exports' },
       ]
     },
     {

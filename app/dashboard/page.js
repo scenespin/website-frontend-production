@@ -698,9 +698,9 @@ export default function Dashboard() {
     await handleDeleteProject(deleteConfirmModal.screenplayId);
   };
 
-  const handleCreatePitchDeck = (screenplayId) => {
+  const handleOpenPitchDeck = (screenplayId) => {
     if (!screenplayId) return;
-    router.push(`/pitch-decks/new?screenplayId=${encodeURIComponent(screenplayId)}`);
+    router.push(`/pitch-decks?project=${encodeURIComponent(screenplayId)}`);
   };
 
   if (loading) {
@@ -1004,12 +1004,12 @@ export default function Dashboard() {
                           <DropdownMenuItem
                             onClick={(e) => {
                               e.stopPropagation();
-                              handleCreatePitchDeck(screenplayId);
+                              handleOpenPitchDeck(screenplayId);
                             }}
                             className="cursor-pointer"
                           >
                             <Layout className="w-4 h-4 mr-2" />
-                            Create Pitch Deck
+                            Pitch Deck
                           </DropdownMenuItem>
                           <DropdownMenuItem
                             onClick={(e) => {
@@ -1045,10 +1045,10 @@ export default function Dashboard() {
                         onClick={(e) => {
                           e.stopPropagation();
                           e.preventDefault();
-                          handleCreatePitchDeck(screenplayId);
+                          handleOpenPitchDeck(screenplayId);
                         }}
                         className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-md hover:bg-cinema-red/15 text-base-content/60 hover:text-cinema-red transition-colors opacity-0 group-hover:opacity-100 text-xs font-medium"
-                        title="Create pitch deck"
+                        title="Open pitch decks"
                       >
                         <Layout className="w-3.5 h-3.5" />
                         Pitch Deck
@@ -1138,58 +1138,10 @@ export default function Dashboard() {
                         </p>
                       </div>
                     </Link>
-                    <div className="flex items-center gap-3 flex-shrink-0">
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          e.preventDefault();
-                          handleCreatePitchDeck(screenplayId);
-                        }}
-                        className="px-3 py-1.5 rounded-md border border-cinema-red/30 text-cinema-red hover:bg-cinema-red/10 transition-colors text-xs font-medium"
-                        title="Create pitch deck"
-                      >
-                        Create Pitch Deck
-                      </button>
-                    </div>
+                    <div className="flex items-center gap-3 flex-shrink-0" />
                   </div>
                 );
               })}
-            </div>
-          </div>
-        )}
-
-        {/* Recent Videos */}
-        {recentVideos.length > 0 && (
-          <div>
-            <h2 className="text-lg font-semibold text-base-content mb-4">Recent Videos</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {recentVideos.map((video) => (
-                <div
-                  key={video.id}
-                  className="group relative overflow-hidden bg-base-200 rounded-xl p-5 border border-base-300/50 hover:shadow-md transition-all duration-300"
-                >
-                  <div className="flex items-start justify-between mb-3">
-                    <div className="p-2 bg-accent/10 rounded-lg">
-                      <Video className="w-5 h-5 text-accent" />
-                    </div>
-                    <span className={`badge badge-sm ${
-                      video.status === 'completed' ? 'badge-success' :
-                      video.status === 'processing' ? 'badge-warning' :
-                      'badge-ghost'
-                    }`}>
-                      {video.status}
-                    </span>
-                  </div>
-                  <h3 className="font-semibold text-sm text-base-content line-clamp-2 mb-2">
-                    {video.prompt || 'Video'}
-                  </h3>
-                  {video.status === 'completed' && (
-                    <button className="w-full mt-3 py-2 text-sm font-medium text-cinema-red hover:bg-cinema-red/10 rounded-lg transition-colors">
-                      View Video
-                    </button>
-                  )}
-                </div>
-              ))}
             </div>
           </div>
         )}
