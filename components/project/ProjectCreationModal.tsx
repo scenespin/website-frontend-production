@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { X, Film, FileText, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { useCreateScreenplayFlow, type CreatedProjectPayload } from '@/hooks/useCreateScreenplayFlow';
+import { GENRE_OPTIONS } from '@/utils/genreOptions';
 
 interface ProjectCreationModalProps {
   isOpen: boolean;
@@ -112,17 +113,11 @@ export function ProjectCreationModal({ isOpen, onClose, onSuccess }: ProjectCrea
               disabled={isCreating}
             >
               <option value="">Select a genre...</option>
-              <option value="action">Action</option>
-              <option value="comedy">Comedy</option>
-              <option value="drama">Drama</option>
-              <option value="horror">Horror</option>
-              <option value="sci-fi">Sci-Fi</option>
-              <option value="thriller">Thriller</option>
-              <option value="romance">Romance</option>
-              <option value="fantasy">Fantasy</option>
-              <option value="mystery">Mystery</option>
-              <option value="documentary">Documentary</option>
-              <option value="other">Other</option>
+              {GENRE_OPTIONS.map((genreOption) => (
+                <option key={genreOption.value} value={genreOption.value}>
+                  {genreOption.label}
+                </option>
+              ))}
             </select>
           </div>
         </div>

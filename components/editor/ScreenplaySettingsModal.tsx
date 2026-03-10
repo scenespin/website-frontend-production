@@ -6,6 +6,7 @@ import { getScreenplay, updateScreenplay } from '@/utils/screenplayStorage';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { X, Settings, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { GENRE_OPTIONS } from '@/utils/genreOptions';
 
 interface ScreenplaySettingsModalProps {
   isOpen: boolean;
@@ -197,17 +198,11 @@ export default function ScreenplaySettingsModal({ isOpen, onClose, screenplayId:
                   disabled={isSaving}
                 >
                   <option value="">Select a genre...</option>
-                  <option value="action">Action</option>
-                  <option value="comedy">Comedy</option>
-                  <option value="drama">Drama</option>
-                  <option value="horror">Horror</option>
-                  <option value="sci-fi">Sci-Fi</option>
-                  <option value="thriller">Thriller</option>
-                  <option value="romance">Romance</option>
-                  <option value="fantasy">Fantasy</option>
-                  <option value="mystery">Mystery</option>
-                  <option value="documentary">Documentary</option>
-                  <option value="other">Other</option>
+                  {GENRE_OPTIONS.map((genreOption) => (
+                    <option key={genreOption.value} value={genreOption.value}>
+                      {genreOption.label}
+                    </option>
+                  ))}
                 </select>
               </div>
             </>
