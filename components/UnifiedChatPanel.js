@@ -417,6 +417,34 @@ function LLMModelSelector() {
   );
 }
 
+function ContextDepthSelector({ value, onChange }) {
+  const options = [
+    { id: 'full', label: 'Full' },
+    { id: 'fast', label: 'Fast' },
+  ];
+
+  return (
+    <div className="inline-flex items-center rounded-md border border-base-300 overflow-hidden">
+      {options.map((option) => {
+        const isActive = value === option.id;
+        return (
+          <button
+            key={option.id}
+            type="button"
+            onClick={() => onChange(option.id)}
+            className={`px-2 py-1 text-[11px] transition-colors ${
+              isActive ? 'bg-cinema-red/20 text-white' : 'bg-transparent text-base-content/70 hover:bg-base-300'
+            }`}
+            title={option.id === 'full' ? 'Best quality with richer screenplay context' : 'Lower cost with reduced context'}
+          >
+            {option.label}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 // ============================================================================
 // INTERNAL PANEL COMPONENT
 // ============================================================================
@@ -462,6 +490,7 @@ function UnifiedChatPanelInner({
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  const [storyAdvisorContextMode, setStoryAdvisorContextMode] = useState('full');
   const recognitionRef = useRef(null);
   
   // Cloud save prompt state
@@ -1368,6 +1397,7 @@ function UnifiedChatPanelInner({
                   analysisMode: 'story_advisor',
                   agentMode: 'story_advisor',
                   interactionType: 'story_advisor',
+                  contextMode: storyAdvisorContextMode,
                 }
               : {}),
             ...pitchDeckChatContext,
@@ -1712,6 +1742,12 @@ function UnifiedChatPanelInner({
         <ModeSelector />
         {/* Only show LLM selector for AI Agents */}
         {MODE_CONFIG[state.activeMode]?.isAgent && <LLMModelSelector />}
+        {state.activeMode === 'chat' && (
+          <div className="ml-auto flex items-center gap-2">
+            <span className="text-[11px] text-base-content/60">Depth</span>
+            <ContextDepthSelector value={storyAdvisorContextMode} onChange={setStoryAdvisorContextMode} />
+          </div>
+        )}
       </div>
       
         {/* Hidden file input - TODO: Re-enable when backend supports image/file analysis */}
