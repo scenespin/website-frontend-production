@@ -490,8 +490,17 @@ function UnifiedChatPanelInner({
   const [showAttachmentMenu, setShowAttachmentMenu] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  const [storyAdvisorContextMode, setStoryAdvisorContextMode] = useState('full');
+  const [storyAdvisorContextMode, setStoryAdvisorContextMode] = useState(() => {
+    if (typeof window === 'undefined') return 'full';
+    const saved = window.localStorage.getItem('story-advisor-context-depth');
+    return saved === 'fast' ? 'fast' : 'full';
+  });
   const recognitionRef = useRef(null);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem('story-advisor-context-depth', storyAdvisorContextMode);
+  }, [storyAdvisorContextMode]);
   
   // Cloud save prompt state
   const [cloudSavePrompt, setCloudSavePrompt] = useState({
