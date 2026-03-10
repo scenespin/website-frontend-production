@@ -30,7 +30,8 @@ export default function AccountPage() {
   const [loadingSubscription, setLoadingSubscription] = useState(true);
   const [updatingSubscription, setUpdatingSubscription] = useState(false);
   const [usageItems, setUsageItems] = useState([]);
-  const [usageCursor, setUsageCursor] = useState(null);
+  const [usagePages, setUsagePages] = useState([]);
+  const [usagePageIndex, setUsagePageIndex] = useState(0);
   const [loadingUsage, setLoadingUsage] = useState(true);
   const [loadingMoreUsage, setLoadingMoreUsage] = useState(false);
 
@@ -105,16 +106,27 @@ export default function AccountPage() {
         setLoadingUsage(true);
       }
       const response = await getBillingUsageHistory({
-        limit: 20,
-        cursor: append ? usageCursor : null,
+        limit: 50,
+        cursor: append ? usagePages[usagePageIndex]?.nextCursor || null : null,
       });
       const items = Array.isArray(response?.items) ? response.items : [];
-      setUsageItems((prev) => (append ? [...prev, ...items] : items));
-      setUsageCursor(response?.page?.nextCursor || null);
+      const nextCursor = response?.page?.nextCursor || null;
+      if (append) {
+        setUsagePages((prev) => [...prev, { items, nextCursor }]);
+        setUsagePageIndex((prev) => prev + 1);
+        setUsageItems(items);
+      } else {
+        setUsagePages([{ items, nextCursor }]);
+        setUsagePageIndex(0);
+        setUsageItems(items);
+      }
     } catch (error) {
       console.error('Failed to fetch usage history:', error);
-      if (!append) setUsageItems([]);
-      setUsageCursor(null);
+      if (!append) {
+        setUsageItems([]);
+        setUsagePages([]);
+        setUsagePageIndex(0);
+      }
     } finally {
       if (append) {
         setLoadingMoreUsage(false);
@@ -122,6 +134,15 @@ export default function AccountPage() {
         setLoadingUsage(false);
       }
     }
+  }
+
+  function goToPreviousUsagePage() {
+    setUsagePageIndex((prev) => {
+      const nextIndex = Math.max(0, prev - 1);
+      const target = usagePages[nextIndex];
+      if (target) setUsageItems(target.items || []);
+      return nextIndex;
+    });
   }
 
   async function handleSaveOverage() {
@@ -470,17 +491,27 @@ export default function AccountPage() {
                       </tbody>
                     </table>
                   </div>
-                  {usageCursor && (
-                    <div className="flex justify-end">
+                  <div className="flex items-center justify-between">
+                    <div className="text-xs text-base-content/60">
+                      Page {usagePageIndex + 1}
+                    </div>
+                    <div className="flex items-center gap-2">
                       <button
-                        onClick={() => fetchUsageHistory({ append: true })}
-                        disabled={loadingMoreUsage}
+                        onClick={goToPreviousUsagePage}
+                        disabled={loadingMoreUsage || usagePageIndex === 0}
                         className="px-4 py-2 bg-[#0A0A0A] border border-[#3F3F46] hover:border-cinema-red text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
                       >
-                        {loadingMoreUsage ? 'Loading...' : 'Load More'}
+                        Previous
+                      </button>
+                      <button
+                        onClick={() => fetchUsageHistory({ append: true })}
+                        disabled={loadingMoreUsage || !usagePages[usagePageIndex]?.nextCursor}
+                        className="px-4 py-2 bg-[#0A0A0A] border border-[#3F3F46] hover:border-cinema-red text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
+                      >
+                        {loadingMoreUsage ? 'Loading...' : 'Next'}
                       </button>
                     </div>
-                  )}
+                  </div>
                 </div>
               )}
             </div>
