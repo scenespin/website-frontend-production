@@ -811,7 +811,6 @@ export default function PitchDeckEditorPage() {
     () => selectedSlide?.blocks?.find((block) => block.type === 'image') || null,
     [selectedSlide]
   );
-  const hasSelectedImageSlot = Boolean(selectedImageBlock);
   const selectedExistingMedia = useMemo(
     () => existingMedia.find((item) => item.id === selectedExistingMediaId) || null,
     [existingMedia, selectedExistingMediaId]
@@ -2971,7 +2970,7 @@ export default function PitchDeckEditorPage() {
                   {rewriteNotice ? <p className="mt-2 text-xs text-emerald-300">{rewriteNotice}</p> : null}
                 </div>
 
-                {hasSelectedImageSlot ? (
+                {selectedSlide ? (
                   <div className="mt-4 rounded border border-[#3F3F46] bg-[#121212] p-3">
                     <div className="flex items-center justify-between gap-2">
                       <div className="flex items-center gap-3">
