@@ -180,7 +180,11 @@ export async function secureFetch(path: string, options: RequestInit = {}) {
 
         if (!response.ok) {
             const errorData = await response.json().catch(() => ({}));
-            throw new Error(errorData.message || `API Error: ${response.status} ${response.statusText}`);
+            const backendMessage =
+                errorData?.message ||
+                errorData?.error?.message ||
+                errorData?.error?.code;
+            throw new Error(backendMessage || `API Error: ${response.status} ${response.statusText}`);
         }
         
         return response.json();
