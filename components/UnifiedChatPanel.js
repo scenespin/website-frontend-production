@@ -1714,7 +1714,7 @@ function UnifiedChatPanelInner({
         {MODE_CONFIG[state.activeMode]?.isAgent && <LLMModelSelector />}
       </div>
       {state.activeMode === 'chat' && (
-        <div className="pointer-events-none absolute bottom-1.5 right-3 sm:right-4 text-[11px] text-base-content/55 whitespace-nowrap">
+        <div className="px-2 sm:px-3 md:px-4 pb-2 text-[11px] text-base-content/55 whitespace-nowrap">
           Complex prompts can use more credits. Check Usage History in Account.
         </div>
       )}
