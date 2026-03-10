@@ -83,8 +83,18 @@ function buildAIDisclosureSubmissionPdf(
   const events: AIDisclosureEvent[] = Array.isArray(snapshot?.report?.events) ? snapshot.report.events : [];
   const consent = snapshot?.report?.consent || {};
   const policyContext = consent?.policy_context || {};
+  const contributorProfiles = (snapshot?.report?.contributor_profiles || {}) as Record<
+    string,
+    { display_name?: string | null; name?: string | null; email?: string | null }
+  >;
   const sourceCounts = events.reduce<Record<string, number>>((acc, event) => {
     acc[event.source] = (acc[event.source] || 0) + 1;
+    return acc;
+  }, {});
+  const contributorCounts = events.reduce<Record<string, number>>((acc, event) => {
+    const userId = typeof event.user_id === 'string' ? event.user_id.trim() : '';
+    if (!userId) return acc;
+    acc[userId] = (acc[userId] || 0) + 1;
     return acc;
   }, {});
 
@@ -130,6 +140,39 @@ function buildAIDisclosureSubmissionPdf(
     .forEach(([source, count]) => {
       addWrappedText(doc, `- ${source}: ${count}`, state, { left, right, lineHeight, pageHeight, marginBottom });
     });
+
+  state.y += 6;
+  doc.setFont('helvetica', 'bold');
+  doc.setFontSize(12);
+  addWrappedText(doc, 'Contributor Breakdown', state, { left, right, lineHeight: 16, pageHeight, marginBottom });
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(10);
+  const contributorEntries = Object.entries(contributorCounts).sort((a, b) => b[1] - a[1]);
+  if (contributorEntries.length === 0) {
+    addWrappedText(doc, 'No contributors recorded in this report.', state, {
+      left,
+      right,
+      lineHeight,
+      pageHeight,
+      marginBottom,
+    });
+  } else {
+    contributorEntries.forEach(([userId, count]) => {
+      const profile = contributorProfiles[userId] || {};
+      const displayName =
+        (typeof profile.display_name === 'string' && profile.display_name.trim()) ||
+        (typeof profile.name === 'string' && profile.name.trim()) ||
+        (typeof profile.email === 'string' && profile.email.trim()) ||
+        userId;
+      addWrappedText(doc, `- ${displayName}: ${count} event${count === 1 ? '' : 's'}`, state, {
+        left,
+        right,
+        lineHeight,
+        pageHeight,
+        marginBottom,
+      });
+    });
+  }
 
   state.y += 6;
   doc.setFont('helvetica', 'bold');

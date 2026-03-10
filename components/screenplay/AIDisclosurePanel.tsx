@@ -44,6 +44,25 @@ type ConsentFormState = {
   policy_version: string;
 };
 
+type ContributorProfile = {
+  name?: string | null;
+  email?: string | null;
+  display_name?: string | null;
+};
+
+function resolveContributorDisplayName(
+  userId: string,
+  profiles: Record<string, ContributorProfile>
+): string {
+  const profile = profiles[userId];
+  return (
+    (typeof profile?.display_name === 'string' && profile.display_name.trim()) ||
+    (typeof profile?.name === 'string' && profile.name.trim()) ||
+    (typeof profile?.email === 'string' && profile.email.trim()) ||
+    userId
+  );
+}
+
 export default function AIDisclosurePanel({
   isOpen,
   onClose,
@@ -76,6 +95,21 @@ export default function AIDisclosurePanel({
     }
     return counts;
   }, [events]);
+
+  const contributorCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const event of events) {
+      const userId = typeof event.user_id === 'string' ? event.user_id : '';
+      if (!userId) continue;
+      counts.set(userId, (counts.get(userId) || 0) + 1);
+    }
+    return Array.from(counts.entries()).sort((a, b) => b[1] - a[1]);
+  }, [events]);
+
+  const contributorProfiles = useMemo(
+    () => ((report?.contributor_profiles || {}) as Record<string, ContributorProfile>),
+    [report]
+  );
 
   useEffect(() => {
     if (!isOpen) return;
@@ -386,13 +420,32 @@ export default function AIDisclosurePanel({
                     {events.map((event) => (
                       <div key={event.event_id} className="rounded border border-white/10 bg-[#161616] p-2">
                         <div className="text-xs text-gray-400">
-                          {new Date(event.timestamp).toLocaleString()} • {event.source} • {event.feature}
+                          {new Date(event.timestamp).toLocaleString()} • {resolveContributorDisplayName(event.user_id, contributorProfiles)} • {event.source} • {event.feature}
                         </div>
                         <div className="text-sm text-gray-200">{event.scene_heading || 'No scene heading detected'}</div>
                         <div className="text-xs text-gray-400">Range {event.range_start}-{event.range_end}</div>
                         <div className="text-sm text-gray-300 mt-1">{event.preview}</div>
                       </div>
                     ))}
+                  </div>
+                )}
+              </div>
+
+              <div className="rounded border border-white/10 bg-[#121212] p-3">
+                <h3 className="text-sm font-semibold text-white mb-2">Contributor Breakdown</h3>
+                {contributorCounts.length === 0 ? (
+                  <p className="text-sm text-gray-400">No contributors recorded yet.</p>
+                ) : (
+                  <div className="space-y-2">
+                    {contributorCounts.map(([userId, count]) => {
+                      const displayName = resolveContributorDisplayName(userId, contributorProfiles);
+                      return (
+                        <div key={userId} className="flex items-center justify-between rounded border border-white/10 bg-[#161616] px-3 py-2">
+                          <div className="text-sm text-gray-200">{displayName}</div>
+                          <div className="text-xs text-gray-400">{count} event{count === 1 ? '' : 's'}</div>
+                        </div>
+                      );
+                    })}
                   </div>
                 )}
               </div>
