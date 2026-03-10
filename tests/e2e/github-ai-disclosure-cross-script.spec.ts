@@ -27,6 +27,18 @@ function buildReport(screenplayId: string) {
   };
 }
 
+async function seedGitHubConfig(page: import('@playwright/test').Page, screenplayId: string) {
+  await page.evaluate((id) => {
+    const value = JSON.stringify({
+      owner: `owner_${id}`,
+      repo: `repo_${id}`,
+      branch: 'main',
+    });
+    localStorage.setItem(`screenplay_github_config_${id}`, value);
+    localStorage.setItem('screenplay_github_config', value);
+  }, screenplayId);
+}
+
 test.describe('AI Disclosure GitHub sync screenplay scoping', () => {
   test.beforeEach(async ({ page }) => {
     await page.route('**/api/screenplays/*/ai-disclosure-report', async (route) => {
@@ -39,7 +51,7 @@ test.describe('AI Disclosure GitHub sync screenplay scoping', () => {
       });
     });
 
-    await page.route('**/api/github/screenplay/context?*', async (route) => {
+    await page.route('**/api/github/screenplay/context**', async (route) => {
       const url = new URL(route.request().url());
       const screenplayId = url.searchParams.get('screenplayId') || '';
       await route.fulfill({
@@ -86,13 +98,21 @@ test.describe('AI Disclosure GitHub sync screenplay scoping', () => {
     });
 
     await page.goto(`/examples/e2e-ai-disclosure?screenplayId=${SCREENPLAY_A}&title=OwnerA`);
+    await seedGitHubConfig(page, SCREENPLAY_A);
+    await page.reload();
     const syncButtonA = page.getByRole('button', { name: 'Sync to GitHub' });
-    await expect(syncButtonA).toBeEnabled();
+    await expect
+      .poll(async () => syncButtonA.isEnabled(), { timeout: 15_000 })
+      .toBe(true);
     await syncButtonA.click();
 
     await page.goto(`/examples/e2e-ai-disclosure?screenplayId=${SCREENPLAY_B}&title=OwnerB`);
+    await seedGitHubConfig(page, SCREENPLAY_B);
+    await page.reload();
     const syncButtonB = page.getByRole('button', { name: 'Sync to GitHub' });
-    await expect(syncButtonB).toBeEnabled();
+    await expect
+      .poll(async () => syncButtonB.isEnabled(), { timeout: 15_000 })
+      .toBe(true);
     await syncButtonB.click();
 
     await expect.poll(() => syncBodies.length).toBe(2);
@@ -130,8 +150,12 @@ test.describe('AI Disclosure GitHub sync screenplay scoping', () => {
     });
 
     await page.goto(`/examples/e2e-ai-disclosure?screenplayId=${SCREENPLAY_COLLAB}&title=CollaboratorScript`);
+    await seedGitHubConfig(page, SCREENPLAY_COLLAB);
+    await page.reload();
     const syncButton = page.getByRole('button', { name: 'Sync to GitHub' });
-    await expect(syncButton).toBeEnabled();
+    await expect
+      .poll(async () => syncButton.isEnabled(), { timeout: 15_000 })
+      .toBe(true);
     await syncButton.click();
 
     await expect.poll(() => collaboratorSyncBody !== null).toBe(true);

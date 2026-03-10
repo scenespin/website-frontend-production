@@ -7,6 +7,8 @@ import {
   AIDisclosureConsentStatus,
   AIDisclosureEvent,
   getAIAuditEvidenceManifest,
+  getPendingGitHubLedgerLastError,
+  getPendingGitHubLedgerQueueCount,
   getGitHubLedgerConfig,
   getAIDisclosureReport,
   updateAIDisclosureConsent,
@@ -55,6 +57,8 @@ export default function AIDisclosurePanel({
   const [syncingToGitHub, setSyncingToGitHub] = useState(false);
   const [githubConfigReady, setGitHubConfigReady] = useState(false);
   const [githubConfigLoading, setGitHubConfigLoading] = useState(false);
+  const [pendingLedgerCount, setPendingLedgerCount] = useState(0);
+  const [pendingLedgerLastError, setPendingLedgerLastError] = useState<string | null>(null);
   const [events, setEvents] = useState<AIDisclosureEvent[]>([]);
   const [report, setReport] = useState<any>(null);
   const [consentForm, setConsentForm] = useState<ConsentFormState>({
@@ -131,6 +135,24 @@ export default function AIDisclosurePanel({
       cancelled = true;
     };
   }, [isOpen, screenplayId, getToken]);
+
+  useEffect(() => {
+    if (!isOpen) return;
+
+    const refresh = () => {
+      setPendingLedgerCount(getPendingGitHubLedgerQueueCount(screenplayId));
+      setPendingLedgerLastError(getPendingGitHubLedgerLastError(screenplayId));
+    };
+
+    refresh();
+    const intervalId = window.setInterval(refresh, 2000);
+    const onStorage = () => refresh();
+    window.addEventListener('storage', onStorage);
+    return () => {
+      window.clearInterval(intervalId);
+      window.removeEventListener('storage', onStorage);
+    };
+  }, [isOpen, screenplayId]);
 
   if (!isOpen) return null;
 
@@ -214,6 +236,8 @@ export default function AIDisclosurePanel({
         const nextReport = await getAIDisclosureReport(screenplayId);
         setReport(nextReport);
         setEvents(nextReport?.events || []);
+        setPendingLedgerCount(getPendingGitHubLedgerQueueCount(screenplayId));
+        setPendingLedgerLastError(getPendingGitHubLedgerLastError(screenplayId));
       } else {
         toast.error(result.message || 'Sync failed');
       }
@@ -344,6 +368,12 @@ export default function AIDisclosurePanel({
                 </div>
                 <p className="text-[11px] text-gray-500">
                   Export downloads a timestamped ZIP bundle containing PDF, JSON snapshot, and SHA-256 hash file.
+                </p>
+                <p className="text-[11px] text-gray-500">
+                  {pendingLedgerCount > 0
+                    ? `Pending GitHub ledger sync: ${pendingLedgerCount} event(s) queued.`
+                    : 'GitHub ledger queue is clear.'}
+                  {pendingLedgerLastError ? ` Last retry issue: ${pendingLedgerLastError}` : ''}
                 </p>
               </div>
 

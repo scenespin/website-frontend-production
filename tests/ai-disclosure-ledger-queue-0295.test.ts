@@ -48,10 +48,10 @@ async function run() {
   __aiDisclosureLedgerTestUtils.clearAll();
 
   // Test 1: exponential retry delay clamps at max.
-  assert.equal(
-    __aiDisclosureLedgerTestUtils.computeRetryDelayMs(1),
-    __aiDisclosureLedgerTestUtils.LEDGER_RETRY_BASE_MS
-  );
+  const retryDelayAttempt1 = __aiDisclosureLedgerTestUtils.computeRetryDelayMs(1);
+  const minExpected = Math.floor(__aiDisclosureLedgerTestUtils.LEDGER_RETRY_BASE_MS * 0.8);
+  const maxExpected = Math.ceil(__aiDisclosureLedgerTestUtils.LEDGER_RETRY_BASE_MS * 1.2);
+  assert.ok(retryDelayAttempt1 >= minExpected && retryDelayAttempt1 <= maxExpected);
   assert.equal(
     __aiDisclosureLedgerTestUtils.computeRetryDelayMs(20),
     __aiDisclosureLedgerTestUtils.LEDGER_RETRY_MAX_MS

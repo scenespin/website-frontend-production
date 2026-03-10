@@ -80,6 +80,11 @@ const LEDGER_FLUSH_INTERVAL_MS = 30000;
 const LEDGER_RETRY_BASE_MS = 5000;
 const LEDGER_RETRY_MAX_MS = 5 * 60 * 1000;
 const LEDGER_RETRY_INIT_KEY = '__wrydaAIAuditLedgerRetryInitialized';
+const LEDGER_RETRY_TAB_ID_KEY = 'ai_disclosure_github_ledger_tab_id_v1';
+const LEDGER_RETRY_LEADER_KEY = 'ai_disclosure_github_ledger_retry_leader_v1';
+const LEDGER_RETRY_LEADER_TTL_MS = 45 * 1000;
+const LEDGER_RETRY_JITTER_MIN = 0.8;
+const LEDGER_RETRY_JITTER_MAX = 1.2;
 
 let flushInFlight = false;
 
@@ -175,16 +180,20 @@ export function initializeGitHubAIAuditLedgerRetries(
   if (globalWindow[LEDGER_RETRY_INIT_KEY]) return;
   globalWindow[LEDGER_RETRY_INIT_KEY] = true;
 
-  const flush = () => {
-    void flushPendingGitHubLedgerQueueSafe(getBackendToken, 'interval');
+  const flush = (reason: string) => {
+    if (!acquireOrRefreshRetryLeader()) return;
+    void flushPendingGitHubLedgerQueueSafe(getBackendToken, reason);
   };
 
   window.addEventListener('online', () => {
-    void flushPendingGitHubLedgerQueueSafe(getBackendToken, 'online');
+    flush('online');
+  });
+  window.addEventListener('beforeunload', () => {
+    releaseRetryLeaderIfOwned();
   });
 
-  setInterval(flush, LEDGER_FLUSH_INTERVAL_MS);
-  void flushPendingGitHubLedgerQueueSafe(getBackendToken, 'init');
+  setInterval(() => flush('interval'), LEDGER_FLUSH_INTERVAL_MS);
+  flush('init');
 }
 
 async function appendEventToGitHubAuditLedger(params: {
@@ -290,6 +299,90 @@ async function flushPendingGitHubLedgerQueueSafe(
 }
 
 function computeRetryDelayMs(attempts: number): number {
+  const exp = Math.max(0, attempts - 1);
+  const delay = LEDGER_RETRY_BASE_MS * (2 ** exp);
+  const jitter = LEDGER_RETRY_JITTER_MIN + (Math.random() * (LEDGER_RETRY_JITTER_MAX - LEDGER_RETRY_JITTER_MIN));
+  const jitteredDelay = Math.round(delay * jitter);
+  return Math.min(jitteredDelay, LEDGER_RETRY_MAX_MS);
+}
+
+function getRetryTabId(): string {
+  if (typeof window === 'undefined') return 'server';
+  try {
+    const existing = sessionStorage.getItem(LEDGER_RETRY_TAB_ID_KEY);
+    if (existing) return existing;
+    const nextId = `tab_${Math.random().toString(36).slice(2)}_${Date.now().toString(36)}`;
+    sessionStorage.setItem(LEDGER_RETRY_TAB_ID_KEY, nextId);
+    return nextId;
+  } catch {
+    return `tab_fallback_${Date.now().toString(36)}`;
+  }
+}
+
+function readRetryLeader(): { ownerTabId: string; expiresAt: number } | null {
+  if (typeof window === 'undefined') return null;
+  try {
+    const raw = localStorage.getItem(LEDGER_RETRY_LEADER_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as { ownerTabId?: string; expiresAt?: number };
+    if (!parsed?.ownerTabId || !Number.isFinite(parsed?.expiresAt)) return null;
+    return {
+      ownerTabId: parsed.ownerTabId,
+      expiresAt: Number(parsed.expiresAt),
+    };
+  } catch {
+    return null;
+  }
+}
+
+function writeRetryLeader(ownerTabId: string, expiresAt: number): void {
+  if (typeof window === 'undefined') return;
+  localStorage.setItem(
+    LEDGER_RETRY_LEADER_KEY,
+    JSON.stringify({ ownerTabId, expiresAt })
+  );
+}
+
+function acquireOrRefreshRetryLeader(): boolean {
+  if (typeof window === 'undefined') return false;
+  const tabId = getRetryTabId();
+  const now = Date.now();
+  const current = readRetryLeader();
+  const isCurrentActive = Boolean(current && current.expiresAt > now);
+
+  if (!isCurrentActive || current?.ownerTabId === tabId) {
+    writeRetryLeader(tabId, now + LEDGER_RETRY_LEADER_TTL_MS);
+    return true;
+  }
+  return false;
+}
+
+function releaseRetryLeaderIfOwned(): void {
+  if (typeof window === 'undefined') return;
+  const tabId = getRetryTabId();
+  const current = readRetryLeader();
+  if (current?.ownerTabId === tabId) {
+    localStorage.removeItem(LEDGER_RETRY_LEADER_KEY);
+  }
+}
+
+export function getPendingGitHubLedgerQueueCount(screenplayId?: string): number {
+  const queue = readPendingLedgerQueue();
+  if (!screenplayId) return queue.length;
+  return queue.filter((item) => item.screenplayId === screenplayId).length;
+}
+
+export function getPendingGitHubLedgerLastError(screenplayId?: string): string | null {
+  const queue = readPendingLedgerQueue();
+  const scoped = screenplayId
+    ? queue.filter((item) => item.screenplayId === screenplayId)
+    : queue;
+  if (scoped.length === 0) return null;
+  const latest = scoped[scoped.length - 1];
+  return latest?.lastError || null;
+}
+
+function computeRetryDelayMsWithoutJitter(attempts: number): number {
   const exp = Math.max(0, attempts - 1);
   const delay = LEDGER_RETRY_BASE_MS * (2 ** exp);
   return Math.min(delay, LEDGER_RETRY_MAX_MS);
@@ -404,7 +497,9 @@ export const __aiDisclosureLedgerTestUtils = {
     if (typeof window === 'undefined') return;
     localStorage.removeItem(LEDGER_QUEUE_KEY);
     localStorage.removeItem(LEDGER_METRICS_KEY);
+    localStorage.removeItem(LEDGER_RETRY_LEADER_KEY);
   },
+  computeRetryDelayMsWithoutJitter,
 };
 
 function readGitHubLedgerConfigFromStorage(screenplayId?: string): GitHubLedgerConfig | null {
