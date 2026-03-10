@@ -498,9 +498,6 @@ async function generatePitchDeckPdfClient(input: PitchDeckPdfExportInput): Promi
       });
     }
 
-    doc.setDrawColor(95, 95, 105);
-    doc.line(margin, margin + 44, pageWidth - margin, margin + 44);
-
     doc.setFont('helvetica', 'bold');
     doc.setFontSize(28);
     doc.setTextColor(240, 240, 245);
@@ -531,6 +528,16 @@ async function generatePitchDeckPdfClient(input: PitchDeckPdfExportInput): Promi
     const textMaxY = pageHeight - margin - 8;
     const textWidth = isSplitLayout ? textWidthWithSplitImage : textWidthNoImage;
     const textStartX = layout.includes('split_left') ? splitImageWidth + margin * 0.6 : margin;
+    doc.setDrawColor(95, 95, 105);
+    if (isSplitLayout) {
+      const lineStartX = textStartX;
+      const lineEndX = Math.min(pageWidth - margin, textStartX + textWidth);
+      if (lineEndX > lineStartX) {
+        doc.line(lineStartX, margin + 44, lineEndX, margin + 44);
+      }
+    } else if (layout === 'text_only') {
+      doc.line(margin, margin + 44, pageWidth - margin, margin + 44);
+    }
     const bodyFontSize = 17;
     const bodyLineHeight = Math.round(bodyFontSize * 1.4);
     doc.setFont('helvetica', 'normal');
@@ -565,8 +572,6 @@ async function generatePitchDeckPdfClient(input: PitchDeckPdfExportInput): Promi
             // Re-draw top bar content for legibility over hero image
             doc.setFillColor(8, 8, 10);
             doc.rect(0, 0, pageWidth, 84, 'F');
-            doc.setDrawColor(95, 95, 105);
-            doc.line(margin, margin + 44, pageWidth - margin, margin + 44);
             doc.setFont('helvetica', 'bold');
             doc.setFontSize(28);
             doc.setTextColor(240, 240, 245);
