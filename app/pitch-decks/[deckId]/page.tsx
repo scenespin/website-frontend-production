@@ -2119,8 +2119,13 @@ export default function PitchDeckEditorPage() {
           }
           nextIds = current.filter((id) => id !== optionId);
         } else if (current.length >= exportImageLimitForSelectedLayout) {
-          blockedByLimit = true;
-          return slide;
+          if (exportImageLimitForSelectedLayout === 1) {
+            // For single-image layouts, clicking another tile should switch selection.
+            nextIds = [optionId];
+          } else {
+            blockedByLimit = true;
+            return slide;
+          }
         } else {
           // Re-select behavior appends to the end so ordering stays user-controlled.
           nextIds = [...current, optionId];
