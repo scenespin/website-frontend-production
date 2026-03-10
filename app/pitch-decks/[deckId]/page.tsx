@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { jsPDF } from 'jspdf';
-import { Briefcase, Check, Eye, Film, Loader2, Megaphone, MoreVertical, Trash2 } from 'lucide-react';
+import { Briefcase, Eye, Film, Loader2, Megaphone, MoreVertical, Trash2 } from 'lucide-react';
 import {
   archivePitchDeckImage,
   generatePitchDeckImageFromPrompt,
@@ -943,43 +943,52 @@ export default function PitchDeckEditorPage() {
     const validIds = new Set(selectedSlotImageOptions.map((option) => option.id));
     return rawIds.filter((id) => typeof id === 'string' && validIds.has(id));
   }, [selectedImageContent, selectedSlotImageOptions]);
-  const orderedSlotImageOptionsForExport = useMemo(() => {
-    const explicitlySelected =
-      selectedExportImageIds.length > 0
-        ? selectedExportImageIds
-            .map((id) => selectedSlotImageOptions.find((option) => option.id === id))
-            .filter(Boolean)
-        : [];
+  const autoOrderedSlotOptionIds = useMemo(() => {
     const active = activeSlotImageId
       ? selectedSlotImageOptions.find((option) => option.id === activeSlotImageId) || null
       : null;
-    const ordered = [
-      ...explicitlySelected,
-      ...(selectedExportImageIds.length === 0 ? [...(active ? [active] : []), ...selectedSlotImageOptions] : []),
-    ];
-    const deduped: SlotImageOption[] = [];
+    const ordered = [...(active ? [active.id] : []), ...selectedSlotImageOptions.map((option) => option.id)];
+    const deduped: string[] = [];
     const seen = new Set<string>();
-    ordered.forEach((option) => {
-      const key = typeof option.imageUrl === 'string' ? option.imageUrl : option.id;
-      if (seen.has(key)) return;
-      seen.add(key);
-      deduped.push(option);
+    ordered.forEach((id) => {
+      if (seen.has(id)) return;
+      seen.add(id);
+      deduped.push(id);
     });
     return deduped;
-  }, [activeSlotImageId, selectedExportImageIds, selectedSlotImageOptions]);
+  }, [activeSlotImageId, selectedSlotImageOptions]);
   const exportImageLimitForSelectedLayout = useMemo(
     () => getExportImageLimitForLayout(selectedSlideLayout),
     [selectedSlideLayout]
   );
+  const effectiveExportOptionIds = useMemo(() => {
+    const base = selectedExportImageIds.length > 0 ? selectedExportImageIds : autoOrderedSlotOptionIds;
+    return base.slice(0, exportImageLimitForSelectedLayout);
+  }, [selectedExportImageIds, autoOrderedSlotOptionIds, exportImageLimitForSelectedLayout]);
+  const orderedSlotImageOptionsForExport = useMemo(
+    () =>
+      effectiveExportOptionIds
+        .map((id) => selectedSlotImageOptions.find((option) => option.id === id))
+        .filter(Boolean) as SlotImageOption[],
+    [effectiveExportOptionIds, selectedSlotImageOptions]
+  );
   const exportImagesUsedCount = useMemo(
-    () => Math.min(orderedSlotImageOptionsForExport.length, exportImageLimitForSelectedLayout),
-    [orderedSlotImageOptionsForExport, exportImageLimitForSelectedLayout]
+    () => orderedSlotImageOptionsForExport.length,
+    [orderedSlotImageOptionsForExport]
   );
-  const exportHasIgnoredImages = orderedSlotImageOptionsForExport.length > exportImageLimitForSelectedLayout;
+  const exportHasIgnoredImages =
+    selectedExportImageIds.length === 0 && autoOrderedSlotOptionIds.length > exportImageLimitForSelectedLayout;
   const exportSelectedOptionIds = useMemo(
-    () => new Set(orderedSlotImageOptionsForExport.slice(0, exportImageLimitForSelectedLayout).map((option) => option.id)),
-    [orderedSlotImageOptionsForExport, exportImageLimitForSelectedLayout]
+    () => new Set(effectiveExportOptionIds),
+    [effectiveExportOptionIds]
   );
+  const exportSelectionOrderMap = useMemo(() => {
+    const map = new Map<string, number>();
+    effectiveExportOptionIds.forEach((id, index) => {
+      map.set(id, index + 1);
+    });
+    return map;
+  }, [effectiveExportOptionIds]);
   const sessionSelectedSlideAttempts = useMemo(() => {
     if (!selectedSlide?.slideId) return [] as ImageAttempt[];
     return imageAttempts.filter(
@@ -2036,13 +2045,72 @@ export default function PitchDeckEditorPage() {
   };
 
   const selectSlotImageOption = (optionId: string) => {
-    const option = selectedSlotImageOptions.find((item) => item.id === optionId);
-    if (!option) return;
-    updateSelectedSlideImageUrl(option.imageUrl, option.sourceType, {
-      activeImageId: option.id,
-      imageOptions: selectedSlotImageOptions,
-    });
-    setImageActionNotice(`Selected image option: ${option.label}`);
+    if (exportImageLimitForSelectedLayout <= 0) {
+      setImageActionNotice('This layout does not use slide images in export.');
+      setImageActionError(null);
+      return;
+    }
+    if (!selectedSlide) return;
+    let blockedByLimit = false;
+    let changed = false;
+    setSlides((prev) =>
+      prev.map((slide) => {
+        if (slide.slideId !== selectedSlide.slideId) return slide;
+        const currentBlocks = Array.isArray(slide.blocks) ? [...slide.blocks] : [];
+        const imageIndex = currentBlocks.findIndex((block) => block.type === 'image');
+        if (imageIndex < 0) return slide;
+        const imageBlock = currentBlocks[imageIndex];
+        const baseContent =
+          typeof imageBlock.content === 'object' && imageBlock.content
+            ? { ...(imageBlock.content as Record<string, unknown>) }
+            : {};
+        const options = Array.isArray((baseContent as any).imageOptions) ? ((baseContent as any).imageOptions as any[]) : [];
+        const validIds = new Set(options.map((option) => (typeof option?.id === 'string' ? option.id : '')).filter(Boolean));
+        const rawExportIds = Array.isArray((baseContent as any).exportImageIds)
+          ? ((baseContent as any).exportImageIds as any[])
+          : [];
+        const existingExportIds = rawExportIds.filter((id) => typeof id === 'string' && validIds.has(id));
+        const fallbackId = typeof (baseContent as any).activeImageId === 'string' ? String((baseContent as any).activeImageId) : '';
+        const current = existingExportIds.length > 0 ? existingExportIds : fallbackId && validIds.has(fallbackId) ? [fallbackId] : [];
+        const exists = current.includes(optionId);
+        let nextIds = current;
+        if (exists) {
+          nextIds = current.filter((id) => id !== optionId);
+        } else if (current.length >= exportImageLimitForSelectedLayout) {
+          blockedByLimit = true;
+          return slide;
+        } else {
+          // Re-select behavior appends to the end so ordering stays user-controlled.
+          nextIds = [...current, optionId];
+        }
+        changed = true;
+        const clicked = options.find((option) => option?.id === optionId);
+        (baseContent as any).activeImageId = optionId;
+        if (typeof clicked?.imageUrl === 'string') {
+          (baseContent as any).imageUrl = clicked.imageUrl;
+        }
+        (baseContent as any).exportImageIds = nextIds;
+        currentBlocks[imageIndex] = {
+          ...imageBlock,
+          content: baseContent,
+        };
+        return {
+          ...slide,
+          blocks: currentBlocks,
+        };
+      })
+    );
+    if (blockedByLimit) {
+      setImageActionNotice(
+        `This layout supports up to ${exportImageLimitForSelectedLayout} export image${
+          exportImageLimitForSelectedLayout === 1 ? '' : 's'
+        }.`
+      );
+      setImageActionError(null);
+      return;
+    }
+    if (!changed) return;
+    setSaveStatus('unsaved');
     setImageActionError(null);
     queueImageActionAutoSave();
   };
@@ -2063,42 +2131,6 @@ export default function PitchDeckEditorPage() {
       exportImageIds: nextExportIds,
     });
     setImageActionNotice(`Removed image option: ${option.label}`);
-    setImageActionError(null);
-    queueImageActionAutoSave();
-  };
-
-  const toggleSlotImageForExport = (optionId: string) => {
-    if (exportImageLimitForSelectedLayout <= 0) {
-      setImageActionNotice('This layout does not use slide images in export.');
-      setImageActionError(null);
-      return;
-    }
-    const current =
-      selectedExportImageIds.length > 0 ? selectedExportImageIds : activeSlotImageId ? [activeSlotImageId] : [];
-    const exists = current.includes(optionId);
-    let nextIds = current;
-    if (exists) {
-      nextIds = current.filter((id) => id !== optionId);
-    } else if (current.length >= exportImageLimitForSelectedLayout) {
-      setImageActionNotice(
-        `This layout supports up to ${exportImageLimitForSelectedLayout} export image${
-          exportImageLimitForSelectedLayout === 1 ? '' : 's'
-        }.`
-      );
-      setImageActionError(null);
-      return;
-    } else {
-      nextIds = [...current, optionId];
-    }
-    const activeOption = selectedSlotImageOptions.find((option) => option.id === activeSlotImageId);
-    const currentImageUrl =
-      activeOption?.imageUrl ||
-      (typeof (selectedImageContent as any)?.imageUrl === 'string' ? String((selectedImageContent as any).imageUrl) : '');
-    updateSelectedSlideImageUrl(currentImageUrl, selectedImageBlock?.sourceType || 'user_custom', {
-      activeImageId: activeSlotImageId,
-      imageOptions: selectedSlotImageOptions,
-      exportImageIds: nextIds,
-    });
     setImageActionError(null);
     queueImageActionAutoSave();
   };
@@ -2847,22 +2879,22 @@ export default function PitchDeckEditorPage() {
                         Slot gallery ({selectedSlotImageOptions.length})
                       </p>
                       <p className="mb-2 text-[11px] text-gray-500">
-                        Click a thumbnail to make it active. Use the check icon to include/exclude images for PDF export.
+                        Click thumbnails to select images for PDF export. Re-selecting a removed tile appends it to the end of export order.
                       </p>
                       {selectedSlotImageOptions.length === 0 ? (
                         <p className="text-xs text-gray-500">No saved options yet for this slot.</p>
                       ) : (
                         <div className="grid grid-cols-3 md:grid-cols-5 gap-2">
                           {selectedSlotImageOptions.map((option) => {
-                            const isActive = option.id === activeSlotImageId;
                             const isSelectedForExport = exportSelectedOptionIds.has(option.id);
+                            const selectionOrder = exportSelectionOrderMap.get(option.id);
                             return (
                               <button
                                 key={option.id}
                                 type="button"
                                 onClick={() => selectSlotImageOption(option.id)}
                                 className={`relative overflow-hidden rounded border ${
-                                  isActive ? 'border-[#DC143C]' : 'border-[#3F3F46]'
+                                  isSelectedForExport ? 'border-[#DC143C]' : 'border-[#3F3F46]'
                                 } bg-[#151515]`}
                                 title={`${option.label} • ${new Date(option.createdAt).toLocaleString()}`}
                               >
@@ -2875,23 +2907,15 @@ export default function PitchDeckEditorPage() {
                                   }}
                                 />
                                 <div className="absolute top-1 left-1 z-10">
-                                  <button
-                                    type="button"
-                                    onClick={(e) => {
-                                      e.stopPropagation();
-                                      toggleSlotImageForExport(option.id);
-                                    }}
-                                    className={`min-w-[24px] min-h-[24px] rounded-md border flex items-center justify-center shadow ${
-                                      isSelectedForExport
-                                        ? 'border-emerald-400 bg-emerald-500/80 text-white'
-                                        : 'border-white/30 bg-black/55 text-gray-200'
-                                    }`}
-                                    title={
-                                      isSelectedForExport ? 'Selected for PDF export' : 'Select for PDF export'
-                                    }
-                                  >
-                                    <Check className="w-3.5 h-3.5" />
-                                  </button>
+                                  {selectionOrder ? (
+                                    <span className="inline-flex min-w-[24px] h-6 items-center justify-center rounded-md border border-[#DC143C] bg-[#DC143C]/90 px-1.5 text-[11px] font-semibold text-white shadow">
+                                      {selectionOrder}
+                                    </span>
+                                  ) : (
+                                    <span className="inline-flex min-w-[24px] h-6 items-center justify-center rounded-md border border-white/30 bg-black/55 px-1.5 text-[11px] font-medium text-gray-200 shadow">
+                                      +
+                                    </span>
+                                  )}
                                 </div>
                                 <div className="absolute top-1 right-1 z-10">
                                   <DropdownMenu
