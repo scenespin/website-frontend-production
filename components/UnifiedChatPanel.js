@@ -1713,12 +1713,7 @@ function UnifiedChatPanelInner({
         {/* Only show LLM selector for AI Agents */}
         {MODE_CONFIG[state.activeMode]?.isAgent && <LLMModelSelector />}
       </div>
-      {state.activeMode === 'chat' && (
-        <div className="px-2 sm:px-3 md:px-4 pb-2 text-[11px] text-base-content/55 whitespace-nowrap">
-          Complex prompts can use more credits. Check Usage History in Account.
-        </div>
-      )}
-        
+      
         {/* Hidden file input - TODO: Re-enable when backend supports image/file analysis */}
         {/* <input
           ref={fileInputRef}
