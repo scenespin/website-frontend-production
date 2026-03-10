@@ -9,15 +9,13 @@ import { useDrawer } from '@/contexts/DrawerContext';
 import { useChatMode } from '@/hooks/useChatMode';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { ChatModePanel } from './modes/ChatModePanel';
-import { CharacterModePanel } from './modes/CharacterModePanel';
-import { LocationModePanel } from './modes/LocationModePanel';
 import { ImageModePanel } from './modes/ImageModePanel';
 import { VideoModePanel } from './modes/VideoModePanel';
 import { SceneVisualizerModePanel } from './modes/SceneVisualizerModePanel';
 import { TryOnModePanel } from './modes/TryOnModePanel';
 import { AudioModePanel } from './modes/AudioModePanel';
 import { CloudSavePrompt } from './CloudSavePrompt';
-import { Send, Loader2, Image as ImageIcon, Film, Music, MessageSquare, Clapperboard, Zap, Users, Mic, Plus, ChevronDown, X, MapPin, FileText, User, Building2, Info, Sparkles } from 'lucide-react';
+import { Send, Loader2, Image as ImageIcon, Film, Music, MessageSquare, Clapperboard, Zap, Users, Mic, Plus, ChevronDown, X, MapPin, FileText, Info, Sparkles } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { cn } from '@/lib/utils';
 import { detectCurrentScene, extractSelectionContext } from '@/utils/sceneDetection';
@@ -28,16 +26,14 @@ import { api } from '@/lib/api';
 import { useAuth } from '@clerk/nextjs';
 
 // The Intelligent Agent System
-// AGENTS (with LLM selector): Story Advisor, Character, Location
+// AGENTS (with LLM selector): Story Advisor
 const MODE_CONFIG = {
   // AI AGENTS (use LLMs)
   chat: { icon: MessageSquare, label: 'Story Advisor', color: 'text-purple-500', description: 'Screenplay consultation & creative guidance', isAgent: true },
-  character: { icon: User, label: 'Character', color: 'text-cyan-500', description: 'Create characters with AI interview', isAgent: true },
-  location: { icon: Building2, label: 'Location', color: 'text-amber-500', description: 'Create locations with AI interview', isAgent: true },
 };
 
-// Mode order: Only Story Advisor, Character, and Location
-const MODE_ORDER = ['chat', 'character', 'location'];
+// Mode order: Story Advisor only on writing surface
+const MODE_ORDER = ['chat'];
 
 // Conservative quick-fix caps for chat payload size.
 const MAX_CHAT_HISTORY_MESSAGES = 6;
@@ -76,15 +72,15 @@ function getAvailableModesForPage(pathname) {
   // Default: all modes
   if (!pathname) return MODE_ORDER;
   
-  // /write page - Writing agents ONLY
+  // /write page - Story Advisor only
   if (pathname.includes('/write') || pathname.includes('/editor')) {
-    return ['chat', 'character', 'location'];
+    return ['chat'];
   }
   
   // /produce page - Production agents ONLY (workflows first as default)
   // quick-video is intentionally excluded from production surface area.
   if (pathname.includes('/produce')) {
-    return ['workflows', 'image', 'audio', 'try-on', 'character', 'location'];
+    return ['workflows', 'image', 'audio', 'try-on'];
   }
   
   // /composition and /timeline pages - Audio agent ONLY
@@ -644,11 +640,15 @@ function UnifiedChatPanelInner({
         if (imageEntityContext.workflow === 'interview') {
           console.log('[UnifiedChatPanel] Starting AI interview for:', imageEntityContext.type);
           
-          // Set mode to the workflow type (character/location/scene) so drawer shows correct title
-          setMode(imageEntityContext.type);
-
-          // Start the workflow!
-          startWorkflow(imageEntityContext.type);
+          if (imageEntityContext.type === 'character' || imageEntityContext.type === 'location') {
+            // Character/location interview modes were retired from the unified panel.
+            // Route cleanly to Story Advisor instead of leaving UI in an invalid mode.
+            setMode('chat');
+            toast('Character/Location interviews now run via Story Advisor.');
+          } else {
+            setMode(imageEntityContext.type);
+            startWorkflow(imageEntityContext.type);
+          }
         }
       }
 
@@ -766,10 +766,11 @@ function UnifiedChatPanelInner({
       // Clear from localStorage
       localStorage.removeItem('pending-agent-mode');
       
-      // Set the mode
-      setMode(pendingAgentMode);
+      // Set the mode if still available, otherwise fall back safely.
+      const availableModes = getAvailableModesForPage(pathname);
+      setMode(availableModes.includes(pendingAgentMode) ? pendingAgentMode : 'chat');
     }
-  }, []); // Run once on mount
+  }, [pathname, setMode]); // Run once on mount
   
   // Set correct default agent when drawer opens (based on page)
   // Note: isDrawerOpen is already declared on line 218
@@ -788,7 +789,8 @@ function UnifiedChatPanelInner({
       if (pendingAgentMode) {
         console.log('[UnifiedChatPanel] Drawer opened with specific agent:', pendingAgentMode);
         localStorage.removeItem('pending-agent-mode');
-        setMode(pendingAgentMode);
+        const availableModes = getAvailableModesForPage(pathname);
+        setMode(availableModes.includes(pendingAgentMode) ? pendingAgentMode : 'chat');
       } else {
         // No pending mode, use smart default based on page
         const availableModes = getAvailableModesForPage(pathname);
@@ -907,12 +909,6 @@ function UnifiedChatPanelInner({
             onClearContext={onClearContext}
           />
         );
-
-      case 'character':
-        return <CharacterModePanel {...commonProps} />;
-
-      case 'location':
-        return <LocationModePanel {...commonProps} />;
 
       case 'workflows':
         return (
@@ -1053,15 +1049,6 @@ function UnifiedChatPanelInner({
    */
   const handleSend = async (message) => {
     if (!message.trim() || state.isStreaming) return;
-
-    // WIZARD MODE: Completely skip AI calls during character/location workflows
-    // The mode panels handle all workflow logic - we never call AI here during workflows
-    // Also skip if we're in character/location mode (even if workflow not set yet - mode panel will handle it)
-    if ((state.activeWorkflow && (state.activeMode === 'location' || state.activeMode === 'character')) ||
-        (state.activeMode === 'character' || state.activeMode === 'location')) {
-      console.log('[UnifiedChatPanel] ⚠️ Character/Location mode detected - skipping. Mode panel will handle this message.');
-      return; // Mode panel handles everything - don't add message, don't call AI, nothing
-    }
 
     // Add user message
     addMessage({
