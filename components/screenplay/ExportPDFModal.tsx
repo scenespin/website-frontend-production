@@ -2,9 +2,10 @@
 
 import React, { useState, useRef } from 'react';
 import { X, FileDown, Loader2, Check, Upload } from 'lucide-react';
-import { downloadScreenplayPDF } from '@/utils/pdfExport';
+import { useAuth } from '@clerk/nextjs';
 
 interface ExportPDFModalProps {
+  screenplayId: string;
   screenplay: string;
   onClose: () => void;
 }
@@ -13,7 +14,8 @@ interface ExportPDFModalProps {
  * Export PDF Modal - 100% FREE for all users!
  * No plan gating - democratizing professional screenplay export
  */
-export function ExportPDFModal({ screenplay, onClose }: ExportPDFModalProps) {
+export function ExportPDFModal({ screenplayId, screenplay, onClose }: ExportPDFModalProps) {
+  const { getToken } = useAuth();
   const [isExporting, setIsExporting] = useState(false);
   const [exported, setExported] = useState(false);
   
@@ -186,6 +188,11 @@ export function ExportPDFModal({ screenplay, onClose }: ExportPDFModalProps) {
   };
   
   const handleExport = async () => {
+    if (!screenplayId?.trim()) {
+      alert('Screenplay ID is missing. Please refresh the page and try again.');
+      return;
+    }
+
     if (!screenplay.trim()) {
       alert('No screenplay content to export');
       return;
@@ -243,26 +250,64 @@ export function ExportPDFModal({ screenplay, onClose }: ExportPDFModalProps) {
         }
       }
       
-      // Generate filename
-      const filename = `${title.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
-      
       console.log('[PDF Export] Starting PDF export...', {
-        filename,
+        screenplayId,
         hasWatermark: !!watermark,
         watermarkType: watermark?.image ? 'image' : watermark?.text ? 'text' : 'none',
       });
-      
-      // Export with full bookmark support
-      await downloadScreenplayPDF(
-        screenplay,
-        filename,
-        {
+
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) {
+        throw new Error('Authentication failed. Please sign in again.');
+      }
+
+      const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+      const response = await fetch(`${backendUrl}/api/screenplay/${encodeURIComponent(screenplayId)}/export/pdf`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          content: screenplay, // Keep parity with current UX (exports unsaved editor content).
           title,
           author: author || undefined,
           contact: contact || undefined,
-          watermark,
+          watermark: includeWatermark
+            ? {
+                enabled: true,
+                ...watermark,
+              }
+            : {
+                enabled: false,
+              },
+        }),
+      });
+
+      if (!response.ok) {
+        let message = `HTTP ${response.status}`;
+        try {
+          const payload = await response.json();
+          message = payload?.error?.message || payload?.message || message;
+        } catch {
+          // Ignore JSON parse errors and use fallback message.
         }
-      );
+        throw new Error(message);
+      }
+
+      const blob = await response.blob();
+      const contentDisposition = response.headers.get('content-disposition') || '';
+      const filenameMatch = contentDisposition.match(/filename="([^"]+)"/i);
+      const filename = filenameMatch?.[1] || `${title.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
+
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
       
       console.log('[PDF Export] PDF exported successfully');
       setExported(true);

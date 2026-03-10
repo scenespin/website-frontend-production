@@ -913,6 +913,7 @@ Tip:
             {/* PDF Export Modal */}
             {showExportModal && (
                 <ExportPDFModal
+                    screenplayId={screenplayId || screenplay.screenplayId || ''}
                     screenplay={state.content}
                     onClose={() => setShowExportModal(false)}
                 />
