@@ -81,7 +81,7 @@ export default function ScreenplaySettingsModal({ isOpen, onClose, screenplayId:
           description: description.trim() || undefined,
           metadata: {
             ...(currentScreenplay?.metadata || {}),
-            ...(genre.trim() ? { genre: genre.trim() } : {})
+            genre: genre.trim() ? genre.trim() : null
           }
         },
         getToken

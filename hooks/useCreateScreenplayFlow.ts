@@ -2,6 +2,7 @@
 
 import { useAuth } from '@clerk/nextjs';
 import { createScreenplay, updateScreenplay } from '@/utils/screenplayStorage';
+import { normalizeGenreValue } from '@/utils/genreOptions';
 
 interface CreateScreenplayInput {
   projectName: string;
@@ -47,6 +48,11 @@ export function useCreateScreenplayFlow() {
 
     const trimmedDescription = input.description.trim();
     const trimmedGenre = input.genre.trim();
+    const normalizedGenre = normalizeGenreValue(trimmedGenre);
+
+    if (trimmedGenre && !normalizedGenre) {
+      throw new Error('Please choose a valid genre');
+    }
 
     if (trimmedDescription || trimmedGenre) {
       try {
@@ -54,7 +60,7 @@ export function useCreateScreenplayFlow() {
           {
             screenplay_id: screenplay.screenplay_id,
             description: trimmedDescription || undefined,
-            metadata: trimmedGenre ? { genre: trimmedGenre } : undefined,
+            metadata: trimmedGenre ? { genre: normalizedGenre } : undefined,
           },
           getToken
         );
@@ -74,7 +80,7 @@ export function useCreateScreenplayFlow() {
       name: screenplay.title,
       title: screenplay.title,
       description: trimmedDescription || undefined,
-      metadata: trimmedGenre ? { genre: trimmedGenre } : undefined,
+      metadata: trimmedGenre ? { genre: normalizedGenre || undefined } : undefined,
       created_at: screenplay.created_at,
       updated_at: screenplay.updated_at,
       status: screenplay.status || 'active',

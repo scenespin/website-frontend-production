@@ -6,6 +6,7 @@
  */
 
 import { useAuth } from '@clerk/nextjs';
+import { normalizeGenreValue } from '@/utils/genreOptions';
 
 // ============================================================================
 // TYPES
@@ -119,6 +120,9 @@ export interface CreateScreenplayParams {
   title: string;
   author: string;
   content?: string;
+  metadata?: {
+    genre?: string | null;
+  };
   beats?: Beat[];
   characters?: Character[];
   locations?: Location[];
@@ -131,7 +135,7 @@ export interface UpdateScreenplayParams {
   author?: string;
   description?: string;
   metadata?: {
-    genre?: string;
+    genre?: string | null;
     logline?: string;
     pageCount?: number;
     tags?: string[];
@@ -260,12 +264,24 @@ export async function createScreenplay(
   // No need to send Authorization header - the route uses auth() to get token
   console.log('[screenplayStorage] Creating screenplay with params:', { title: params.title, author: params.author });
   
+  const payload: CreateScreenplayParams = { ...params };
+  if (payload.metadata && Object.prototype.hasOwnProperty.call(payload.metadata, 'genre')) {
+    const normalizedGenre = normalizeGenreValue(payload.metadata.genre);
+    if (payload.metadata.genre !== null && payload.metadata.genre !== undefined && String(payload.metadata.genre).trim() !== '' && !normalizedGenre) {
+      throw new Error('Invalid genre value provided');
+    }
+    payload.metadata = {
+      ...payload.metadata,
+      genre: normalizedGenre
+    };
+  }
+
   const response = await fetch('/api/screenplays', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json'
     },
-    body: JSON.stringify(params)
+    body: JSON.stringify(payload)
   });
 
   if (!response.ok) {
@@ -427,6 +443,7 @@ export async function updateScreenplay(
   getToken: ReturnType<typeof useAuth>['getToken']
 ): Promise<Screenplay> {
   const { screenplay_id, ...updates } = params;
+  const normalizedUpdates: typeof updates = { ...updates };
   
   // Feature 0130: Validate ID format - reject proj_ IDs
   if (screenplay_id.startsWith('proj_')) {
@@ -439,12 +456,24 @@ export async function updateScreenplay(
     throw new Error(`Invalid screenplay ID format. Expected screenplay_* but got: ${screenplay_id}`);
   }
   
+  if (normalizedUpdates.metadata && Object.prototype.hasOwnProperty.call(normalizedUpdates.metadata, 'genre')) {
+    const rawGenre = normalizedUpdates.metadata.genre;
+    const normalizedGenre = normalizeGenreValue(rawGenre);
+    if (rawGenre !== null && rawGenre !== undefined && String(rawGenre).trim() !== '' && !normalizedGenre) {
+      throw new Error('Invalid genre value provided');
+    }
+    normalizedUpdates.metadata = {
+      ...normalizedUpdates.metadata,
+      genre: normalizedGenre
+    };
+  }
+  
   console.log('[screenplayStorage] 🔥 PUT /api/screenplays/' + screenplay_id, {
     screenplay_id,
-    updates_keys: Object.keys(updates),
-    beats_count: updates.beats?.length,
-    characters_count: updates.characters?.length,
-    locations_count: updates.locations?.length
+    updates_keys: Object.keys(normalizedUpdates),
+    beats_count: normalizedUpdates.beats?.length,
+    characters_count: normalizedUpdates.characters?.length,
+    locations_count: normalizedUpdates.locations?.length
   });
   
   // Note: Next.js API route handles auth server-side, so we don't need to send token
@@ -453,7 +482,7 @@ export async function updateScreenplay(
     headers: {
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify(updates)
+    body: JSON.stringify(normalizedUpdates)
   });
 
   console.log('[screenplayStorage] Response status:', response.status, response.statusText);
