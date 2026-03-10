@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { jsPDF } from 'jspdf';
-import { Briefcase, Eye, Film, Loader2, Megaphone, MoreVertical, Trash2 } from 'lucide-react';
+import { Briefcase, Check, Eye, Film, Loader2, Megaphone, MoreVertical, Trash2 } from 'lucide-react';
 import {
   archivePitchDeckImage,
   generatePitchDeckImageFromPrompt,
@@ -354,6 +354,21 @@ function getSlideOrderedImageUrlsForExport(slide: PitchDeckSlide): string[] {
   if (!imageBlock || typeof imageBlock.content !== 'object' || !imageBlock.content) return [];
   const content = imageBlock.content as any;
   const options = Array.isArray(content.imageOptions) ? content.imageOptions : [];
+  const exportImageIds = Array.isArray(content.exportImageIds)
+    ? content.exportImageIds.filter((id: any) => typeof id === 'string')
+    : [];
+  const exportSelectedOptions =
+    exportImageIds.length > 0
+      ? exportImageIds
+          .map((id: string) => options.find((option: any) => option?.id === id))
+          .filter((option: any) => Boolean(option))
+      : [];
+  if (exportSelectedOptions.length > 0) {
+    const urls = exportSelectedOptions
+      .map((option: any) => (typeof option?.imageUrl === 'string' ? option.imageUrl : ''))
+      .filter((url: string) => url.trim().length > 0);
+    return Array.from(new Set(urls));
+  }
   const activeId = typeof content.activeImageId === 'string' ? content.activeImageId : '';
   const active = activeId ? options.find((option: any) => option?.id === activeId) : null;
   const urls = [
@@ -921,11 +936,27 @@ export default function PitchDeckEditorPage() {
     if (typeof activeId === 'string' && activeId.trim()) return activeId;
     return selectedSlotImageOptions[0]?.id || '';
   }, [selectedImageContent, selectedSlotImageOptions]);
+  const selectedExportImageIds = useMemo(() => {
+    const rawIds = Array.isArray((selectedImageContent as any)?.exportImageIds)
+      ? ((selectedImageContent as any).exportImageIds as any[])
+      : [];
+    const validIds = new Set(selectedSlotImageOptions.map((option) => option.id));
+    return rawIds.filter((id) => typeof id === 'string' && validIds.has(id));
+  }, [selectedImageContent, selectedSlotImageOptions]);
   const orderedSlotImageOptionsForExport = useMemo(() => {
+    const explicitlySelected =
+      selectedExportImageIds.length > 0
+        ? selectedExportImageIds
+            .map((id) => selectedSlotImageOptions.find((option) => option.id === id))
+            .filter(Boolean)
+        : [];
     const active = activeSlotImageId
       ? selectedSlotImageOptions.find((option) => option.id === activeSlotImageId) || null
       : null;
-    const ordered = [...(active ? [active] : []), ...selectedSlotImageOptions];
+    const ordered = [
+      ...explicitlySelected,
+      ...(selectedExportImageIds.length === 0 ? [...(active ? [active] : []), ...selectedSlotImageOptions] : []),
+    ];
     const deduped: SlotImageOption[] = [];
     const seen = new Set<string>();
     ordered.forEach((option) => {
@@ -935,7 +966,7 @@ export default function PitchDeckEditorPage() {
       deduped.push(option);
     });
     return deduped;
-  }, [activeSlotImageId, selectedSlotImageOptions]);
+  }, [activeSlotImageId, selectedExportImageIds, selectedSlotImageOptions]);
   const exportImageLimitForSelectedLayout = useMemo(
     () => getExportImageLimitForLayout(selectedSlideLayout),
     [selectedSlideLayout]
@@ -945,6 +976,10 @@ export default function PitchDeckEditorPage() {
     [orderedSlotImageOptionsForExport, exportImageLimitForSelectedLayout]
   );
   const exportHasIgnoredImages = orderedSlotImageOptionsForExport.length > exportImageLimitForSelectedLayout;
+  const exportSelectedOptionIds = useMemo(
+    () => new Set(orderedSlotImageOptionsForExport.slice(0, exportImageLimitForSelectedLayout).map((option) => option.id)),
+    [orderedSlotImageOptionsForExport, exportImageLimitForSelectedLayout]
+  );
   const sessionSelectedSlideAttempts = useMemo(() => {
     if (!selectedSlide?.slideId) return [] as ImageAttempt[];
     return imageAttempts.filter(
@@ -1140,6 +1175,21 @@ export default function PitchDeckEditorPage() {
     return '';
   };
 
+  const normalizeS3Key = (value: unknown): string => {
+    if (typeof value !== 'string') return '';
+    const trimmed = value.trim();
+    if (!trimmed) return '';
+    if (
+      trimmed.startsWith('http://') ||
+      trimmed.startsWith('https://') ||
+      trimmed.includes('x-amz-signature=') ||
+      trimmed.includes('?')
+    ) {
+      return '';
+    }
+    return trimmed;
+  };
+
   const isLikelySignedExpiringUrl = (value: string): boolean => {
     const lower = value.toLowerCase();
     return (
@@ -1153,6 +1203,7 @@ export default function PitchDeckEditorPage() {
 
   type ImageCandidate = {
     imageUrl: string;
+    s3Key?: string;
     outfitName?: string;
     angle?: string;
     backgroundType?: string;
@@ -1172,6 +1223,12 @@ export default function PitchDeckEditorPage() {
       objectValue.metadata && typeof objectValue.metadata === 'object'
         ? (objectValue.metadata as Record<string, unknown>)
         : {};
+    const s3Key =
+      normalizeS3Key(objectValue.s3Key) ||
+      normalizeS3Key((objectValue as any).storageKey) ||
+      normalizeS3Key(metadata.s3Key) ||
+      normalizeS3Key((metadata as any).storageKey) ||
+      '';
     const candidateKeys = [
       'imageUrl',
       'url',
@@ -1185,6 +1242,7 @@ export default function PitchDeckEditorPage() {
       .filter(Boolean)
       .map((imageUrl) => ({
         imageUrl,
+        s3Key: s3Key || undefined,
         outfitName:
           String(
             objectValue.outfitName ||
@@ -1218,6 +1276,7 @@ export default function PitchDeckEditorPage() {
     [...directCandidates, ...nestedCandidates].forEach((candidate) => {
       if (!candidate.imageUrl) return;
       const dedupeKey = [
+        candidate.s3Key || '',
         candidate.imageUrl,
         candidate.outfitName || '',
         candidate.angle || '',
@@ -1235,6 +1294,7 @@ export default function PitchDeckEditorPage() {
       .flatMap((field) => collectImageCandidatesFromUnknown(entity[field]))
       .forEach((candidate) => {
         const dedupeKey = [
+          candidate.s3Key || '',
           candidate.imageUrl,
           candidate.outfitName || '',
           candidate.angle || '',
@@ -1329,6 +1389,12 @@ export default function PitchDeckEditorPage() {
         ]);
         imageCandidates.forEach((candidate, index) => {
           const outfitLabel = candidate.outfitName || 'Creation';
+          const rawImageUrl = normalizeImageUrl(candidate.imageUrl || '');
+          const s3Key = typeof candidate.s3Key === 'string' ? candidate.s3Key.trim() : '';
+          if (!s3Key && (!rawImageUrl || isLikelySignedExpiringUrl(rawImageUrl))) {
+            return;
+          }
+          const imageUrl = s3Key ? `/api/media/file?key=${encodeURIComponent(s3Key)}` : rawImageUrl;
           pushMedia({
             id: `character:${characterId}:${index}`,
             label: `Character - ${name}${candidate.outfitName ? ` • ${candidate.outfitName}` : ''}${index > 0 ? ` (${index + 1})` : ''}`,
@@ -1338,7 +1404,8 @@ export default function PitchDeckEditorPage() {
             groupKey: `outfit:${outfitLabel.toLowerCase()}`,
             groupLabel: `Outfit: ${outfitLabel}`,
             outfitName: candidate.outfitName,
-            imageUrl: candidate.imageUrl,
+            imageUrl,
+            s3Key: s3Key || undefined,
           });
         });
       });
@@ -1402,6 +1469,12 @@ export default function PitchDeckEditorPage() {
           'media',
         ]);
         imageCandidates.forEach((candidate, index) => {
+          const rawImageUrl = normalizeImageUrl(candidate.imageUrl || '');
+          const s3Key = typeof candidate.s3Key === 'string' ? candidate.s3Key.trim() : '';
+          if (!s3Key && (!rawImageUrl || isLikelySignedExpiringUrl(rawImageUrl))) {
+            return;
+          }
+          const imageUrl = s3Key ? `/api/media/file?key=${encodeURIComponent(s3Key)}` : rawImageUrl;
           pushMedia({
             id: `prop:${propId}:${index}`,
             label: `Prop - ${name}${index > 0 ? ` (${index + 1})` : ''}`,
@@ -1410,7 +1483,8 @@ export default function PitchDeckEditorPage() {
             entityName: name,
             groupKey: 'variant:all',
             groupLabel: 'All',
-            imageUrl: candidate.imageUrl,
+            imageUrl,
+            s3Key: s3Key || undefined,
           });
         });
       });
@@ -1768,7 +1842,7 @@ export default function PitchDeckEditorPage() {
   const updateSelectedSlideImageUrl = (
     nextImageUrl: string,
     sourceType: PitchDeckBlock['sourceType'] = 'user_custom',
-    extras?: { activeImageId?: string; imageOptions?: SlotImageOption[] }
+    extras?: { activeImageId?: string; imageOptions?: SlotImageOption[]; exportImageIds?: string[] }
   ) => {
     if (!selectedSlide) return;
     const currentBlocks = Array.isArray(selectedSlide.blocks) ? [...selectedSlide.blocks] : [];
@@ -1799,6 +1873,7 @@ export default function PitchDeckEditorPage() {
       imageUrl: nextImageUrl,
       ...(extras?.activeImageId !== undefined ? { activeImageId: extras.activeImageId } : {}),
       ...(extras?.imageOptions !== undefined ? { imageOptions: extras.imageOptions } : {}),
+      ...(extras?.exportImageIds !== undefined ? { exportImageIds: extras.exportImageIds } : {}),
     };
 
     const updatedImageBlock: PitchDeckBlock = {
@@ -1899,9 +1974,15 @@ export default function PitchDeckEditorPage() {
     };
     const deduped = selectedSlotImageOptions.filter((option) => option.imageUrl !== persistentImageUrl);
     const nextOptions = [nextOption, ...deduped].slice(0, 30);
+    const candidateExportIds = [nextOption.id, ...selectedExportImageIds.filter((id) => id !== nextOption.id)];
+    const nextExportIds =
+      exportImageLimitForSelectedLayout > 0
+        ? candidateExportIds.slice(0, exportImageLimitForSelectedLayout)
+        : [];
     updateSelectedSlideImageUrl(persistentImageUrl, input.sourceType, {
       activeImageId: nextOption.id,
       imageOptions: nextOptions,
+      exportImageIds: nextExportIds,
     });
     queueImageActionAutoSave();
   };
@@ -1971,11 +2052,53 @@ export default function PitchDeckEditorPage() {
     if (!option) return;
     const nextOptions = selectedSlotImageOptions.filter((item) => item.id !== optionId);
     const nextActive = nextOptions[0];
+    const nextValidIds = new Set(nextOptions.map((option) => option.id));
+    let nextExportIds = selectedExportImageIds.filter((id) => nextValidIds.has(id) && id !== optionId);
+    if (nextExportIds.length === 0 && nextActive && exportImageLimitForSelectedLayout > 0) {
+      nextExportIds = [nextActive.id];
+    }
     updateSelectedSlideImageUrl(nextActive?.imageUrl || '', nextActive?.sourceType || 'user_custom', {
       activeImageId: nextActive?.id || '',
       imageOptions: nextOptions,
+      exportImageIds: nextExportIds,
     });
     setImageActionNotice(`Removed image option: ${option.label}`);
+    setImageActionError(null);
+    queueImageActionAutoSave();
+  };
+
+  const toggleSlotImageForExport = (optionId: string) => {
+    if (exportImageLimitForSelectedLayout <= 0) {
+      setImageActionNotice('This layout does not use slide images in export.');
+      setImageActionError(null);
+      return;
+    }
+    const current =
+      selectedExportImageIds.length > 0 ? selectedExportImageIds : activeSlotImageId ? [activeSlotImageId] : [];
+    const exists = current.includes(optionId);
+    let nextIds = current;
+    if (exists) {
+      nextIds = current.filter((id) => id !== optionId);
+    } else if (current.length >= exportImageLimitForSelectedLayout) {
+      setImageActionNotice(
+        `This layout supports up to ${exportImageLimitForSelectedLayout} export image${
+          exportImageLimitForSelectedLayout === 1 ? '' : 's'
+        }.`
+      );
+      setImageActionError(null);
+      return;
+    } else {
+      nextIds = [...current, optionId];
+    }
+    const activeOption = selectedSlotImageOptions.find((option) => option.id === activeSlotImageId);
+    const currentImageUrl =
+      activeOption?.imageUrl ||
+      (typeof (selectedImageContent as any)?.imageUrl === 'string' ? String((selectedImageContent as any).imageUrl) : '');
+    updateSelectedSlideImageUrl(currentImageUrl, selectedImageBlock?.sourceType || 'user_custom', {
+      activeImageId: activeSlotImageId,
+      imageOptions: selectedSlotImageOptions,
+      exportImageIds: nextIds,
+    });
     setImageActionError(null);
     queueImageActionAutoSave();
   };
@@ -2002,6 +2125,7 @@ export default function PitchDeckEditorPage() {
       imageUrl: selectedExistingMedia.imageUrl,
       sourceType: 'existing_media',
       label: selectedExistingMedia.label,
+      s3Key: selectedExistingMedia.s3Key,
     });
     setImageActionNotice('Added existing screenplay image to this slot gallery.');
   };
@@ -2617,8 +2741,7 @@ export default function PitchDeckEditorPage() {
                     <button
                       type="button"
                       onClick={openRewriteForSlide}
-                      disabled={saving}
-                      className="relative inline-flex items-center gap-1.5 overflow-hidden rounded-xl border-2 border-white/30 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur-lg shadow-lg disabled:opacity-40"
+                      className="relative inline-flex items-center gap-1.5 overflow-hidden rounded-xl border-2 border-white/30 px-3 py-1.5 text-xs font-semibold text-white backdrop-blur-lg shadow-lg"
                       style={{
                         background: 'linear-gradient(135deg, rgba(220, 20, 60, 0.85) 0%, rgba(139, 0, 0, 0.85) 100%)',
                       }}
@@ -2723,12 +2846,16 @@ export default function PitchDeckEditorPage() {
                       <p className="text-xs uppercase tracking-wide text-gray-400 mb-2">
                         Slot gallery ({selectedSlotImageOptions.length})
                       </p>
+                      <p className="mb-2 text-[11px] text-gray-500">
+                        Click a thumbnail to make it active. Use the check icon to include/exclude images for PDF export.
+                      </p>
                       {selectedSlotImageOptions.length === 0 ? (
                         <p className="text-xs text-gray-500">No saved options yet for this slot.</p>
                       ) : (
                         <div className="grid grid-cols-3 md:grid-cols-5 gap-2">
                           {selectedSlotImageOptions.map((option) => {
                             const isActive = option.id === activeSlotImageId;
+                            const isSelectedForExport = exportSelectedOptionIds.has(option.id);
                             return (
                               <button
                                 key={option.id}
@@ -2747,6 +2874,25 @@ export default function PitchDeckEditorPage() {
                                     (e.target as HTMLImageElement).style.opacity = '0.2';
                                   }}
                                 />
+                                <div className="absolute top-1 left-1 z-10">
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      toggleSlotImageForExport(option.id);
+                                    }}
+                                    className={`min-w-[24px] min-h-[24px] rounded-md border flex items-center justify-center shadow ${
+                                      isSelectedForExport
+                                        ? 'border-emerald-400 bg-emerald-500/80 text-white'
+                                        : 'border-white/30 bg-black/55 text-gray-200'
+                                    }`}
+                                    title={
+                                      isSelectedForExport ? 'Selected for PDF export' : 'Select for PDF export'
+                                    }
+                                  >
+                                    <Check className="w-3.5 h-3.5" />
+                                  </button>
+                                </div>
                                 <div className="absolute top-1 right-1 z-10">
                                   <DropdownMenu
                                     open={openImageMenuId === option.id}
