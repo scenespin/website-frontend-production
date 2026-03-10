@@ -2086,6 +2086,10 @@ export default function PitchDeckEditorPage() {
         const exists = current.includes(optionId);
         let nextIds = current;
         if (exists) {
+          // Keep one selected at all times to avoid confusing auto-reassignment.
+          if (current.length === 1) {
+            return slide;
+          }
           nextIds = current.filter((id) => id !== optionId);
         } else if (current.length >= exportImageLimitForSelectedLayout) {
           blockedByLimit = true;
