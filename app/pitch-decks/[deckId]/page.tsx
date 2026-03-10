@@ -911,14 +911,17 @@ export default function PitchDeckEditorPage() {
         .filter((option: any) => option && typeof option.imageUrl === 'string')
         .map((option: any) => {
           const directS3Key = typeof option?.s3Key === 'string' ? option.s3Key.trim() : '';
+          const optionLabel = typeof option?.label === 'string' ? option.label.trim() : '';
+          const optionLabelBase = optionLabel.toLowerCase().replace(/\s*\(\d+\)\s*$/g, '').trim();
           const fallbackMatch =
-            !directS3Key && typeof option?.label === 'string'
+            !directS3Key && optionLabel
               ? existingMedia.find(
                   (item) =>
                     typeof item?.s3Key === 'string' &&
                     item.s3Key.length > 0 &&
                     typeof item?.label === 'string' &&
-                    item.label === option.label
+                    (item.label === optionLabel ||
+                      item.label.toLowerCase().replace(/\s*\(\d+\)\s*$/g, '').trim() === optionLabelBase)
                 )
               : null;
           const s3Key = directS3Key || fallbackMatch?.s3Key || undefined;
@@ -1605,6 +1608,30 @@ export default function PitchDeckEditorPage() {
       cancelled = true;
     };
   }, [deckScreenplayId, featureEnabled, imageActionTab, mediaScopeKey, refreshExistingMedia]);
+
+  useEffect(() => {
+    if (!deckScreenplayId || !featureEnabled) return;
+    if (existingMediaLoadedScopeRef.current === mediaScopeKey) return;
+    const hasLikelyExpiringSlotUrl = selectedSlotImageOptions.some((option) => {
+      if (option?.s3Key) return false;
+      const value = String(option?.imageUrl || '').toLowerCase();
+      if (!value) return false;
+      return (
+        value.includes('x-amz-signature=') ||
+        value.includes('x-amz-algorithm=') ||
+        value.includes('x-amz-credential=') ||
+        value.includes('x-goog-signature=') ||
+        value.includes('googleaccessid=')
+      );
+    });
+    if (!hasLikelyExpiringSlotUrl) return;
+    void (async () => {
+      const loaded = await refreshExistingMedia();
+      if (loaded) {
+        existingMediaLoadedScopeRef.current = mediaScopeKey;
+      }
+    })();
+  }, [deckScreenplayId, featureEnabled, mediaScopeKey, refreshExistingMedia, selectedSlotImageOptions]);
 
   useEffect(() => {
     if (imageActionTab !== 'library' || !deckScreenplayId || !featureEnabled) return;
