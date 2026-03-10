@@ -97,20 +97,20 @@ function getAvailableModesForPage(pathname) {
 // Curated list: 8 models across 3 providers (latest flagship + fast option + premium option per provider)
 const LLM_MODELS = [
   // Claude (Anthropic) - Best for Creative Writing
-  { id: 'claude-sonnet-4-6', name: 'Claude Sonnet 4.6', provider: 'Anthropic', description: '⭐ Best for creative writing & screenplays', recommended: true },
-  { id: 'claude-opus-4-6', name: 'Claude Opus 4.6', provider: 'Anthropic', description: 'Most powerful - Enhanced coding & reasoning' },
-  { id: 'claude-haiku-4-5', name: 'Claude Haiku 4.5', provider: 'Anthropic', description: 'Fast & economical' },
+  { id: 'claude-sonnet-4-6', name: 'Claude Sonnet 4.6', shortName: 'Sonnet 4.6', provider: 'Anthropic', description: '⭐ Best for creative writing & screenplays', recommended: true },
+  { id: 'claude-opus-4-6', name: 'Claude Opus 4.6', shortName: 'Opus 4.6', provider: 'Anthropic', description: 'Most powerful - Enhanced coding & reasoning' },
+  { id: 'claude-haiku-4-5', name: 'Claude Haiku 4.5', shortName: 'Haiku 4.5', provider: 'Anthropic', description: 'Fast & economical' },
   // GPT (OpenAI) - Good for Creative Writing
-  { id: 'gpt-5.1', name: 'GPT-5.1', provider: 'OpenAI', description: 'Latest - Excellent for creative writing' },
-  { id: 'gpt-4o', name: 'GPT-4o', provider: 'OpenAI', description: 'Balanced - Good for dialogue & scenes' },
+  { id: 'gpt-5.1', name: 'GPT-5.1', shortName: 'GPT-5.1', provider: 'OpenAI', description: 'Latest - Excellent for creative writing' },
+  { id: 'gpt-4o', name: 'GPT-4o', shortName: 'GPT-4o', provider: 'OpenAI', description: 'Balanced - Good for dialogue & scenes' },
   { id: 'o3', name: 'O3', provider: 'OpenAI', description: 'Reasoning model - Best for analysis' },
   // Gemini (Google) - Good for Complex Narratives
-  { id: 'gemini-3-pro-preview', name: 'Gemini 3 Pro', provider: 'Google', description: 'Latest - Most intelligent, advanced reasoning' },
-  { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'Google', description: 'Fast & efficient' },
+  { id: 'gemini-3-pro-preview', name: 'Gemini 3 Pro', shortName: 'Gemini 3 Pro', provider: 'Google', description: 'Latest - Most intelligent, advanced reasoning' },
+  { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', shortName: 'Gemini 2.5', provider: 'Google', description: 'Fast & efficient' },
   // Grok (xAI) - Strong Reasoning & Creative
-  { id: 'grok-4-0709', name: 'Grok 4', provider: 'xAI', description: 'Flagship - Deep reasoning & analysis' },
-  { id: 'grok-4-1-fast-reasoning', name: 'Grok 4.1 Fast', provider: 'xAI', description: 'Fast with reasoning capabilities' },
-  { id: 'grok-4-1-fast-non-reasoning', name: 'Grok 4.1 Fast Lite', provider: 'xAI', description: 'Ultra-fast & economical' },
+  { id: 'grok-4-0709', name: 'Grok 4', shortName: 'Grok 4', provider: 'xAI', description: 'Flagship - Deep reasoning & analysis' },
+  { id: 'grok-4-1-fast-reasoning', name: 'Grok 4.1 Fast', shortName: 'Grok 4.1', provider: 'xAI', description: 'Fast with reasoning capabilities' },
+  { id: 'grok-4-1-fast-non-reasoning', name: 'Grok 4.1 Fast Lite', shortName: 'Grok 4.1 Lite', provider: 'xAI', description: 'Ultra-fast & economical' },
 ];
 
 // ============================================================================
@@ -169,7 +169,7 @@ function ModeSelector() {
         }}
       >
         {currentModeConfig && <CurrentIcon className="w-3.5 h-3.5" />}
-        <span>{currentModeConfig?.label || state.activeMode}</span>
+        <span className="truncate max-w-[96px] sm:max-w-none whitespace-nowrap">{currentModeConfig?.label || state.activeMode}</span>
         <ChevronDown className={cn("w-3.5 h-3.5 transition-transform", isOpen && "rotate-180")} />
       </label>
       {isOpen && (
@@ -395,18 +395,18 @@ function LLMModelSelector() {
   ) : null;
   
   return (
-    <div className="relative">
+    <div className="relative min-w-0">
       <label 
         ref={buttonRef}
         tabIndex={0} 
-        className="btn btn-sm btn-ghost gap-1 text-xs cursor-pointer whitespace-nowrap"
+        className="btn btn-sm btn-ghost gap-1 text-xs cursor-pointer whitespace-nowrap min-w-0"
         onClick={(e) => {
           e.stopPropagation();
           e.preventDefault();
           setIsOpen(!isOpen);
         }}
       >
-        <span className="truncate max-w-[120px] sm:max-w-[140px]">{currentModel.name}</span>
+        <span className="truncate max-w-[90px] sm:max-w-[140px]">{currentModel.shortName || currentModel.name}</span>
         {currentModel.recommended && <span className="text-yellow-400">⭐</span>}
         <ChevronDown className={cn("w-3.5 h-3.5 transition-transform flex-shrink-0", isOpen && "rotate-180")} />
       </label>
@@ -1747,13 +1747,13 @@ function UnifiedChatPanelInner({
         </div>
 
       {/* Bottom Controls - Mode & Model Selector - Compact */}
-      <div className="px-2 sm:px-3 md:px-4 pb-1.5 sm:pb-2 flex items-center gap-2 sm:gap-3 text-xs">
+      <div className="px-2 sm:px-3 md:px-4 pb-1.5 sm:pb-2 flex items-center gap-1.5 sm:gap-3 text-xs min-w-0">
         <ModeSelector />
         {/* Only show LLM selector for AI Agents */}
         {MODE_CONFIG[state.activeMode]?.isAgent && <LLMModelSelector />}
         {state.activeMode === 'chat' && (
-          <div className="ml-auto flex items-center gap-2">
-            <span className="text-[11px] text-base-content/60">Depth</span>
+          <div className="ml-auto flex items-center gap-1 sm:gap-2 flex-shrink-0">
+            <span className="hidden sm:inline text-[11px] text-base-content/60">Depth</span>
             <ContextDepthSelector value={storyAdvisorContextMode} onChange={setStoryAdvisorContextMode} />
           </div>
         )}
