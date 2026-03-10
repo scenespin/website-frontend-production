@@ -15,6 +15,8 @@
     "test:screenplay-read-resilience": "npx tsx tests/screenplay-read-resilience.test.ts",
     "test:image-url-resolver": "npx tsx tests/image-url-resolver.test.ts",
     "test:ai-disclosure-ledger-0295": "npx tsx tests/ai-disclosure-ledger-queue-0295.test.ts",
+    "test:e2e:github-sync": "playwright test tests/e2e/github-ai-disclosure-cross-script.spec.ts",
+    "test:e2e:install": "playwright install chromium",
     "guard:plan-pricing-literals": "node scripts/guard-plan-pricing-literals.js",
     "test:newsletter": "node tests/newsletter-test.js",
     "test:newsletter:api": "node scripts/newsletter-api-test.js",
@@ -104,6 +106,7 @@
     "zustand": "^5.0.8"
   },
   "devDependencies": {
+    "@playwright/test": "^1.58.2",
     "@tailwindcss/oxide": "^4.1.16",
     "@tailwindcss/postcss": "^4.0.0",
     "@types/node": "^24.9.2",
