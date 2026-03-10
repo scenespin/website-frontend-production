@@ -157,6 +157,7 @@ type PdfImageLayout =
   | 'split_left'
   | 'full_bleed'
   | 'full_bleed_split2'
+  | 'full_bleed_vcols3'
   | 'split_right_vstack2'
   | 'split_left_vstack2'
   | 'split_right_grid4'
@@ -222,6 +223,7 @@ const PDF_LAYOUT_VALUES: PdfImageLayout[] = [
   'split_left',
   'full_bleed',
   'full_bleed_split2',
+  'full_bleed_vcols3',
   'split_right_vstack2',
   'split_left_vstack2',
   'split_right_grid4',
@@ -236,6 +238,7 @@ const PDF_LAYOUT_VALUES: PdfImageLayout[] = [
 const PDF_LAYOUT_SELECTOR_OPTIONS: Array<{ value: PdfImageLayout; label: string }> = [
   { value: 'full_bleed', label: 'Hero Full Bleed' },
   { value: 'full_bleed_split2', label: 'Hero Full Bleed (50/50 Split)' },
+  { value: 'full_bleed_vcols3', label: 'Hero Full Bleed (3 Columns)' },
   { value: 'split_right', label: 'Split Right (Single)' },
   { value: 'split_left', label: 'Split Left (Single)' },
   { value: 'split_right_vcols2', label: 'Split Right (2 Columns)' },
@@ -255,6 +258,7 @@ function getPdfLayout(templateId: string | undefined, slideType: string, hasImag
 function getLayoutPreviewLabelFor(layout: PdfImageLayout): string {
   if (layout === 'full_bleed') return 'Full Bleed Hero';
   if (layout === 'full_bleed_split2') return 'Full Bleed Hero: 50/50 Split';
+  if (layout === 'full_bleed_vcols3') return 'Hero: 3 Columns';
   if (layout === 'split_left') return 'Split: Image Left';
   if (layout === 'split_right') return 'Split: Image Right';
   if (layout === 'split_left_vstack2') return 'Split Left: 2 Vertical';
@@ -277,7 +281,12 @@ function getLayoutPreviewLabel(templateId: string | undefined, slideType: string
 }
 
 function getSuggestedAspectRatiosForLayout(layout: PdfImageLayout): PitchDeckAspectRatio[] {
-  if (layout === 'full_bleed' || layout === 'full_bleed_vcols4' || layout === 'full_bleed_split2') {
+  if (
+    layout === 'full_bleed' ||
+    layout === 'full_bleed_vcols4' ||
+    layout === 'full_bleed_vcols3' ||
+    layout === 'full_bleed_split2'
+  ) {
     return ['16:9', '21:9', '1:1'];
   }
   if (
@@ -299,6 +308,7 @@ function getSuggestedAspectRatiosForLayout(layout: PdfImageLayout): PitchDeckAsp
 
 function getExportImageLimitForLayout(layout: PdfImageLayout): number {
   if (layout === 'text_only') return 0;
+  if (layout === 'full_bleed_vcols3') return 3;
   if (layout === 'full_bleed_split2') return 2;
   if (layout === 'split_left_vcols3' || layout === 'split_right_vcols3') return 3;
   if (layout === 'full_bleed_vcols4' || layout === 'split_left_grid4' || layout === 'split_right_grid4') return 4;
@@ -541,7 +551,10 @@ async function generatePitchDeckPdfClient(input: PitchDeckPdfExportInput): Promi
       layout === 'split_right_vcols3' ||
       layout === 'split_left_vcols3';
     const isHeroOverlayLayout =
-      layout === 'full_bleed' || layout === 'full_bleed_vcols4' || layout === 'full_bleed_split2';
+      layout === 'full_bleed' ||
+      layout === 'full_bleed_vcols4' ||
+      layout === 'full_bleed_vcols3' ||
+      layout === 'full_bleed_split2';
     const textStartY = margin + 74;
     const textMaxY = pageHeight - margin - 8;
     const textWidth = isSplitLayout ? textWidthWithSplitImage : textWidthNoImage;
@@ -641,11 +654,19 @@ async function generatePitchDeckPdfClient(input: PitchDeckPdfExportInput): Promi
               await drawCover(resolvedImages[1], heroTileW, 0, heroTileW, pageHeight);
             }
             drawHeroHeaderAndTextPanel();
+          } else if (layout === 'full_bleed_vcols3') {
+            const heroCount = Math.max(1, Math.min(3, resolvedImages.length));
+            const heroTileW = pageWidth / heroCount;
+            for (let i = 0; i < heroCount; i += 1) {
+              const x = i * heroTileW;
+              await drawCover(resolvedImages[i], x, 0, heroTileW, pageHeight);
+            }
+            drawHeroHeaderAndTextPanel();
           } else if (layout === 'full_bleed_vcols4') {
             const heroCount = Math.max(1, Math.min(4, resolvedImages.length));
-            const heroTileW = (pageWidth - tileGap * (heroCount - 1)) / heroCount;
+            const heroTileW = pageWidth / heroCount;
             for (let i = 0; i < heroCount; i += 1) {
-              const x = i * (heroTileW + tileGap);
+              const x = i * heroTileW;
               await drawCover(resolvedImages[i], x, 0, heroTileW, pageHeight);
             }
             drawHeroHeaderAndTextPanel();
