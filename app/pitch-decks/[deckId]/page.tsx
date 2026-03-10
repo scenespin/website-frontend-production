@@ -540,6 +540,8 @@ async function generatePitchDeckPdfClient(input: PitchDeckPdfExportInput): Promi
       layout === 'split_left_vcols2' ||
       layout === 'split_right_vcols3' ||
       layout === 'split_left_vcols3';
+    const isHeroOverlayLayout =
+      layout === 'full_bleed' || layout === 'full_bleed_vcols4' || layout === 'full_bleed_split2';
     const textStartY = margin + 74;
     const textMaxY = pageHeight - margin - 8;
     const textWidth = isSplitLayout ? textWidthWithSplitImage : textWidthNoImage;
@@ -554,17 +556,19 @@ async function generatePitchDeckPdfClient(input: PitchDeckPdfExportInput): Promi
     } else if (layout === 'text_only') {
       doc.line(margin, margin + 44, pageWidth - margin, margin + 44);
     }
-    const bodyFontSize = 17;
-    const bodyLineHeight = Math.round(bodyFontSize * 1.4);
-    doc.setFont('helvetica', 'normal');
-    doc.setFontSize(bodyFontSize);
-    doc.setTextColor(232, 232, 238);
-    const wrapped = doc.splitTextToSize(bodyText, textWidth);
-    let cursorY = textStartY;
-    for (const line of wrapped) {
-      if (cursorY > textMaxY) break;
-      doc.text(line, textStartX, cursorY);
-      cursorY += bodyLineHeight;
+    if (!isHeroOverlayLayout) {
+      const bodyFontSize = 17;
+      const bodyLineHeight = Math.round(bodyFontSize * 1.4);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(bodyFontSize);
+      doc.setTextColor(232, 232, 238);
+      const wrapped = doc.splitTextToSize(bodyText, textWidth);
+      let cursorY = textStartY;
+      for (const line of wrapped) {
+        if (cursorY > textMaxY) break;
+        doc.text(line, textStartX, cursorY);
+        cursorY += bodyLineHeight;
+      }
     }
 
     if (hasImage) {
