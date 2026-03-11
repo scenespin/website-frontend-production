@@ -104,6 +104,9 @@ export function MediaLibraryBrowser({
   restrictToFolderSubtreeId,
   onCancel
 }: MediaLibraryBrowserProps) {
+  const compareFolderNames = (a: string, b: string): number =>
+    a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true });
+
   const isRestrictedArchiveMode = !!restrictToFolderSubtreeId;
   const [selectedImages, setSelectedImages] = useState<Set<string>>(new Set());
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
@@ -248,7 +251,9 @@ export function MediaLibraryBrowser({
 
   // Convert folder tree to renderable format
   const convertFolderTree = (tree: FolderTreeNode[]): FolderNode[] => {
-    return tree.map(folder => ({
+    return [...tree]
+      .sort((a, b) => compareFolderNames(a.folderName, b.folderName))
+      .map(folder => ({
       id: folder.folderId,
       name: folder.folderName,
       path: folder.folderPath,
