@@ -88,10 +88,10 @@ export default function ComparePage() {
         <section className="py-20 bg-[#0A0A0A]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="overflow-x-auto">
-              <table className="w-full border-collapse rounded-lg overflow-hidden border border-[#3F3F46]">
+              <table className="w-full border-collapse rounded-lg overflow-hidden border border-[#3F3F46] text-xs sm:text-sm md:text-[15px]">
                 <thead>
                   <tr className="border-b-2 border-[#3F3F46]">
-                    <th className="text-left p-4 bg-[#141414] font-bold">Feature</th>
+                    <th className="sticky left-0 z-20 text-left p-3 md:p-4 bg-[#141414] font-bold min-w-[220px]">Feature</th>
                     <th className="text-center p-4 bg-[#DC143C]/20 font-bold border-l-2 border-[#DC143C]">
                       <div className="text-[#DC143C]">Wryda.ai</div>
                       <div className="text-xs text-gray-400 font-normal mt-1">$0/month</div>
@@ -120,8 +120,8 @@ export default function ComparePage() {
                 </thead>
                 <tbody>
                   {/* Integrated Screenwriting Environment (ISE) */}
-                  <tr className="border-b-2 border-[#DC143C]">
-                    <td className="p-4 font-bold bg-[#141414] text-[#DC143C]">Integrated Screenwriting Environment (ISE)</td>
+                  <tr className="border-b-2 border-[#3F3F46]">
+                    <td className="sticky left-0 z-10 p-3 md:p-4 font-bold bg-[#141414] text-[#DC143C] min-w-[220px]">Integrated Screenwriting Environment (ISE)</td>
                     <td className="p-4 text-center border-l-2 border-[#DC143C] bg-[#DC143C]/10">
                       <span className="text-[#DC143C] font-bold">✓ YES</span>
                       <div className="text-xs text-gray-300 mt-1">Create → Produce → Direct</div>
@@ -151,7 +151,7 @@ export default function ComparePage() {
 
                   {/* Screenplay Writing */}
                   <tr className="border-b border-[#3F3F46]">
-                    <td className="p-4 font-semibold bg-[#141414]">Screenplay Writing</td>
+                    <td className="sticky left-0 z-10 p-3 md:p-4 font-semibold bg-[#141414] min-w-[220px]">Screenplay Writing</td>
                     <td className="p-4 text-center border-l-2 border-[#DC143C]">
                       <span className="text-[#DC143C] font-bold">✓</span>
                     </td>
@@ -173,31 +173,31 @@ export default function ComparePage() {
                   </tr>
 
                   <tr className="border-b border-[#3F3F46]">
-                    <td className="p-4 bg-[#141414]">Contextual Pitch Decks</td>
+                    <td className="sticky left-0 z-10 p-3 md:p-4 bg-[#141414] min-w-[220px]">Contextual Pitch Decks</td>
                     <td className="p-4 text-center border-l-2 border-[#DC143C]">
                       <span className="text-[#DC143C] font-bold">✓ Included</span>
                       <div className="text-xs text-gray-400 mt-1">Script-aware pitch drafting and editing</div>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">Varies</span>
+                      <span className="text-gray-500">No</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">Varies</span>
+                      <span className="text-gray-500">No</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">Varies</span>
+                      <span className="text-gray-500">No</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">Varies</span>
+                      <span className="text-gray-500">No</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">Varies</span>
+                      <span className="text-gray-500">No</span>
                     </td>
                   </tr>
 
                   {/* Fountain Format */}
                   <tr className="border-b border-[#3F3F46]">
-                    <td className="p-4 bg-[#141414]">Fountain Format Support</td>
+                    <td className="sticky left-0 z-10 p-3 md:p-4 bg-[#141414] min-w-[220px]">Fountain Format Support</td>
                     <td className="p-4 text-center border-l-2 border-[#DC143C]">
                       <span className="text-[#DC143C] font-bold">✓ Native</span>
                     </td>
@@ -219,175 +219,175 @@ export default function ComparePage() {
                   </tr>
 
                   <tr className="border-b border-[#3F3F46]">
-                    <td className="p-4 bg-[#141414]">AI provenance + disclosure export support</td>
+                    <td className="sticky left-0 z-10 p-3 md:p-4 bg-[#141414] min-w-[220px]">AI disclosure export support</td>
                     <td className="p-4 text-center border-l-2 border-[#DC143C]">
                       <span className="text-[#DC143C] font-bold">✓ Included</span>
                       <div className="text-xs text-gray-400 mt-1">Timestamped PDF + JSON + SHA-256 hash export</div>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">Varies</span>
+                      <span className="text-gray-500">No</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">Varies</span>
+                      <span className="text-gray-500">No</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">Varies</span>
+                      <span className="text-gray-500">No</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">Varies</span>
+                      <span className="text-gray-500">No</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">Varies</span>
+                      <span className="text-gray-500">No</span>
                     </td>
                   </tr>
 
                   {/* AI Writing Agents */}
                   <tr className="border-b border-[#3F3F46]">
-                    <td className="p-4 font-semibold bg-[#141414]">AI Writing Agents</td>
+                    <td className="sticky left-0 z-10 p-3 md:p-4 font-semibold bg-[#141414] min-w-[220px]">AI Writing Agents</td>
                     <td className="p-4 text-center border-l-2 border-[#DC143C]">
                       <span className="text-[#DC143C] font-bold">✓ 5 Agents</span>
                       <div className="text-xs text-gray-400 mt-1">Story Advisor, Director, etc.</div>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">Varies</span>
+                      <span className="text-gray-500">No</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">Varies</span>
+                      <span className="text-gray-500">No</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">Varies</span>
+                      <span className="text-gray-500">No</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">Varies</span>
+                      <span className="text-gray-500">No</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">Varies</span>
+                      <span className="text-gray-500">No</span>
                     </td>
                   </tr>
 
                   {/* Story Advisor */}
                   <tr className="border-b border-[#3F3F46]">
-                    <td className="p-4 bg-[#141414]">Story Advisor (Reads Entire Screenplay)</td>
+                    <td className="sticky left-0 z-10 p-3 md:p-4 bg-[#141414] min-w-[220px]">Story Advisor (full screenplay)</td>
                     <td className="p-4 text-center border-l-2 border-[#DC143C]">
                       <span className="text-[#DC143C] font-bold">✓ Advanced</span>
                       <div className="text-xs text-gray-400 mt-1">Script-level analysis workflow</div>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">Varies</span>
+                      <span className="text-gray-500">No</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">Varies</span>
+                      <span className="text-gray-500">No</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">Varies</span>
+                      <span className="text-gray-500">No</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">Varies</span>
+                      <span className="text-gray-500">No</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">Varies</span>
+                      <span className="text-gray-500">No</span>
                     </td>
                   </tr>
 
                   {/* Video Generation */}
                   <tr className="border-b border-[#3F3F46]">
-                    <td className="p-4 font-semibold bg-[#141414]">Scene Builder</td>
+                    <td className="sticky left-0 z-10 p-3 md:p-4 font-semibold bg-[#141414] min-w-[220px]">Scene Builder</td>
                     <td className="p-4 text-center border-l-2 border-[#DC143C]">
                       <span className="text-[#DC143C] font-bold">✓ In Platform</span>
                       <div className="text-xs text-gray-400 mt-1">Screenplay-linked scene generation workflow</div>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">Varies</span>
+                      <span className="text-gray-500">No</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">Varies</span>
+                      <span className="text-gray-500">No</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">Varies</span>
+                      <span className="text-gray-500">No</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">Varies</span>
+                      <span className="text-gray-500">No</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">Varies</span>
+                      <span className="text-gray-500">No</span>
                     </td>
                   </tr>
 
                   {/* Character Consistency */}
                   <tr className="border-b border-[#3F3F46]">
-                    <td className="p-4 bg-[#141414]">Character Consistency System</td>
+                    <td className="sticky left-0 z-10 p-3 md:p-4 bg-[#141414] min-w-[220px]">Character Consistency System</td>
                     <td className="p-4 text-center border-l-2 border-[#DC143C]">
                       <span className="text-[#DC143C] font-bold">✓</span>
                       <div className="text-xs text-gray-400 mt-1">Face, voice, outfit</div>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">Varies</span>
+                      <span className="text-gray-500">No</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">Varies</span>
+                      <span className="text-gray-500">No</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">Varies</span>
+                      <span className="text-gray-500">No</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">Varies</span>
+                      <span className="text-gray-500">No</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">Varies</span>
+                      <span className="text-gray-500">No</span>
                     </td>
                   </tr>
 
                   {/* Location/Prop Consistency */}
                   <tr className="border-b border-[#3F3F46]">
-                    <td className="p-4 bg-[#141414]">Location & Prop Consistency</td>
+                    <td className="sticky left-0 z-10 p-3 md:p-4 bg-[#141414] min-w-[220px]">Location & Prop Consistency</td>
                     <td className="p-4 text-center border-l-2 border-[#DC143C]">
                       <span className="text-[#DC143C] font-bold">✓</span>
                       <div className="text-xs text-gray-400 mt-1">Angle packages</div>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">Varies</span>
+                      <span className="text-gray-500">No</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">Varies</span>
+                      <span className="text-gray-500">No</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">Varies</span>
+                      <span className="text-gray-500">No</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">Varies</span>
+                      <span className="text-gray-500">No</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">Varies</span>
+                      <span className="text-gray-500">No</span>
                     </td>
                   </tr>
 
                   {/* Scene-to-Video */}
                   <tr className="border-b border-[#3F3F46]">
-                    <td className="p-4 bg-[#141414]">Visual Asset Generation</td>
+                    <td className="sticky left-0 z-10 p-3 md:p-4 bg-[#141414] min-w-[220px]">Visual Asset Generation</td>
                     <td className="p-4 text-center border-l-2 border-[#DC143C]">
                       <span className="text-[#DC143C] font-bold">✓</span>
                       <div className="text-xs text-gray-400 mt-1">From screenplay</div>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">Varies</span>
+                      <span className="text-gray-500">No</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">Varies</span>
+                      <span className="text-gray-500">No</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">Varies</span>
+                      <span className="text-gray-500">No</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">Varies</span>
+                      <span className="text-gray-500">No</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">Varies</span>
+                      <span className="text-gray-500">No</span>
                     </td>
                   </tr>
 
                   {/* Production Management */}
                   <tr className="border-b border-[#3F3F46]">
-                    <td className="p-4 font-semibold bg-[#141414]">Production Management</td>
+                    <td className="sticky left-0 z-10 p-3 md:p-4 font-semibold bg-[#141414] min-w-[220px]">Production Management</td>
                     <td className="p-4 text-center border-l-2 border-[#DC143C]">
                       <span className="text-[#DC143C] font-bold">✓</span>
                       <div className="text-xs text-gray-400 mt-1">Character/Location/Prop banks</div>
@@ -413,30 +413,30 @@ export default function ComparePage() {
 
                   {/* Media Library Organization */}
                   <tr className="border-b border-[#3F3F46]">
-                    <td className="p-4 bg-[#141414]">Media Library Organization</td>
+                    <td className="sticky left-0 z-10 p-3 md:p-4 bg-[#141414] min-w-[220px]">Media Library Organization</td>
                     <td className="p-4 text-center border-l-2 border-[#DC143C]">
                       <span className="text-[#DC143C] font-bold">✓</span>
                       <div className="text-xs text-gray-400 mt-1">Scene and shot-linked media tracking</div>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">Varies</span>
+                      <span className="text-gray-500">No</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">Varies</span>
+                      <span className="text-gray-500">No</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">Varies</span>
+                      <span className="text-gray-500">No</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">Varies</span>
+                      <span className="text-gray-500">No</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">Varies</span>
+                      <span className="text-gray-500">No</span>
                     </td>
                   </tr>
 
                   <tr className="border-b border-[#3F3F46]">
-                    <td className="p-4 bg-[#141414]">AI-ADR Dialogue Workflow</td>
+                    <td className="sticky left-0 z-10 p-3 md:p-4 bg-[#141414] min-w-[220px]">AI-ADR Dialogue Workflow</td>
                     <td className="p-4 text-center border-l-2 border-[#DC143C]">
                       <span className="text-[#DC143C] font-bold">✓ Included</span>
                       <div className="text-xs text-gray-400 mt-1">Single-person dialogue shots</div>
@@ -460,7 +460,7 @@ export default function ComparePage() {
 
                   {/* Collaboration */}
                   <tr className="border-b border-[#3F3F46]">
-                    <td className="p-4 bg-[#141414]">Real-Time Collaboration</td>
+                    <td className="sticky left-0 z-10 p-3 md:p-4 bg-[#141414] min-w-[220px]">Real-Time Collaboration</td>
                     <td className="p-4 text-center border-l-2 border-[#DC143C]">
                       <span className="text-[#DC143C] font-bold">✓</span>
                       <div className="text-xs text-gray-400 mt-1">5 role types</div>
@@ -486,7 +486,7 @@ export default function ComparePage() {
 
                   {/* Pricing Model */}
                   <tr className="border-b-2 border-[#3F3F46]">
-                    <td className="p-4 font-semibold bg-[#141414]">Pricing Model</td>
+                    <td className="sticky left-0 z-10 p-3 md:p-4 font-semibold bg-[#141414] min-w-[220px]">Pricing Model</td>
                     <td className="p-4 text-center border-l-2 border-[#DC143C]">
                       <span className="text-[#DC143C] font-bold">FREE</span>
                       <div className="text-xs text-gray-400 mt-1">Pay for credits only</div>
@@ -514,34 +514,18 @@ export default function ComparePage() {
               * Availability for specific generation options depends on selected model/provider and workflow settings.
             </p>
             <p className="text-xs text-gray-500 mt-2">
-              * Competitor capabilities and pricing vary by plan and can change over time.
+              * Competitor capabilities are based on publicly available information at the time this comparison was created and may change.
             </p>
 
             {/* Key Differentiators */}
-            <div className="mt-16 grid md:grid-cols-3 gap-8">
-              <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-6">
-                <div className="text-3xl mb-3">🎬</div>
-                <h3 className="text-xl font-bold mb-3">Scene Builder</h3>
-                <p className="text-gray-300 text-sm">
-                  Scene Builder is designed to carry screenplay context into shot planning and scene package generation inside the same workspace.
-                </p>
-              </div>
-
-              <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-6">
-                <div className="text-3xl mb-3">🌟</div>
-                <h3 className="text-xl font-bold mb-3">Story Advisor</h3>
-                <p className="text-gray-300 text-sm">
-                  Story Advisor is built for script-level analysis: structure checks, character-arc tracking, and revision direction.
-                </p>
-              </div>
-
-              <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-6">
-                <div className="text-3xl mb-3">💰</div>
-                <h3 className="text-xl font-bold mb-3">Free Software</h3>
-                <p className="text-gray-300 text-sm">
-                  While competitors charge $249-$1,200/year just for software, Wryda.ai is completely free. You only pay for AI generation when you use it.
-                </p>
-              </div>
+            <div className="mt-16 bg-[#141414] border border-[#3F3F46] rounded-lg p-6 md:p-8">
+              <h3 className="text-2xl font-bold mb-4">At a Glance</h3>
+              <ul className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-gray-300">
+                <li>Scene Builder carries screenplay context into shot planning and scene generation.</li>
+                <li>Story Advisor provides full-script analysis for structure, arcs, and revision direction.</li>
+                <li>Create, Produce, and Direct stay connected in one continuous workflow.</li>
+                <li>Software access is free; credits apply when you generate AI outputs.</li>
+              </ul>
             </div>
           </div>
         </section>
@@ -558,53 +542,22 @@ export default function ComparePage() {
               </p>
             </div>
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6 mb-16">
-              <div className="bg-[#0A0A0A] border-2 border-[#DC143C] rounded-lg p-6">
-                <div className="text-3xl mb-3">🎬</div>
-                <h3 className="text-xl font-bold mb-2">Screenplay-Linked Visual Planning</h3>
-                <p className="text-sm text-gray-300">
-                  Keep writing context connected as you move into references, shot planning, and scene output workflows.
-                </p>
+            <div className="grid md:grid-cols-2 gap-6 mb-16">
+              <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg p-6">
+                <h3 className="text-xl font-bold mb-3">Writing and Analysis</h3>
+                <ul className="space-y-2 text-sm text-gray-300">
+                  <li>Screenplay-aware AI built for Fountain workflows</li>
+                  <li>Story Advisor support across the full screenplay</li>
+                  <li>AI writing support that stays connected to project context</li>
+                </ul>
               </div>
-
-              <div className="bg-[#0A0A0A] border-2 border-[#DC143C] rounded-lg p-6">
-                <div className="text-3xl mb-3">👤</div>
-                <h3 className="text-xl font-bold mb-2">Character Consistency Across Scenes</h3>
-                  <p className="text-sm text-gray-300">
-                    Maintains character face, voice, and outfit continuity across scenes for writer-to-production workflows.
-                </p>
-              </div>
-
-              <div className="bg-[#0A0A0A] border-2 border-[#DC143C] rounded-lg p-6">
-                <div className="text-3xl mb-3">🧠</div>
-                <h3 className="text-xl font-bold mb-2">Screenplay-Aware AI</h3>
-                <p className="text-sm text-gray-300">
-                  Our AI agents understand Fountain format, character arcs, and your entire screenplay—not just generic text.
-                </p>
-              </div>
-
-              <div className="bg-[#0A0A0A] border-2 border-[#DC143C] rounded-lg p-6">
-                <div className="text-3xl mb-3">🔗</div>
-                <h3 className="text-xl font-bold mb-2">Integrated Production Workflow</h3>
-                <p className="text-sm text-gray-300">
-                  Screenplay → Characters → Locations → Video. Everything connected in one platform.
-                </p>
-              </div>
-
-              <div className="bg-[#0A0A0A] border-2 border-[#DC143C] rounded-lg p-6">
-                <div className="text-3xl mb-3">🌟</div>
-                <h3 className="text-xl font-bold mb-2">Story Advisor</h3>
-                <p className="text-sm text-gray-300">
-                  Script-level guidance for structure, character arcs, and consistency across the full draft.
-                </p>
-              </div>
-
-              <div className="bg-[#0A0A0A] border-2 border-[#DC143C] rounded-lg p-6">
-                <div className="text-3xl mb-3">📍</div>
-                <h3 className="text-xl font-bold mb-2">Location & Prop Consistency</h3>
-                <p className="text-sm text-gray-300">
-                  Multiple angles per location, consistent backgrounds, and prop packages—all automatically maintained.
-                </p>
+              <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg p-6">
+                <h3 className="text-xl font-bold mb-3">Planning and Execution</h3>
+                <ul className="space-y-2 text-sm text-gray-300">
+                  <li>Screenplay-linked visual planning and references</li>
+                  <li>Character, location, and prop continuity workflows</li>
+                  <li>Create → Produce → Direct in one connected environment</li>
+                </ul>
               </div>
             </div>
           </div>
@@ -806,7 +759,7 @@ export default function ComparePage() {
               </div>
             </div>
 
-            <div className="bg-[#141414] border-2 border-[#DC143C] rounded-lg p-8 text-center">
+            <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-8 text-center">
               <h3 className="text-2xl font-bold mb-4">AI Platform Built for Fountain Workflows</h3>
               <p className="text-gray-300 mb-6 max-w-2xl mx-auto">
                 While many AI tools treat screenplays as plain text, Wryda.ai is designed around Fountain structure and screenplay-native workflows.
