@@ -5379,10 +5379,11 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 newlyImportedCharacters = await bulkImportCharacters(newCharacterNames, parseResult.characterDescriptions);
             }
             
+            let newlyImportedLocations: Location[] = [];
             if (newLocationNames.length > 0) {
                 console.log('[ScreenplayContext] Importing', newLocationNames.length, 'new locations:', newLocationNames);
                 // 🔥 FIX: Pass locationTypes to bulkImportLocations
-                await bulkImportLocations(newLocationNames, parseResult.locationTypes);
+                newlyImportedLocations = await bulkImportLocations(newLocationNames, parseResult.locationTypes);
             }
             
             // 🔥 CRITICAL FIX: Merge newly imported characters with current characters for scene linking
@@ -5394,6 +5395,16 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             // Remove duplicates by ID
             const uniqueCharacters = Array.from(
                 new Map(allCharactersForLinking.map(c => [c.id, c])).values()
+            );
+            
+            // Keep location linking in sync with the character strategy so first rescan
+            // can resolve scene location IDs without needing a second pass.
+            const allLocationsForLinking = [
+                ...currentLocations,
+                ...newlyImportedLocations
+            ];
+            const uniqueLocations = Array.from(
+                new Map(allLocationsForLinking.map(l => [l.id, l])).values()
             );
             
             // 🔥 NEW: Update existing characters/locations with new descriptions from script
@@ -5475,7 +5486,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     .filter((id): id is string => !!id);
                 
                 // Map location name to ID
-                const location = currentLocations.find(l => l.name.toUpperCase() === parsedScene.location.toUpperCase());
+                const location = uniqueLocations.find(l => l.name.toUpperCase() === parsedScene.location.toUpperCase());
                 const locationId = location?.id;
                 
                 return {
@@ -5571,11 +5582,11 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             console.log('[ScreenplayContext] 🔄 Rebuilding relationships with new scenes:', {
                 scenes: allNewScenes.length,
                 characters: uniqueCharacters.length,
-                locations: currentLocations.length
+                locations: uniqueLocations.length
             });
             
             // Rebuild relationships using the new scenes and current characters/locations
-            buildRelationshipsFromScenes(allNewScenes, beats, uniqueCharacters, currentLocations);
+            buildRelationshipsFromScenes(allNewScenes, beats, uniqueCharacters, uniqueLocations);
             
             // Also call updateRelationships to sync with DynamoDB
             await updateRelationships();
