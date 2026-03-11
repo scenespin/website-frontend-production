@@ -49,9 +49,18 @@ interface CameraAngle {
 }
 
 interface RecentGeneratedImage {
-  jobId: string;
+  id: string;
+  dismissKey: string;
   imageUrl: string;
   createdAt: string;
+  label?: string;
+}
+
+interface PersistedReferenceImage {
+  id: string;
+  s3Key?: string;
+  preview?: string;
+  source: 'upload' | 'library';
   label?: string;
 }
 
@@ -94,6 +103,14 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
   const [recentImages, setRecentImages] = useState<RecentGeneratedImage[]>([]);
   const [isLoadingRecentImages, setIsLoadingRecentImages] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const getImageGenDraftStorageKey = () => {
+    if (!screenplayId) return null;
+    return `direct-image-gen:draft:${screenplayId}`;
+  };
+  const getDismissedRecentImagesStorageKey = () => {
+    if (!screenplayId) return null;
+    return `direct-image-gen:dismissed-recents:${screenplayId}`;
+  };
 
   // Fetch available models
   useEffect(() => {
@@ -436,40 +453,57 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
       const token = await getToken({ template: 'wryda-backend' });
       if (!token) return;
 
-      const response = await fetch(
-        `/api/workflows/executions?screenplayId=${encodeURIComponent(screenplayId)}&limit=30`,
-        {
-          headers: { Authorization: `Bearer ${token}` },
-        }
-      );
+      const response = await fetch(`/api/media/list?screenplayId=${encodeURIComponent(screenplayId)}&entityType=playground`, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
       if (!response.ok) return;
 
       const data = await response.json();
-      const jobs = data?.data?.jobs || data?.jobs || [];
-      const imageJobs = (Array.isArray(jobs) ? jobs : [])
-        .filter((job: any) => job?.jobType === 'image-generation' && job?.status === 'completed')
-        .flatMap((job: any) => {
-          const createdAt = job?.createdAt || new Date().toISOString();
-          const images = Array.isArray(job?.results?.images) ? job.results.images : [];
-          return images.map((item: any, index: number) => {
-            const s3Key = typeof item?.s3Key === 'string' ? item.s3Key : '';
-            const directUrl = typeof item?.imageUrl === 'string' ? item.imageUrl : '';
-            // Prefer stable proxy URLs from S3 keys over provider/presigned URLs that may expire.
-            const resolvedUrl = s3Key
-              ? `/api/media/file?key=${encodeURIComponent(s3Key)}`
-              : directUrl;
-            if (!resolvedUrl) return null;
-            return {
-              jobId: `${job.jobId || job.executionId || 'job'}-${index}`,
-              imageUrl: resolvedUrl,
-              createdAt,
-              label: typeof item?.label === 'string' ? item.label : 'Generated image',
-            } as RecentGeneratedImage;
-          });
-        })
-        .filter(Boolean) as RecentGeneratedImage[];
+      const files = Array.isArray(data?.files) ? data.files : [];
+      const dismissedStorageKey = getDismissedRecentImagesStorageKey();
+      let dismissed = new Set<string>();
+      if (dismissedStorageKey && typeof window !== 'undefined') {
+        try {
+          const raw = window.sessionStorage.getItem(dismissedStorageKey);
+          const parsed = raw ? JSON.parse(raw) : [];
+          dismissed = new Set(Array.isArray(parsed) ? parsed.filter((value) => typeof value === 'string') : []);
+        } catch {
+          dismissed = new Set<string>();
+        }
+      }
 
-      setRecentImages(imageJobs.slice(0, 12));
+      const mappedRecents = files
+        .filter((file: any) => {
+          const source = String(file?.metadata?.source || '').toLowerCase();
+          const entityType = String(file?.metadata?.entityType || '').toLowerCase();
+          const fileType = String(file?.fileType || '').toLowerCase();
+          const mediaType = String(file?.mediaFileType || '').toLowerCase();
+          const isImage = fileType.startsWith('image/') || mediaType === 'image';
+          return isImage && source === 'direct-image-generation' && entityType === 'playground';
+        })
+        .map((file: any) => {
+          const fileId = String(file?.fileId || '');
+          const s3Key = String(file?.s3Key || '');
+          const createdAt = String(file?.createdAt || new Date().toISOString());
+          const dismissKey = fileId || s3Key;
+          const imageUrl = s3Key
+            ? `/api/media/file?key=${encodeURIComponent(s3Key)}`
+            : String(file?.s3Url || file?.fileUrl || '');
+          if (!dismissKey || !imageUrl) return null;
+          if (dismissed.has(dismissKey)) return null;
+
+          return {
+            id: fileId || dismissKey,
+            dismissKey,
+            imageUrl,
+            createdAt,
+            label: String(file?.fileName || file?.metadata?.label || 'Generated image'),
+          } as RecentGeneratedImage;
+        })
+        .filter((item): item is RecentGeneratedImage => !!item)
+        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+
+      setRecentImages(mappedRecents.slice(0, 12));
     } catch (error) {
       console.warn('[ImageGenerationTools] Failed to load recent generated images', error);
     } finally {
@@ -477,9 +511,97 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
     }
   };
 
+  const dismissRecentImage = (image: RecentGeneratedImage) => {
+    setRecentImages((prev) => prev.filter((item) => item.id !== image.id));
+    const storageKey = getDismissedRecentImagesStorageKey();
+    if (!storageKey || typeof window === 'undefined') return;
+
+    try {
+      const raw = window.sessionStorage.getItem(storageKey);
+      const parsed = raw ? JSON.parse(raw) : [];
+      const current = new Set(Array.isArray(parsed) ? parsed.filter((value) => typeof value === 'string') : []);
+      current.add(image.dismissKey);
+      window.sessionStorage.setItem(storageKey, JSON.stringify(Array.from(current)));
+    } catch (error) {
+      console.warn('[ImageGenerationTools] Failed to persist dismissed recent image', error);
+    }
+  };
+
   useEffect(() => {
     void loadRecentGeneratedImages();
   }, [screenplayId, getToken]);
+
+  useEffect(() => {
+    const storageKey = getImageGenDraftStorageKey();
+    if (!storageKey || typeof window === 'undefined') return;
+
+    try {
+      const raw = window.sessionStorage.getItem(storageKey);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as {
+        prompt?: string;
+        referenceImages?: PersistedReferenceImage[];
+      };
+
+      if (typeof parsed.prompt === 'string') {
+        setPrompt(parsed.prompt);
+      }
+
+      if (Array.isArray(parsed.referenceImages)) {
+        const hydratedReferences: ReferenceImage[] = parsed.referenceImages
+          .map((img) => {
+            if (!img?.id) return null;
+            const resolvedPreview = img.s3Key
+              ? `/api/media/file?key=${encodeURIComponent(img.s3Key)}`
+              : (img.preview || '');
+            if (!resolvedPreview) return null;
+            return {
+              id: img.id,
+              preview: resolvedPreview,
+              s3Key: img.s3Key,
+              source: img.source,
+              label: img.label,
+            } as ReferenceImage;
+          })
+          .filter((img): img is ReferenceImage => !!img);
+
+        setReferenceImages(hydratedReferences);
+      }
+    } catch (error) {
+      console.warn('[ImageGenerationTools] Failed to restore image gen draft state', error);
+    }
+  }, [screenplayId]);
+
+  useEffect(() => {
+    const storageKey = getImageGenDraftStorageKey();
+    if (!storageKey || typeof window === 'undefined') return;
+
+    const persistedReferences: PersistedReferenceImage[] = referenceImages.reduce<PersistedReferenceImage[]>(
+      (acc, img) => {
+        const safePreview = img.preview?.startsWith('blob:')
+          ? (img.s3Key ? `/api/media/file?key=${encodeURIComponent(img.s3Key)}` : '')
+          : (img.preview || '');
+        if (!img.s3Key && !safePreview) return acc;
+        acc.push({
+          id: img.id,
+          s3Key: img.s3Key,
+          preview: safePreview,
+          source: img.source,
+          label: img.label,
+        });
+        return acc;
+      },
+      []
+    );
+
+    window.sessionStorage.setItem(
+      storageKey,
+      JSON.stringify({
+        prompt,
+        referenceImages: persistedReferences,
+      })
+    );
+  }, [screenplayId, prompt, referenceImages]);
 
   const handleSelectReferenceImagesFromLibrary = (images: MediaFile[]) => {
     const limit = getReferenceLimit();
@@ -597,11 +719,8 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
       toast.success('Image generated!');
       void loadRecentGeneratedImages();
       
-      // Reset form (but keep generated image visible)
-      setPrompt('');
-      clearReferenceImages();
+      // Keep draft inputs after generate (matches remix workflow behavior).
       setShowMediaLibraryBrowser(false);
-      setSelectedCameraAngle('');
       
     } catch (error: any) {
       console.error('Image generation failed:', error);
@@ -891,22 +1010,35 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
           ) : (
             <div className="grid grid-cols-3 md:grid-cols-4 gap-2 max-h-44 overflow-y-auto pr-1">
               {recentImages.map((item) => (
-                <button
-                  key={item.jobId}
-                  type="button"
-                  onClick={() => setGeneratedImageUrl(item.imageUrl)}
+                <div
+                  key={item.id}
                   className="relative rounded overflow-hidden border border-[#3F3F46] hover:border-cinema-red transition-colors"
                   title={item.label || 'Generated image'}
                 >
-                  <img
-                    src={item.imageUrl}
-                    alt={item.label || 'Generated image'}
-                    className="h-16 w-full object-cover"
-                    onError={() => {
-                      setRecentImages((current) => current.filter((img) => img.jobId !== item.jobId));
-                    }}
-                  />
-                </button>
+                  <button
+                    type="button"
+                    onClick={() => setGeneratedImageUrl(item.imageUrl)}
+                    className="block w-full"
+                  >
+                    <img
+                      src={item.imageUrl}
+                      alt={item.label || 'Generated image'}
+                      className="h-16 w-full object-cover"
+                      onError={() => {
+                        setRecentImages((current) => current.filter((img) => img.id !== item.id));
+                      }}
+                    />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => dismissRecentImage(item)}
+                    className="absolute top-1 right-1 z-10 h-5 w-5 rounded-full bg-black/70 border border-white/20 text-white hover:border-cinema-red hover:text-cinema-red flex items-center justify-center"
+                    title="Remove from recents"
+                    aria-label="Remove from recents"
+                  >
+                    <X className="w-3 h-3" />
+                  </button>
+                </div>
               ))}
             </div>
           )}
