@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { jsPDF } from 'jspdf';
-import { Briefcase, Eye, Film, Layers, Loader2, Megaphone, MoreVertical, Trash2 } from 'lucide-react';
+import { Briefcase, ChevronLeft, ChevronRight, Eye, Film, Layers, Loader2, Megaphone, MoreVertical, Trash2 } from 'lucide-react';
 import {
   archivePitchDeckImage,
   getPitchDeckImageJobStatus,
@@ -1074,6 +1074,32 @@ export default function PitchDeckEditorPage() {
     if (typeof activeId === 'string' && activeId.trim()) return activeId;
     return selectedSlotImageOptions[0]?.id || '';
   }, [selectedImageContent, selectedSlotImageOptions]);
+  const imageViewerIndex = useMemo(() => {
+    if (!imageViewerOption) return -1;
+    return selectedSlotImageOptions.findIndex(
+      (option) => option.id === imageViewerOption.id || option.imageUrl === imageViewerOption.imageUrl
+    );
+  }, [imageViewerOption, selectedSlotImageOptions]);
+  const canViewPreviousImage = imageViewerIndex > 0;
+  const canViewNextImage =
+    imageViewerIndex >= 0 && imageViewerIndex < Math.max(0, selectedSlotImageOptions.length - 1);
+  const openViewerAtIndex = useCallback(
+    (nextIndex: number) => {
+      if (nextIndex < 0 || nextIndex >= selectedSlotImageOptions.length) return;
+      const nextOption = selectedSlotImageOptions[nextIndex];
+      if (!nextOption) return;
+      setImageViewerOption(nextOption);
+    },
+    [selectedSlotImageOptions]
+  );
+  const viewPreviousImageInViewer = useCallback(() => {
+    if (!canViewPreviousImage) return;
+    openViewerAtIndex(imageViewerIndex - 1);
+  }, [canViewPreviousImage, imageViewerIndex, openViewerAtIndex]);
+  const viewNextImageInViewer = useCallback(() => {
+    if (!canViewNextImage) return;
+    openViewerAtIndex(imageViewerIndex + 1);
+  }, [canViewNextImage, imageViewerIndex, openViewerAtIndex]);
   const selectedExportImageIds = useMemo(() => {
     const rawIds = Array.isArray((selectedImageContent as any)?.exportImageIds)
       ? ((selectedImageContent as any).exportImageIds as any[])
@@ -1481,6 +1507,29 @@ export default function PitchDeckEditorPage() {
       window.clearInterval(interval);
     };
   }, [deckId, imageAttemptsHydrated, selectedSlide?.slideId]);
+
+  useEffect(() => {
+    if (!imageViewerOption) return;
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setImageViewerOption(null);
+        return;
+      }
+      if (event.key === 'ArrowLeft') {
+        event.preventDefault();
+        viewPreviousImageInViewer();
+        return;
+      }
+      if (event.key === 'ArrowRight') {
+        event.preventDefault();
+        viewNextImageInViewer();
+      }
+    };
+    window.addEventListener('keydown', onKeyDown);
+    return () => {
+      window.removeEventListener('keydown', onKeyDown);
+    };
+  }, [imageViewerOption, viewNextImageInViewer, viewPreviousImageInViewer]);
 
   const normalizeImageUrl = (value: unknown): string => {
     if (typeof value !== 'string') return '';
@@ -4243,7 +4292,14 @@ export default function PitchDeckEditorPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/85 px-4">
           <div className="w-full max-w-5xl rounded border border-[#3F3F46] bg-[#0f0f0f] p-3">
             <div className="flex items-center justify-between gap-2">
-              <p className="truncate text-sm text-white">{imageViewerOption.label}</p>
+              <div className="min-w-0">
+                <p className="truncate text-sm text-white">{imageViewerOption.label}</p>
+                {imageViewerIndex >= 0 && selectedSlotImageOptions.length > 1 ? (
+                  <p className="mt-0.5 text-[11px] text-gray-400">
+                    {imageViewerIndex + 1} / {selectedSlotImageOptions.length}
+                  </p>
+                ) : null}
+              </div>
               <button
                 type="button"
                 onClick={() => setImageViewerOption(null)}
@@ -4252,12 +4308,30 @@ export default function PitchDeckEditorPage() {
                 Close
               </button>
             </div>
-            <div className="mt-3 rounded border border-[#2a2a2a] bg-black/60 p-2">
+            <div className="relative mt-3 rounded border border-[#2a2a2a] bg-black/60 p-2">
+              <button
+                type="button"
+                onClick={viewPreviousImageInViewer}
+                disabled={!canViewPreviousImage}
+                className="absolute left-3 top-1/2 z-10 -translate-y-1/2 rounded-full border border-[#3F3F46] bg-black/65 p-2 text-gray-100 hover:bg-black/85 disabled:cursor-not-allowed disabled:opacity-35"
+                aria-label="Previous image"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
               <img
                 src={imageViewerOption.imageUrl}
                 alt={imageViewerOption.label}
                 className="max-h-[75vh] w-full rounded object-contain"
               />
+              <button
+                type="button"
+                onClick={viewNextImageInViewer}
+                disabled={!canViewNextImage}
+                className="absolute right-3 top-1/2 z-10 -translate-y-1/2 rounded-full border border-[#3F3F46] bg-black/65 p-2 text-gray-100 hover:bg-black/85 disabled:cursor-not-allowed disabled:opacity-35"
+                aria-label="Next image"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
             </div>
           </div>
         </div>
