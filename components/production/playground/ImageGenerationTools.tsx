@@ -524,6 +524,17 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
     });
   };
 
+  const setPrimaryReferenceImage = (index: number) => {
+    if (index <= 0) return;
+    setReferenceImages((prev) => {
+      if (index >= prev.length) return prev;
+      const reordered = [...prev];
+      const [selected] = reordered.splice(index, 1);
+      reordered.unshift(selected);
+      return reordered;
+    });
+  };
+
   const clearReferenceImages = () => {
     setReferenceImages((prev) => {
       prev.forEach((img) => {
@@ -1095,6 +1106,16 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
                           <span className="absolute top-1 left-1 rounded bg-[#DC143C]/90 px-1.5 py-0.5 text-[10px] text-white">
                             Primary
                           </span>
+                        )}
+                        {index > 0 && (
+                          <button
+                            type="button"
+                            onClick={() => setPrimaryReferenceImage(index)}
+                            className="absolute bottom-1 left-1 rounded bg-black/70 border border-white/20 px-2 py-0.5 text-[10px] text-white opacity-0 group-hover:opacity-100 transition-opacity hover:border-cinema-red hover:text-cinema-red"
+                            title="Set as primary reference"
+                          >
+                            Set Primary
+                          </button>
                         )}
                         <button
                           type="button"
