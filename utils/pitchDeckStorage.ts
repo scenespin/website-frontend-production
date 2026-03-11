@@ -94,6 +94,69 @@ function unwrapResponse<T>(payload: any): T {
   return payload.data as T;
 }
 
+async function parseJsonSafe(response: Response): Promise<any> {
+  const text = await response.text();
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function pollPitchDeckImageJob(input: {
+  deckId: string;
+  jobId: string;
+  initialPollAfterMs?: number;
+  maxPollMs?: number;
+}): Promise<{
+  imageUrl?: string;
+  s3Key?: string;
+  creditsDeducted?: number;
+  modelUsed?: string;
+  archive?: { fileId?: string; folderId?: string; alreadyExisted?: boolean } | null;
+}> {
+  const maxPollMs = typeof input.maxPollMs === 'number' ? input.maxPollMs : 180000;
+  const startedAt = Date.now();
+  let pollAfterMs = typeof input.initialPollAfterMs === 'number' ? input.initialPollAfterMs : 2000;
+  while (Date.now() - startedAt < maxPollMs) {
+    await sleep(Math.max(1000, Math.min(5000, pollAfterMs)));
+    const pollResponse = await fetch(
+      `/api/pitch-decks/${encodeURIComponent(input.deckId)}/image/jobs/${encodeURIComponent(input.jobId)}`,
+      { cache: 'no-store' }
+    );
+    const pollJson = await parseJsonSafe(pollResponse);
+    if (!pollResponse.ok) {
+      throw new Error(pollJson?.error?.message || 'Failed to load image generation job status');
+    }
+    const pollData = pollJson?.data || {};
+    const status = typeof pollData?.status === 'string' ? pollData.status : '';
+    if (status === 'succeeded') {
+      return {
+        imageUrl: pollData?.imageUrl,
+        s3Key: pollData?.s3Key,
+        creditsDeducted: pollData?.creditsDeducted,
+        modelUsed: pollData?.modelUsed,
+        archive: pollData?.archive || null,
+      };
+    }
+    if (status === 'failed' || status === 'timed_out') {
+      throw new Error(
+        pollData?.error?.message ||
+          (status === 'timed_out'
+            ? 'Image generation timed out before completion. Please retry.'
+            : 'Image generation failed')
+      );
+    }
+    pollAfterMs = typeof pollData?.pollAfterMs === 'number' ? pollData.pollAfterMs : pollAfterMs;
+  }
+  throw new Error('Image generation is still processing. Please check again in a moment.');
+}
+
 export async function generatePitchDeckDraft(input: {
   screenplayId: string;
   deckType: PitchDeckType;
@@ -270,11 +333,18 @@ export async function generatePitchDeckImageFromPrompt(input: {
   archive?: { fileId?: string; folderId?: string; alreadyExisted?: boolean } | null;
 }> {
   const isDeckScoped = typeof input.deckId === 'string' && input.deckId.trim().length > 0;
+  const idempotencyKey =
+    typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : `idem_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
   const response = await fetch(
     isDeckScoped ? `/api/pitch-decks/${encodeURIComponent(input.deckId as string)}/image/generate` : '/api/image/generate',
     {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      ...(isDeckScoped ? { 'x-idempotency-key': idempotencyKey } : {}),
+    },
     body: JSON.stringify({
       prompt: input.prompt,
       providerId: input.providerId,
@@ -284,6 +354,7 @@ export async function generatePitchDeckImageFromPrompt(input: {
             slideId: input.slideId,
             slideType: input.slideType,
             slideTitle: input.slideTitle,
+            idempotencyKey,
           }
         : {}),
       ...(input.screenplayId
@@ -297,11 +368,29 @@ export async function generatePitchDeckImageFromPrompt(input: {
     cache: 'no-store',
   });
 
-  const json = await response.json();
+  const json = await parseJsonSafe(response);
   if (!response.ok) {
-    throw new Error(json?.message || json?.error?.message || json?.error || 'Failed to generate image');
+    throw new Error(
+      json?.message ||
+        json?.error?.message ||
+        json?.error ||
+        (response.status === 504
+          ? 'Image generation timed out while waiting on the provider. Please retry.'
+          : 'Failed to generate image')
+    );
   }
   const payload = json?.data || json;
+  if (!payload?.imageUrl && isDeckScoped) {
+    const jobId = typeof payload?.job?.jobId === 'string' ? payload.job.jobId : '';
+    if (!jobId) {
+      throw new Error('Image generation request did not return an image or job identifier');
+    }
+    return await pollPitchDeckImageJob({
+      deckId: input.deckId as string,
+      jobId,
+      initialPollAfterMs: typeof payload?.pollAfterMs === 'number' ? payload.pollAfterMs : 2000,
+    });
+  }
   return {
     imageUrl: payload?.imageUrl,
     s3Key: payload?.s3Key,
@@ -327,9 +416,16 @@ export async function generatePitchDeckImageFromReference(input: {
   modelUsed?: string;
   archive?: { fileId?: string; folderId?: string; alreadyExisted?: boolean } | null;
 }> {
+  const idempotencyKey =
+    typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+      ? crypto.randomUUID()
+      : `idem_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
   const response = await fetch(`/api/pitch-decks/${encodeURIComponent(input.deckId)}/image/remix`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: {
+      'Content-Type': 'application/json',
+      'x-idempotency-key': idempotencyKey,
+    },
     body: JSON.stringify({
       sourceImageUrls: input.sourceImageUrls,
       editPrompt: input.editPrompt,
@@ -338,22 +434,42 @@ export async function generatePitchDeckImageFromReference(input: {
       slideId: input.slideId,
       slideType: input.slideType,
       slideTitle: input.slideTitle,
+      idempotencyKey,
     }),
     cache: 'no-store',
   });
 
-  const json = await response.json();
+  const json = await parseJsonSafe(response);
   if (!response.ok) {
-    throw new Error(json?.message || json?.error?.message || json?.error || 'Failed to remix image from references');
+    throw new Error(
+      json?.message ||
+        json?.error?.message ||
+        json?.error ||
+        (response.status === 504
+          ? 'Remix generation timed out while waiting on the provider. Please retry.'
+          : 'Failed to remix image from references')
+    );
   }
   const payload = json?.data || json;
-  return {
-    imageUrl: payload?.imageUrl,
-    s3Key: payload?.s3Key,
-    creditsDeducted: payload?.creditsDeducted,
-    modelUsed: payload?.modelUsed,
-    archive: payload?.archive || null,
-  };
+  if (payload?.imageUrl) {
+    return {
+      imageUrl: payload?.imageUrl,
+      s3Key: payload?.s3Key,
+      creditsDeducted: payload?.creditsDeducted,
+      modelUsed: payload?.modelUsed,
+      archive: payload?.archive || null,
+    };
+  }
+  const jobId = typeof payload?.job?.jobId === 'string' ? payload.job.jobId : '';
+  if (!jobId) {
+    throw new Error('Remix request did not return an image or job identifier');
+  }
+
+  return await pollPitchDeckImageJob({
+    deckId: input.deckId,
+    jobId,
+    initialPollAfterMs: typeof payload?.pollAfterMs === 'number' ? payload.pollAfterMs : 2000,
+  });
 }
 
 export async function archivePitchDeckImage(input: {
