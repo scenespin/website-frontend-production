@@ -26,6 +26,7 @@ import { MediaLibraryBrowser } from '@/components/production/CharacterStudio/Med
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { useOptionalPitchDeckAdvisorContext, type PitchDeckStoryAdvisorContextPacket } from '@/contexts/PitchDeckAdvisorContext';
 import type { FolderTreeNode, MediaFile } from '@/types/media';
+import { downloadImageAsBlob } from '@/utils/imageDownload';
 
 function isFeatureEnabled(): boolean {
   return process.env.NEXT_PUBLIC_ENABLE_PITCH_DECK_V1 === 'true';
@@ -137,6 +138,19 @@ const IMAGE_ACTION_DRAFT_STORAGE_KEY_PREFIX = 'pitchDeck:imageActionDraft:deck:'
 const IMAGE_ATTEMPTS_RETENTION_MS = 12 * 60 * 60 * 1000;
 const UNKNOWN_ATTEMPT_SLIDE_ID = 'unknown';
 const IMAGE_ACTION_TABS: ImageActionTab[] = ['library', 'prompt', 'reference', 'upload'];
+
+const getMediaProxyS3KeyFromUrl = (imageUrl: string): string | undefined => {
+  if (typeof imageUrl !== 'string' || !imageUrl.trim()) return undefined;
+  if (typeof window === 'undefined') return undefined;
+  try {
+    const parsed = new URL(imageUrl, window.location.origin);
+    if (parsed.pathname !== '/api/media/file') return undefined;
+    const key = parsed.searchParams.get('key');
+    return key && key.trim() ? key.trim() : undefined;
+  } catch {
+    return undefined;
+  }
+};
 
 const ALLOWED_PITCH_DECK_IMAGE_MODELS = new Set([
   'flux2-pro-2k',
@@ -2961,6 +2975,22 @@ export default function PitchDeckEditorPage() {
     }
   };
 
+  const downloadRecentAttemptImage = useCallback(
+    async (attempt: ImageAttempt) => {
+      if (!attempt.imageUrl) return;
+      setImageActionError(null);
+      try {
+        const safeTimestamp = new Date(attempt.at || Date.now()).toISOString().replace(/[:.]/g, '-');
+        const s3Key = getMediaProxyS3KeyFromUrl(attempt.imageUrl);
+        await downloadImageAsBlob(attempt.imageUrl, `pitch-deck-recent-${safeTimestamp}`, s3Key);
+        setImageActionNotice('Image downloaded.');
+      } catch (err: any) {
+        setImageActionError(err?.message || 'Failed to download image.');
+      }
+    },
+    [setImageActionError, setImageActionNotice]
+  );
+
   const confirmAndRunPendingImageAction = async () => {
     const action = pendingImageAction;
     setConfirmSpendOpen(false);
@@ -3940,10 +3970,12 @@ export default function PitchDeckEditorPage() {
                                     <div className="mt-0.5 flex items-center gap-2 text-[10px]">
                                       <button
                                         type="button"
-                                        onClick={() => window.open(attempt.imageUrl, '_blank', 'noopener,noreferrer')}
+                                        onClick={() => {
+                                          void downloadRecentAttemptImage(attempt);
+                                        }}
                                         className="underline text-emerald-200 hover:text-white"
                                       >
-                                        Open image
+                                        Download image
                                       </button>
                                       <button
                                         type="button"
