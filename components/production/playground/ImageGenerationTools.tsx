@@ -84,7 +84,6 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
   const [isGenerating, setIsGenerating] = useState(false);
   const [isLoadingModels, setIsLoadingModels] = useState(true);
   const [models, setModels] = useState<ImageModel[]>([]);
-  const [transparency, setTransparency] = useState(false);
   const [aspectRatio, setAspectRatio] = useState<string>('16:9');
   const [referenceImages, setReferenceImages] = useState<ReferenceImage[]>([]);
   const [isUploading, setIsUploading] = useState(false);
@@ -549,7 +548,6 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
         prompt: finalPrompt,
         desiredModelId: selectedModel,
         aspectRatio,
-        quality: transparency ? 'high-quality' : 'standard',
         projectId: screenplayId,
         entityType: 'playground',
         entityId: screenplayId, // Jobs Panel: backend requires entityId to create job
@@ -777,14 +775,14 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
             >
               {models.map((model) => (
                 <option key={model.id} value={model.id}>
-                  {model.id} ({model.creditsPerImage} credits) - {model.provider}
+                  {model.id} ({model.creditsPerImage} credits)
                 </option>
               ))}
             </select>
           )}
           {selectedModelInfo && (
             <p className="mt-1.5 text-xs text-[#808080]">
-              Cost: {selectedModelInfo.creditsPerImage} credits • Provider: {selectedModelInfo.provider}
+              Cost: {selectedModelInfo.creditsPerImage} credits
             </p>
             )}
           </div>
@@ -813,10 +811,8 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
             )}
           </div>
 
-          {/* Options */}
-          <div className="flex-shrink-0 grid grid-cols-1 md:grid-cols-2 gap-4">
           {/* Aspect Ratio */}
-          <div>
+          <div className="flex-shrink-0">
             <label className="block text-sm font-medium text-white mb-2">
               Aspect Ratio
             </label>
@@ -832,22 +828,6 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
                 </option>
               ))}
             </select>
-          </div>
-
-          {/* Transparency */}
-          <div className="flex items-center gap-3 pt-8">
-            <input
-              type="checkbox"
-              id="transparency"
-              checked={transparency}
-              onChange={(e) => setTransparency(e.target.checked)}
-              className="w-4 h-4 rounded border-[#3F3F46] bg-[#1F1F1F] text-cinema-red focus:ring-2 focus:ring-cinema-red"
-              disabled={isGenerating}
-            />
-            <label htmlFor="transparency" className="text-sm text-white cursor-pointer">
-              Generate with transparency (PNG alpha channel)
-            </label>
-            </div>
           </div>
 
         </div>
