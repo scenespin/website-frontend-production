@@ -81,6 +81,7 @@ type ImageAttempt = {
   message: string;
   at: string;
   imageUrl?: string;
+  s3Key?: string;
   archiveFileId?: string;
   archiveFolderId?: string;
 };
@@ -1035,10 +1036,11 @@ export default function PitchDeckEditorPage() {
         .filter((option: any) => option && typeof option.imageUrl === 'string')
         .map((option: any) => {
           const directS3Key = typeof option?.s3Key === 'string' ? option.s3Key.trim() : '';
+          const proxyS3Key = !directS3Key ? getMediaProxyS3KeyFromUrl(option.imageUrl) || '' : '';
           const optionLabel = typeof option?.label === 'string' ? option.label.trim() : '';
           const optionLabelBase = optionLabel.toLowerCase().replace(/\s*\(\d+\)\s*$/g, '').trim();
           const fallbackMatch =
-            !directS3Key && optionLabel
+            !directS3Key && !proxyS3Key && optionLabel
               ? existingMedia.find(
                   (item) =>
                     typeof item?.s3Key === 'string' &&
@@ -1048,7 +1050,7 @@ export default function PitchDeckEditorPage() {
                       item.label.toLowerCase().replace(/\s*\(\d+\)\s*$/g, '').trim() === optionLabelBase)
                 )
               : null;
-          const s3Key = directS3Key || fallbackMatch?.s3Key || undefined;
+          const s3Key = directS3Key || proxyS3Key || fallbackMatch?.s3Key || undefined;
           const imageUrl = s3Key ? buildMediaProxyUrl(s3Key) : option.imageUrl;
           return {
             ...option,
@@ -1184,6 +1186,7 @@ export default function PitchDeckEditorPage() {
           message: 'Recovered archived image.',
           at: Number.isFinite(createdMs) ? createdAt : new Date().toISOString(),
           imageUrl: item.imageUrl,
+          s3Key: typeof item.s3Key === 'string' && item.s3Key.trim().length > 0 ? item.s3Key.trim() : undefined,
           archiveFileId: item.mediaFileId,
           archiveFolderId: item.archiveFolderId,
           _createdMs: Number.isFinite(createdMs) ? createdMs : Date.now(),
@@ -2256,7 +2259,7 @@ export default function PitchDeckEditorPage() {
     status: ImageAttempt['status'],
     action: ImageAttempt['action'],
     message: string,
-    extras?: Pick<ImageAttempt, 'imageUrl' | 'archiveFileId' | 'archiveFolderId'>
+    extras?: Pick<ImageAttempt, 'imageUrl' | 's3Key' | 'archiveFileId' | 'archiveFolderId'>
   ) => {
     const slideId = selectedSlide?.slideId || UNKNOWN_ATTEMPT_SLIDE_ID;
     setImageAttempts((prev) => [
@@ -2268,6 +2271,7 @@ export default function PitchDeckEditorPage() {
         message,
         at: new Date().toISOString(),
         imageUrl: extras?.imageUrl,
+        s3Key: extras?.s3Key,
         archiveFileId: extras?.archiveFileId,
         archiveFolderId: extras?.archiveFolderId,
       },
@@ -2295,6 +2299,10 @@ export default function PitchDeckEditorPage() {
           : job.error?.message || (job.status === 'timed_out' ? 'Failed: generation timed out.' : 'Failed: generation error.'),
       at: job.completedAt || job.updatedAt || job.createdAt || new Date().toISOString(),
       imageUrl: typeof job.imageUrl === 'string' ? job.imageUrl : undefined,
+      s3Key:
+        (typeof job.s3Key === 'string' && job.s3Key.trim().length > 0
+          ? job.s3Key.trim()
+          : getMediaProxyS3KeyFromUrl(typeof job.imageUrl === 'string' ? job.imageUrl : '')) || undefined,
       archiveFileId: job.archive?.fileId,
       archiveFolderId: job.archive?.folderId,
     };
@@ -2954,6 +2962,7 @@ export default function PitchDeckEditorPage() {
         'Generated image from prompt.',
         {
           imageUrl: result.s3Key ? `/api/media/file?key=${encodeURIComponent(result.s3Key)}` : result.imageUrl,
+          s3Key: result.s3Key,
           archiveFileId: archiveInfo?.fileId,
           archiveFolderId: archiveInfo?.folderId,
         }
@@ -3038,6 +3047,7 @@ export default function PitchDeckEditorPage() {
         'Generated image from reference.',
         {
           imageUrl: result.s3Key ? `/api/media/file?key=${encodeURIComponent(result.s3Key)}` : result.imageUrl,
+          s3Key: result.s3Key,
           archiveFileId: archiveInfo?.fileId,
           archiveFolderId: archiveInfo?.folderId,
         }
@@ -4127,10 +4137,15 @@ export default function PitchDeckEditorPage() {
                                       <button
                                         type="button"
                                         onClick={() => {
+                                          const attemptS3Key =
+                                            (typeof attempt.s3Key === 'string' && attempt.s3Key.trim().length > 0
+                                              ? attempt.s3Key.trim()
+                                              : getMediaProxyS3KeyFromUrl(attempt.imageUrl as string)) || undefined;
                                           appendSlotImageOption({
                                             imageUrl: attempt.imageUrl as string,
                                             sourceType: 'existing_media',
                                             label: 'Recovered from recent attempt',
+                                            s3Key: attemptS3Key,
                                           });
                                         }}
                                         className="underline text-emerald-200 hover:text-white"
