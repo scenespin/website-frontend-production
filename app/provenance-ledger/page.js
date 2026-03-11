@@ -9,7 +9,7 @@ const SCREENSHOT_SRC = "/images/provenance-ledger-audit-panel.png";
 
 export const metadata = getSEOTags({
   title: `Wryda Provenance Ledger | ${config.appName}`,
-  description: "Writer-first AI provenance and disclosure workflow exports with Wryda Provenance Ledger.",
+  description: "Writer-first AI Writing Transparency and disclosure workflow exports with Wryda Provenance Ledger.",
   canonicalUrlRelative: "/provenance-ledger",
 });
 
@@ -65,7 +65,10 @@ export default function ProvenanceLedgerPage() {
                   Wryda Provenance Ledger
                 </h1>
                 <p className="text-lg md:text-xl text-gray-300 max-w-3xl mx-auto">
-                  Keep AI assistance optional and writer-directed, while preserving an auditable record of accepted AI-assisted actions for disclosure workflows.
+                  Keep AI assistance optional and writer-directed, while preserving a transparency record of accepted AI-assisted actions for disclosure workflows.
+                </p>
+                <p className="text-sm text-gray-400 max-w-3xl mx-auto mt-3">
+                  AI Writing Transparency in Wryda supports practical disclosure records without interrupting writing flow.
                 </p>
               </div>
 
@@ -129,7 +132,7 @@ export default function ProvenanceLedgerPage() {
               href="/sign-up"
               className="inline-flex items-center justify-center px-8 py-4 bg-[#DC143C] text-white font-semibold rounded-lg hover:bg-[#B01030] transition-colors text-lg"
             >
-              Start Writing
+              Start Writing Free
             </Link>
           </div>
         </section>
