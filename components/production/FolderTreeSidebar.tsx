@@ -62,6 +62,9 @@ export function FolderTreeSidebar({
   onFolderSelect,
   selectedFolderId
 }: FolderTreeSidebarProps) {
+  const compareFolderNames = (a: string, b: string): number =>
+    a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true });
+
   const RETIRED_SYSTEM_FOLDER_PATHS = new Set([
     'audio/music',
     'audio/sfx',
@@ -134,7 +137,9 @@ export function FolderTreeSidebar({
    * Convert S3 folder tree to FolderNode format
    */
   const convertS3TreeToNodes = (tree: FolderTreeNode[], level: number = 0): FolderNode[] => {
-    return tree
+    const sortedTree = [...tree].sort((a, b) => compareFolderNames(a.folderName, b.folderName));
+
+    return sortedTree
       .filter(folder => {
         const normalizedPath = (folder.folderPath || []).join('/').toLowerCase();
         const isEmptyCompositionsRoot = normalizedPath === 'compositions' && folder.fileCount === 0;
@@ -224,6 +229,8 @@ export function FolderTreeSidebar({
       ];
       tree[0].children = [...(tree[0].children || []), ...cloudNodes];
     }
+
+    tree[0].children = [...(tree[0].children || [])].sort((a, b) => compareFolderNames(a.name, b.name));
 
     return tree;
   };

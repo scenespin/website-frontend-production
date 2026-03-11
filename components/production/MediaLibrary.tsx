@@ -1316,6 +1316,8 @@ export default function MediaLibrary({
    */
   const getChildFolders = (): Array<{ id: string; name: string; fileCount?: number; path: string[]; storageType?: 's3' | 'cloud' }> => {
     const folders: Array<{ id: string; name: string; fileCount?: number; path: string[]; storageType?: 's3' | 'cloud' }> = [];
+    const compareFolderNames = (a: string, b: string): number =>
+      a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true });
     
     // Helper to recursively find folder by ID in S3 tree
     const findFolderById = (nodes: typeof folderTree, folderId: string): typeof folderTree[0] | null => {
@@ -1341,7 +1343,8 @@ export default function MediaLibrary({
             fileCount: node.fileCount,
             path: node.folderPath || [],
             storageType: 's3' as const
-          }));
+          }))
+          .sort((a, b) => compareFolderNames(a.name, b.name));
         folders.push(...s3Folders);
       } else {
         // Check if selected folder is an S3 folder
@@ -1353,7 +1356,8 @@ export default function MediaLibrary({
             fileCount: node.fileCount,
             path: node.folderPath || [],
             storageType: 's3' as const
-          }));
+          }))
+          .sort((a, b) => compareFolderNames(a.name, b.name));
           folders.push(...s3Children);
         }
       }
@@ -1399,16 +1403,18 @@ export default function MediaLibrary({
   });
   
   // 🔥 NEW: Filter folders by search query
-  const filteredFolders = childFolders.filter(folder => {
-    if (shouldHideSystemFolder(folder)) {
-      return false;
-    }
+  const filteredFolders = childFolders
+    .filter(folder => {
+      if (shouldHideSystemFolder(folder)) {
+        return false;
+      }
 
-    if (searchQuery && !folder.name.toLowerCase().includes(searchQuery.toLowerCase())) {
-      return false;
-    }
-    return true;
-  });
+      if (searchQuery && !folder.name.toLowerCase().includes(searchQuery.toLowerCase())) {
+        return false;
+      }
+      return true;
+    })
+    .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base', numeric: true }));
 
   const formatFileSize = (bytes: number): string => {
     if (bytes < 1024) return `${bytes} B`;
