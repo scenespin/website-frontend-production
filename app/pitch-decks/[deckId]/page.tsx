@@ -2250,6 +2250,57 @@ export default function PitchDeckEditorPage() {
     queueImageActionAutoSave();
   };
 
+  const appendSlotImageOptions = (
+    inputs: Array<{
+      imageUrl: string;
+      sourceType: PitchDeckBlock['sourceType'];
+      label: string;
+      s3Key?: string;
+    }>
+  ): number => {
+    if (!inputs || inputs.length === 0) return 0;
+    const seenIncoming = new Set<string>();
+    const nextBatch: SlotImageOption[] = [];
+    inputs.forEach((input) => {
+      const persistentImageUrl = input.s3Key ? buildMediaProxyUrl(input.s3Key) : input.imageUrl;
+      if (!persistentImageUrl || seenIncoming.has(persistentImageUrl)) return;
+      seenIncoming.add(persistentImageUrl);
+      nextBatch.push({
+        id: `imgopt_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        imageUrl: persistentImageUrl,
+        sourceType: input.sourceType,
+        label: input.label,
+        createdAt: new Date().toISOString(),
+        s3Key: input.s3Key,
+      });
+    });
+    if (nextBatch.length === 0) return 0;
+
+    const incomingUrls = new Set(nextBatch.map((option) => option.imageUrl));
+    const dedupedExisting = selectedSlotImageOptions.filter((option) => !incomingUrls.has(option.imageUrl));
+    const nextOptions = [...nextBatch, ...dedupedExisting].slice(0, 30);
+    const activeOption = nextOptions[0];
+    if (!activeOption) return 0;
+
+    const nextBatchIds = new Set(nextBatch.map((option) => option.id));
+    const candidateExportIds = [
+      ...nextBatch.map((option) => option.id),
+      ...selectedExportImageIds.filter((id) => !nextBatchIds.has(id)),
+    ];
+    const nextExportIds =
+      exportImageLimitForSelectedLayout > 0
+        ? candidateExportIds.slice(0, exportImageLimitForSelectedLayout)
+        : [];
+
+    updateSelectedSlideImageUrl(activeOption.imageUrl, activeOption.sourceType, {
+      activeImageId: activeOption.id,
+      imageOptions: nextOptions,
+      exportImageIds: nextExportIds,
+    });
+    queueImageActionAutoSave();
+    return nextBatch.length;
+  };
+
   const archiveSlotImageToPitchDeckLibrary = async (input: {
     s3Key?: string;
     source: 'prompt' | 'reference' | 'upload' | 'manual';
@@ -2552,19 +2603,18 @@ export default function PitchDeckEditorPage() {
       setImageActionError('Select at least one image from archive.');
       return;
     }
-    let addedCount = 0;
-    files.forEach((file) => {
-      const s3Key = typeof file.s3Key === 'string' ? file.s3Key : '';
-      const imageUrl = s3Key ? `/api/media/file?key=${encodeURIComponent(s3Key)}` : (file.fileUrl || '');
-      if (!imageUrl) return;
-      appendSlotImageOption({
-        imageUrl,
-        sourceType: 'existing_media',
-        label: file.fileName || 'Archive image',
-        s3Key: s3Key || undefined,
-      });
-      addedCount += 1;
-    });
+    const addedCount = appendSlotImageOptions(
+      files.map((file) => {
+        const s3Key = typeof file.s3Key === 'string' ? file.s3Key : '';
+        const imageUrl = s3Key ? `/api/media/file?key=${encodeURIComponent(s3Key)}` : file.fileUrl || '';
+        return {
+          imageUrl,
+          sourceType: 'existing_media' as PitchDeckBlock['sourceType'],
+          label: file.fileName || 'Archive image',
+          s3Key: s3Key || undefined,
+        };
+      })
+    );
     setShowArchiveBrowser(false);
     if (addedCount > 0) {
       setImageActionNotice(`Added ${addedCount} archive image${addedCount === 1 ? '' : 's'} to this slot gallery.`);
