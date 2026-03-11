@@ -98,30 +98,30 @@ export default function ComparePage() {
                     </th>
                     <th className="text-center p-4 bg-[#141414] font-bold border-l border-[#3F3F46]">
                       <div>Final Draft</div>
-                      <div className="text-xs text-gray-400 font-normal mt-1">$249/year</div>
+                      <div className="text-xs text-gray-400 font-normal mt-1 whitespace-nowrap">$249/yr</div>
                     </th>
                     <th className="text-center p-4 bg-[#141414] font-bold border-l border-[#3F3F46]">
                       <div>Celtx</div>
-                      <div className="text-xs text-gray-400 font-normal mt-1">$20-50/month</div>
+                      <div className="text-xs text-gray-400 font-normal mt-1 whitespace-nowrap">$20-50/mo</div>
                     </th>
                     <th className="text-center p-4 bg-[#141414] font-bold border-l border-[#3F3F46]">
                       <div>StudioBinder</div>
-                      <div className="text-xs text-gray-400 font-normal mt-1">$29-99/month</div>
+                      <div className="text-xs text-gray-400 font-normal mt-1 whitespace-nowrap">$29-99/mo</div>
                     </th>
                     <th className="text-center p-4 bg-[#141414] font-bold border-l border-[#3F3F46]">
                       <div>WriterDuet</div>
-                      <div className="text-xs text-gray-400 font-normal mt-1">$9-19/month</div>
+                      <div className="text-xs text-gray-400 font-normal mt-1 whitespace-nowrap">$9-19/mo</div>
                     </th>
                     <th className="text-center p-4 bg-[#141414] font-bold border-l border-[#3F3F46]">
                       <div>Fade In</div>
-                      <div className="text-xs text-gray-400 font-normal mt-1">$80 one-time</div>
+                      <div className="text-xs text-gray-400 font-normal mt-1 whitespace-nowrap">$80 once</div>
                     </th>
                   </tr>
                 </thead>
                 <tbody>
                   {/* Integrated Screenwriting Environment (ISE) */}
                   <tr className="border-b-2 border-[#3F3F46]">
-                    <td className="sticky left-0 z-10 p-3 md:p-4 font-bold bg-[#141414] text-[#DC143C] min-w-[220px]">Integrated Screenwriting Environment (ISE)</td>
+                    <td className="sticky left-0 z-10 p-3 md:p-4 font-bold bg-[#141414] text-[#DC143C] min-w-[220px] whitespace-nowrap">Integrated Screenwriting Env (ISE)</td>
                     <td className="p-4 text-center border-l-2 border-[#DC143C] bg-[#DC143C]/10">
                       <span className="text-[#DC143C] font-bold">✓ YES</span>
                       <div className="text-xs text-gray-300 mt-1">Create → Produce → Direct</div>
@@ -173,7 +173,7 @@ export default function ComparePage() {
                   </tr>
 
                   <tr className="border-b border-[#3F3F46]">
-                    <td className="sticky left-0 z-10 p-3 md:p-4 bg-[#141414] min-w-[220px]">Contextual Pitch Decks</td>
+                    <td className="sticky left-0 z-10 p-3 md:p-4 bg-[#141414] min-w-[220px] whitespace-nowrap">Contextual Pitch Decks</td>
                     <td className="p-4 text-center border-l-2 border-[#DC143C]">
                       <span className="text-[#DC143C] font-bold">✓ Included</span>
                       <div className="text-xs text-gray-400 mt-1">Script-aware pitch drafting and editing</div>
@@ -219,7 +219,7 @@ export default function ComparePage() {
                   </tr>
 
                   <tr className="border-b border-[#3F3F46]">
-                    <td className="sticky left-0 z-10 p-3 md:p-4 bg-[#141414] min-w-[220px]">AI disclosure export support</td>
+                    <td className="sticky left-0 z-10 p-3 md:p-4 bg-[#141414] min-w-[220px] whitespace-nowrap">AI disclosure export</td>
                     <td className="p-4 text-center border-l-2 border-[#DC143C]">
                       <span className="text-[#DC143C] font-bold">✓ Included</span>
                       <div className="text-xs text-gray-400 mt-1">Timestamped PDF + JSON + SHA-256 hash export</div>
@@ -267,7 +267,7 @@ export default function ComparePage() {
 
                   {/* Story Advisor */}
                   <tr className="border-b border-[#3F3F46]">
-                    <td className="sticky left-0 z-10 p-3 md:p-4 bg-[#141414] min-w-[220px]">Story Advisor (full screenplay)</td>
+                    <td className="sticky left-0 z-10 p-3 md:p-4 bg-[#141414] min-w-[220px] whitespace-nowrap">Story Advisor (full screenplay)</td>
                     <td className="p-4 text-center border-l-2 border-[#DC143C]">
                       <span className="text-[#DC143C] font-bold">✓ Advanced</span>
                       <div className="text-xs text-gray-400 mt-1">Script-level analysis workflow</div>
@@ -315,7 +315,7 @@ export default function ComparePage() {
 
                   {/* Character Consistency */}
                   <tr className="border-b border-[#3F3F46]">
-                    <td className="sticky left-0 z-10 p-3 md:p-4 bg-[#141414] min-w-[220px]">Character Consistency System</td>
+                    <td className="sticky left-0 z-10 p-3 md:p-4 bg-[#141414] min-w-[220px] whitespace-nowrap">Character Consistency</td>
                     <td className="p-4 text-center border-l-2 border-[#DC143C]">
                       <span className="text-[#DC143C] font-bold">✓</span>
                       <div className="text-xs text-gray-400 mt-1">Face, voice, outfit</div>
@@ -339,7 +339,7 @@ export default function ComparePage() {
 
                   {/* Location/Prop Consistency */}
                   <tr className="border-b border-[#3F3F46]">
-                    <td className="sticky left-0 z-10 p-3 md:p-4 bg-[#141414] min-w-[220px]">Location & Prop Consistency</td>
+                    <td className="sticky left-0 z-10 p-3 md:p-4 bg-[#141414] min-w-[220px] whitespace-nowrap">Location & Prop Consistency</td>
                     <td className="p-4 text-center border-l-2 border-[#DC143C]">
                       <span className="text-[#DC143C] font-bold">✓</span>
                       <div className="text-xs text-gray-400 mt-1">Angle packages</div>
@@ -363,7 +363,7 @@ export default function ComparePage() {
 
                   {/* Scene-to-Video */}
                   <tr className="border-b border-[#3F3F46]">
-                    <td className="sticky left-0 z-10 p-3 md:p-4 bg-[#141414] min-w-[220px]">Visual Asset Generation</td>
+                    <td className="sticky left-0 z-10 p-3 md:p-4 bg-[#141414] min-w-[220px] whitespace-nowrap">Visual Asset Generation</td>
                     <td className="p-4 text-center border-l-2 border-[#DC143C]">
                       <span className="text-[#DC143C] font-bold">✓</span>
                       <div className="text-xs text-gray-400 mt-1">From screenplay</div>
@@ -413,7 +413,7 @@ export default function ComparePage() {
 
                   {/* Media Library Organization */}
                   <tr className="border-b border-[#3F3F46]">
-                    <td className="sticky left-0 z-10 p-3 md:p-4 bg-[#141414] min-w-[220px]">Media Library Organization</td>
+                    <td className="sticky left-0 z-10 p-3 md:p-4 bg-[#141414] min-w-[220px] whitespace-nowrap">Media Library Organization</td>
                     <td className="p-4 text-center border-l-2 border-[#DC143C]">
                       <span className="text-[#DC143C] font-bold">✓</span>
                       <div className="text-xs text-gray-400 mt-1">Scene and shot-linked media tracking</div>
@@ -436,25 +436,25 @@ export default function ComparePage() {
                   </tr>
 
                   <tr className="border-b border-[#3F3F46]">
-                    <td className="sticky left-0 z-10 p-3 md:p-4 bg-[#141414] min-w-[220px]">AI-ADR Dialogue Workflow</td>
+                    <td className="sticky left-0 z-10 p-3 md:p-4 bg-[#141414] min-w-[220px] whitespace-nowrap">AI-ADR Dialogue Workflow</td>
                     <td className="p-4 text-center border-l-2 border-[#DC143C]">
                       <span className="text-[#DC143C] font-bold">✓ Included</span>
                       <div className="text-xs text-gray-400 mt-1">Single-person dialogue shots</div>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">Varies</span>
+                      <span className="text-gray-500">No</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">Varies</span>
+                      <span className="text-gray-500">No</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">Varies</span>
+                      <span className="text-gray-500">No</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">Varies</span>
+                      <span className="text-gray-500">No</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">Varies</span>
+                      <span className="text-gray-500">No</span>
                     </td>
                   </tr>
 
@@ -492,19 +492,19 @@ export default function ComparePage() {
                       <div className="text-xs text-gray-400 mt-1">Pay for credits only</div>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-400">$249/year</span>
+                      <span className="text-gray-400 whitespace-nowrap">$249/yr</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-400">$20-50/month</span>
+                      <span className="text-gray-400 whitespace-nowrap">$20-50/mo</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-400">$29-99/month</span>
+                      <span className="text-gray-400 whitespace-nowrap">$29-99/mo</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-400">$9-19/month</span>
+                      <span className="text-gray-400 whitespace-nowrap">$9-19/mo</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-400">$80 one-time</span>
+                      <span className="text-gray-400 whitespace-nowrap">$80 once</span>
                     </td>
                   </tr>
                 </tbody>
@@ -664,30 +664,31 @@ export default function ComparePage() {
               </div>
 
               <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg p-8">
-                <h3 className="text-2xl font-bold mb-4">vs. AI Writing Tools (ChatGPT, Claude, etc.)</h3>
+                <h3 className="text-2xl font-bold mb-2">vs. General AI Tools</h3>
+                <p className="text-xs text-gray-500 mb-4">(ChatGPT, Claude, etc.)</p>
                 <p className="text-gray-300 mb-4">
                   <strong className="text-white">Wryda applies major AI models inside a screenplay-specific workspace with project context.</strong>
                 </p>
                 <ul className="space-y-2 text-sm text-gray-300">
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>Switch between OpenAI, Anthropic, and Google models within our specialized agents</span>
+                    <span>Switch between OpenAI, Anthropic, and Google models inside specialized agents</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>5 screenplay-trained agents understand Fountain format, character arcs, and story structure</span>
+                    <span>5 screenplay-trained agents understand Fountain format, character arcs, and structure</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>Story Advisor reads your entire screenplay—context general AI tools can't access</span>
+                    <span>Story Advisor reads your full screenplay context</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>Integrated with your characters, locations, and scenes—everything works together</span>
+                    <span>Integrated with your characters, locations, and scenes</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>Scene Builder generates complete video scenes from your screenplay</span>
+                    <span>Scene Builder generates full scenes from screenplay context</span>
                   </li>
                 </ul>
               </div>

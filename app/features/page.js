@@ -100,7 +100,7 @@ export default function Features() {
                 <h3 className="text-lg font-semibold mb-3">Core Writing and Revision</h3>
                 <ul className="space-y-2 text-sm text-gray-300">
                   <li>Fountain-native editor compatible with Final Draft, Celtx, and Fade In workflows</li>
-                  <li>AI agents for dialogue polish, rewrite passes, scene development, and story-level feedback</li>
+                  <li>AI agents for dialogue, rewrites, scene development, and story-level notes</li>
                   <li>Real-time collaboration and GitHub-backed version continuity</li>
                   <li>AI Writing Transparency tools with optional disclosure exports</li>
                 </ul>
