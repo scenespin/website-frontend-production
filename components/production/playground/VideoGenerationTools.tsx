@@ -195,6 +195,8 @@ export function VideoGenerationTools({
   // Generated video state
   const [generatedVideoUrl, setGeneratedVideoUrl] = useState<string | null>(null);
   const [generationTime, setGenerationTime] = useState<number | undefined>(undefined);
+  const [pendingGenerationJobId, setPendingGenerationJobId] = useState<string | null>(null);
+  const [generationStartedAtMs, setGenerationStartedAtMs] = useState<number | null>(null);
   const [latestCompletedJobId, setLatestCompletedJobId] = useState<string | null>(null);
   const [recentAttempts, setRecentAttempts] = useState<DirectVideoAttempt[]>([]);
   const [attemptsHydrated, setAttemptsHydrated] = useState(false);
@@ -423,6 +425,21 @@ export function VideoGenerationTools({
       cancelled = true;
     };
   }, [attemptsHydrated, recentAttempts, screenplayId, getToken, propSceneId]);
+
+  useEffect(() => {
+    if (!pendingGenerationJobId) return;
+    const matchingAttempt = recentAttempts.find((attempt) => attempt.jobId === pendingGenerationJobId);
+    if (!matchingAttempt) return;
+    if (matchingAttempt.status !== 'success' && matchingAttempt.status !== 'failed') return;
+
+    if (generationStartedAtMs) {
+      const elapsed = (Date.now() - generationStartedAtMs) / 1000;
+      setGenerationTime(elapsed);
+    }
+    setIsGenerating(false);
+    setPendingGenerationJobId(null);
+    setGenerationStartedAtMs(null);
+  }, [pendingGenerationJobId, recentAttempts, generationStartedAtMs]);
 
   // Fetch video models (exclude requiresSourceVideo for "generate from scratch")
   useEffect(() => {
@@ -665,7 +682,10 @@ export function VideoGenerationTools({
     setIsGenerating(true);
     setGeneratedVideoUrl(null);
     setGenerationTime(undefined);
+    setPendingGenerationJobId(null);
     const startTime = Date.now();
+    setGenerationStartedAtMs(startTime);
+    let keepGeneratingUntilAsyncTerminal = false;
 
     try {
       const token = await getToken({ template: 'wryda-backend' });
@@ -769,6 +789,8 @@ export function VideoGenerationTools({
         // For async jobs, we might get a job ID - show message
         const jobId = returnedJobId;
         if (jobId) {
+          keepGeneratingUntilAsyncTerminal = true;
+          setPendingGenerationJobId(jobId);
           toast.success('Video generation started!', {
             description: `Estimated time: ${getEstimatedDuration('complete-scene')}. Check Jobs panel for progress.`
           });
@@ -829,8 +851,14 @@ export function VideoGenerationTools({
         window.refreshCredits();
       }
       setGeneratedVideoUrl(null);
+      setPendingGenerationJobId(null);
+      setGenerationStartedAtMs(null);
     } finally {
-      setIsGenerating(false);
+      if (!keepGeneratingUntilAsyncTerminal) {
+        setIsGenerating(false);
+        setPendingGenerationJobId(null);
+        setGenerationStartedAtMs(null);
+      }
     }
   };
 
