@@ -1051,6 +1051,7 @@ export function VideoGenerationTools({
             generatedVideoUrl={generatedVideoUrl}
             generationTime={generationTime}
             onDownload={handleDownload}
+            onClear={() => setGeneratedVideoUrl(null)}
             onVideoError={() => setGeneratedVideoUrl(null)}
             className="min-h-[260px]"
             title="Latest generated"
@@ -1075,6 +1076,7 @@ export function VideoGenerationTools({
             generatedVideoUrl={generatedVideoUrl}
             generationTime={generationTime}
             onDownload={handleDownload}
+            onClear={() => setGeneratedVideoUrl(null)}
             onVideoError={() => setGeneratedVideoUrl(null)}
             className="flex-1 min-h-0"
             title="Latest generated"

@@ -74,9 +74,7 @@ export function DirectHub() {
   // Keep the open state across Direct tabs where jobs monitoring is relevant.
   const shouldShowJobsUi =
     activeTab === 'shots' ||
-    activeTab === 'videos' ||
-    activeTab === 'video-gen' ||
-    activeTab === 'image-gen';
+    activeTab === 'videos';
 
   useEffect(() => {
     if (!shouldShowJobsUi && isJobsDrawerOpen) {

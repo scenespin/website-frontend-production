@@ -455,7 +455,10 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
           return images.map((item: any, index: number) => {
             const s3Key = typeof item?.s3Key === 'string' ? item.s3Key : '';
             const directUrl = typeof item?.imageUrl === 'string' ? item.imageUrl : '';
-            const resolvedUrl = directUrl || (s3Key ? `/api/media/file?key=${encodeURIComponent(s3Key)}` : '');
+            // Prefer stable proxy URLs from S3 keys over provider/presigned URLs that may expire.
+            const resolvedUrl = s3Key
+              ? `/api/media/file?key=${encodeURIComponent(s3Key)}`
+              : directUrl;
             if (!resolvedUrl) return null;
             return {
               jobId: `${job.jobId || job.executionId || 'job'}-${index}`,
@@ -919,6 +922,9 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
                     src={item.imageUrl}
                     alt={item.label || 'Generated image'}
                     className="h-16 w-full object-cover"
+                    onError={() => {
+                      setRecentImages((current) => current.filter((img) => img.jobId !== item.jobId));
+                    }}
                   />
                 </button>
               ))}

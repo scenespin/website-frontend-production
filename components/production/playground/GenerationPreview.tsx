@@ -8,7 +8,7 @@
  */
 
 import React, { useEffect, useState } from 'react';
-import { Loader2, Download, Share2, Clock } from 'lucide-react';
+import { Loader2, Download, Share2, Clock, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 interface GenerationPreviewProps {
@@ -18,6 +18,7 @@ interface GenerationPreviewProps {
   generationTime?: number; // in seconds
   onDownload?: () => void;
   onShare?: () => void;
+  onClear?: () => void;
   /** Called when the video element fails to load (e.g. 404 after temp file expired). Parent can clear the URL so we show placeholder instead of empty player. */
   onVideoError?: () => void;
   className?: string;
@@ -32,6 +33,7 @@ export function GenerationPreview({
   generationTime,
   onDownload,
   onShare,
+  onClear,
   onVideoError,
   className = '',
   title = 'Output',
@@ -65,8 +67,19 @@ export function GenerationPreview({
   return (
     <div className={cn("h-full flex flex-col bg-[#141414]", className)}>
       {/* Header */}
-      <div className="flex-shrink-0 border-b border-white/10 px-4 py-3">
+      <div className="flex-shrink-0 border-b border-white/10 px-4 py-3 flex items-center justify-between">
         <h3 className="text-sm font-medium text-base-content">{title}</h3>
+        {hasResult && onClear && (
+          <button
+            type="button"
+            onClick={onClear}
+            className="inline-flex items-center gap-1 rounded border border-[#3F3F46] px-2 py-1 text-xs text-[#B3B3B3] hover:text-white hover:border-cinema-red"
+            title="Clear current result"
+          >
+            <X className="w-3.5 h-3.5" />
+            <span>Clear</span>
+          </button>
+        )}
       </div>
 
       {/* Content Area */}
