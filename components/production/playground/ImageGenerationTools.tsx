@@ -623,9 +623,9 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
   };
 
   return (
-    <div className={cn("h-full flex bg-[#0A0A0A]", className)}>
+    <div className={cn("min-h-full flex flex-col md:flex-row bg-[#0A0A0A]", className)}>
       {/* Left Panel - Form Controls */}
-      <div className="w-1/2 flex flex-col">
+      <div className="w-full md:w-1/2 flex flex-col">
         <div className="flex flex-col gap-6 p-4 md:p-6">
           {/* Prompt Input */}
           <div className="flex-shrink-0">
@@ -699,7 +699,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
                   </button>
                   <button
                     type="button"
-                    onClick={() => setShowMediaLibraryBrowser((current) => !current)}
+                    onClick={() => setShowMediaLibraryBrowser(true)}
                     disabled={!screenplayId || isGenerating}
                     className={cn(
                       "px-4 py-3 border rounded-lg",
@@ -710,22 +710,9 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
                     )}
                   >
                     <FolderOpen className="w-4 h-4" />
-                    <span>{showMediaLibraryBrowser ? 'Close Library' : 'Add from Library'}</span>
+                    <span>Add from Library</span>
                   </button>
                 </div>
-
-                {showMediaLibraryBrowser && screenplayId && (
-                  <div className="rounded border border-[#2f2f2f] bg-[#0f0f0f] p-2">
-                    <MediaLibraryBrowser
-                      screenplayId={screenplayId}
-                      onSelectImages={handleSelectReferenceImagesFromLibrary}
-                      filterTypes={['image']}
-                      allowMultiSelect={true}
-                      maxSelections={Math.max(1, getReferenceLimit() - referenceImages.length)}
-                      onCancel={() => setShowMediaLibraryBrowser(false)}
-                    />
-                  </div>
-                )}
 
                 {/* Reference Image Previews */}
                 {referenceImages.length > 0 && (
@@ -889,10 +876,10 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
       </div>
 
       {/* Divider */}
-      <div className="w-px bg-white/10 flex-shrink-0"></div>
+      <div className="hidden md:block w-px bg-white/10 flex-shrink-0"></div>
 
       {/* Right Panel - Preview */}
-      <div className="w-1/2 flex flex-col">
+      <div className="w-full md:w-1/2 flex flex-col">
         <GenerationPreview
           isGenerating={isGenerating}
           generatedImageUrl={generatedImageUrl}
@@ -939,6 +926,38 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
           )}
         </div>
       </div>
+
+      {showMediaLibraryBrowser && screenplayId && (
+        <div className="fixed inset-0 z-[80] bg-black/80 backdrop-blur-[1px] p-3 md:p-6">
+          <div className="h-full w-full md:mx-auto md:max-w-6xl rounded-xl border border-[#3F3F46] bg-[#0A0A0A] overflow-hidden flex flex-col">
+            <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+              <div>
+                <p className="text-sm font-semibold text-white">Select references from Library</p>
+                <p className="text-xs text-[#808080]">
+                  Choose up to {Math.max(1, getReferenceLimit() - referenceImages.length)} image(s)
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => setShowMediaLibraryBrowser(false)}
+                className="px-3 py-1.5 rounded border border-[#3F3F46] text-sm text-[#B3B3B3] hover:text-white hover:border-cinema-red"
+              >
+                Close
+              </button>
+            </div>
+            <div className="flex-1 p-3 md:p-4 overflow-hidden">
+              <MediaLibraryBrowser
+                screenplayId={screenplayId}
+                onSelectImages={handleSelectReferenceImagesFromLibrary}
+                filterTypes={['image']}
+                allowMultiSelect={true}
+                maxSelections={Math.max(1, getReferenceLimit() - referenceImages.length)}
+                onCancel={() => setShowMediaLibraryBrowser(false)}
+              />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
