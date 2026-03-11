@@ -3303,6 +3303,9 @@ export default function PitchDeckEditorPage() {
                             </select>
                             </div>
                           ) : null}
+                          <p className="mt-2 text-[11px] text-gray-500">
+                            AI-generated images and uploads are saved in the pitch deck archive folder. Open Generated Images/Uploads to browse and add them.
+                          </p>
                           <div className="mt-2 flex items-center justify-end">
                             <button
                               type="button"
@@ -3316,7 +3319,7 @@ export default function PitchDeckEditorPage() {
                               disabled={!deckScreenplayId}
                               className="mr-2 rounded border border-[#3F3F46] px-3 py-2 text-sm font-medium text-gray-200 hover:border-[#DC143C] hover:text-white disabled:opacity-50"
                             >
-                              {showArchiveBrowser ? 'Close browser' : 'Browse archive folder'}
+                              {showArchiveBrowser ? 'Close Generated Images/Uploads' : 'Generated Images/Uploads'}
                             </button>
                             {!showArchiveBrowser ? (
                               <button
