@@ -49,14 +49,6 @@ interface CameraAngle {
   promptText: string; // Model-agnostic text
 }
 
-interface RecentGeneratedImage {
-  id: string;
-  dismissKey: string;
-  imageUrl: string;
-  createdAt: string;
-  label?: string;
-}
-
 interface PersistedReferenceImage {
   id: string;
   s3Key?: string;
@@ -114,8 +106,6 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
   const [selectedCameraAngle, setSelectedCameraAngle] = useState<string>('');
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   const [generationTime, setGenerationTime] = useState<number | undefined>(undefined);
-  const [recentImages, setRecentImages] = useState<RecentGeneratedImage[]>([]);
-  const [isLoadingRecentImages, setIsLoadingRecentImages] = useState(false);
   const [recentAttempts, setRecentAttempts] = useState<DirectImageAttempt[]>([]);
   const [attemptsHydrated, setAttemptsHydrated] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -123,10 +113,6 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
   const getImageGenDraftStorageKey = () => {
     if (!screenplayId) return null;
     return `direct-image-gen:draft:${screenplayId}`;
-  };
-  const getDismissedRecentImagesStorageKey = () => {
-    if (!screenplayId) return null;
-    return `direct-image-gen:dismissed-recents:${screenplayId}`;
   };
   const getAttemptsStorageKey = () => {
     if (!screenplayId) return null;
@@ -546,94 +532,6 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
     });
   };
 
-  const loadRecentGeneratedImages = async () => {
-    if (!screenplayId || screenplayId === 'default') {
-      setRecentImages([]);
-      return;
-    }
-    try {
-      setIsLoadingRecentImages(true);
-      const token = await getToken({ template: 'wryda-backend' });
-      if (!token) return;
-
-      const response = await fetch(`/api/media/list?screenplayId=${encodeURIComponent(screenplayId)}&entityType=playground`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!response.ok) return;
-
-      const data = await response.json();
-      const files = Array.isArray(data?.files) ? data.files : [];
-      const dismissedStorageKey = getDismissedRecentImagesStorageKey();
-      let dismissed = new Set<string>();
-      if (dismissedStorageKey && typeof window !== 'undefined') {
-        try {
-          const raw = window.sessionStorage.getItem(dismissedStorageKey);
-          const parsed = raw ? JSON.parse(raw) : [];
-          dismissed = new Set(Array.isArray(parsed) ? parsed.filter((value) => typeof value === 'string') : []);
-        } catch {
-          dismissed = new Set<string>();
-        }
-      }
-
-      const mappedRecents = files
-        .filter((file: any) => {
-          const source = String(file?.metadata?.source || '').toLowerCase();
-          const entityType = String(file?.metadata?.entityType || '').toLowerCase();
-          const fileType = String(file?.fileType || '').toLowerCase();
-          const mediaType = String(file?.mediaFileType || '').toLowerCase();
-          const isImage = fileType.startsWith('image/') || mediaType === 'image';
-          return isImage && source === 'direct-image-generation' && entityType === 'playground';
-        })
-        .map((file: any) => {
-          const fileId = String(file?.fileId || '');
-          const s3Key = String(file?.s3Key || '');
-          const createdAt = String(file?.createdAt || new Date().toISOString());
-          const dismissKey = fileId || s3Key;
-          const imageUrl = s3Key
-            ? `/api/media/file?key=${encodeURIComponent(s3Key)}`
-            : String(file?.s3Url || file?.fileUrl || '');
-          if (!dismissKey || !imageUrl) return null;
-          if (dismissed.has(dismissKey)) return null;
-
-          return {
-            id: fileId || dismissKey,
-            dismissKey,
-            imageUrl,
-            createdAt,
-            label: String(file?.fileName || file?.metadata?.label || 'Generated image'),
-          } as RecentGeneratedImage;
-        })
-        .filter((item): item is RecentGeneratedImage => !!item)
-        .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-
-      setRecentImages(mappedRecents.slice(0, 12));
-    } catch (error) {
-      console.warn('[ImageGenerationTools] Failed to load recent generated images', error);
-    } finally {
-      setIsLoadingRecentImages(false);
-    }
-  };
-
-  const dismissRecentImage = (image: RecentGeneratedImage) => {
-    setRecentImages((prev) => prev.filter((item) => item.id !== image.id));
-    const storageKey = getDismissedRecentImagesStorageKey();
-    if (!storageKey || typeof window === 'undefined') return;
-
-    try {
-      const raw = window.sessionStorage.getItem(storageKey);
-      const parsed = raw ? JSON.parse(raw) : [];
-      const current = new Set(Array.isArray(parsed) ? parsed.filter((value) => typeof value === 'string') : []);
-      current.add(image.dismissKey);
-      window.sessionStorage.setItem(storageKey, JSON.stringify(Array.from(current)));
-    } catch (error) {
-      console.warn('[ImageGenerationTools] Failed to persist dismissed recent image', error);
-    }
-  };
-
-  useEffect(() => {
-    void loadRecentGeneratedImages();
-  }, [screenplayId, getToken]);
-
   useEffect(() => {
     const storageKey = getAttemptsStorageKey();
     if (!storageKey || typeof window === 'undefined') {
@@ -691,7 +589,6 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
             upsertAttemptFromWorkflowExecution(execution);
             const status = normalizeAttemptStatus(execution.status);
             if (status === 'success' || status === 'failed') {
-              if (status === 'success') void loadRecentGeneratedImages();
               return;
             }
           }
@@ -967,7 +864,6 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
       }
 
       toast.success('Image generated!');
-      void loadRecentGeneratedImages();
       
       // Keep draft inputs after generate (matches remix workflow behavior).
       setShowMediaLibraryBrowser(false);
@@ -1298,59 +1194,6 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
               </div>
             )}
           </div>
-          <div className="flex items-center justify-between mb-2">
-            <p className="text-sm font-medium text-white">Recent generated images</p>
-            <button
-              type="button"
-              onClick={() => void loadRecentGeneratedImages()}
-              className="text-xs text-[#B3B3B3] hover:text-white"
-              disabled={isLoadingRecentImages}
-            >
-              {isLoadingRecentImages ? 'Refreshing...' : 'Refresh'}
-            </button>
-          </div>
-          {isLoadingRecentImages && recentImages.length === 0 ? (
-            <div className="flex items-center gap-2 text-xs text-[#808080]">
-              <Loader2 className="w-3.5 h-3.5 animate-spin" />
-              <span>Loading recent generated images...</span>
-            </div>
-          ) : recentImages.length === 0 ? (
-            <p className="text-xs text-[#808080]">No generated images yet.</p>
-          ) : (
-            <div className="grid grid-cols-3 md:grid-cols-4 gap-2 max-h-44 overflow-y-auto pr-1">
-              {recentImages.map((item) => (
-                <div
-                  key={item.id}
-                  className="relative rounded overflow-hidden border border-[#3F3F46] hover:border-cinema-red transition-colors"
-                  title={item.label || 'Generated image'}
-                >
-                  <button
-                    type="button"
-                    onClick={() => setGeneratedImageUrl(item.imageUrl)}
-                    className="block w-full"
-                  >
-                    <img
-                      src={item.imageUrl}
-                      alt={item.label || 'Generated image'}
-                      className="h-16 w-full object-cover"
-                      onError={() => {
-                        setRecentImages((current) => current.filter((img) => img.id !== item.id));
-                      }}
-                    />
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => dismissRecentImage(item)}
-                    className="absolute top-1 right-1 z-10 h-5 w-5 rounded-full bg-black/70 border border-white/20 text-white hover:border-cinema-red hover:text-cinema-red flex items-center justify-center"
-                    title="Remove from recents"
-                    aria-label="Remove from recents"
-                  >
-                    <X className="w-3 h-3" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
         </div>
       </div>
 
