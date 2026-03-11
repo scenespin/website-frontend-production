@@ -92,6 +92,7 @@ type ImageActionDraft = {
   referencePromptText?: string;
   referenceMediaId?: string;
   referenceMediaIds?: string[];
+  referenceMediaIdentityKeys?: string[];
   referenceGenerationModelId?: string;
   referenceAspectRatio?: PitchDeckAspectRatio;
 };
@@ -151,6 +152,18 @@ const getMediaProxyS3KeyFromUrl = (imageUrl: string): string | undefined => {
   } catch {
     return undefined;
   }
+};
+
+const getExistingMediaIdentityKey = (item: Partial<ExistingMediaItem> | null | undefined): string => {
+  if (!item) return '';
+  if (typeof item.mediaFileId === 'string' && item.mediaFileId.trim()) return `file:${item.mediaFileId.trim()}`;
+  if (typeof item.s3Key === 'string' && item.s3Key.trim()) return `s3:${item.s3Key.trim()}`;
+  if (typeof item.imageUrl === 'string' && item.imageUrl.trim()) {
+    const proxyKey = getMediaProxyS3KeyFromUrl(item.imageUrl);
+    if (proxyKey) return `s3:${proxyKey}`;
+    return `url:${item.imageUrl.trim()}`;
+  }
+  return '';
 };
 
 const ALLOWED_PITCH_DECK_IMAGE_MODELS = new Set([
@@ -821,6 +834,7 @@ export default function PitchDeckEditorPage() {
   const [referencePromptText, setReferencePromptText] = useState('');
   const [referenceMediaId, setReferenceMediaId] = useState('');
   const [referenceMediaIds, setReferenceMediaIds] = useState<string[]>([]);
+  const [referenceMediaIdentityKeys, setReferenceMediaIdentityKeys] = useState<string[]>([]);
   const [referenceGenerationModelId, setReferenceGenerationModelId] = useState('nano-banana-pro-2k');
   const [promptAspectRatio, setPromptAspectRatio] = useState<PitchDeckAspectRatio>('16:9');
   const [referenceAspectRatio, setReferenceAspectRatio] = useState<PitchDeckAspectRatio>('16:9');
@@ -1266,6 +1280,29 @@ export default function PitchDeckEditorPage() {
   }, [deckId, selectedSlideId]);
 
   useEffect(() => {
+    if (referenceMediaIds.length === 0) {
+      if (referenceMediaIdentityKeys.length > 0) setReferenceMediaIdentityKeys([]);
+      return;
+    }
+    const nextKeys = Array.from(
+      new Set(
+        referenceMediaIds
+          .map((id) => existingMedia.find((item) => item.id === id))
+          .filter(Boolean)
+          .map((item) => getExistingMediaIdentityKey(item))
+          .filter(Boolean)
+      )
+    );
+    if (nextKeys.length === 0) return;
+    if (
+      nextKeys.length !== referenceMediaIdentityKeys.length ||
+      nextKeys.some((key, index) => key !== referenceMediaIdentityKeys[index])
+    ) {
+      setReferenceMediaIdentityKeys(nextKeys);
+    }
+  }, [existingMedia, referenceMediaIds, referenceMediaIdentityKeys]);
+
+  useEffect(() => {
     if (typeof window === 'undefined') return;
     if (!deckId) return;
     const storageKey = `${IMAGE_ATTEMPTS_STORAGE_KEY_PREFIX}${deckId}`;
@@ -1332,6 +1369,15 @@ export default function PitchDeckEditorPage() {
         const nextIds = parsed.referenceMediaIds.filter((id): id is string => typeof id === 'string');
         setReferenceMediaIds(nextIds);
       }
+      if (Array.isArray(parsed.referenceMediaIdentityKeys)) {
+        const nextIdentityKeys = parsed.referenceMediaIdentityKeys
+          .filter((value): value is string => typeof value === 'string')
+          .map((value) => value.trim())
+          .filter(Boolean);
+        setReferenceMediaIdentityKeys(Array.from(new Set(nextIdentityKeys)));
+      } else {
+        setReferenceMediaIdentityKeys([]);
+      }
       if (typeof parsed.referenceGenerationModelId === 'string') {
         setReferenceGenerationModelId(parsed.referenceGenerationModelId);
       }
@@ -1357,6 +1403,7 @@ export default function PitchDeckEditorPage() {
       referencePromptText,
       referenceMediaId,
       referenceMediaIds,
+      referenceMediaIdentityKeys,
       referenceGenerationModelId,
       referenceAspectRatio,
     };
@@ -1371,6 +1418,7 @@ export default function PitchDeckEditorPage() {
     referencePromptText,
     referenceMediaId,
     referenceMediaIds,
+    referenceMediaIdentityKeys,
     referenceGenerationModelId,
     referenceAspectRatio,
   ]);
@@ -1961,6 +2009,39 @@ export default function PitchDeckEditorPage() {
       setReferenceMediaId('');
     }
   }, [existingMedia, existingMediaLoading, mediaScopeKey, referenceMediaId]);
+
+  useEffect(() => {
+    if (existingMediaLoading) return;
+    if (existingMediaLoadedScopeRef.current !== mediaScopeKey) return;
+    if (referenceMediaIdentityKeys.length === 0) return;
+    const identityToId = new Map<string, string>();
+    existingMedia.forEach((item) => {
+      const key = getExistingMediaIdentityKey(item);
+      if (!key) return;
+      if (!identityToId.has(key)) identityToId.set(key, item.id);
+    });
+    const resolvedIds = referenceMediaIdentityKeys
+      .map((key) => identityToId.get(key))
+      .filter((id): id is string => typeof id === 'string' && id.length > 0);
+    if (resolvedIds.length === 0) return;
+    const cappedIds = resolvedIds.slice(0, maxReferenceCount);
+    const idsChanged =
+      cappedIds.length !== referenceMediaIds.length || cappedIds.some((id, index) => id !== referenceMediaIds[index]);
+    if (idsChanged) {
+      setReferenceMediaIds(cappedIds);
+    }
+    if (!referenceMediaId || !cappedIds.includes(referenceMediaId)) {
+      setReferenceMediaId(cappedIds[0] || '');
+    }
+  }, [
+    existingMedia,
+    existingMediaLoading,
+    mediaScopeKey,
+    maxReferenceCount,
+    referenceMediaId,
+    referenceMediaIdentityKeys,
+    referenceMediaIds,
+  ]);
 
   useEffect(() => {
     setReferenceMediaIds((current) => current.slice(0, maxReferenceCount));
