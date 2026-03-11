@@ -31,9 +31,9 @@ export default function ProductionHelp() {
       </header>
 
       <main className="max-w-4xl mx-auto px-8 py-16 bg-[#0A0A0A] text-[#FFFFFF]">
-        <h1 className="text-4xl font-extrabold mb-4 text-[#FFFFFF]">🎬 Production</h1>
+        <h1 className="text-4xl font-extrabold mb-4 text-[#FFFFFF]">Production</h1>
         <p className="text-xl opacity-80 mb-12 text-[#B3B3B3]">
-          Turn your script into consistent images and video when you&apos;re ready. Generate from your screenplay with full transparency—model, resolution, aspect ratio, and cost are shown per option in the app.
+          When you are ready, turn screenplay context into images and video. Model, resolution, aspect ratio, duration, and credits are shown in the app before generation.
         </p>
         <p className="text-sm text-[#808080] mb-8">
           Need submission records? Use the Wryda Provenance Ledger to lock and export a timestamped, noneditable provenance bundle (PDF + JSON + SHA-256 hash) for WGA and studio policy workflows.
@@ -41,20 +41,20 @@ export default function ProductionHelp() {
 
         {/* Image & Video Generation */}
         <section className="mb-12">
-          <h2 className="text-3xl font-bold mb-4 text-[#FFFFFF]">Image & Video Generation</h2>
+          <h2 className="text-3xl font-bold mb-4 text-[#FFFFFF]">Image and Video Generation</h2>
           <p className="mb-6 text-[#B3B3B3]">
-            Wryda offers image and video generation with full transparency. In the app you choose the model and see its capabilities—resolution, aspect ratio, duration, and credits—before you generate. No tiers; options are shown per model so you can pick what fits your scene.
+            Wryda offers image and video generation with transparent model options. In the app you can review each model&apos;s available controls before generating.
           </p>
 
           <div className="card bg-[#141414] border border-white/10 mb-6">
             <div className="card-body">
-              <h3 className="font-bold mb-4 text-[#DC143C]">What you can configure</h3>
+              <h3 className="font-bold mb-4 text-[#DC143C]">What You Can Configure</h3>
               <p className="text-sm text-[#B3B3B3] mb-4">
                 Each model in the Video Generation area shows its own options (e.g. resolution, aspect ratio, duration). Character assignment, outfit selection, and dialogue choices are available where the workflow supports them. Credits are shown before generation.
               </p>
               <div className="alert alert-info bg-[#0A0A0A] border border-[#00D9FF]/30">
                 <div className="text-sm text-[#B3B3B3]">
-                  <strong className="text-[#00D9FF]">Transparency:</strong> Model names, resolutions, and pricing are displayed upfront. Use what the model offers and choose before you generate.
+                  <strong className="text-[#00D9FF]">Transparency:</strong> Model names, resolutions, and pricing are displayed up front. Use the options shown for your selected model before generation.
                 </div>
               </div>
             </div>
@@ -65,13 +65,12 @@ export default function ProductionHelp() {
         <section className="mb-12">
           <h2 className="text-3xl font-bold mb-4 text-[#FFFFFF]">Scene Builder</h2>
           <p className="mb-6 text-[#B3B3B3]">
-            <strong className="badge bg-[#DC143C] text-[#FFFFFF] border-none">UNIQUE FEATURE</strong> - Generate complete scenes directly from your screenplay. 
-            Not available in any other platform.
+            Generate complete scenes directly from your screenplay using structured shot configuration, character assignment, and continuity-aware setup.
           </p>
           
           <div className="card bg-[#141414] border border-white/10 mb-6">
             <div className="card-body">
-              <h3 className="font-bold mb-4 text-[#DC143C]">How Scene Builder Works:</h3>
+              <h3 className="font-bold mb-4 text-[#DC143C]">How Scene Builder Works</h3>
               <ol className="space-y-3 list-decimal list-inside text-[#B3B3B3]">
                 <li><strong className="text-[#FFFFFF]">Select a Scene</strong> - Choose a scene from your screenplay</li>
                 <li><strong className="text-[#FFFFFF]">Scene Analysis</strong> - AI analyzes the scene structure, dialogue, and action</li>
@@ -86,9 +85,9 @@ export default function ProductionHelp() {
 
           <div className="card bg-[#141414] border border-white/10">
             <div className="card-body">
-              <h3 className="font-bold mb-4 text-[#DC143C]">Scene Builder Options:</h3>
+              <h3 className="font-bold mb-4 text-[#DC143C]">Scene Builder Options</h3>
               <p className="text-sm text-[#B3B3B3] mb-4">
-                Model, resolution, aspect ratio, and duration are shown per model in the app. You can configure character assignment, outfit selection per shot, optional image prompts, and dialogue where supported. Credits are shown before generation.
+                Model, resolution, aspect ratio, and duration are shown per model in the app. You can configure character assignment, outfit selection per shot, optional image prompts, and dialogue where supported.
               </p>
             </div>
           </div>
@@ -96,17 +95,16 @@ export default function ProductionHelp() {
 
         {/* Consistency Systems */}
         <section className="mb-12">
-          <h2 className="text-3xl font-bold mb-4 text-[#FFFFFF]">Professional Production Consistency</h2>
+          <h2 className="text-3xl font-bold mb-4 text-[#FFFFFF]">Coverage Packages</h2>
           <p className="mb-6 text-[#B3B3B3]">
-            <strong className="badge bg-[#DC143C] text-[#FFFFFF] border-none">UNIQUE FEATURES</strong> - The only platform that maintains consistency 
-            across character, location, and prop throughout your entire production.
+            Produce organizes visual coverage by screenplay entities so character, location, and prop assets remain reusable across planning and execution workflows.
           </p>
 
           <div className="space-y-6">
             <ConsistencyCard
-              icon="👤"
-              title="Character Consistency"
-              description="Same character, same voice, same outfit across every scene"
+              icon="C"
+              title="Character Pose Coverage"
+              description="Build reusable character visual sets with identity continuity"
               features={[
                 "Face consistency across all scenes",
                 "Voice consistency with premade or cloned voices",
@@ -116,9 +114,9 @@ export default function ProductionHelp() {
             />
 
             <ConsistencyCard
-              icon="📍"
-              title="Location Consistency"
-              description="Same location, multiple angles. Background consistency across shots"
+              icon="L"
+              title="Location Angle Coverage"
+              description="Expand one location into angle and background coverage"
               features={[
                 "Multiple camera angles per location",
                 "Background consistency across scenes",
@@ -128,9 +126,9 @@ export default function ProductionHelp() {
             />
 
             <ConsistencyCard
-              icon="🎬"
-              title="Prop Consistency"
-              description="Same prop, multiple angles. Consistent appearance across scenes"
+              icon="P"
+              title="Prop Angle Coverage"
+              description="Maintain prop continuity for story-critical objects"
               features={[
                 "Multiple angles per prop",
                 "Consistent appearance across scenes",
@@ -148,10 +146,10 @@ export default function ProductionHelp() {
             <div className="card-body">
               <ol className="space-y-4 list-decimal list-inside text-[#B3B3B3]">
                 <li>
-                  <strong className="text-[#FFFFFF]">Write Your Screenplay</strong> - Create your script in the Write section
+                  <strong className="text-[#FFFFFF]">Write Your Screenplay</strong> - Create your script in the Create (Write) section
                 </li>
                 <li>
-                  <strong className="text-[#FFFFFF]">Set Up Consistency</strong> - Upload character images, locations, and props to the banks
+                  <strong className="text-[#FFFFFF]">Set Up Coverage</strong> - Upload or generate character, location, and prop assets
                 </li>
                 <li>
                   <strong className="text-[#FFFFFF]">Use Scene Builder</strong> - Select a scene from your screenplay and configure generation settings
@@ -172,6 +170,9 @@ export default function ProductionHelp() {
           <Link href="/help/writing" className="btn btn-ghost text-[#B3B3B3] hover:text-[#FFFFFF] border-white/10">← Writing</Link>
           <Link href="/help/direct" className="btn bg-[#DC143C] hover:bg-[#8B0000] text-[#FFFFFF] border-none">Next: Direct →</Link>
         </div>
+        <p className="text-xs text-[#808080] mt-6">
+          * Availability depends on selected model/provider. Some controls are shown only where supported by selected workflow/model.
+        </p>
       </main>
     </div>
   );

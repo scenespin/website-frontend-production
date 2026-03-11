@@ -148,334 +148,132 @@ export default function Page() {
           </div>
         </section>
 
-        {/* Wryda.ai Features Section */}
-        <section className="py-20 bg-black">
+        {/* Workflow Overview */}
+        <section className="py-20 bg-black border-y border-[#1E1E1E]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="max-w-4xl mx-auto">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-                <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-6">
-                  <h3 className="text-xl font-bold mb-4 text-[#DC143C]">What creators deal with today</h3>
-                  <ul className="space-y-2 text-gray-300">
-                    <li className="flex items-start gap-2">
-                      <span className="text-gray-500">•</span>
-                      <span>Ideas in docs, prompts in chats, images in folders</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-gray-500">•</span>
-                      <span>Visual outputs lose the "why" behind them</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-gray-500">•</span>
-                      <span>Team handoffs miss creative intent</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-gray-500">•</span>
-                      <span className="text-gray-400 italic">Result: rework, confusion, and slower creative decisions</span>
-                    </li>
-                  </ul>
-                </div>
-
-                <div className="bg-[#141414] border border-[#DC143C]/30 rounded-lg p-6">
-                  <h3 className="text-xl font-bold mb-4 text-[#DC143C]">How Wryda helps</h3>
-                  <ul className="space-y-2 text-gray-300">
-                    <li className="flex items-start gap-2">
-                      <span className="text-[#DC143C]">✍️</span>
-                      <span><strong>Write</strong> : Build story direction in a screenplay-native workspace</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-[#DC143C]">🎬</span>
-                      <span><strong>Align</strong> : Link concept notes to generated visuals</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-[#DC143C]">🧭</span>
-                      <span><strong>Organize</strong> : Keep character, location, and prop context together</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-[#DC143C]">🔗</span>
-                      <span><strong>Maintain continuity</strong> : Stay consistent as projects evolve</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-[#DC143C]">📤</span>
-                      <span><strong>Export</strong> : Move into downstream tools when you are ready</span>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-
-              <div className="bg-[#141414] border border-[#DC143C]/30 rounded-lg p-6">
-                <h3 className="text-xl font-bold mb-3 text-[#DC143C]">Why this workflow is different</h3>
-                <p className="text-gray-300 mb-4">
-                  Most tools force a tradeoff between writing depth and production utility. Wryda keeps writing as the core workflow, then extends into continuity and shot planning only when needed.
-                </p>
-                <div className="mt-4 pt-4 border-t border-[#3F3F46]">
-                  <p className="text-sm font-semibold text-gray-300 mb-2">Best For:</p>
-                  <div className="flex flex-wrap gap-2">
-                    <span className="px-3 py-1 bg-[#0A0A0A] border border-[#3F3F46] rounded-full text-xs text-gray-300">Screenplay Development</span>
-                    <span className="px-3 py-1 bg-[#0A0A0A] border border-[#3F3F46] rounded-full text-xs text-gray-300">Pitch Prep</span>
-                    <span className="px-3 py-1 bg-[#0A0A0A] border border-[#3F3F46] rounded-full text-xs text-gray-300">Pre-Production Planning</span>
-                    <span className="px-3 py-1 bg-[#0A0A0A] border border-[#3F3F46] rounded-full text-xs text-gray-300">Visual Concept Iteration</span>
-                  </div>
-                  <p className="text-xs text-gray-500 mt-2 italic">Built for screenwriters who want professional writing software first, with optional production extension in the same workflow.</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </section>
-
-        {/* Three Consistency Pillars */}
-        <section className="py-20 bg-[#141414]">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12 md:mb-16 px-4">
-              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 md:mb-4">
-                Continuity that stays connected to the script
-              </h2>
-              <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto">
-                When you are ready to extend beyond writing, keep characters, locations, and props aligned to story intent.
+            <div className="text-center mb-10">
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3">Create, Produce, Direct</h2>
+              <p className="text-base sm:text-lg text-gray-300 max-w-3xl mx-auto">
+                One connected workflow: build the story first, expand visual coverage, then carry scene and shot context through to delivery.
               </p>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 px-4">
-              {/* Characters */}
-              <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg p-6 md:p-8 hover:border-[#DC143C]/50 transition-colors">
-                <div className="text-4xl mb-4">👤</div>
-                <h3 className="text-lg md:text-xl font-bold mb-3">Characters</h3>
-                <p className="text-gray-300">
-                  Maintain identity continuity across references and generated variations.
-                </p>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+              <div className="bg-[#121212] border border-[#3F3F46] rounded-lg p-6">
+                <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Create</p>
+                <h3 className="text-xl font-semibold mb-3">Screenplay workspace</h3>
+                <ul className="space-y-2 text-sm text-gray-300">
+                  <li>Professional screenplay editor and full-context AI agents</li>
+                  <li>Character, location, and prop extraction from script context</li>
+                  <li>Contextual Pitch Deck creation and editing</li>
+                </ul>
               </div>
-
-              {/* Locations */}
-              <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg p-6 md:p-8 hover:border-[#DC143C]/50 transition-colors">
-                <div className="text-4xl mb-4">📍</div>
-                <h3 className="text-lg md:text-xl font-bold mb-3">Locations</h3>
-                <p className="text-gray-300">
-                  Build angle and background coverage without losing scene context.
-                </p>
+              <div className="bg-[#121212] border border-[#3F3F46] rounded-lg p-6">
+                <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Produce</p>
+                <h3 className="text-xl font-semibold mb-3">Coverage packages</h3>
+                <ul className="space-y-2 text-sm text-gray-300">
+                  <li>Generate or upload image assets</li>
+                  <li>Character pose, location angle, and prop angle coverage</li>
+                  <li>Reusable visual assets organized by screenplay entities</li>
+                </ul>
               </div>
-
-              {/* Props */}
-              <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg p-6 md:p-8 hover:border-[#DC143C]/50 transition-colors">
-                <div className="text-4xl mb-4">🎬</div>
-                <h3 className="text-lg md:text-xl font-bold mb-3">Props</h3>
-                <p className="text-gray-300">
-                  Preserve object continuity for story-critical details across shots.
-                </p>
+              <div className="bg-[#121212] border border-[#3F3F46] rounded-lg p-6">
+                <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Direct</p>
+                <h3 className="text-xl font-semibold mb-3">Shot-linked execution</h3>
+                <ul className="space-y-2 text-sm text-gray-300">
+                  <li>Generate or upload first frames per scene and shot</li>
+                  <li>Review sequence flow in Scene Shot Board</li>
+                  <li>Launch action and dialogue video workflows with metadata continuity</li>
+                </ul>
               </div>
             </div>
           </div>
         </section>
 
-        {/* How It Works */}
+        {/* Create */}
         <section className="py-20 bg-[#0A0A0A]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12 md:mb-16 px-4">
-              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 md:mb-4">
-                How It Works
-              </h2>
-              <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto">
-                Write first. Extend when needed.
+            <div className="max-w-4xl">
+              <p className="text-xs uppercase tracking-wide text-[#DC143C] mb-2">Create</p>
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4">Write first, with professional control</h2>
+              <p className="text-base sm:text-lg text-gray-300 mb-6">
+                Create keeps writing as the core. Draft, revise, and structure your screenplay in a professional environment, then move into entity setup and pitch development using the same story context.
               </p>
             </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 px-4">
-              <div className="text-center">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#DC143C] text-white text-2xl font-bold mb-6">
-                  1
-                </div>
-                <h3 className="text-xl font-bold mb-3">Write</h3>
-                <p className="text-gray-300">
-                  Draft in a screenplay-native environment with Fountain support and full creative control.
-                </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-6">
+                <h3 className="text-lg font-semibold mb-3">Screenplay Workspace</h3>
+                <ul className="space-y-2 text-sm text-gray-300">
+                  <li>Fountain-native editing and professional format compatibility</li>
+                  <li>AI agents for rewrite, dialogue, structure, and scene extension</li>
+                  <li>GitHub-backed revision continuity and version history</li>
+                </ul>
               </div>
-
-              <div className="text-center">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#DC143C] text-white text-2xl font-bold mb-6">
-                  2
-                </div>
-                <h3 className="text-xl font-bold mb-3">Produce</h3>
-                <p className="text-gray-300">
-                  Generate and organize continuity assets from approved script context when visual planning adds value.
-                </p>
-              </div>
-
-              <div className="text-center">
-                <div className="inline-flex items-center justify-center w-16 h-16 rounded-full bg-[#DC143C] text-white text-2xl font-bold mb-6">
-                  3
-                </div>
-                <h3 className="text-xl font-bold mb-3">Direct</h3>
-                <p className="text-gray-300">
-                  Carry approved context into shot planning and first-frame handoff workflows.
-                </p>
+              <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-6">
+                <h3 className="text-lg font-semibold mb-3">Contextual Planning</h3>
+                <ul className="space-y-2 text-sm text-gray-300">
+                  <li>Extract characters, locations, and props from screenplay context</li>
+                  <li>Assign props and references at scene/entity level</li>
+                  <li>Build contextual Pitch Decks for investors, festivals, and film packages</li>
+                </ul>
               </div>
             </div>
           </div>
         </section>
 
-        {/* AI Writing Agents */}
-        <section className="py-20 bg-[#141414]">
+        {/* Produce */}
+        <section className="py-20 bg-[#111111]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12 md:mb-16 px-4">
-              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 md:mb-4">
-                AI Writing Agents
-              </h2>
-              <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto mb-2">
-                Script-aware support that stays grounded in narrative intent and page-level craft
+            <div className="max-w-4xl">
+              <p className="text-xs uppercase tracking-wide text-[#DC143C] mb-2">Produce</p>
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4">Build reusable visual coverage</h2>
+              <p className="text-base sm:text-lg text-gray-300 mb-6">
+                Produce expands visual coverage without breaking organization. Generate or upload assets, then keep everything mapped to screenplay entities for reliable downstream use.
               </p>
             </div>
-
-            {/* Story Advisor - Featured */}
-            <div className="bg-[#0A0A0A] border-2 border-[#DC143C] rounded-lg p-6 md:p-8 mb-8 md:mb-12 mx-4 md:mx-0">
-              <div className="flex items-start gap-4">
-                <div className="text-4xl">🌟</div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <h3 className="text-2xl font-bold">Story Advisor</h3>
-                    <span className="px-2 py-1 bg-[#DC143C] text-white text-xs font-semibold rounded">Unique</span>
-                  </div>
-                  <p className="text-lg text-gray-300 mb-4">
-                    Reads your <strong className="text-white">entire screenplay</strong>. Analyzes structure across acts, tracks character arcs throughout, and identifies plot holes and inconsistencies.
-                  </p>
-                  <p className="text-sm text-gray-400 italic mb-4">Built to review full-script context so feedback stays coherent across scenes.</p>
-                  <ul className="space-y-2 text-sm text-gray-300">
-                    <li className="flex items-start gap-2">
-                      <span className="text-[#DC143C]">✓</span>
-                      <span>Analyzes structure across all acts</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-[#DC143C]">✓</span>
-                      <span>Tracks character arcs throughout</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-[#DC143C]">✓</span>
-                      <span>Identifies plot holes and inconsistencies</span>
-                    </li>
-                    <li className="flex items-start gap-2">
-                      <span className="text-[#DC143C]">✓</span>
-                      <span>Provides story-level feedback</span>
-                    </li>
-                  </ul>
-                </div>
-              </div>
-            </div>
-
-            {/* Other Agents Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 px-4">
-              <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg p-6 hover:border-[#DC143C]/50 transition-colors">
-                <div className="text-3xl mb-3">✍️</div>
-                <h3 className="text-lg font-bold mb-2">Screenwriter</h3>
-                <p className="text-sm text-gray-300">
-                  Continue scenes, expand dialogue, develop characters. Understands your screenplay context.
-                </p>
-              </div>
-
-              <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg p-6 hover:border-[#DC143C]/50 transition-colors">
-                <div className="text-3xl mb-3">🎬</div>
-                <h3 className="text-lg font-bold mb-2">Director</h3>
-                <p className="text-sm text-gray-300">
-                  Generate full scenes with action, dialogue, and direction. Production-ready formatting.
-                </p>
-              </div>
-
-              <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg p-6 hover:border-[#DC143C]/50 transition-colors">
-                <div className="text-3xl mb-3">💬</div>
-                <h3 className="text-lg font-bold mb-2">Dialogue</h3>
-                <p className="text-sm text-gray-300">
-                  Polish dialogue, match character voice, improve conversations. Character-aware rewriting.
-                </p>
-              </div>
-
-              <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg p-6 hover:border-[#DC143C]/50 transition-colors">
-                <div className="text-3xl mb-3">💫</div>
-                <h3 className="text-lg font-bold mb-2">Rewrite</h3>
-                <p className="text-sm text-gray-300">
-                  Polish and refine. Fix pacing, improve clarity, enhance style. Professional editing.
-                </p>
-              </div>
+            <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-6">
+              <h3 className="text-lg font-semibold mb-3">Coverage Packages</h3>
+              <ul className="grid grid-cols-1 md:grid-cols-2 gap-3 text-sm text-gray-300">
+                <li>Character Pose Coverage for look and performance variation</li>
+                <li>Location Angle Coverage for scene geography and continuity</li>
+                <li>Prop Angle Coverage for story-critical detail consistency</li>
+                <li>Bring Your Own Assets when generation is not required</li>
+              </ul>
             </div>
           </div>
         </section>
 
-        {/* Features Grid */}
+        {/* Direct */}
         <section className="py-20 bg-[#0A0A0A]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="text-center mb-12 md:mb-16 px-4">
-              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 md:mb-4">
-                Core capabilities in one workspace
-              </h2>
-              <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto">
-                Everything you need to write first, with connected production workflows when you are ready.
+            <div className="max-w-4xl">
+              <p className="text-xs uppercase tracking-wide text-[#DC143C] mb-2">Direct</p>
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-4">Move from first frames to final outputs</h2>
+              <p className="text-base sm:text-lg text-gray-300 mb-6">
+                Direct turns approved visual context into execution. Generate or upload first frames, review sequence flow in Scene Shot Board, then generate videos while preserving scene and shot continuity.
               </p>
             </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 px-4">
-              {/* Feature Cards - Screenplay Editor First */}
-              <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-6 hover:border-[#DC143C]/50 transition-colors">
-                <div className="text-3xl mb-3">✍️</div>
-                <h3 className="text-lg font-bold mb-2">Screenplay Editor</h3>
-                <p className="text-sm text-gray-300 mb-2">
-                  Professional Fountain format editor. Industry-standard format used by Final Draft, Celtx, and Fade In. Import/export compatible.
-                </p>
-                <p className="text-xs text-gray-400">
-                  GitHub version control • Find & replace • Text formatting • Auto-save every 2s
-                </p>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-6">
+                <h3 className="text-lg font-semibold mb-3">Action Video Modes</h3>
+                <ul className="space-y-2 text-sm text-gray-300">
+                  <li>Text-to-Video</li>
+                  <li>First-Frame-to-Video</li>
+                  <li>Frame-to-Frame Video</li>
+                  <li>Elements-to-Video*</li>
+                </ul>
               </div>
-
-              <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-6 hover:border-[#DC143C]/50 transition-colors">
-                <div className="text-3xl mb-3">👤</div>
-                <h3 className="text-lg font-bold mb-2">Character Images</h3>
-                <p className="text-sm text-gray-300">
-                  One headshot → unlimited scenes. Consistent characters across your entire production.
-                </p>
-              </div>
-
-              <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-6 hover:border-[#DC143C]/50 transition-colors">
-                <div className="text-3xl mb-3">📍</div>
-                <h3 className="text-lg font-bold mb-2">Location Images</h3>
-                <p className="text-sm text-gray-300">
-                  Multiple angles per location. Consistent backgrounds across all scenes.
-                </p>
-              </div>
-
-              <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-6 hover:border-[#DC143C]/50 transition-colors">
-                <div className="text-3xl mb-3">🎬</div>
-                <h3 className="text-lg font-bold mb-2">Prop Images</h3>
-                <p className="text-sm text-gray-300">
-                  Multiple angles per prop. Consistent appearance across scenes.
-                </p>
-              </div>
-
-              <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-6 hover:border-[#DC143C]/50 transition-colors">
-                <div className="text-3xl mb-3">🎥</div>
-                <h3 className="text-lg font-bold mb-2">Visual Planning</h3>
-                <p className="text-sm text-gray-300">
-                  Generate visual scene concepts from your script when you want pitching or planning support.
-                </p>
-              </div>
-
-              <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-6 hover:border-[#DC143C]/50 transition-colors">
-                <div className="text-3xl mb-3">📖</div>
-                <h3 className="text-lg font-bold mb-2">Screenplay Readings</h3>
-                <p className="text-sm text-gray-300">
-                  AI voice actors read your script. Use premade voices or bring your own cloned voice. Hear your dialogue come to life.
-                </p>
-              </div>
-
-              <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-6 hover:border-[#DC143C]/50 transition-colors">
-                <div className="text-3xl mb-3">🎤</div>
-                <h3 className="text-lg font-bold mb-2">Voice Control</h3>
-                <p className="text-sm text-gray-300">
-                  Choose from premade voices or bring your own cloned voice.
-                </p>
-              </div>
-
-              <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-6 hover:border-[#DC143C]/50 transition-colors">
-                <div className="text-3xl mb-3">☁️</div>
-                <h3 className="text-lg font-bold mb-2">Cloud Media Storage</h3>
-                <p className="text-sm text-gray-300">
-                  Google Drive and Dropbox store generated media (images, video, audio), while screenplay drafts and provenance-linked writing history stay in GitHub-backed script versioning.
-                </p>
+              <div className="bg-[#141414] border border-[#3F3F46] rounded-lg p-6">
+                <h3 className="text-lg font-semibold mb-3">AI-ADR Dialogue Workflow</h3>
+                <ul className="space-y-2 text-sm text-gray-300">
+                  <li>AI Automated Dialogue Replacement (AI-ADR) for single-person dialogue shots</li>
+                  <li>Voice continuity using built-in or cloned voices</li>
+                  <li>Scene and shot-linked media stays organized through final output</li>
+                </ul>
               </div>
             </div>
+            <p className="text-xs text-gray-500 mt-4">
+              * Availability depends on selected model/provider. Some controls are shown only where supported by selected workflow/model.
+            </p>
           </div>
         </section>
 
