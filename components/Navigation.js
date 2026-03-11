@@ -137,6 +137,7 @@ export default function Navigation() {
         { name: 'Shots', href: '/direct?tab=shots', icon: Film, description: 'First frames per scene and shot' },
         { name: 'Videos', href: '/direct?tab=videos', icon: Video, description: 'Browse and play all generated videos' },
         { name: 'Video Gen', href: '/direct?tab=video-gen', icon: Wand2, description: 'Generate video from image or prompt' },
+        { name: 'Image Gen', href: '/direct?tab=image-gen', icon: ImageIcon, description: 'Generate images from prompt or references' },
       ]
     },
     {
