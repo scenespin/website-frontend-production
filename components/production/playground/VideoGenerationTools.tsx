@@ -184,6 +184,23 @@ export function VideoGenerationTools({
   // Generated video state
   const [generatedVideoUrl, setGeneratedVideoUrl] = useState<string | null>(null);
   const [generationTime, setGenerationTime] = useState<number | undefined>(undefined);
+  const [latestCompletedJobId, setLatestCompletedJobId] = useState<string | null>(null);
+
+  const getDismissedLatestVideoStorageKey = () =>
+    `wryda:dismissed-latest-video:${screenplayId || 'default'}`;
+
+  const dismissLatestGeneratedVideo = () => {
+    setGeneratedVideoUrl(null);
+    if (typeof window === 'undefined') return;
+    if (latestCompletedJobId) {
+      sessionStorage.setItem(getDismissedLatestVideoStorageKey(), latestCompletedJobId);
+    }
+  };
+
+  const clearDismissedLatestVideo = () => {
+    if (typeof window === 'undefined') return;
+    sessionStorage.removeItem(getDismissedLatestVideoStorageKey());
+  };
 
   // Load latest completed video on mount so "Latest generated" shows the previous one
   useEffect(() => {
@@ -198,6 +215,15 @@ export function VideoGenerationTools({
         const data = response?.data ?? response;
         if (cancelled || !data?.success || !Array.isArray(data.jobs) || data.jobs.length === 0) return;
         const job = data.jobs[0];
+        const completedJobId = job?.jobId || job?.id || null;
+        setLatestCompletedJobId(completedJobId);
+        const dismissedJobId =
+          typeof window !== 'undefined'
+            ? sessionStorage.getItem(getDismissedLatestVideoStorageKey())
+            : null;
+        if (completedJobId && dismissedJobId && dismissedJobId === completedJobId) {
+          return;
+        }
         const videoUrl = job.videos?.[0]?.videoUrl;
         if (videoUrl) {
           setGeneratedVideoUrl(videoUrl);
@@ -211,7 +237,7 @@ export function VideoGenerationTools({
     };
     loadLatestCompleted();
     return () => { cancelled = true; };
-  }, []);
+  }, [screenplayId]);
 
   // Fetch video models (exclude requiresSourceVideo for "generate from scratch")
   useEffect(() => {
@@ -534,6 +560,7 @@ export function VideoGenerationTools({
       // Extract video URL from response (if available immediately)
       const videoUrl = result.data?.videoUrl || result.data?.url || result.data?.s3Url;
       if (videoUrl) {
+        clearDismissedLatestVideo();
         setGeneratedVideoUrl(videoUrl);
       } else {
         // For async jobs, we might get a job ID - show message
@@ -546,6 +573,7 @@ export function VideoGenerationTools({
           // Build proxy URL from key if backend returned only key.
           const s3Key = result.data?.s3Key || result.data?.key;
           if (s3Key) {
+            clearDismissedLatestVideo();
             setGeneratedVideoUrl(`/api/media/file?key=${encodeURIComponent(s3Key)}`);
           }
         }
@@ -1051,8 +1079,8 @@ export function VideoGenerationTools({
             generatedVideoUrl={generatedVideoUrl}
             generationTime={generationTime}
             onDownload={handleDownload}
-            onClear={() => setGeneratedVideoUrl(null)}
-            onVideoError={() => setGeneratedVideoUrl(null)}
+            onClear={dismissLatestGeneratedVideo}
+            onVideoError={dismissLatestGeneratedVideo}
             className="min-h-[260px]"
             title="Latest generated"
           />
@@ -1076,8 +1104,8 @@ export function VideoGenerationTools({
             generatedVideoUrl={generatedVideoUrl}
             generationTime={generationTime}
             onDownload={handleDownload}
-            onClear={() => setGeneratedVideoUrl(null)}
-            onVideoError={() => setGeneratedVideoUrl(null)}
+            onClear={dismissLatestGeneratedVideo}
+            onVideoError={dismissLatestGeneratedVideo}
             className="flex-1 min-h-0"
             title="Latest generated"
           />
