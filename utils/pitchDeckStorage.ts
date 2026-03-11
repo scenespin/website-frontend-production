@@ -86,6 +86,28 @@ export interface PitchDeckImageModel {
   quality?: string;
 }
 
+export interface PitchDeckImageJobStatusResponse {
+  jobId: string;
+  status: 'queued' | 'running' | 'succeeded' | 'failed' | 'timed_out';
+  requestId?: string;
+  operation?: 'prompt' | 'remix';
+  slideId?: string;
+  slideType?: string;
+  slideTitle?: string;
+  imageUrl?: string;
+  s3Key?: string;
+  modelUsed?: string;
+  provider?: string;
+  creditsDeducted?: number;
+  archive?: { fileId?: string; folderId?: string; alreadyExisted?: boolean } | null;
+  error?: { code?: string; message?: string };
+  pollAfterMs?: number;
+  createdAt?: string;
+  startedAt?: string;
+  completedAt?: string;
+  updatedAt?: string;
+}
+
 function unwrapResponse<T>(payload: any): T {
   if (!payload?.success) {
     const message = payload?.error?.message || 'Request failed';
@@ -155,6 +177,43 @@ async function pollPitchDeckImageJob(input: {
     pollAfterMs = typeof pollData?.pollAfterMs === 'number' ? pollData.pollAfterMs : pollAfterMs;
   }
   throw new Error('Image generation is still processing. Please check again in a moment.');
+}
+
+export async function getPitchDeckImageJobStatus(input: {
+  deckId: string;
+  jobId: string;
+}): Promise<PitchDeckImageJobStatusResponse> {
+  const response = await fetch(
+    `/api/pitch-decks/${encodeURIComponent(input.deckId)}/image/jobs/${encodeURIComponent(input.jobId)}`,
+    { cache: 'no-store' }
+  );
+  const json = await parseJsonSafe(response);
+  if (!response.ok) {
+    throw new Error(json?.error?.message || 'Failed to load image generation job status');
+  }
+  return (json?.data || {}) as PitchDeckImageJobStatusResponse;
+}
+
+export async function listPitchDeckImageJobs(input: {
+  deckId: string;
+  slideId?: string;
+  limit?: number;
+}): Promise<PitchDeckImageJobStatusResponse[]> {
+  const params = new URLSearchParams();
+  if (input.slideId) params.set('slideId', input.slideId);
+  if (typeof input.limit === 'number' && Number.isFinite(input.limit)) {
+    params.set('limit', String(Math.floor(input.limit)));
+  }
+  const query = params.toString();
+  const response = await fetch(
+    `/api/pitch-decks/${encodeURIComponent(input.deckId)}/image/jobs${query ? `?${query}` : ''}`,
+    { cache: 'no-store' }
+  );
+  const json = await parseJsonSafe(response);
+  if (!response.ok) {
+    throw new Error(json?.error?.message || 'Failed to list image generation jobs');
+  }
+  return (Array.isArray(json?.data) ? json.data : []) as PitchDeckImageJobStatusResponse[];
 }
 
 export async function generatePitchDeckDraft(input: {

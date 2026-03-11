@@ -6,10 +6,13 @@ import { jsPDF } from 'jspdf';
 import { Briefcase, Eye, Film, Layers, Loader2, Megaphone, MoreVertical, Trash2 } from 'lucide-react';
 import {
   archivePitchDeckImage,
+  getPitchDeckImageJobStatus,
   generatePitchDeckImageFromPrompt,
   generatePitchDeckImageFromReference,
   getPitchDeck,
+  listPitchDeckImageJobs,
   listImageGenerationModels,
+  type PitchDeckImageJobStatusResponse,
   updatePitchDeck,
   updatePitchDeckSlide,
   type PitchDeckBlock,
@@ -70,6 +73,7 @@ type SlotImageOption = {
 
 type ImageAttempt = {
   id: string;
+  jobId?: string;
   slideId: string;
   status: 'success' | 'failed';
   action: 'existing' | 'prompt' | 'reference' | 'upload';
@@ -828,6 +832,7 @@ export default function PitchDeckEditorPage() {
   const savingRef = useRef(false);
   const slidesRef = useRef<PitchDeckSlide[]>([]);
   const selectedSlideIdRef = useRef<string | null>(null);
+  const activeImageJobPollsRef = useRef<Set<string>>(new Set());
 
   const featureEnabled = isFeatureEnabled();
   const mediaScopeKey = `${deckId || ''}:${deckScreenplayId || ''}`;
@@ -1081,9 +1086,7 @@ export default function PitchDeckEditorPage() {
   }, [effectiveExportOptionIds]);
   const sessionSelectedSlideAttempts = useMemo(() => {
     if (!selectedSlide?.slideId) return [] as ImageAttempt[];
-    return imageAttempts.filter(
-      (attempt) => attempt.slideId === selectedSlide.slideId && attempt.status === 'success'
-    );
+    return imageAttempts.filter((attempt) => attempt.slideId === selectedSlide.slideId);
   }, [imageAttempts, selectedSlide]);
 
   const recoveredSelectedSlideAttempts = useMemo(() => {
@@ -1263,6 +1266,65 @@ export default function PitchDeckEditorPage() {
       .slice(0, 24);
     window.sessionStorage.setItem(storageKey, JSON.stringify(retained));
   }, [deckId, imageAttempts, imageAttemptsHydrated]);
+
+  useEffect(() => {
+    if (!deckId || !imageAttemptsHydrated) return;
+    let cancelled = false;
+
+    const pollPendingJob = (jobId: string) => {
+      if (!jobId || activeImageJobPollsRef.current.has(jobId)) return;
+      activeImageJobPollsRef.current.add(jobId);
+      void (async () => {
+        const startedAt = Date.now();
+        let delayMs = 2000;
+        try {
+          while (!cancelled && Date.now() - startedAt < 180000) {
+            await new Promise((resolve) => setTimeout(resolve, Math.max(1000, Math.min(5000, delayMs))));
+            if (cancelled) return;
+            const job = await getPitchDeckImageJobStatus({ deckId, jobId });
+            if (cancelled) return;
+            if (job.status === 'succeeded' || job.status === 'failed' || job.status === 'timed_out') {
+              upsertImageAttemptFromJob(job);
+              return;
+            }
+            delayMs = typeof job.pollAfterMs === 'number' ? job.pollAfterMs : delayMs;
+          }
+        } catch {
+          // Keep recents resilient; polling errors are non-fatal here.
+        } finally {
+          activeImageJobPollsRef.current.delete(jobId);
+        }
+      })();
+    };
+
+    const hydrateRecentJobs = async () => {
+      try {
+        const jobs = await listPitchDeckImageJobs({ deckId, limit: 30 });
+        if (cancelled) return;
+        jobs.forEach((job) => {
+          if (job.status === 'succeeded' || job.status === 'failed' || job.status === 'timed_out') {
+            upsertImageAttemptFromJob(job);
+            return;
+          }
+          if (job.status === 'queued' || job.status === 'running') {
+            pollPendingJob(job.jobId);
+          }
+        });
+      } catch {
+        // Silent fail to avoid interrupting main editor flow.
+      }
+    };
+
+    void hydrateRecentJobs();
+    const interval = window.setInterval(() => {
+      void hydrateRecentJobs();
+    }, 15000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [deckId, imageAttemptsHydrated]);
 
   const normalizeImageUrl = (value: unknown): string => {
     if (typeof value !== 'string') return '';
@@ -1960,6 +2022,35 @@ export default function PitchDeckEditorPage() {
       },
       ...prev.slice(0, 24),
     ]);
+  };
+
+  const upsertImageAttemptFromJob = (job: PitchDeckImageJobStatusResponse) => {
+    if (!job || typeof job !== 'object') return;
+    if (!job.jobId || (job.status !== 'succeeded' && job.status !== 'failed' && job.status !== 'timed_out')) return;
+    const attempt: ImageAttempt = {
+      id: `job_${job.jobId}`,
+      jobId: job.jobId,
+      slideId: typeof job.slideId === 'string' && job.slideId ? job.slideId : 'unknown',
+      status: job.status === 'succeeded' ? 'success' : 'failed',
+      action: job.operation === 'prompt' ? 'prompt' : 'reference',
+      message:
+        job.status === 'succeeded'
+          ? job.operation === 'prompt'
+            ? 'Generated image from prompt.'
+            : 'Generated image from reference.'
+          : job.error?.message || (job.status === 'timed_out' ? 'Failed: generation timed out.' : 'Failed: generation error.'),
+      at: job.completedAt || job.updatedAt || job.createdAt || new Date().toISOString(),
+      imageUrl: typeof job.imageUrl === 'string' ? job.imageUrl : undefined,
+      archiveFileId: job.archive?.fileId,
+      archiveFolderId: job.archive?.folderId,
+    };
+    setImageAttempts((prev) => {
+      const withoutExisting = prev.filter((item) => item.id !== attempt.id && item.jobId !== attempt.jobId);
+      const next = [attempt, ...withoutExisting]
+        .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
+        .slice(0, 24);
+      return next;
+    });
   };
 
   const updateSelectedSlideImageUrl = (
