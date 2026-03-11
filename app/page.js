@@ -158,16 +158,16 @@ export default function Page() {
               </p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <div className="bg-[#121212] border border-[#3F3F46] rounded-lg p-6">
+              <div className="bg-[#121212] border border-[#3F3F46] rounded-lg p-6 h-full">
                 <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Create</p>
                 <h3 className="text-xl font-semibold mb-3">Screenplay workspace</h3>
                 <ul className="space-y-2 text-sm text-gray-300">
-                  <li>Professional screenplay editor and full-context AI agents</li>
-                  <li>Character, location, and prop extraction from script context</li>
-                  <li>Contextual Pitch Deck creation and editing</li>
+                  <li>Pro screenplay editor and context-aware AI agents</li>
+                  <li>Character, location, and prop extraction from script</li>
+                  <li>Contextual pitch deck drafting and editing</li>
                 </ul>
               </div>
-              <div className="bg-[#121212] border border-[#3F3F46] rounded-lg p-6">
+              <div className="bg-[#121212] border border-[#3F3F46] rounded-lg p-6 h-full">
                 <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Produce</p>
                 <h3 className="text-xl font-semibold mb-3">Coverage packages</h3>
                 <ul className="space-y-2 text-sm text-gray-300">
@@ -176,7 +176,7 @@ export default function Page() {
                   <li>Reusable visual assets organized by screenplay entities</li>
                 </ul>
               </div>
-              <div className="bg-[#121212] border border-[#3F3F46] rounded-lg p-6">
+              <div className="bg-[#121212] border border-[#3F3F46] rounded-lg p-6 h-full">
                 <p className="text-xs uppercase tracking-wide text-gray-500 mb-2">Direct</p>
                 <h3 className="text-xl font-semibold mb-3">Shot-linked execution</h3>
                 <ul className="space-y-2 text-sm text-gray-300">
@@ -317,23 +317,6 @@ export default function Page() {
           </div>
         </section>
 
-        {/* Final CTA */}
-        <section className="py-20 bg-[#0A0A0A]">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 md:mb-4">
-              Ready to write your next screenplay in a true pro workflow?
-            </h2>
-            <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto mb-6 md:mb-8">
-              Start with writing, use AI when it helps, and extend to production when it serves the story.
-            </p>
-            <Link
-              href="/sign-up"
-              className="inline-flex items-center justify-center px-6 py-3 md:px-8 md:py-4 bg-[#DC143C] text-white font-semibold rounded-lg hover:bg-[#B01030] transition-colors text-base md:text-lg min-h-[44px] w-full sm:w-auto max-w-xs"
-            >
-              Start Writing Free
-            </Link>
-          </div>
-        </section>
       </main>
       
       <Footer />

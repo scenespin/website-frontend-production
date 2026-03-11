@@ -17,7 +17,7 @@ const Pricing = () => {
         "✅ All quality tiers (Professional/Premium/Ultra)",
         "✅ All aspect ratios (16:9, 9:16, 1:1, 4:3)",
         "✅ Screenplay Editor + Timeline (8 tracks)",
-        "✅ Cloud Storage (Drive/Dropbox)",
+        "✅ Create / Produce / Direct workflow access",
         "✅ No watermarks, no vendor lock-in"
       ],
       cta: "Get 50 Free Credits →",
@@ -185,7 +185,7 @@ const Pricing = () => {
                 <li>• Upload location shots & backgrounds</li>
                 <li>• Upload props (cars, objects, etc.)</li>
                 <li>• Screenplay editor</li>
-                <li>• Cloud Storage (Drive/Dropbox)</li>
+                <li>• Create / Produce / Direct workflow access</li>
               </ul>
             </div>
           </div>

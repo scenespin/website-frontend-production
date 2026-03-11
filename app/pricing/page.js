@@ -267,7 +267,7 @@ export default function PricingPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 px-4">
               <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg p-6">
-                <h3 className="text-xl font-bold mb-4">🎬 Scene Generation</h3>
+                <h3 className="text-xl font-bold mb-4">Scene Generation</h3>
                 <ul className="space-y-3 text-sm text-gray-300">
                   <li>
                     <div className="font-semibold text-white mb-1">Scene Builder</div>
@@ -288,7 +288,7 @@ export default function PricingPage() {
               </div>
 
               <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg p-6">
-                <h3 className="text-xl font-bold mb-4">🖼️ Asset Generation</h3>
+                <h3 className="text-xl font-bold mb-4">Asset Generation</h3>
                 <ul className="space-y-3 text-sm text-gray-300">
                   <li>
                     <div className="font-semibold text-white mb-1">Character Angle Packages</div>
@@ -314,7 +314,7 @@ export default function PricingPage() {
               </div>
 
               <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg p-6">
-                <h3 className="text-xl font-bold mb-4">✨ What's FREE</h3>
+                <h3 className="text-xl font-bold mb-4">What's Free</h3>
                 <ul className="space-y-3 text-sm text-gray-300">
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
@@ -334,11 +334,11 @@ export default function PricingPage() {
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>Screenplay editor</span>
+                    <span>Screenplay editor and AI writing agents</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>Cloud Storage (Drive/Dropbox)</span>
+                    <span>Create, Produce, and Direct workflow access</span>
                   </li>
                 </ul>
               </div>

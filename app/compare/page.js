@@ -7,7 +7,7 @@ import logo from "@/app/icon.png";
 
 export const metadata = getSEOTags({
   title: `What Makes Wryda.ai Different | ${config.appName}`,
-  description: "Compare Wryda.ai's screenplay-first workflow, writing agents, and production planning tools with other common screenwriting and production tools.",
+  description: "Compare Wryda.ai's screenplay-first Create/Produce/Direct workflow, writing agents, and production planning tools with common alternatives.",
   canonicalUrlRelative: "/compare",
 });
 
@@ -60,7 +60,7 @@ export default function ComparePage() {
         <section className="py-20 bg-[#141414]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-black border border-[#DC143C]/30 text-sm mb-6">
-              <span className="font-semibold text-gray-300">✨ Screenplay-First Integrated Environment</span>
+              <span className="font-semibold text-gray-300">Screenplay-First Integrated Environment</span>
             </div>
             <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight mb-6">
               What Makes Wryda Unique
@@ -68,7 +68,7 @@ export default function ComparePage() {
             <p className="text-xl text-gray-300 max-w-3xl mx-auto mb-2">
               A screenplay-first integrated workflow that keeps writing, references, and production planning connected.
               <br />
-              <strong className="text-white">Built for writers who want one continuous context from draft to{"\u00A0"}prep.</strong>
+              <strong className="text-white">Built for writers who want one continuous context from draft to prep.</strong>
             </p>
             <p className="text-base text-gray-400 max-w-2xl mx-auto mb-8">
               One place for writing, references, and prep—see how others compare.
@@ -124,7 +124,7 @@ export default function ComparePage() {
                     <td className="p-4 font-bold bg-[#141414] text-[#DC143C]">Integrated Screenwriting Environment (ISE)</td>
                     <td className="p-4 text-center border-l-2 border-[#DC143C] bg-[#DC143C]/10">
                       <span className="text-[#DC143C] font-bold">✓ YES</span>
-                      <div className="text-xs text-gray-300 mt-1">Write → Produce → Direct</div>
+                      <div className="text-xs text-gray-300 mt-1">Create → Produce → Direct</div>
                       <div className="text-xs text-gray-400 mt-1">All in one platform</div>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
@@ -169,6 +169,29 @@ export default function ComparePage() {
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
                       <span className="text-gray-400">✓</span>
+                    </td>
+                  </tr>
+
+                  <tr className="border-b border-[#3F3F46]">
+                    <td className="p-4 bg-[#141414]">Contextual Pitch Decks</td>
+                    <td className="p-4 text-center border-l-2 border-[#DC143C]">
+                      <span className="text-[#DC143C] font-bold">✓ Included</span>
+                      <div className="text-xs text-gray-400 mt-1">Script-aware pitch drafting and editing</div>
+                    </td>
+                    <td className="p-4 text-center border-l border-[#3F3F46]">
+                      <span className="text-gray-500">Varies</span>
+                    </td>
+                    <td className="p-4 text-center border-l border-[#3F3F46]">
+                      <span className="text-gray-500">Varies</span>
+                    </td>
+                    <td className="p-4 text-center border-l border-[#3F3F46]">
+                      <span className="text-gray-500">Varies</span>
+                    </td>
+                    <td className="p-4 text-center border-l border-[#3F3F46]">
+                      <span className="text-gray-500">Varies</span>
+                    </td>
+                    <td className="p-4 text-center border-l border-[#3F3F46]">
+                      <span className="text-gray-500">Varies</span>
                     </td>
                   </tr>
 
@@ -226,19 +249,19 @@ export default function ComparePage() {
                       <div className="text-xs text-gray-400 mt-1">Story Advisor, Director, etc.</div>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">No</span>
+                      <span className="text-gray-500">Varies</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">No</span>
+                      <span className="text-gray-500">Varies</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">No</span>
+                      <span className="text-gray-500">Varies</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">No</span>
+                      <span className="text-gray-500">Varies</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">No</span>
+                      <span className="text-gray-500">Varies</span>
                     </td>
                   </tr>
 
@@ -250,19 +273,19 @@ export default function ComparePage() {
                       <div className="text-xs text-gray-400 mt-1">Script-level analysis workflow</div>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">No</span>
+                      <span className="text-gray-500">Varies</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">No</span>
+                      <span className="text-gray-500">Varies</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">No</span>
+                      <span className="text-gray-500">Varies</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">No</span>
+                      <span className="text-gray-500">Varies</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">No</span>
+                      <span className="text-gray-500">Varies</span>
                     </td>
                   </tr>
 
@@ -274,19 +297,19 @@ export default function ComparePage() {
                       <div className="text-xs text-gray-400 mt-1">Screenplay-linked scene generation workflow</div>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">No</span>
+                      <span className="text-gray-500">Varies</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">No</span>
+                      <span className="text-gray-500">Varies</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">No</span>
+                      <span className="text-gray-500">Varies</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">No</span>
+                      <span className="text-gray-500">Varies</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">No</span>
+                      <span className="text-gray-500">Varies</span>
                     </td>
                   </tr>
 
@@ -298,19 +321,19 @@ export default function ComparePage() {
                       <div className="text-xs text-gray-400 mt-1">Face, voice, outfit</div>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">No</span>
+                      <span className="text-gray-500">Varies</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">No</span>
+                      <span className="text-gray-500">Varies</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">No</span>
+                      <span className="text-gray-500">Varies</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">No</span>
+                      <span className="text-gray-500">Varies</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">No</span>
+                      <span className="text-gray-500">Varies</span>
                     </td>
                   </tr>
 
@@ -322,19 +345,19 @@ export default function ComparePage() {
                       <div className="text-xs text-gray-400 mt-1">Angle packages</div>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">No</span>
+                      <span className="text-gray-500">Varies</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">No</span>
+                      <span className="text-gray-500">Varies</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">No</span>
+                      <span className="text-gray-500">Varies</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">No</span>
+                      <span className="text-gray-500">Varies</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">No</span>
+                      <span className="text-gray-500">Varies</span>
                     </td>
                   </tr>
 
@@ -346,19 +369,19 @@ export default function ComparePage() {
                       <div className="text-xs text-gray-400 mt-1">From screenplay</div>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">No</span>
+                      <span className="text-gray-500">Varies</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">No</span>
+                      <span className="text-gray-500">Varies</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">No</span>
+                      <span className="text-gray-500">Varies</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">No</span>
+                      <span className="text-gray-500">Varies</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">No</span>
+                      <span className="text-gray-500">Varies</span>
                     </td>
                   </tr>
 
@@ -388,31 +411,50 @@ export default function ComparePage() {
                     </td>
                   </tr>
 
-                  {/* Cloud Storage */}
+                  {/* Media Library Organization */}
                   <tr className="border-b border-[#3F3F46]">
-                    <td className="p-4 bg-[#141414]">Cloud Storage Integration</td>
+                    <td className="p-4 bg-[#141414]">Media Library Organization</td>
                     <td className="p-4 text-center border-l-2 border-[#DC143C]">
                       <span className="text-[#DC143C] font-bold">✓</span>
-                      <div className="text-xs text-gray-400 mt-1">Drive, Dropbox</div>
+                      <div className="text-xs text-gray-400 mt-1">Scene and shot-linked media tracking</div>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-400">✓</span>
-                      <div className="text-xs text-gray-500 mt-1">iCloud, Dropbox</div>
+                      <span className="text-gray-500">Varies</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-400">✓</span>
-                      <div className="text-xs text-gray-500 mt-1">Built-in</div>
+                      <span className="text-gray-500">Varies</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-400">✓</span>
-                      <div className="text-xs text-gray-500 mt-1">Built-in</div>
+                      <span className="text-gray-500">Varies</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-400">✓</span>
-                      <div className="text-xs text-gray-500 mt-1">Built-in</div>
+                      <span className="text-gray-500">Varies</span>
                     </td>
                     <td className="p-4 text-center border-l border-[#3F3F46]">
-                      <span className="text-gray-500">No</span>
+                      <span className="text-gray-500">Varies</span>
+                    </td>
+                  </tr>
+
+                  <tr className="border-b border-[#3F3F46]">
+                    <td className="p-4 bg-[#141414]">AI-ADR Dialogue Workflow</td>
+                    <td className="p-4 text-center border-l-2 border-[#DC143C]">
+                      <span className="text-[#DC143C] font-bold">✓ Included</span>
+                      <div className="text-xs text-gray-400 mt-1">Single-person dialogue shots</div>
+                    </td>
+                    <td className="p-4 text-center border-l border-[#3F3F46]">
+                      <span className="text-gray-500">Varies</span>
+                    </td>
+                    <td className="p-4 text-center border-l border-[#3F3F46]">
+                      <span className="text-gray-500">Varies</span>
+                    </td>
+                    <td className="p-4 text-center border-l border-[#3F3F46]">
+                      <span className="text-gray-500">Varies</span>
+                    </td>
+                    <td className="p-4 text-center border-l border-[#3F3F46]">
+                      <span className="text-gray-500">Varies</span>
+                    </td>
+                    <td className="p-4 text-center border-l border-[#3F3F46]">
+                      <span className="text-gray-500">Varies</span>
                     </td>
                   </tr>
 
@@ -468,6 +510,12 @@ export default function ComparePage() {
                 </tbody>
               </table>
             </div>
+            <p className="text-xs text-gray-500 mt-4">
+              * Availability for specific generation options depends on selected model/provider and workflow settings.
+            </p>
+            <p className="text-xs text-gray-500 mt-2">
+              * Competitor capabilities and pricing vary by plan and can change over time.
+            </p>
 
             {/* Key Differentiators */}
             <div className="mt-16 grid md:grid-cols-3 gap-8">
@@ -595,7 +643,7 @@ export default function ComparePage() {
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>Plus character/location/prop consistency (unique to us)</span>
+                    <span>Plus character/location/prop continuity workflows</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
@@ -763,12 +811,9 @@ export default function ComparePage() {
               <p className="text-gray-300 mb-6 max-w-2xl mx-auto">
                 While many AI tools treat screenplays as plain text, Wryda.ai is designed around Fountain structure and screenplay-native workflows.
               </p>
-              <Link
-                href="/sign-up"
-                className="inline-flex items-center justify-center px-8 py-4 bg-[#DC143C] text-white font-semibold rounded-lg hover:bg-[#B01030] transition-colors text-lg"
-              >
-                Start Free
-              </Link>
+              <p className="text-sm text-gray-400">
+                See examples below, then start free when you are ready.
+              </p>
             </div>
           </div>
         </section>
@@ -780,7 +825,7 @@ export default function ComparePage() {
               Ready to Switch?
             </h2>
             <p className="text-lg text-gray-300 mb-8 max-w-2xl mx-auto">
-              Join creators who've moved from Final Draft, Celtx, and StudioBinder to the only platform that helps you write AND produce.
+              Join creators who've moved from disconnected writing and planning tools to a screenplay-first Create/Produce/Direct workflow.
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Link
