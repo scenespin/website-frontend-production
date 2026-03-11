@@ -783,33 +783,33 @@ export function VideoGenerationTools({
           <button
             onClick={() => setActiveMode('text-to-video')}
             className={cn(
-              "flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors",
+              "flex items-center gap-2 px-3 md:px-4 py-2.5 rounded-lg text-sm font-medium transition-colors",
               activeMode === 'text-to-video'
                 ? "bg-cinema-red text-white"
                 : "bg-[#1F1F1F] text-[#808080] hover:text-white hover:bg-[#2A2A2A]"
             )}
           >
             <Video className="w-4 h-4" />
-            <span>Text to Video</span>
+            <span>Text</span>
           </button>
 
           <button
             onClick={() => setActiveMode('starting-frame')}
             className={cn(
-              "flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors",
+              "flex items-center gap-2 px-3 md:px-4 py-2.5 rounded-lg text-sm font-medium transition-colors",
               activeMode === 'starting-frame'
                 ? "bg-cinema-red text-white"
                 : "bg-[#1F1F1F] text-[#808080] hover:text-white hover:bg-[#2A2A2A]"
             )}
           >
             <ImageIcon className="w-4 h-4" />
-            <span>Starting Frame</span>
+            <span>First Frame</span>
           </button>
 
           <button
             onClick={handleSwitchToFrameToFrame}
             className={cn(
-              "flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-colors",
+              "flex items-center gap-2 px-3 md:px-4 py-2.5 rounded-lg text-sm font-medium transition-colors",
               activeMode === 'frame-to-frame'
                 ? "bg-cinema-red text-white"
                 : "bg-[#1F1F1F] text-[#808080] hover:text-white hover:bg-[#2A2A2A]"
