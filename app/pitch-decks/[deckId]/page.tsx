@@ -135,6 +135,7 @@ const PITCH_DECK_REWRITE_ACTIONS: RewriteQuickAction[] = [
 const IMAGE_ACTION_TAB_STORAGE_KEY_PREFIX = 'pitchDeck:imageActionTab:deck:';
 const IMAGE_ATTEMPTS_STORAGE_KEY_PREFIX = 'pitchDeck:imageAttempts:deck:';
 const IMAGE_ACTION_DRAFT_STORAGE_KEY_PREFIX = 'pitchDeck:imageActionDraft:deck:';
+const SELECTED_SLIDE_STORAGE_KEY_PREFIX = 'pitchDeck:selectedSlide:deck:';
 const IMAGE_ATTEMPTS_RETENTION_MS = 12 * 60 * 60 * 1000;
 const UNKNOWN_ATTEMPT_SLIDE_ID = 'unknown';
 const IMAGE_ACTION_TABS: ImageActionTab[] = ['library', 'prompt', 'reference', 'upload'];
@@ -1259,6 +1260,13 @@ export default function PitchDeckEditorPage() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
+    if (!deckId || !selectedSlideId) return;
+    const storageKey = `${SELECTED_SLIDE_STORAGE_KEY_PREFIX}${deckId}`;
+    window.sessionStorage.setItem(storageKey, selectedSlideId);
+  }, [deckId, selectedSlideId]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
     if (!deckId) return;
     const storageKey = `${IMAGE_ATTEMPTS_STORAGE_KEY_PREFIX}${deckId}`;
     const raw = window.sessionStorage.getItem(storageKey);
@@ -1584,7 +1592,16 @@ export default function PitchDeckEditorPage() {
         setDeckTemplateId(data.deck.templateId);
         setDeckScreenplayId(data.deck.screenplayId);
         setSlides(data.slides);
-        setSelectedSlideId(data.slides[0]?.slideId || null);
+        const defaultSlideId = data.slides[0]?.slideId || null;
+        let restoredSlideId: string | null = null;
+        if (typeof window !== 'undefined') {
+          const storageKey = `${SELECTED_SLIDE_STORAGE_KEY_PREFIX}${deckId}`;
+          const savedSlideId = window.sessionStorage.getItem(storageKey);
+          if (savedSlideId && data.slides.some((slide) => slide.slideId === savedSlideId)) {
+            restoredSlideId = savedSlideId;
+          }
+        }
+        setSelectedSlideId(restoredSlideId || defaultSlideId);
         setSaveStatus('idle');
         setSavedAt(null);
       } catch (err: any) {
