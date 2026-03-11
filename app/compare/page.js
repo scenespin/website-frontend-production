@@ -674,9 +674,9 @@ export default function ComparePage() {
                     <span className="text-[#DC143C]">✓</span>
                     <span>
                       <Link href="/models" className="underline hover:text-white">
-                        OpenAI, Anthropic, and Google models
+                        OpenAI, Anthropic, Google, and xAI models
                       </Link>{" "}
-                      inside specialized agents
+                      in specialized agents
                     </span>
                   </li>
                   <li className="flex items-start gap-2">
