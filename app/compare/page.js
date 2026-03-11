@@ -667,28 +667,33 @@ export default function ComparePage() {
                 <h3 className="text-2xl font-bold mb-2">vs. General AI Tools</h3>
                 <p className="text-xs text-gray-500 mb-4">(ChatGPT, Claude, etc.)</p>
                 <p className="text-gray-300 mb-4">
-                  <strong className="text-white">Wryda applies major AI models inside a screenplay-specific workspace with project context.</strong>
+                  <strong className="text-white">Wryda applies major AI models inside a screenplay-specific workspace.</strong>
                 </p>
                 <ul className="space-y-2 text-sm text-gray-300">
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>Switch between OpenAI, Anthropic, and Google models inside specialized agents</span>
+                    <span>
+                      <Link href="/models" className="underline hover:text-white">
+                        OpenAI, Anthropic, and Google models
+                      </Link>{" "}
+                      inside specialized agents
+                    </span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>5 screenplay-trained agents understand Fountain format, character arcs, and structure</span>
+                    <span>Five screenplay-trained agents built for Fountain story structure</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>Story Advisor reads your full screenplay context</span>
+                    <span>Story Advisor reviews full-screenplay context</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>Integrated with your characters, locations, and scenes</span>
+                    <span>Characters, locations, and scenes stay connected</span>
                   </li>
                   <li className="flex items-start gap-2">
                     <span className="text-[#DC143C]">✓</span>
-                    <span>Scene Builder generates full scenes from screenplay context</span>
+                    <span>Scene Builder generates scenes from screenplay context</span>
                   </li>
                 </ul>
               </div>
