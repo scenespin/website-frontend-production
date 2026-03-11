@@ -136,7 +136,7 @@ async function pollPitchDeckImageJob(input: {
   initialPollAfterMs?: number;
   maxPollMs?: number;
 }): Promise<{
-  imageUrl?: string;
+  imageUrl: string;
   s3Key?: string;
   creditsDeducted?: number;
   modelUsed?: string;
@@ -158,8 +158,11 @@ async function pollPitchDeckImageJob(input: {
     const pollData = pollJson?.data || {};
     const status = typeof pollData?.status === 'string' ? pollData.status : '';
     if (status === 'succeeded') {
+      if (!pollData?.imageUrl || typeof pollData.imageUrl !== 'string') {
+        throw new Error('Image generation completed without an image URL');
+      }
       return {
-        imageUrl: pollData?.imageUrl,
+        imageUrl: pollData.imageUrl,
         s3Key: pollData?.s3Key,
         creditsDeducted: pollData?.creditsDeducted,
         modelUsed: pollData?.modelUsed,

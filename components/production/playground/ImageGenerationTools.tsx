@@ -506,7 +506,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
         id: `library-${img.id}`,
         preview: img.s3Key ? `/api/media/file?key=${encodeURIComponent(img.s3Key)}` : (img.fileUrl || ''),
         s3Key: img.s3Key,
-        source: 'library',
+        source: 'library' as const,
         label: img.fileName,
       })).filter((img) => !!img.s3Key && !!img.preview);
 
