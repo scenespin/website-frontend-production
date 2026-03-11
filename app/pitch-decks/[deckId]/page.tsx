@@ -84,6 +84,17 @@ type ImageAttempt = {
   archiveFolderId?: string;
 };
 
+type ImageActionDraft = {
+  promptGenerationText?: string;
+  promptGenerationModelId?: string;
+  promptAspectRatio?: PitchDeckAspectRatio;
+  referencePromptText?: string;
+  referenceMediaId?: string;
+  referenceMediaIds?: string[];
+  referenceGenerationModelId?: string;
+  referenceAspectRatio?: PitchDeckAspectRatio;
+};
+
 type PitchDeckPdfExportInput = {
   deckTitle: string;
   slides: PitchDeckSlide[];
@@ -122,7 +133,9 @@ const PITCH_DECK_REWRITE_ACTIONS: RewriteQuickAction[] = [
 
 const IMAGE_ACTION_TAB_STORAGE_KEY_PREFIX = 'pitchDeck:imageActionTab:deck:';
 const IMAGE_ATTEMPTS_STORAGE_KEY_PREFIX = 'pitchDeck:imageAttempts:deck:';
+const IMAGE_ACTION_DRAFT_STORAGE_KEY_PREFIX = 'pitchDeck:imageActionDraft:deck:';
 const IMAGE_ATTEMPTS_RETENTION_MS = 12 * 60 * 60 * 1000;
+const UNKNOWN_ATTEMPT_SLIDE_ID = 'unknown';
 const IMAGE_ACTION_TABS: ImageActionTab[] = ['library', 'prompt', 'reference', 'upload'];
 
 const ALLOWED_PITCH_DECK_IMAGE_MODELS = new Set([
@@ -796,6 +809,7 @@ export default function PitchDeckEditorPage() {
   const [referenceGenerationModelId, setReferenceGenerationModelId] = useState('nano-banana-pro-2k');
   const [promptAspectRatio, setPromptAspectRatio] = useState<PitchDeckAspectRatio>('16:9');
   const [referenceAspectRatio, setReferenceAspectRatio] = useState<PitchDeckAspectRatio>('16:9');
+  const [imageActionDraftHydratedKey, setImageActionDraftHydratedKey] = useState<string | null>(null);
   const [imageActionTab, setImageActionTab] = useState<ImageActionTab>('prompt');
   const [generatingFromPrompt, setGeneratingFromPrompt] = useState(false);
   const [generatingFromReference, setGeneratingFromReference] = useState(false);
@@ -1085,8 +1099,12 @@ export default function PitchDeckEditorPage() {
     return map;
   }, [effectiveExportOptionIds]);
   const sessionSelectedSlideAttempts = useMemo(() => {
-    if (!selectedSlide?.slideId) return [] as ImageAttempt[];
-    return imageAttempts.filter((attempt) => attempt.slideId === selectedSlide.slideId);
+    if (!selectedSlide?.slideId) {
+      return imageAttempts.filter((attempt) => attempt.slideId === UNKNOWN_ATTEMPT_SLIDE_ID);
+    }
+    return imageAttempts.filter(
+      (attempt) => attempt.slideId === selectedSlide.slideId || attempt.slideId === UNKNOWN_ATTEMPT_SLIDE_ID
+    );
   }, [imageAttempts, selectedSlide]);
 
   const recoveredSelectedSlideAttempts = useMemo(() => {
@@ -1268,6 +1286,74 @@ export default function PitchDeckEditorPage() {
   }, [deckId, imageAttempts, imageAttemptsHydrated]);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!deckId || !selectedSlide?.slideId) {
+      setImageActionDraftHydratedKey(null);
+      return;
+    }
+    const storageKey = `${IMAGE_ACTION_DRAFT_STORAGE_KEY_PREFIX}${deckId}:${selectedSlide.slideId}`;
+    const raw = window.sessionStorage.getItem(storageKey);
+    if (!raw) {
+      setImageActionDraftHydratedKey(storageKey);
+      return;
+    }
+    try {
+      const parsed = JSON.parse(raw) as ImageActionDraft;
+      if (typeof parsed.promptGenerationText === 'string') setPromptGenerationText(parsed.promptGenerationText);
+      if (typeof parsed.promptGenerationModelId === 'string') setPromptGenerationModelId(parsed.promptGenerationModelId);
+      if (parsed.promptAspectRatio && PITCH_DECK_ASPECT_RATIOS.includes(parsed.promptAspectRatio)) {
+        setPromptAspectRatio(parsed.promptAspectRatio);
+      }
+      if (typeof parsed.referencePromptText === 'string') setReferencePromptText(parsed.referencePromptText);
+      if (typeof parsed.referenceMediaId === 'string') setReferenceMediaId(parsed.referenceMediaId);
+      if (Array.isArray(parsed.referenceMediaIds)) {
+        const nextIds = parsed.referenceMediaIds.filter((id): id is string => typeof id === 'string');
+        setReferenceMediaIds(nextIds);
+      }
+      if (typeof parsed.referenceGenerationModelId === 'string') {
+        setReferenceGenerationModelId(parsed.referenceGenerationModelId);
+      }
+      if (parsed.referenceAspectRatio && PITCH_DECK_ASPECT_RATIOS.includes(parsed.referenceAspectRatio)) {
+        setReferenceAspectRatio(parsed.referenceAspectRatio);
+      }
+    } catch {
+      // Ignore malformed draft state and continue with in-memory values.
+    } finally {
+      setImageActionDraftHydratedKey(storageKey);
+    }
+  }, [deckId, selectedSlide?.slideId]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (!deckId || !selectedSlide?.slideId) return;
+    const storageKey = `${IMAGE_ACTION_DRAFT_STORAGE_KEY_PREFIX}${deckId}:${selectedSlide.slideId}`;
+    if (imageActionDraftHydratedKey !== storageKey) return;
+    const draft: ImageActionDraft = {
+      promptGenerationText,
+      promptGenerationModelId,
+      promptAspectRatio,
+      referencePromptText,
+      referenceMediaId,
+      referenceMediaIds,
+      referenceGenerationModelId,
+      referenceAspectRatio,
+    };
+    window.sessionStorage.setItem(storageKey, JSON.stringify(draft));
+  }, [
+    deckId,
+    selectedSlide?.slideId,
+    imageActionDraftHydratedKey,
+    promptGenerationText,
+    promptGenerationModelId,
+    promptAspectRatio,
+    referencePromptText,
+    referenceMediaId,
+    referenceMediaIds,
+    referenceGenerationModelId,
+    referenceAspectRatio,
+  ]);
+
+  useEffect(() => {
     if (!deckId || !imageAttemptsHydrated) return;
     let cancelled = false;
 
@@ -1299,7 +1385,7 @@ export default function PitchDeckEditorPage() {
 
     const hydrateRecentJobs = async () => {
       try {
-        const jobs = await listPitchDeckImageJobs({ deckId, limit: 30 });
+        const jobs = await listPitchDeckImageJobs({ deckId, slideId: selectedSlide?.slideId, limit: 30 });
         if (cancelled) return;
         jobs.forEach((job) => {
           if (job.status === 'succeeded' || job.status === 'failed' || job.status === 'timed_out') {
@@ -1324,7 +1410,7 @@ export default function PitchDeckEditorPage() {
       cancelled = true;
       window.clearInterval(interval);
     };
-  }, [deckId, imageAttemptsHydrated]);
+  }, [deckId, imageAttemptsHydrated, selectedSlide?.slideId]);
 
   const normalizeImageUrl = (value: unknown): string => {
     if (typeof value !== 'string') return '';
@@ -1820,6 +1906,8 @@ export default function PitchDeckEditorPage() {
   }, [existingVariantFilter, existingVariantOptions]);
 
   useEffect(() => {
+    if (existingMediaLoading) return;
+    if (existingMediaLoadedScopeRef.current !== mediaScopeKey) return;
     if (filteredExistingMedia.length === 0) {
       setSelectedExistingMediaId('');
       setReferenceMediaId('');
@@ -1831,15 +1919,17 @@ export default function PitchDeckEditorPage() {
     if (!filteredExistingMedia.some((item) => item.id === referenceMediaId)) {
       setReferenceMediaId(filteredExistingMedia[0].id);
     }
-  }, [filteredExistingMedia, selectedExistingMediaId, referenceMediaId]);
+  }, [existingMediaLoading, filteredExistingMedia, mediaScopeKey, selectedExistingMediaId, referenceMediaId]);
 
   useEffect(() => {
+    if (existingMediaLoading) return;
+    if (existingMediaLoadedScopeRef.current !== mediaScopeKey) return;
     const validIds = new Set(existingMedia.map((item) => item.id));
     setReferenceMediaIds((current) => current.filter((id) => validIds.has(id)));
     if (referenceMediaId && !validIds.has(referenceMediaId)) {
       setReferenceMediaId('');
     }
-  }, [existingMedia, referenceMediaId]);
+  }, [existingMedia, existingMediaLoading, mediaScopeKey, referenceMediaId]);
 
   useEffect(() => {
     setReferenceMediaIds((current) => current.slice(0, maxReferenceCount));
@@ -2007,7 +2097,7 @@ export default function PitchDeckEditorPage() {
     message: string,
     extras?: Pick<ImageAttempt, 'imageUrl' | 'archiveFileId' | 'archiveFolderId'>
   ) => {
-    const slideId = selectedSlide?.slideId || 'unknown';
+    const slideId = selectedSlide?.slideId || UNKNOWN_ATTEMPT_SLIDE_ID;
     setImageAttempts((prev) => [
       {
         id: `attempt_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
@@ -2030,7 +2120,10 @@ export default function PitchDeckEditorPage() {
     const attempt: ImageAttempt = {
       id: `job_${job.jobId}`,
       jobId: job.jobId,
-      slideId: typeof job.slideId === 'string' && job.slideId ? job.slideId : 'unknown',
+      slideId:
+        typeof job.slideId === 'string' && job.slideId
+          ? job.slideId
+          : selectedSlideIdRef.current || UNKNOWN_ATTEMPT_SLIDE_ID,
       status: job.status === 'succeeded' ? 'success' : 'failed',
       action: job.operation === 'prompt' ? 'prompt' : 'reference',
       message:
