@@ -88,8 +88,8 @@ type PitchDeckPdfExportInput = {
   watermarkEnabled: boolean;
   watermarkText: string;
   heroPanelStyle: 'rounded' | 'square';
-  heroPanelOpacity: 'soft' | 'medium' | 'strong';
-  heroPanelPosition: 'bottom' | 'lower_middle';
+  heroPanelOpacity: 'none' | 'soft' | 'medium' | 'strong';
+  heroPanelPosition: 'top' | 'bottom' | 'lower_middle';
 };
 
 const PITCH_DECK_REWRITE_ACTIONS: RewriteQuickAction[] = [
@@ -616,15 +616,22 @@ async function generatePitchDeckPdfClient(input: PitchDeckPdfExportInput): Promi
 
             // Draw text panel over image for readable body copy
             const panelX = margin;
-            const panelY = input.heroPanelPosition === 'lower_middle' ? pageHeight - 280 : pageHeight - 200;
+            const panelY =
+              input.heroPanelPosition === 'top'
+                ? 110
+                : input.heroPanelPosition === 'lower_middle'
+                  ? pageHeight - 280
+                  : pageHeight - 200;
             const panelW = pageWidth - margin * 2;
             const panelH = 150;
             const panelTone = input.heroPanelOpacity === 'soft' ? 28 : input.heroPanelOpacity === 'strong' ? 6 : 14;
-            doc.setFillColor(panelTone, panelTone, panelTone + 2);
-            if (input.heroPanelStyle === 'square') {
-              doc.rect(panelX, panelY, panelW, panelH, 'F');
-            } else {
-              doc.roundedRect(panelX, panelY, panelW, panelH, 10, 10, 'F');
+            if (input.heroPanelOpacity !== 'none') {
+              doc.setFillColor(panelTone, panelTone, panelTone + 2);
+              if (input.heroPanelStyle === 'square') {
+                doc.rect(panelX, panelY, panelW, panelH, 'F');
+              } else {
+                doc.roundedRect(panelX, panelY, panelW, panelH, 10, 10, 'F');
+              }
             }
             doc.setFont('helvetica', 'normal');
             const heroFontSize = 15;
@@ -809,8 +816,8 @@ export default function PitchDeckEditorPage() {
   const [exportWatermarkEnabled, setExportWatermarkEnabled] = useState(true);
   const [exportWatermarkText, setExportWatermarkText] = useState('DRAFT');
   const [exportHeroPanelStyle, setExportHeroPanelStyle] = useState<'rounded' | 'square'>('rounded');
-  const [exportHeroPanelOpacity, setExportHeroPanelOpacity] = useState<'soft' | 'medium' | 'strong'>('medium');
-  const [exportHeroPanelPosition, setExportHeroPanelPosition] = useState<'bottom' | 'lower_middle'>('bottom');
+  const [exportHeroPanelOpacity, setExportHeroPanelOpacity] = useState<'none' | 'soft' | 'medium' | 'strong'>('medium');
+  const [exportHeroPanelPosition, setExportHeroPanelPosition] = useState<'top' | 'bottom' | 'lower_middle'>('bottom');
   const [imageAttemptsHydrated, setImageAttemptsHydrated] = useState(false);
 
   const { uploadFile: uploadImageToS3 } = useDirectS3Upload();
@@ -2832,11 +2839,13 @@ export default function PitchDeckEditorPage() {
         <div className="flex items-start justify-between gap-4">
           <div>
             <h1 className="text-2xl font-semibold text-white">{deckTitle || 'Pitch Deck'}</h1>
-            <div className="mt-2 flex items-center gap-2">
-              <span className="rounded border border-[#3F3F46] bg-[#111] px-2 py-0.5 text-xs text-gray-300">
-                {deckStatus}
-              </span>
-            </div>
+            {deckStatus && deckStatus !== 'draft' ? (
+              <div className="mt-2 flex items-center gap-2">
+                <span className="rounded border border-[#3F3F46] bg-[#111] px-2 py-0.5 text-xs text-gray-300">
+                  {deckStatus}
+                </span>
+              </div>
+            ) : null}
           </div>
           <div className="flex items-center gap-2">
             <button
@@ -3925,6 +3934,9 @@ export default function PitchDeckEditorPage() {
                 <p className="mt-1 text-[11px] text-gray-500">
                   Applies to full-bleed hero layouts only.
                 </p>
+                <p className="mt-1 text-[11px] text-gray-500">
+                  Hero panel body copy shows about 5 lines (depends on word lengths); extra text is clipped in export.
+                </p>
                 <div className="mt-3 grid grid-cols-1 gap-2">
                   <label className="text-[11px] text-gray-400">
                     Style
@@ -3941,21 +3953,28 @@ export default function PitchDeckEditorPage() {
                     Opacity
                     <select
                       value={exportHeroPanelOpacity}
-                      onChange={(e) => setExportHeroPanelOpacity(e.target.value as 'soft' | 'medium' | 'strong')}
+                      onChange={(e) => setExportHeroPanelOpacity(e.target.value as 'none' | 'soft' | 'medium' | 'strong')}
                       className="mt-1 h-9 w-full rounded border border-[#3F3F46] bg-[#141414] px-2 text-sm text-white"
                     >
+                      <option value="none">None (image only)</option>
                       <option value="soft">Soft</option>
                       <option value="medium">Medium</option>
                       <option value="strong">Strong</option>
                     </select>
+                    {exportHeroPanelOpacity === 'none' ? (
+                      <span className="mt-1 block text-[10px] text-amber-300">
+                        No panel background. Text may be harder to read on bright or detailed images.
+                      </span>
+                    ) : null}
                   </label>
                   <label className="text-[11px] text-gray-400">
                     Position
                     <select
                       value={exportHeroPanelPosition}
-                      onChange={(e) => setExportHeroPanelPosition(e.target.value as 'bottom' | 'lower_middle')}
+                      onChange={(e) => setExportHeroPanelPosition(e.target.value as 'top' | 'bottom' | 'lower_middle')}
                       className="mt-1 h-9 w-full rounded border border-[#3F3F46] bg-[#141414] px-2 text-sm text-white"
                     >
+                      <option value="top">Top</option>
                       <option value="bottom">Bottom</option>
                       <option value="lower_middle">Lower-middle</option>
                     </select>
