@@ -57,8 +57,19 @@ interface VideoGenerationToolsProps {
 }
 
 type VideoMode = 'text-to-video' | 'starting-frame' | 'frame-to-frame';
+type DirectVideoAttemptStatus = 'queued' | 'running' | 'success' | 'failed';
+
+interface DirectVideoAttempt {
+  id: string;
+  jobId?: string;
+  status: DirectVideoAttemptStatus;
+  message: string;
+  at: string;
+  videoUrl?: string;
+}
 
 const DEFAULT_ASPECT_RATIOS = ['16:9', '9:16', '1:1', '21:9', '9:21', '4:3', '3:4'];
+const DIRECT_VIDEO_ATTEMPTS_RETENTION_MS = 12 * 60 * 60 * 1000;
 
 /** Single camera option: id is Luma concept key (or '' for None). Same dropdown for all providers; Luma gets concept, others get promptText. */
 interface CameraOption {
@@ -185,9 +196,72 @@ export function VideoGenerationTools({
   const [generatedVideoUrl, setGeneratedVideoUrl] = useState<string | null>(null);
   const [generationTime, setGenerationTime] = useState<number | undefined>(undefined);
   const [latestCompletedJobId, setLatestCompletedJobId] = useState<string | null>(null);
+  const [recentAttempts, setRecentAttempts] = useState<DirectVideoAttempt[]>([]);
+  const [attemptsHydrated, setAttemptsHydrated] = useState(false);
+  const activeAttemptPollsRef = useRef<Set<string>>(new Set());
 
   const getDismissedLatestVideoStorageKey = () =>
     `wryda:dismissed-latest-video:${screenplayId || 'default'}`;
+  const getVideoAttemptsStorageKey = () =>
+    `direct-video-gen:attempts:${screenplayId || 'default'}`;
+
+  const normalizeVideoAttemptStatus = (status: unknown): DirectVideoAttemptStatus => {
+    const value = String(status || '').toLowerCase();
+    if (value === 'queued') return 'queued';
+    if (value === 'running' || value === 'processing' || value === 'pending') return 'running';
+    if (value === 'completed' || value === 'succeeded' || value === 'success') return 'success';
+    return 'failed';
+  };
+
+  const upsertVideoAttempt = (attempt: DirectVideoAttempt) => {
+    setRecentAttempts((prev) => {
+      const withoutExisting = prev.filter(
+        (item) => item.id !== attempt.id && !(attempt.jobId && item.jobId && item.jobId === attempt.jobId)
+      );
+      const now = Date.now();
+      return [attempt, ...withoutExisting]
+        .filter((item) => {
+          const atMs = new Date(item.at || 0).getTime();
+          return Number.isFinite(atMs) && now - atMs <= DIRECT_VIDEO_ATTEMPTS_RETENTION_MS;
+        })
+        .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
+        .slice(0, 20);
+    });
+  };
+
+  const upsertVideoAttemptFromJob = (job: any) => {
+    if (!job) return;
+    const jobId = String(job.jobId || job.id || '');
+    if (!jobId) return;
+    const status = normalizeVideoAttemptStatus(job.status);
+    const videoUrl = job?.videos?.[0]?.videoUrl;
+    const errorMessage = job?.error?.message || job?.error?.userMessage || job?.error;
+    upsertVideoAttempt({
+      id: `job_${jobId}`,
+      jobId,
+      status,
+      message:
+        status === 'success'
+          ? 'Video generated successfully.'
+          : status === 'running' || status === 'queued'
+            ? 'Video generation in progress...'
+            : `Failed: ${String(errorMessage || 'generation error')}`,
+      at: job.completedAt || job.updatedAt || job.createdAt || new Date().toISOString(),
+      videoUrl: typeof videoUrl === 'string' && videoUrl.length > 0 ? videoUrl : undefined,
+    });
+  };
+
+  const isJobRelevantToPanel = (job: any): boolean => {
+    if (!job) return false;
+    if (propSceneId && job.sceneId) {
+      return String(job.sceneId) === String(propSceneId);
+    }
+    const sceneId = String(job.sceneId || '');
+    const sceneName = String(job.sceneName || '');
+    const sameScreenplay = screenplayId ? String(job.screenplayId || '') === String(screenplayId) : true;
+    if (!sameScreenplay) return false;
+    return sceneId.startsWith('playground_') || /playground/i.test(sceneName);
+  };
 
   const dismissLatestGeneratedVideo = () => {
     setGeneratedVideoUrl(null);
@@ -238,6 +312,108 @@ export function VideoGenerationTools({
     loadLatestCompleted();
     return () => { cancelled = true; };
   }, [screenplayId]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') {
+      setAttemptsHydrated(true);
+      return;
+    }
+    try {
+      const raw = window.sessionStorage.getItem(getVideoAttemptsStorageKey());
+      const parsed = raw ? JSON.parse(raw) : [];
+      const now = Date.now();
+      const retained = (Array.isArray(parsed) ? parsed : [])
+        .filter((item): item is DirectVideoAttempt => !!item && typeof item === 'object')
+        .filter((item) => {
+          const atMs = new Date(item.at || 0).getTime();
+          return Number.isFinite(atMs) && now - atMs <= DIRECT_VIDEO_ATTEMPTS_RETENTION_MS;
+        })
+        .slice(0, 20);
+      setRecentAttempts(retained);
+    } catch {
+      setRecentAttempts([]);
+    } finally {
+      setAttemptsHydrated(true);
+    }
+  }, [screenplayId]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || !attemptsHydrated) return;
+    const now = Date.now();
+    const retained = recentAttempts
+      .filter((item) => {
+        const atMs = new Date(item.at || 0).getTime();
+        return Number.isFinite(atMs) && now - atMs <= DIRECT_VIDEO_ATTEMPTS_RETENTION_MS;
+      })
+      .slice(0, 20);
+    window.sessionStorage.setItem(getVideoAttemptsStorageKey(), JSON.stringify(retained));
+  }, [attemptsHydrated, recentAttempts, screenplayId]);
+
+  useEffect(() => {
+    if (!screenplayId || !attemptsHydrated) return;
+    let cancelled = false;
+
+    const pollVideoJobUntilTerminal = (jobId: string) => {
+      if (!jobId || activeAttemptPollsRef.current.has(jobId)) return;
+      activeAttemptPollsRef.current.add(jobId);
+      void (async () => {
+        try {
+          const { api: apiModule, setAuthTokenGetter } = await import('@/lib/api');
+          setAuthTokenGetter(() => getToken({ template: 'wryda-backend' }));
+          const startedAt = Date.now();
+          while (!cancelled && Date.now() - startedAt < 6 * 60 * 1000) {
+            await new Promise((resolve) => setTimeout(resolve, 2500));
+            if (cancelled) return;
+            const response = await apiModule.video.getJobStatus(jobId);
+            const payload = response?.data ?? response;
+            const job = payload?.job;
+            if (!job || cancelled) continue;
+            upsertVideoAttemptFromJob(job);
+            const status = normalizeVideoAttemptStatus(job.status);
+            if (status === 'success' || status === 'failed') {
+              if (status === 'success' && typeof job?.videos?.[0]?.videoUrl === 'string') {
+                clearDismissedLatestVideo();
+                setGeneratedVideoUrl(job.videos[0].videoUrl);
+              }
+              return;
+            }
+          }
+        } catch {
+          // Non-fatal; background panel should remain stable.
+        } finally {
+          activeAttemptPollsRef.current.delete(jobId);
+        }
+      })();
+    };
+
+    const hydrateVideoJobs = async () => {
+      try {
+        const { api: apiModule, setAuthTokenGetter } = await import('@/lib/api');
+        setAuthTokenGetter(() => getToken({ template: 'wryda-backend' }));
+        const response = await apiModule.video.getJobs({ limit: 20 });
+        const payload = response?.data ?? response;
+        const jobs = Array.isArray(payload?.jobs) ? payload.jobs : [];
+        jobs.filter((job: any) => isJobRelevantToPanel(job)).slice(0, 12).forEach((job: any) => {
+          upsertVideoAttemptFromJob(job);
+          const status = normalizeVideoAttemptStatus(job.status);
+          if (status === 'running' || status === 'queued') {
+            pollVideoJobUntilTerminal(String(job.jobId || job.id || ''));
+          }
+        });
+      } catch {
+        // Ignore hydration failures to avoid blocking panel render.
+      }
+    };
+
+    void hydrateVideoJobs();
+    recentAttempts
+      .filter((attempt) => attempt.jobId && (attempt.status === 'running' || attempt.status === 'queued'))
+      .forEach((attempt) => pollVideoJobUntilTerminal(String(attempt.jobId)));
+
+    return () => {
+      cancelled = true;
+    };
+  }, [attemptsHydrated, recentAttempts, screenplayId, getToken, propSceneId]);
 
   // Fetch video models (exclude requiresSourceVideo for "generate from scratch")
   useEffect(() => {
@@ -547,6 +723,16 @@ export function VideoGenerationTools({
       setAuthTokenGetter(() => getToken({ template: 'wryda-backend' }));
       const response = await apiModule.video.generateAsync(requestBody);
       const result = response?.data ?? response;
+      const returnedJobId = result.data?.jobId || result.jobId;
+      if (returnedJobId) {
+        upsertVideoAttempt({
+          id: `job_${returnedJobId}`,
+          jobId: returnedJobId,
+          status: 'running',
+          message: 'Video generation in progress...',
+          at: new Date().toISOString(),
+        });
+      }
 
       // Keep global credits UI synchronized immediately after generation starts.
       if (typeof window !== 'undefined' && window.refreshCredits) {
@@ -562,9 +748,17 @@ export function VideoGenerationTools({
       if (videoUrl) {
         clearDismissedLatestVideo();
         setGeneratedVideoUrl(videoUrl);
+        upsertVideoAttempt({
+          id: returnedJobId ? `job_${returnedJobId}` : `attempt_${Date.now()}`,
+          jobId: returnedJobId || undefined,
+          status: 'success',
+          message: 'Video generated successfully.',
+          at: new Date().toISOString(),
+          videoUrl,
+        });
       } else {
         // For async jobs, we might get a job ID - show message
-        const jobId = result.data?.jobId || result.jobId;
+        const jobId = returnedJobId;
         if (jobId) {
           toast.success('Video generation started!', {
             description: `Estimated time: ${getEstimatedDuration('complete-scene')}. Check Jobs panel for progress.`
@@ -574,7 +768,16 @@ export function VideoGenerationTools({
           const s3Key = result.data?.s3Key || result.data?.key;
           if (s3Key) {
             clearDismissedLatestVideo();
-            setGeneratedVideoUrl(`/api/media/file?key=${encodeURIComponent(s3Key)}`);
+            const proxyUrl = `/api/media/file?key=${encodeURIComponent(s3Key)}`;
+            setGeneratedVideoUrl(proxyUrl);
+            upsertVideoAttempt({
+              id: returnedJobId ? `job_${returnedJobId}` : `attempt_${Date.now()}`,
+              jobId: returnedJobId || undefined,
+              status: 'success',
+              message: 'Video generated successfully.',
+              at: new Date().toISOString(),
+              videoUrl: proxyUrl,
+            });
           }
         }
       }
@@ -607,6 +810,12 @@ export function VideoGenerationTools({
         syncCreditsFromError(creditError);
       }
       toast.error(displayMessage);
+      upsertVideoAttempt({
+        id: `attempt_${Date.now()}`,
+        status: 'failed',
+        message: `Failed: ${displayMessage}`,
+        at: new Date().toISOString(),
+      });
       if (typeof window !== 'undefined' && window.refreshCredits) {
         window.refreshCredits();
       }
@@ -626,6 +835,50 @@ export function VideoGenerationTools({
       document.body.removeChild(link);
     }
   };
+
+  const renderRecentAttemptsPanel = () => (
+    <div className="border-t border-white/10 p-4 md:p-5 bg-[#141414]">
+      <div className="mb-2 flex items-center justify-between">
+        <p className="text-xs uppercase tracking-wide text-gray-400">Recent attempts</p>
+        <span className="text-[10px] text-gray-500">retained ~12h</span>
+      </div>
+      {recentAttempts.length === 0 ? (
+        <p className="text-xs text-[#808080]">No recent attempts yet.</p>
+      ) : (
+        <div className="space-y-1.5">
+          {recentAttempts.slice(0, 6).map((attempt) => (
+            <div
+              key={attempt.id}
+              className={cn(
+                'flex items-center justify-between rounded border px-2 py-1 text-[11px]',
+                attempt.status === 'failed'
+                  ? 'border-red-500/40 bg-red-500/10 text-red-200'
+                  : attempt.status === 'running' || attempt.status === 'queued'
+                    ? 'border-amber-500/40 bg-amber-500/10 text-amber-200'
+                    : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200'
+              )}
+            >
+              <div className="min-w-0 pr-2">
+                <p className="truncate">{attempt.message}</p>
+                {attempt.videoUrl ? (
+                  <button
+                    type="button"
+                    onClick={() => setGeneratedVideoUrl(attempt.videoUrl || null)}
+                    className="mt-0.5 text-[10px] underline hover:text-white"
+                  >
+                    Open result
+                  </button>
+                ) : null}
+              </div>
+              <span className="shrink-0 text-[10px] opacity-80">
+                {new Date(attempt.at).toLocaleTimeString()}
+              </span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  );
 
   const renderFrameInputs = () => (
     <>
@@ -1084,6 +1337,7 @@ export function VideoGenerationTools({
             className="min-h-[260px]"
             title="Latest generated"
           />
+          {renderRecentAttemptsPanel()}
         </div>
       </div>
 
@@ -1109,6 +1363,7 @@ export function VideoGenerationTools({
             className="flex-1 min-h-0"
             title="Latest generated"
           />
+          {renderRecentAttemptsPanel()}
         </div>
       </div>
     </div>

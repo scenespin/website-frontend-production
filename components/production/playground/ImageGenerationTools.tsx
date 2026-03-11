@@ -18,6 +18,7 @@ import { uploadToObjectStorage } from '@/lib/objectStorageUpload';
 import { MediaLibraryBrowser } from '@/components/production/CharacterStudio/MediaLibraryBrowser';
 import type { MediaFile } from '@/types/media';
 import { useInFlightWorkflowJobsStore } from '@/lib/inFlightWorkflowJobsStore';
+import { downloadImageAsBlob } from '@/utils/imageDownload';
 
 interface ImageGenerationToolsProps {
   className?: string;
@@ -64,6 +65,18 @@ interface PersistedReferenceImage {
   label?: string;
 }
 
+type DirectImageAttemptStatus = 'queued' | 'running' | 'success' | 'failed';
+
+interface DirectImageAttempt {
+  id: string;
+  jobId?: string;
+  status: DirectImageAttemptStatus;
+  message: string;
+  at: string;
+  imageUrl?: string;
+  s3Key?: string;
+}
+
 const DIRECT_HUB_ALLOWED_PROMPT_MODELS = new Set([
   'flux2-pro-2k',
   'flux2-pro-4k',
@@ -81,6 +94,7 @@ const DIRECT_HUB_ALLOWED_REFERENCE_MODELS = new Set([
   'nano-banana-pro',
   'nano-banana-pro-2k',
 ]);
+const DIRECT_IMAGE_ATTEMPTS_RETENTION_MS = 12 * 60 * 60 * 1000;
 
 export function ImageGenerationTools({ className = '' }: ImageGenerationToolsProps) {
   const screenplay = useScreenplay();
@@ -102,7 +116,10 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
   const [generationTime, setGenerationTime] = useState<number | undefined>(undefined);
   const [recentImages, setRecentImages] = useState<RecentGeneratedImage[]>([]);
   const [isLoadingRecentImages, setIsLoadingRecentImages] = useState(false);
+  const [recentAttempts, setRecentAttempts] = useState<DirectImageAttempt[]>([]);
+  const [attemptsHydrated, setAttemptsHydrated] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const activeAttemptPollsRef = useRef<Set<string>>(new Set());
   const getImageGenDraftStorageKey = () => {
     if (!screenplayId) return null;
     return `direct-image-gen:draft:${screenplayId}`;
@@ -110,6 +127,81 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
   const getDismissedRecentImagesStorageKey = () => {
     if (!screenplayId) return null;
     return `direct-image-gen:dismissed-recents:${screenplayId}`;
+  };
+  const getAttemptsStorageKey = () => {
+    if (!screenplayId) return null;
+    return `direct-image-gen:attempts:${screenplayId}`;
+  };
+
+  const normalizeAttemptStatus = (status: unknown): DirectImageAttemptStatus => {
+    const value = String(status || '').toLowerCase();
+    if (value === 'queued') return 'queued';
+    if (value === 'running' || value === 'processing' || value === 'pending' || value === 'in_progress') return 'running';
+    if (value === 'completed' || value === 'succeeded' || value === 'success') return 'success';
+    return 'failed';
+  };
+
+  const upsertAttempt = (attempt: DirectImageAttempt) => {
+    setRecentAttempts((prev) => {
+      const withoutExisting = prev.filter(
+        (item) => item.id !== attempt.id && !(attempt.jobId && item.jobId && item.jobId === attempt.jobId)
+      );
+      const now = Date.now();
+      const next = [attempt, ...withoutExisting]
+        .filter((item) => {
+          const atMs = new Date(item.at || 0).getTime();
+          return Number.isFinite(atMs) && now - atMs <= DIRECT_IMAGE_ATTEMPTS_RETENTION_MS;
+        })
+        .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
+        .slice(0, 20);
+      return next;
+    });
+  };
+
+  const upsertAttemptFromWorkflowExecution = (execution: any) => {
+    if (!execution) return;
+    const jobId = String(execution.executionId || execution.jobId || '');
+    if (!jobId) return;
+    const status = normalizeAttemptStatus(execution.status);
+    const outputs = execution.finalOutputs || {};
+    const image = Array.isArray(outputs.images) && outputs.images.length > 0 ? outputs.images[0] : null;
+    const imageS3Key =
+      typeof image?.s3Key === 'string' && image.s3Key.trim().length > 0
+        ? image.s3Key.trim()
+        : undefined;
+    const imageUrl =
+      imageS3Key
+        ? `/api/media/file?key=${encodeURIComponent(imageS3Key)}`
+        : typeof image?.imageUrl === 'string' && image.imageUrl.trim().length > 0
+          ? image.imageUrl
+          : undefined;
+    const errorMessage = execution.error?.userMessage || execution.error?.message || execution.error;
+    upsertAttempt({
+      id: `job_${jobId}`,
+      jobId,
+      status,
+      message:
+        status === 'success'
+          ? 'Image generated successfully.'
+          : status === 'running' || status === 'queued'
+            ? 'Image generation in progress...'
+            : `Failed: ${String(errorMessage || 'generation error')}`,
+      at: execution.completedAt || execution.updatedAt || execution.startedAt || new Date().toISOString(),
+      imageUrl,
+      s3Key: imageS3Key,
+    });
+  };
+
+  const fetchWorkflowExecution = async (jobId: string) => {
+    const token = await getToken({ template: 'wryda-backend' });
+    if (!token) return null;
+    const response = await fetch(`/api/workflows/${encodeURIComponent(jobId)}`, {
+      headers: { Authorization: `Bearer ${token}` },
+      cache: 'no-store',
+    });
+    if (!response.ok) return null;
+    const payload = await response.json();
+    return payload?.data?.execution || null;
   };
 
   // Fetch available models
@@ -532,6 +624,125 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
   }, [screenplayId, getToken]);
 
   useEffect(() => {
+    const storageKey = getAttemptsStorageKey();
+    if (!storageKey || typeof window === 'undefined') {
+      setRecentAttempts([]);
+      setAttemptsHydrated(true);
+      return;
+    }
+    try {
+      const raw = window.sessionStorage.getItem(storageKey);
+      const parsed = raw ? JSON.parse(raw) : [];
+      const now = Date.now();
+      const retained = (Array.isArray(parsed) ? parsed : [])
+        .filter((item): item is DirectImageAttempt => !!item && typeof item === 'object')
+        .filter((item) => {
+          const atMs = new Date(item.at || 0).getTime();
+          return Number.isFinite(atMs) && now - atMs <= DIRECT_IMAGE_ATTEMPTS_RETENTION_MS;
+        })
+        .slice(0, 20);
+      setRecentAttempts(retained);
+    } catch {
+      setRecentAttempts([]);
+    } finally {
+      setAttemptsHydrated(true);
+    }
+  }, [screenplayId]);
+
+  useEffect(() => {
+    const storageKey = getAttemptsStorageKey();
+    if (!storageKey || typeof window === 'undefined' || !attemptsHydrated) return;
+    const now = Date.now();
+    const retained = recentAttempts
+      .filter((item) => {
+        const atMs = new Date(item.at || 0).getTime();
+        return Number.isFinite(atMs) && now - atMs <= DIRECT_IMAGE_ATTEMPTS_RETENTION_MS;
+      })
+      .slice(0, 20);
+    window.sessionStorage.setItem(storageKey, JSON.stringify(retained));
+  }, [attemptsHydrated, recentAttempts, screenplayId]);
+
+  useEffect(() => {
+    if (!screenplayId || !attemptsHydrated) return;
+    let cancelled = false;
+
+    const pollJobUntilTerminal = (jobId: string) => {
+      if (!jobId || activeAttemptPollsRef.current.has(jobId)) return;
+      activeAttemptPollsRef.current.add(jobId);
+      void (async () => {
+        try {
+          const startedAt = Date.now();
+          while (!cancelled && Date.now() - startedAt < 3 * 60 * 1000) {
+            await new Promise((resolve) => setTimeout(resolve, 2500));
+            if (cancelled) return;
+            const execution = await fetchWorkflowExecution(jobId);
+            if (!execution || cancelled) continue;
+            upsertAttemptFromWorkflowExecution(execution);
+            const status = normalizeAttemptStatus(execution.status);
+            if (status === 'success' || status === 'failed') {
+              if (status === 'success') void loadRecentGeneratedImages();
+              return;
+            }
+          }
+        } catch {
+          // Non-fatal: attempts panel should remain resilient.
+        } finally {
+          activeAttemptPollsRef.current.delete(jobId);
+        }
+      })();
+    };
+
+    const hydrateRecentWorkflowJobs = async () => {
+      try {
+        const token = await getToken({ template: 'wryda-backend' });
+        if (!token) return;
+        const response = await fetch(
+          `/api/workflows/executions?screenplayId=${encodeURIComponent(screenplayId)}&limit=20`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+            cache: 'no-store',
+          }
+        );
+        if (!response.ok) return;
+        const payload = await response.json();
+        const jobs = Array.isArray(payload?.data?.jobs) ? payload.data.jobs : [];
+        jobs
+          .filter((job: any) => job?.jobType === 'image-generation')
+          .slice(0, 12)
+          .forEach((job: any) => {
+            const mappedExecution = {
+              executionId: job.jobId,
+              status: job.status,
+              startedAt: job.createdAt,
+              completedAt: job.completedAt,
+              error: job.error,
+              finalOutputs: {
+                images: Array.isArray(job?.results?.images) ? job.results.images : [],
+              },
+            };
+            upsertAttemptFromWorkflowExecution(mappedExecution);
+            const status = normalizeAttemptStatus(job.status);
+            if (status === 'running' || status === 'queued') {
+              pollJobUntilTerminal(String(job.jobId || ''));
+            }
+          });
+      } catch {
+        // Silent fallback; recents media still works.
+      }
+    };
+
+    void hydrateRecentWorkflowJobs();
+    const runningJobs = recentAttempts
+      .filter((attempt) => attempt.jobId && (attempt.status === 'running' || attempt.status === 'queued'))
+      .map((attempt) => String(attempt.jobId));
+    runningJobs.forEach((jobId) => pollJobUntilTerminal(jobId));
+
+    return () => {
+      cancelled = true;
+    };
+  }, [attemptsHydrated, recentAttempts, screenplayId, getToken]);
+
+  useEffect(() => {
     const storageKey = getImageGenDraftStorageKey();
     if (!storageKey || typeof window === 'undefined') return;
 
@@ -684,6 +895,15 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
 
       const response = await apiModule.image.generate(requestBody);
       const returnedJobId = response.data?.jobId || response.data?.data?.jobId;
+      if (returnedJobId) {
+        upsertAttempt({
+          id: `job_${returnedJobId}`,
+          jobId: returnedJobId,
+          status: 'running',
+          message: 'Image generation in progress...',
+          at: new Date().toISOString(),
+        });
+      }
       if (returnedJobId && screenplayId) {
         addInFlightJob(returnedJobId);
         if (typeof window !== 'undefined') {
@@ -706,13 +926,32 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
 
       // Extract image URL from response
       const imageUrl = response.data?.imageUrl || response.data?.url || response.data?.s3Url;
+      const responseS3Key = response.data?.s3Key || response.data?.key;
       if (imageUrl) {
         setGeneratedImageUrl(imageUrl);
+        upsertAttempt({
+          id: returnedJobId ? `job_${returnedJobId}` : `attempt_${Date.now()}`,
+          jobId: returnedJobId || undefined,
+          status: 'success',
+          message: 'Image generated successfully.',
+          at: new Date().toISOString(),
+          imageUrl,
+          s3Key: typeof responseS3Key === 'string' ? responseS3Key : undefined,
+        });
       } else {
         // Build proxy URL from key if backend returned only key.
-        const s3Key = response.data?.s3Key || response.data?.key;
-        if (s3Key) {
-          setGeneratedImageUrl(`/api/media/file?key=${encodeURIComponent(s3Key)}`);
+        if (responseS3Key) {
+          const proxyUrl = `/api/media/file?key=${encodeURIComponent(responseS3Key)}`;
+          setGeneratedImageUrl(proxyUrl);
+          upsertAttempt({
+            id: returnedJobId ? `job_${returnedJobId}` : `attempt_${Date.now()}`,
+            jobId: returnedJobId || undefined,
+            status: 'success',
+            message: 'Image generated successfully.',
+            at: new Date().toISOString(),
+            imageUrl: proxyUrl,
+            s3Key: responseS3Key,
+          });
         }
       }
 
@@ -724,21 +963,29 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
       
     } catch (error: any) {
       console.error('Image generation failed:', error);
-      toast.error(error.response?.data?.message || 'Failed to generate image');
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to generate image';
+      toast.error(errorMessage);
+      upsertAttempt({
+        id: `attempt_${Date.now()}`,
+        status: 'failed',
+        message: `Failed: ${errorMessage}`,
+        at: new Date().toISOString(),
+      });
       setGeneratedImageUrl(null);
     } finally {
       setIsGenerating(false);
     }
   };
 
-  const handleDownload = () => {
-    if (generatedImageUrl) {
-      const link = document.createElement('a');
-      link.href = generatedImageUrl;
-      link.download = `generated-image-${Date.now()}.png`;
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
+  const handleDownload = async () => {
+    if (!generatedImageUrl) return;
+    try {
+      const s3Key = generatedImageUrl.startsWith('/api/media/file?key=')
+        ? decodeURIComponent(generatedImageUrl.split('key=')[1] || '')
+        : undefined;
+      await downloadImageAsBlob(generatedImageUrl, `generated-image-${Date.now()}.png`, s3Key);
+    } catch {
+      toast.error('Failed to download image');
     }
   };
 
@@ -925,7 +1172,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
           </select>
           {selectedCameraAngle && (
             <p className="mt-1.5 text-xs text-[#808080]">
-              Will add: "{cameraAngles.find(a => a.id === selectedCameraAngle)?.promptText}"
+              Will add: &quot;{cameraAngles.find(a => a.id === selectedCameraAngle)?.promptText}&quot;
             </p>
             )}
           </div>
@@ -989,6 +1236,47 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
           onDownload={handleDownload}
         />
         <div className="border-t border-white/10 p-4 md:p-5 bg-[#141414]">
+          <div className="mb-3 rounded border border-[#2a2a2a] bg-[#101010] p-3">
+            <div className="mb-2 flex items-center justify-between">
+              <p className="text-xs uppercase tracking-wide text-gray-400">Recent attempts</p>
+              <span className="text-[10px] text-gray-500">retained ~12h</span>
+            </div>
+            {recentAttempts.length === 0 ? (
+              <p className="text-xs text-[#808080]">No recent attempts yet.</p>
+            ) : (
+              <div className="space-y-1.5">
+                {recentAttempts.slice(0, 6).map((attempt) => (
+                  <div
+                    key={attempt.id}
+                    className={cn(
+                      'flex items-center justify-between rounded border px-2 py-1 text-[11px]',
+                      attempt.status === 'failed'
+                        ? 'border-red-500/40 bg-red-500/10 text-red-200'
+                        : attempt.status === 'running' || attempt.status === 'queued'
+                          ? 'border-amber-500/40 bg-amber-500/10 text-amber-200'
+                          : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200'
+                    )}
+                  >
+                    <div className="min-w-0 pr-2">
+                      <p className="truncate">{attempt.message}</p>
+                      {attempt.imageUrl ? (
+                        <button
+                          type="button"
+                          onClick={() => setGeneratedImageUrl(attempt.imageUrl || null)}
+                          className="mt-0.5 text-[10px] underline hover:text-white"
+                        >
+                          Open result
+                        </button>
+                      ) : null}
+                    </div>
+                    <span className="shrink-0 text-[10px] opacity-80">
+                      {new Date(attempt.at).toLocaleTimeString()}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
           <div className="flex items-center justify-between mb-2">
             <p className="text-sm font-medium text-white">Recent generated images</p>
             <button
