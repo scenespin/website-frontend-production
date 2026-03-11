@@ -208,7 +208,16 @@ export function VideoGenerationTools({
   const normalizeVideoAttemptStatus = (status: unknown): DirectVideoAttemptStatus => {
     const value = String(status || '').toLowerCase();
     if (value === 'queued') return 'queued';
-    if (value === 'running' || value === 'processing' || value === 'pending') return 'running';
+    if (
+      value === 'running' ||
+      value === 'processing' ||
+      value === 'pending' ||
+      value === 'generating' ||
+      value === 'enhancing' ||
+      value === 'in_progress'
+    ) {
+      return 'running';
+    }
     if (value === 'completed' || value === 'succeeded' || value === 'success') return 'success';
     return 'failed';
   };
