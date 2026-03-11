@@ -8,14 +8,16 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { Loader2, Sparkles, Upload, X } from 'lucide-react';
+import { FolderOpen, Loader2, Sparkles, Upload, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useAuth } from '@clerk/nextjs';
 import { GenerationPreview } from './GenerationPreview';
-import { ExamplesSection } from './ExamplesSection';
 import { uploadToObjectStorage } from '@/lib/objectStorageUpload';
+import { MediaLibraryBrowser } from '@/components/production/CharacterStudio/MediaLibraryBrowser';
+import type { MediaFile } from '@/types/media';
+import { useInFlightWorkflowJobsStore } from '@/lib/inFlightWorkflowJobsStore';
 
 interface ImageGenerationToolsProps {
   className?: string;
@@ -31,9 +33,12 @@ interface ImageModel {
 }
 
 interface ReferenceImage {
-  file: File;
+  id: string;
   preview: string;
   s3Key?: string;
+  file?: File;
+  source: 'upload' | 'library';
+  label?: string;
 }
 
 interface CameraAngle {
@@ -43,10 +48,36 @@ interface CameraAngle {
   promptText: string; // Model-agnostic text
 }
 
+interface RecentGeneratedImage {
+  jobId: string;
+  imageUrl: string;
+  createdAt: string;
+  label?: string;
+}
+
+const DIRECT_HUB_ALLOWED_PROMPT_MODELS = new Set([
+  'flux2-pro-2k',
+  'flux2-pro-4k',
+  'flux2-max-2k',
+  'flux2-max-4k-16:9',
+  'nano-banana-pro',
+  'nano-banana-pro-2k',
+]);
+
+const DIRECT_HUB_ALLOWED_REFERENCE_MODELS = new Set([
+  'flux2-pro-2k',
+  'flux2-pro-4k',
+  'flux2-max-2k',
+  'flux2-max-4k-16:9',
+  'nano-banana-pro',
+  'nano-banana-pro-2k',
+]);
+
 export function ImageGenerationTools({ className = '' }: ImageGenerationToolsProps) {
   const screenplay = useScreenplay();
   const screenplayId = screenplay.screenplayId;
   const { getToken } = useAuth();
+  const addInFlightJob = useInFlightWorkflowJobsStore((state) => state.addJob);
   
   const [prompt, setPrompt] = useState('');
   const [selectedModel, setSelectedModel] = useState<string>('');
@@ -57,9 +88,12 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
   const [aspectRatio, setAspectRatio] = useState<string>('16:9');
   const [referenceImages, setReferenceImages] = useState<ReferenceImage[]>([]);
   const [isUploading, setIsUploading] = useState(false);
+  const [showMediaLibraryBrowser, setShowMediaLibraryBrowser] = useState(false);
   const [selectedCameraAngle, setSelectedCameraAngle] = useState<string>('');
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   const [generationTime, setGenerationTime] = useState<number | undefined>(undefined);
+  const [recentImages, setRecentImages] = useState<RecentGeneratedImage[]>([]);
+  const [isLoadingRecentImages, setIsLoadingRecentImages] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Fetch available models
@@ -74,9 +108,9 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
         const response = await apiModule.image.getModels();
         let modelsData = response.data?.models || response.data?.data?.models || [];
         
-        // Filter out Luma Photon models from Playground
-        modelsData = modelsData.filter((model: ImageModel) => 
-          !model.id.includes('luma-photon') && !model.id.includes('photon')
+        // Keep Direct Hub image gen to the curated production-tested model set.
+        modelsData = modelsData.filter((model: ImageModel) =>
+          DIRECT_HUB_ALLOWED_PROMPT_MODELS.has(model.id)
         );
         
         // Sort by newest first (model release date), then most expensive second
@@ -115,10 +149,16 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
         
         setModels(modelsData);
         
-        // Set default model (first in sorted list - newest/most expensive)
-        if (modelsData.length > 0 && !selectedModel) {
-          setSelectedModel(modelsData[0].id);
-        }
+        // Keep current model if still valid, otherwise select default prompt model.
+        setSelectedModel((current) => {
+          const currentValid = current && modelsData.some((model: ImageModel) => model.id === current);
+          if (currentValid) return current;
+          const preferred =
+            modelsData.find((model: ImageModel) => model.id === 'flux2-pro-2k') ||
+            modelsData.find((model: ImageModel) => model.id === 'nano-banana-pro-2k') ||
+            modelsData[0];
+          return preferred?.id || '';
+        });
       } catch (error: any) {
         console.error('Failed to load image models:', error);
         toast.error('Failed to load image models');
@@ -130,7 +170,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
     if (getToken) {
       fetchModels();
     }
-  }, [getToken, selectedModel]);
+  }, [getToken]);
 
   // Model-specific prompt hints and reference image instructions
   const getModelHints = (modelId: string): { promptHint: string; referenceHint: string } => {
@@ -148,8 +188,8 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
     }
     if (modelId.includes('flux2')) {
       return {
-        promptHint: 'FLUX.2: Use structured prompts: Subject + Action + Style + Context. Supports color hex codes (e.g., "color #FF0000"). Supports up to 10 reference images. Best for high-quality, detailed images.',
-        referenceHint: 'Best practices: Upload 1-10 reference images. First image is most important. Use high-quality, well-composed images. FLUX.2 excels at maintaining fine details and textures from references.'
+        promptHint: 'FLUX.2: Use structured prompts: Subject + Action + Style + Context. Supports color hex codes (e.g., "color #FF0000"). Supports up to 8 reference images. Best for high-quality, detailed images.',
+        referenceHint: 'Best practices: Upload 1-8 reference images. First image is most important. Use high-quality, well-composed images. FLUX.2 excels at maintaining fine details and textures from references.'
       };
     }
     if (modelId.includes('gpt-image-1')) {
@@ -172,22 +212,42 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
 
   // Check if selected model supports reference images
   const selectedModelInfo = models.find(m => m.id === selectedModel);
-  const supportsReferenceImages = selectedModelInfo && (
-    selectedModelInfo.id.includes('nano-banana-pro') ||
-    selectedModelInfo.id.includes('runway-gen4') ||
-    selectedModelInfo.id.includes('flux2') ||
-    selectedModelInfo.id.includes('gpt-image-1')
-  );
+  const supportsReferenceImages = !!selectedModelInfo && DIRECT_HUB_ALLOWED_REFERENCE_MODELS.has(selectedModelInfo.id);
   
   // Get reference limit based on model
   const getReferenceLimit = (): number => {
     if (!selectedModelInfo) return 0;
     if (selectedModelInfo.id.includes('nano-banana-pro')) return 14;
-    if (selectedModelInfo.id.includes('runway-gen4')) return 3;
-    if (selectedModelInfo.id.includes('flux2')) return 10;
-    if (selectedModelInfo.id.includes('gpt-image-1')) return 5;
+    if (selectedModelInfo.id.includes('flux2')) return 8;
     return 0;
   };
+
+  useEffect(() => {
+    const limit = getReferenceLimit();
+    if (limit <= 0 || referenceImages.length <= limit) return;
+    setReferenceImages((prev) => {
+      const toRemove = prev.slice(limit);
+      toRemove.forEach((img) => {
+        if (img.preview?.startsWith('blob:')) {
+          URL.revokeObjectURL(img.preview);
+        }
+      });
+      return prev.slice(0, limit);
+    });
+    toast.warning(`Reference list trimmed to ${limit} for selected model`);
+  }, [selectedModelInfo?.id, referenceImages.length]);
+
+  useEffect(() => {
+    if (!selectedModel || models.length === 0 || referenceImages.length === 0) return;
+    if (DIRECT_HUB_ALLOWED_REFERENCE_MODELS.has(selectedModel)) return;
+    const fallbackModel =
+      models.find((model) => model.id === 'nano-banana-pro-2k' && DIRECT_HUB_ALLOWED_REFERENCE_MODELS.has(model.id)) ||
+      models.find((model) => DIRECT_HUB_ALLOWED_REFERENCE_MODELS.has(model.id));
+    if (fallbackModel?.id) {
+      setSelectedModel(fallbackModel.id);
+      toast.info(`Switched model to ${fallbackModel.id} for reference-based generation`);
+    }
+  }, [selectedModel, models, referenceImages.length]);
 
   // Camera angles for image generation
   const cameraAngles: CameraAngle[] = [
@@ -241,6 +301,10 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
     if (!files || files.length === 0) return;
 
     const limit = getReferenceLimit();
+    if (limit <= 0) {
+      toast.error('Selected model does not support reference images');
+      return;
+    }
     if (referenceImages.length + files.length > limit) {
       toast.error(`Maximum ${limit} reference images allowed for this model`);
       return;
@@ -296,7 +360,39 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
           throw new Error('S3 upload failed');
         }
 
-        newImages.push({ file, preview, s3Key });
+        // Register uploaded reference in Media Library under System/Images/Uploads.
+        try {
+          await fetch('/api/media/register', {
+            method: 'POST',
+            headers: {
+              Authorization: `Bearer ${token}`,
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              screenplayId: screenplayId || 'default',
+              fileName: file.name,
+              fileType: file.type,
+              fileSize: file.size,
+              s3Key,
+              metadata: {
+                source: 'direct-image-reference-upload',
+                uploadedFrom: 'direct-image-gen',
+              },
+            }),
+          });
+        } catch (registerError) {
+          // Non-fatal: generation can still proceed with S3 key.
+          console.warn('[ImageGenerationTools] Failed to register uploaded reference', registerError);
+        }
+
+        newImages.push({
+          id: `upload-${s3Key || file.name}-${Date.now()}-${Math.random().toString(16).slice(2)}`,
+          file,
+          preview,
+          s3Key,
+          source: 'upload',
+          label: file.name,
+        });
       }
 
       setReferenceImages(prev => [...prev, ...newImages]);
@@ -313,9 +409,111 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
   const removeReferenceImage = (index: number) => {
     setReferenceImages(prev => {
       const removed = prev[index];
-      URL.revokeObjectURL(removed.preview);
+      if (removed?.preview?.startsWith('blob:')) {
+        URL.revokeObjectURL(removed.preview);
+      }
       return prev.filter((_, i) => i !== index);
     });
+  };
+
+  const clearReferenceImages = () => {
+    setReferenceImages((prev) => {
+      prev.forEach((img) => {
+        if (img.preview?.startsWith('blob:')) {
+          URL.revokeObjectURL(img.preview);
+        }
+      });
+      return [];
+    });
+  };
+
+  const loadRecentGeneratedImages = async () => {
+    if (!screenplayId || screenplayId === 'default') {
+      setRecentImages([]);
+      return;
+    }
+    try {
+      setIsLoadingRecentImages(true);
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) return;
+
+      const response = await fetch(
+        `/api/workflows/executions?screenplayId=${encodeURIComponent(screenplayId)}&limit=30`,
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+      if (!response.ok) return;
+
+      const data = await response.json();
+      const jobs = data?.data?.jobs || data?.jobs || [];
+      const imageJobs = (Array.isArray(jobs) ? jobs : [])
+        .filter((job: any) => job?.jobType === 'image-generation' && job?.status === 'completed')
+        .flatMap((job: any) => {
+          const createdAt = job?.createdAt || new Date().toISOString();
+          const images = Array.isArray(job?.results?.images) ? job.results.images : [];
+          return images.map((item: any, index: number) => {
+            const s3Key = typeof item?.s3Key === 'string' ? item.s3Key : '';
+            const directUrl = typeof item?.imageUrl === 'string' ? item.imageUrl : '';
+            const resolvedUrl = directUrl || (s3Key ? `/api/media/file?key=${encodeURIComponent(s3Key)}` : '');
+            if (!resolvedUrl) return null;
+            return {
+              jobId: `${job.jobId || job.executionId || 'job'}-${index}`,
+              imageUrl: resolvedUrl,
+              createdAt,
+              label: typeof item?.label === 'string' ? item.label : 'Generated image',
+            } as RecentGeneratedImage;
+          });
+        })
+        .filter(Boolean) as RecentGeneratedImage[];
+
+      setRecentImages(imageJobs.slice(0, 12));
+    } catch (error) {
+      console.warn('[ImageGenerationTools] Failed to load recent generated images', error);
+    } finally {
+      setIsLoadingRecentImages(false);
+    }
+  };
+
+  useEffect(() => {
+    void loadRecentGeneratedImages();
+  }, [screenplayId, getToken]);
+
+  const handleSelectReferenceImagesFromLibrary = (images: MediaFile[]) => {
+    const limit = getReferenceLimit();
+    if (limit <= 0) {
+      toast.error('Selected model does not support reference images');
+      return;
+    }
+
+    setReferenceImages((prev) => {
+      const existingKeys = new Set(prev.map((img) => img.s3Key).filter(Boolean));
+      const dedupedIncoming = images.filter((img) => img.s3Key && !existingKeys.has(img.s3Key));
+      const remainingSlots = Math.max(0, limit - prev.length);
+      const accepted = dedupedIncoming.slice(0, remainingSlots);
+
+      if (dedupedIncoming.length === 0) {
+        toast.error('All selected images are already in references');
+        return prev;
+      }
+      if (accepted.length < dedupedIncoming.length) {
+        toast.warning(`Added ${accepted.length} image(s). Reached model limit of ${limit}.`);
+      } else {
+        toast.success(`Added ${accepted.length} reference image(s) from library`);
+      }
+
+      const mapped: ReferenceImage[] = accepted.map((img) => ({
+        id: `library-${img.id}`,
+        preview: img.s3Key ? `/api/media/file?key=${encodeURIComponent(img.s3Key)}` : (img.fileUrl || ''),
+        s3Key: img.s3Key,
+        source: 'library',
+        label: img.fileName,
+      })).filter((img) => !!img.s3Key && !!img.preview);
+
+      return [...prev, ...mapped];
+    });
+
+    setShowMediaLibraryBrowser(false);
   };
 
   const handleGenerate = async () => {
@@ -362,6 +560,22 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
       }
 
       const response = await apiModule.image.generate(requestBody);
+      const returnedJobId = response.data?.jobId || response.data?.data?.jobId;
+      if (returnedJobId && screenplayId) {
+        addInFlightJob(returnedJobId);
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(
+            new CustomEvent('wryda:optimistic-job', {
+              detail: {
+                jobId: returnedJobId,
+                screenplayId,
+                jobType: 'image-generation',
+                assetName: 'Direct Image Gen',
+              },
+            })
+          );
+        }
+      }
       
       // Calculate generation time
       const elapsed = (Date.now() - startTime) / 1000;
@@ -380,10 +594,12 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
       }
 
       toast.success('Image generated!');
+      void loadRecentGeneratedImages();
       
       // Reset form (but keep generated image visible)
       setPrompt('');
-      setReferenceImages([]);
+      clearReferenceImages();
+      setShowMediaLibraryBrowser(false);
       setSelectedCameraAngle('');
       
     } catch (error: any) {
@@ -456,41 +672,76 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
                 disabled={isUploading || isGenerating || referenceImages.length >= getReferenceLimit()}
               />
               <div className="space-y-3">
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  disabled={isUploading || isGenerating || referenceImages.length >= getReferenceLimit()}
-                  className={cn(
-                    "w-full px-4 py-3 border-2 border-dashed rounded-lg",
-                    "flex items-center justify-center gap-2 text-sm font-medium transition-colors",
-                    isUploading || isGenerating || referenceImages.length >= getReferenceLimit()
-                      ? "border-[#3F3F46] text-[#808080] cursor-not-allowed"
-                      : "border-[#3F3F46] text-[#808080] hover:border-cinema-red hover:text-cinema-red"
-                  )}
-                >
-                  {isUploading ? (
-                    <>
-                      <Loader2 className="w-4 h-4 animate-spin" />
-                      <span>Uploading...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Upload className="w-4 h-4" />
-                      <span>Upload Reference Images</span>
-                    </>
-                  )}
-                </button>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isUploading || isGenerating || referenceImages.length >= getReferenceLimit()}
+                    className={cn(
+                      "px-4 py-3 border-2 border-dashed rounded-lg",
+                      "flex items-center justify-center gap-2 text-sm font-medium transition-colors",
+                      isUploading || isGenerating || referenceImages.length >= getReferenceLimit()
+                        ? "border-[#3F3F46] text-[#808080] cursor-not-allowed"
+                        : "border-[#3F3F46] text-[#808080] hover:border-cinema-red hover:text-cinema-red"
+                    )}
+                  >
+                    {isUploading ? (
+                      <>
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                        <span>Uploading...</span>
+                      </>
+                    ) : (
+                      <>
+                        <Upload className="w-4 h-4" />
+                        <span>Upload</span>
+                      </>
+                    )}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setShowMediaLibraryBrowser((current) => !current)}
+                    disabled={!screenplayId || isGenerating}
+                    className={cn(
+                      "px-4 py-3 border rounded-lg",
+                      "flex items-center justify-center gap-2 text-sm font-medium transition-colors",
+                      !screenplayId || isGenerating
+                        ? "border-[#3F3F46] text-[#808080] cursor-not-allowed"
+                        : "border-[#3F3F46] text-[#B3B3B3] hover:border-cinema-red hover:text-cinema-red"
+                    )}
+                  >
+                    <FolderOpen className="w-4 h-4" />
+                    <span>{showMediaLibraryBrowser ? 'Close Library' : 'Add from Library'}</span>
+                  </button>
+                </div>
+
+                {showMediaLibraryBrowser && screenplayId && (
+                  <div className="rounded border border-[#2f2f2f] bg-[#0f0f0f] p-2">
+                    <MediaLibraryBrowser
+                      screenplayId={screenplayId}
+                      onSelectImages={handleSelectReferenceImagesFromLibrary}
+                      filterTypes={['image']}
+                      allowMultiSelect={true}
+                      maxSelections={Math.max(1, getReferenceLimit() - referenceImages.length)}
+                      onCancel={() => setShowMediaLibraryBrowser(false)}
+                    />
+                  </div>
+                )}
 
                 {/* Reference Image Previews */}
                 {referenceImages.length > 0 && (
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
                     {referenceImages.map((img, index) => (
-                      <div key={index} className="relative group">
+                      <div key={img.id} className="relative group">
                         <img
                           src={img.preview}
-                          alt={`Reference ${index + 1}`}
+                          alt={img.label || `Reference ${index + 1}`}
                           className="w-full h-24 object-cover rounded-lg border border-[#3F3F46]"
                         />
+                        {index === 0 && (
+                          <span className="absolute top-1 left-1 rounded bg-[#DC143C]/90 px-1.5 py-0.5 text-[10px] text-white">
+                            Primary
+                          </span>
+                        )}
                         <button
                           type="button"
                           onClick={() => removeReferenceImage(index)}
@@ -505,7 +756,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
               </div>
               <div className="mt-1.5 space-y-1">
                 <p className="text-xs text-[#808080]">
-                  Upload reference images to guide generation. Supported by: {selectedModelInfo?.label || selectedModelInfo?.id}
+                  Add references from upload or library. Supported by: {selectedModelInfo?.label || selectedModelInfo?.id}
                 </p>
                 {selectedModel && (
                   <div className="text-xs text-[#4A4A4A] bg-[#1A1A1A] p-2 rounded border border-[#2A2A2A]">
@@ -648,6 +899,45 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
           generationTime={generationTime}
           onDownload={handleDownload}
         />
+        <div className="border-t border-white/10 p-4 md:p-5 bg-[#141414]">
+          <div className="flex items-center justify-between mb-2">
+            <p className="text-sm font-medium text-white">Recent generated images</p>
+            <button
+              type="button"
+              onClick={() => void loadRecentGeneratedImages()}
+              className="text-xs text-[#B3B3B3] hover:text-white"
+              disabled={isLoadingRecentImages}
+            >
+              {isLoadingRecentImages ? 'Refreshing...' : 'Refresh'}
+            </button>
+          </div>
+          {isLoadingRecentImages && recentImages.length === 0 ? (
+            <div className="flex items-center gap-2 text-xs text-[#808080]">
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+              <span>Loading recent generated images...</span>
+            </div>
+          ) : recentImages.length === 0 ? (
+            <p className="text-xs text-[#808080]">No generated images yet.</p>
+          ) : (
+            <div className="grid grid-cols-3 md:grid-cols-4 gap-2 max-h-44 overflow-y-auto pr-1">
+              {recentImages.map((item) => (
+                <button
+                  key={item.jobId}
+                  type="button"
+                  onClick={() => setGeneratedImageUrl(item.imageUrl)}
+                  className="relative rounded overflow-hidden border border-[#3F3F46] hover:border-cinema-red transition-colors"
+                  title={item.label || 'Generated image'}
+                >
+                  <img
+                    src={item.imageUrl}
+                    alt={item.label || 'Generated image'}
+                    className="h-16 w-full object-cover"
+                  />
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );

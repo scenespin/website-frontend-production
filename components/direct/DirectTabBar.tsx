@@ -3,14 +3,14 @@
 /**
  * Direct Tab Bar Component
  *
- * Scene Builder | Shots | Videos | Video Gen
+ * Scene Builder | Shots | Videos | Video Gen | Image Gen
  */
 
 import React from 'react';
-import { Clapperboard, Film, Video, Wand2 } from 'lucide-react';
+import { Clapperboard, Film, Video, Wand2, Image as ImageIcon } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-export type DirectTab = 'scene-builder' | 'shots' | 'videos' | 'video-gen';
+export type DirectTab = 'scene-builder' | 'shots' | 'videos' | 'video-gen' | 'image-gen';
 
 interface DirectTabBarProps {
   activeTab: DirectTab;
@@ -41,6 +41,12 @@ const DIRECT_TABS = [
     label: 'Video Gen',
     icon: Wand2,
     description: 'Generate video from image or prompt',
+  },
+  {
+    id: 'image-gen' as DirectTab,
+    label: 'Image Gen',
+    icon: ImageIcon,
+    description: 'Generate images from prompt or references',
   },
 ] as const;
 

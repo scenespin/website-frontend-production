@@ -1,7 +1,7 @@
 'use client';
 
 /**
- * Direct Hub - Scene Builder | Shots | Videos | Video Gen
+ * Direct Hub - Scene Builder | Shots | Videos | Video Gen | Image Gen
  */
 
 import React, { useState, useEffect, useCallback } from 'react';
@@ -11,13 +11,14 @@ import { SceneBuilderPanel } from '@/components/production/SceneBuilderPanel';
 import { ShotBoardPanel } from '@/components/production/ShotBoardPanel';
 import { VideoBrowserPanel } from '@/components/production/VideoBrowserPanel';
 import { VideoGenerationTools } from '@/components/production/playground/VideoGenerationTools';
+import { ImageGenerationTools } from '@/components/production/playground/ImageGenerationTools';
 import { WorkflowCompletionPoller } from '@/components/production/WorkflowCompletionPoller';
 import { JobsDrawer } from '@/components/production/JobsDrawer';
 import { useInFlightWorkflowJobsStore } from '@/lib/inFlightWorkflowJobsStore';
 import { DirectTabBar, DirectTab } from './DirectTabBar';
 import type { GenerateVideoContext } from '@/components/production/ShotBoardPanel';
 
-const VALID_TABS: DirectTab[] = ['scene-builder', 'shots', 'videos', 'video-gen'];
+const VALID_TABS: DirectTab[] = ['scene-builder', 'shots', 'videos', 'video-gen', 'image-gen'];
 
 export function DirectHub() {
   const screenplay = useScreenplay();
@@ -72,7 +73,10 @@ export function DirectHub() {
   // Jobs drawer is intentionally hidden on Scene Builder.
   // Keep the open state across Direct tabs where jobs monitoring is relevant.
   const shouldShowJobsUi =
-    activeTab === 'shots' || activeTab === 'videos';
+    activeTab === 'shots' ||
+    activeTab === 'videos' ||
+    activeTab === 'video-gen' ||
+    activeTab === 'image-gen';
 
   useEffect(() => {
     if (!shouldShowJobsUi && isJobsDrawerOpen) {
@@ -143,6 +147,14 @@ export function DirectHub() {
               sceneNumber={videoGenPreFill?.sceneNumber}
               sceneName={videoGenPreFill?.sceneHeading}
               shotNumber={videoGenPreFill?.shotNumber}
+            />
+          </div>
+        )}
+
+        {activeTab === 'image-gen' && (
+          <div className="h-full overflow-y-auto">
+            <ImageGenerationTools
+              className="min-h-full"
             />
           </div>
         )}
