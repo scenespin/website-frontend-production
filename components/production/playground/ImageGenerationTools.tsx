@@ -175,6 +175,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
   const [generationStartedAtMs, setGenerationStartedAtMs] = useState<number | null>(null);
   const [recentAttempts, setRecentAttempts] = useState<DirectImageAttempt[]>([]);
   const [attemptsHydrated, setAttemptsHydrated] = useState(false);
+  const [draftHydrated, setDraftHydrated] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const activeAttemptPollsRef = useRef<Set<string>>(new Set());
   const lastHydrateAtMsRef = useRef(0);
@@ -911,7 +912,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
                 );
               })
             : null;
-          const candidateByTimeWindow = imageJobs
+          const candidatesByTimeWindow = imageJobs
             .filter((job: any) => isWorkflowExecutionId(job?.jobId))
             .filter((job: any) => {
               const jobCreatedAtMs = new Date(job?.createdAt || job?.startedAt || 0).getTime();
@@ -921,11 +922,25 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
               const bMs = new Date(b?.createdAt || b?.startedAt || 0).getTime();
               const aMs = new Date(a?.createdAt || a?.startedAt || 0).getTime();
               return bMs - aMs;
-            })[0];
+            });
+          const candidateByTimeWindow = candidatesByTimeWindow[0];
+          const terminalCandidateByTimeWindow = candidatesByTimeWindow.find((job: any) => {
+            const normalized = normalizeAttemptStatus(job?.status);
+            return normalized === 'success' || normalized === 'failed';
+          });
           // When we have a correlation id, require correlation match to avoid
           // accidentally attaching a different in-flight job.
           const candidate = normalizedPendingRequestCorrelationId
-            ? candidateByCorrelationId
+            ? (
+              candidateByCorrelationId ||
+              (
+                !candidateByCorrelationId &&
+                terminalCandidateByTimeWindow &&
+                candidatesByTimeWindow.length === 1
+                  ? terminalCandidateByTimeWindow
+                  : null
+              )
+            )
             : candidateByTimeWindow;
 
           if (candidate?.jobId) {
@@ -941,6 +956,15 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
             ).trim();
             setPendingRequestCorrelationId(matchedCorrelationId || null);
             setIsAwaitingGenerationJobId(false);
+            setRecentAttempts((prev) =>
+              prev.filter(
+                (attempt) =>
+                  !(
+                    (attempt.status === 'running' || attempt.status === 'queued') &&
+                    attempt.message === LOCAL_RECONCILE_PENDING_MESSAGE
+                  )
+              )
+            );
           } else if (Date.now() - generationStartedAtMs > MAX_RECONCILE_AWAIT_MS) {
             upsertAttempt({
               id: `attempt_${Date.now()}`,
@@ -1030,7 +1054,11 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
 
   useEffect(() => {
     const storageKey = getImageGenDraftStorageKey();
-    if (!storageKey || typeof window === 'undefined') return;
+    setDraftHydrated(false);
+    if (!storageKey || typeof window === 'undefined') {
+      setDraftHydrated(true);
+      return;
+    }
 
     try {
       const raw = window.sessionStorage.getItem(storageKey);
@@ -1066,12 +1094,14 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
       }
     } catch (error) {
       console.warn('[ImageGenerationTools] Failed to restore image gen draft state', error);
+    } finally {
+      setDraftHydrated(true);
     }
   }, [screenplayId]);
 
   useEffect(() => {
     const storageKey = getImageGenDraftStorageKey();
-    if (!storageKey || typeof window === 'undefined') return;
+    if (!draftHydrated || !storageKey || typeof window === 'undefined') return;
 
     const persistedReferences: PersistedReferenceImage[] = referenceImages.reduce<PersistedReferenceImage[]>(
       (acc, img) => {
@@ -1098,7 +1128,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
         referenceImages: persistedReferences,
       })
     );
-  }, [screenplayId, prompt, referenceImages]);
+  }, [screenplayId, prompt, referenceImages, draftHydrated]);
 
   const handleSelectReferenceImagesFromLibrary = (images: MediaFile[]) => {
     const limit = getReferenceLimit();
