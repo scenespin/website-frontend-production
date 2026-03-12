@@ -1625,6 +1625,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
           generatedImageUrl={generatedImageUrl}
           generationTime={generationTime}
           showTiming={false}
+          emptyStateHelperText="All generated images are saved in Archive under Images."
           onDownload={handleDownload}
         />
       </div>

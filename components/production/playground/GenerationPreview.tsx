@@ -25,6 +25,8 @@ interface GenerationPreviewProps {
   className?: string;
   /** Optional header label (default: "Output") */
   title?: string;
+  /** Optional helper text shown in empty state under the default placeholder message. */
+  emptyStateHelperText?: string;
 }
 
 export function GenerationPreview({
@@ -39,6 +41,7 @@ export function GenerationPreview({
   onVideoError,
   className = '',
   title = 'Output',
+  emptyStateHelperText,
 }: GenerationPreviewProps) {
   const [displayTime, setDisplayTime] = useState(0);
 
@@ -158,6 +161,11 @@ export function GenerationPreview({
           <div className="h-full flex items-center justify-center">
             <div className="text-center text-base-content/40">
               <p className="text-sm">Generated results will appear here</p>
+              {emptyStateHelperText ? (
+                <p className="mt-2 text-xs text-base-content/35 max-w-md">
+                  {emptyStateHelperText}
+                </p>
+              ) : null}
             </div>
           </div>
         )}
