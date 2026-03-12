@@ -99,6 +99,13 @@ const resolveReferenceInputForRequest = (img: ReferenceImage): string | null => 
   return null;
 };
 
+const createClientJobId = (): string => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return `job_${crypto.randomUUID()}`;
+  }
+  return `job_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+};
+
 const DIRECT_HUB_ALLOWED_PROMPT_MODELS = new Set([
   'flux2-pro-2k',
   'flux2-pro-4k',
@@ -706,7 +713,15 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
     let cancelled = false;
 
     const pollJobUntilTerminal = (jobId: string) => {
-      if (!jobId || activeAttemptPollsRef.current.has(jobId)) return;
+      if (!jobId) return;
+      if (activeAttemptPollsRef.current.has(jobId)) {
+        window.setTimeout(() => {
+          if (!cancelled) {
+            pollJobUntilTerminal(jobId);
+          }
+        }, 3000);
+        return;
+      }
       activeAttemptPollsRef.current.add(jobId);
       void (async () => {
         try {
@@ -924,13 +939,14 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
   const handleGenerate = async () => {
     if (!prompt.trim() || isGenerating || !selectedModel) return;
 
+    const clientJobId = createClientJobId();
     setIsGenerating(true);
     setGeneratedImageUrl(null);
     setGenerationTime(undefined);
-    setPendingGenerationJobId(null);
+    setPendingGenerationJobId(clientJobId);
     const startTime = Date.now();
     setGenerationStartedAtMs(startTime);
-    let keepGeneratingUntilAsyncTerminal = false;
+    let keepGeneratingUntilAsyncTerminal = true;
 
     try {
       const { api: apiModule, setAuthTokenGetter } = await import('@/lib/api');
@@ -968,6 +984,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
         projectId: screenplayId,
         entityType: 'playground',
         entityId: screenplayId, // Jobs Panel: backend requires entityId to create job
+        jobId: clientJobId,
       };
 
       // Add reference images if available
@@ -977,28 +994,29 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
           : referenceImageInputs;
       }
 
+      upsertAttempt({
+        id: `job_${clientJobId}`,
+        jobId: clientJobId,
+        status: 'running',
+        message: 'Image generation in progress...',
+        at: new Date().toISOString(),
+        modelId: selectedModel,
+        aspectRatio,
+      });
+
       const response = await apiModule.image.generate(requestBody);
       const returnedJobId = response.data?.jobId || response.data?.data?.jobId;
-      if (returnedJobId) {
-        upsertAttempt({
-          id: `job_${returnedJobId}`,
-          jobId: returnedJobId,
-          status: 'running',
-          message: 'Image generation in progress...',
-          at: new Date().toISOString(),
-          modelId: selectedModel,
-          aspectRatio,
-        });
-        keepGeneratingUntilAsyncTerminal = true;
-        setPendingGenerationJobId(returnedJobId);
+      const effectiveJobId = returnedJobId || clientJobId;
+      if (effectiveJobId && effectiveJobId !== pendingGenerationJobId) {
+        setPendingGenerationJobId(effectiveJobId);
       }
-      if (returnedJobId && screenplayId) {
-        addInFlightJob(returnedJobId);
+      if (effectiveJobId && screenplayId) {
+        addInFlightJob(effectiveJobId);
         if (typeof window !== 'undefined') {
           window.dispatchEvent(
             new CustomEvent('wryda:optimistic-job', {
               detail: {
-                jobId: returnedJobId,
+                jobId: effectiveJobId,
                 screenplayId,
                 jobType: 'image-generation',
                 assetName: 'Direct Image Gen',
@@ -1016,8 +1034,8 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
         setGenerationTime(elapsed);
         setGeneratedImageUrl(imageUrl);
         upsertAttempt({
-          id: returnedJobId ? `job_${returnedJobId}` : `attempt_${Date.now()}`,
-          jobId: returnedJobId || undefined,
+          id: effectiveJobId ? `job_${effectiveJobId}` : `attempt_${Date.now()}`,
+          jobId: effectiveJobId || undefined,
           status: 'success',
           message: 'Image generated successfully.',
           at: new Date().toISOString(),
@@ -1036,8 +1054,8 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
           const proxyUrl = `/api/media/file?key=${encodeURIComponent(responseS3Key)}`;
           setGeneratedImageUrl(proxyUrl);
           upsertAttempt({
-            id: returnedJobId ? `job_${returnedJobId}` : `attempt_${Date.now()}`,
-            jobId: returnedJobId || undefined,
+            id: effectiveJobId ? `job_${effectiveJobId}` : `attempt_${Date.now()}`,
+            jobId: effectiveJobId || undefined,
             status: 'success',
             message: 'Image generated successfully.',
             at: new Date().toISOString(),
@@ -1065,22 +1083,21 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
       const isGatewayTimeout = statusCode === 502 || statusCode === 503 || statusCode === 504;
       if (isGatewayTimeout) {
         toast.warning('Request timed out, but generation may still complete. Watch Recent attempts.');
+        // Keep pending state alive; backend may still complete the provided jobId.
       } else {
         toast.error(errorMessage);
         upsertAttempt({
-          id: `attempt_${Date.now()}`,
+          id: `job_${clientJobId}`,
+          jobId: clientJobId,
           status: 'failed',
           message: `Failed: ${errorMessage}`,
           at: new Date().toISOString(),
           modelId: selectedModel || undefined,
           aspectRatio,
         });
+        keepGeneratingUntilAsyncTerminal = false;
       }
       setGeneratedImageUrl(null);
-      if (!keepGeneratingUntilAsyncTerminal) {
-        setPendingGenerationJobId(null);
-        setGenerationStartedAtMs(null);
-      }
     } finally {
       if (!keepGeneratingUntilAsyncTerminal) {
         setIsGenerating(false);

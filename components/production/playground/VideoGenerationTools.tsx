@@ -428,7 +428,15 @@ export function VideoGenerationTools({
     let cancelled = false;
 
     const pollVideoJobUntilTerminal = (jobId: string) => {
-      if (!jobId || activeAttemptPollsRef.current.has(jobId)) return;
+      if (!jobId) return;
+      if (activeAttemptPollsRef.current.has(jobId)) {
+        window.setTimeout(() => {
+          if (!cancelled) {
+            pollVideoJobUntilTerminal(jobId);
+          }
+        }, 3000);
+        return;
+      }
       activeAttemptPollsRef.current.add(jobId);
       void (async () => {
         try {
