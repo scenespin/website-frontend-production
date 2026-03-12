@@ -1023,9 +1023,6 @@ export function VideoGenerationTools({
         <p className="text-xs uppercase tracking-wide text-gray-400">Recent attempts</p>
         <span className="text-[10px] text-gray-500">retained ~12h</span>
       </div>
-      <p className="mb-2 text-[10px] text-[#808080]">
-        Generated videos save to Archive under <span className="text-[#B3B3B3]">Videos</span>.
-      </p>
       {recentAttempts.length === 0 ? (
         <p className="text-xs text-[#808080]">No recent attempts yet.</p>
       ) : (

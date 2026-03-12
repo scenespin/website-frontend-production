@@ -225,7 +225,7 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
     fetchNextPage,
     hasNextPage: hasMoreStandalone,
     isFetchingNextPage: isLoadingMoreStandalone,
-  } = useStandaloneVideosPaginated(screenplayId, currentSection === 'standalone');
+  } = useStandaloneVideosPaginated(screenplayId, !!screenplayId);
   const standaloneFiles = useMemo(
     () => ((standalonePages?.pages ?? []) as StandaloneVideosPage[]).flatMap((p) => p.files),
     [standalonePages]
