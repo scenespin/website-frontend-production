@@ -71,6 +71,34 @@ interface DirectImageAttempt {
   aspectRatio?: string;
 }
 
+const resolveReferenceInputForRequest = (img: ReferenceImage): string | null => {
+  if (img.s3Key && img.s3Key.trim().length > 0) {
+    return img.s3Key.trim();
+  }
+  const preview = String(img.preview || '').trim();
+  if (!preview || preview.startsWith('blob:') || preview.startsWith('data:')) {
+    return null;
+  }
+  // Preferred stable proxy format: /api/media/file?key=<s3Key>
+  if (preview.startsWith('/api/media/file?')) {
+    try {
+      const query = preview.includes('?') ? preview.split('?')[1] : '';
+      const params = new URLSearchParams(query);
+      const key = params.get('key');
+      if (key && key.trim().length > 0) {
+        return key.trim();
+      }
+    } catch {
+      return null;
+    }
+  }
+  // Fallback: provider/public URL can still be forwarded to backend resolvers.
+  if (preview.startsWith('http://') || preview.startsWith('https://')) {
+    return preview;
+  }
+  return null;
+};
+
 const DIRECT_HUB_ALLOWED_PROMPT_MODELS = new Set([
   'flux2-pro-2k',
   'flux2-pro-4k',
@@ -909,11 +937,22 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
       setAuthTokenGetter(() => getToken({ template: 'wryda-backend' }));
 
       // Prepare reference image identifiers without constructing provider-specific bucket URLs.
-      const referenceImageUrls = referenceImages
-        .map(img => {
-          return img.s3Key || null;
-        })
-        .filter(Boolean) as string[];
+      const referenceImageInputs = referenceImages
+        .map((img) => resolveReferenceInputForRequest(img))
+        .filter((value): value is string => !!value);
+
+      if (referenceImages.length > 0 && referenceImageInputs.length === 0) {
+        toast.error('Reference images are visible but not valid for generation. Please re-add them.');
+        setIsGenerating(false);
+        setPendingGenerationJobId(null);
+        setGenerationStartedAtMs(null);
+        return;
+      }
+      if (referenceImageInputs.length < referenceImages.length) {
+        toast.warning(
+          `Using ${referenceImageInputs.length}/${referenceImages.length} references. Some stale references were skipped.`
+        );
+      }
 
       // Build final prompt with camera angle
       let finalPrompt = prompt.trim();
@@ -932,10 +971,10 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
       };
 
       // Add reference images if available
-      if (referenceImageUrls.length > 0) {
-        requestBody.characterReference = referenceImageUrls.length === 1 
-          ? referenceImageUrls[0] 
-          : referenceImageUrls;
+      if (referenceImageInputs.length > 0) {
+        requestBody.characterReference = referenceImageInputs.length === 1
+          ? referenceImageInputs[0]
+          : referenceImageInputs;
       }
 
       const response = await apiModule.image.generate(requestBody);
