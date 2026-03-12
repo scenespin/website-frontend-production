@@ -4,7 +4,7 @@
  * Direct Hub - Scene Builder | Shots | Videos | Video Gen | Image Gen
  */
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { SceneBuilderPanel } from '@/components/production/SceneBuilderPanel';
@@ -29,11 +29,14 @@ export function DirectHub() {
   const [activeTab, setActiveTab] = useState<DirectTab>('scene-builder');
   const [videoGenPreFill, setVideoGenPreFill] = useState<GenerateVideoContext | null>(null);
   const [isJobsDrawerOpen, setIsJobsDrawerOpen] = useState(false);
+  const hasInitializedInFlightJobsRef = useRef(false);
+  const previousInFlightJobIdsRef = useRef<Set<string>>(new Set());
 
   // Stable key for WorkflowCompletionPoller (parent subscribes; poller does not - avoids #185)
   const jobIdsKey = useInFlightWorkflowJobsStore((s) =>
     [...s.jobIds].sort().join(',')
   );
+  const inFlightJobIds = useInFlightWorkflowJobsStore((s) => [...s.jobIds].sort());
 
   useEffect(() => {
     const tabFromUrl = searchParams.get('tab');
@@ -82,6 +85,25 @@ export function DirectHub() {
       setIsJobsDrawerOpen(false);
     }
   }, [shouldShowJobsUi, isJobsDrawerOpen]);
+
+  // Auto-open Jobs drawer on Image Gen when a newly tracked job appears,
+  // so users get immediate confirmation their generation is running.
+  useEffect(() => {
+    const currentJobIds = new Set(inFlightJobIds);
+
+    if (!hasInitializedInFlightJobsRef.current) {
+      previousInFlightJobIdsRef.current = currentJobIds;
+      hasInitializedInFlightJobsRef.current = true;
+      return;
+    }
+
+    const hasNewTrackedJob = inFlightJobIds.some((jobId) => !previousInFlightJobIdsRef.current.has(jobId));
+    previousInFlightJobIdsRef.current = currentJobIds;
+
+    if (activeTab === 'image-gen' && hasNewTrackedJob) {
+      setIsJobsDrawerOpen(true);
+    }
+  }, [inFlightJobIds, activeTab]);
 
   // Early return if no screenplay
   if (!screenplayId) {
