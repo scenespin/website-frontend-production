@@ -70,6 +70,19 @@ interface DirectVideoAttempt {
 
 const DEFAULT_ASPECT_RATIOS = ['16:9', '9:16', '1:1', '21:9', '9:21', '4:3', '3:4'];
 const DIRECT_VIDEO_ATTEMPTS_RETENTION_MS = 12 * 60 * 60 * 1000;
+const getS3KeyFromMediaProxyUrl = (url: string): string | undefined => {
+  if (!url) return undefined;
+  try {
+    const parsed = new URL(url, typeof window !== 'undefined' ? window.location.origin : 'http://localhost');
+    if (!parsed.pathname.startsWith('/api/media/file')) return undefined;
+    const key = parsed.searchParams.get('key');
+    if (!key) return undefined;
+    const trimmed = key.trim();
+    return trimmed.length > 0 ? trimmed : undefined;
+  } catch {
+    return undefined;
+  }
+};
 
 /** Single camera option: id is Luma concept key (or '' for None). Same dropdown for all providers; Luma gets concept, others get promptText. */
 interface CameraOption {
@@ -979,14 +992,29 @@ export function VideoGenerationTools({
     }
   };
 
-  const handleDownload = () => {
-    if (generatedVideoUrl) {
+  const handleDownload = async () => {
+    if (!generatedVideoUrl) return;
+    try {
+      const s3Key = getS3KeyFromMediaProxyUrl(generatedVideoUrl);
+      const fetchUrl = s3Key
+        ? `/api/media/file?key=${encodeURIComponent(s3Key)}`
+        : generatedVideoUrl;
+      const response = await fetch(fetchUrl, s3Key ? { credentials: 'include' } : undefined);
+      if (!response.ok) {
+        throw new Error(`Failed to download video (${response.status})`);
+      }
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.href = generatedVideoUrl;
+      link.href = blobUrl;
       link.download = `generated-video-${Date.now()}.mp4`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+    } catch (error) {
+      console.error('Failed to download video:', error);
+      toast.error('Failed to download video');
     }
   };
 

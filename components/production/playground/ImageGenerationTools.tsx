@@ -165,6 +165,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   const [generationTime, setGenerationTime] = useState<number | undefined>(undefined);
   const [pendingGenerationJobId, setPendingGenerationJobId] = useState<string | null>(null);
+  const [isAwaitingGenerationJobId, setIsAwaitingGenerationJobId] = useState(false);
   const [generationStartedAtMs, setGenerationStartedAtMs] = useState<number | null>(null);
   const [recentAttempts, setRecentAttempts] = useState<DirectImageAttempt[]>([]);
   const [attemptsHydrated, setAttemptsHydrated] = useState(false);
@@ -672,19 +673,11 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
     try {
       const raw = window.sessionStorage.getItem(storageKey);
       if (!raw) return;
-      const parsed = JSON.parse(raw) as { jobId?: string; startedAtMs?: number };
+      const parsed = JSON.parse(raw) as { jobId?: string; startedAtMs?: number; awaitingJobId?: boolean };
       const restoredJobId = parsed?.jobId ? String(parsed.jobId).trim() : '';
       const startedAtMs = Number(parsed?.startedAtMs || 0);
+      const awaitingJobId = parsed?.awaitingJobId === true;
       if (!Number.isFinite(startedAtMs) || startedAtMs <= 0) {
-        window.sessionStorage.removeItem(storageKey);
-        return;
-      }
-      // Without a jobId we cannot reconcile terminal status after refresh; clear stale pending marker.
-      if (!restoredJobId) {
-        window.sessionStorage.removeItem(storageKey);
-        return;
-      }
-      if (!isWorkflowExecutionId(restoredJobId)) {
         window.sessionStorage.removeItem(storageKey);
         return;
       }
@@ -693,10 +686,23 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
         window.sessionStorage.removeItem(storageKey);
         return;
       }
-      setGenerationStartedAtMs(startedAtMs);
-      setGenerationTime((Date.now() - startedAtMs) / 1000);
-      setPendingGenerationJobId(restoredJobId);
-      setIsGenerating(true);
+      if (restoredJobId && isWorkflowExecutionId(restoredJobId)) {
+        setGenerationStartedAtMs(startedAtMs);
+        setGenerationTime((Date.now() - startedAtMs) / 1000);
+        setPendingGenerationJobId(restoredJobId);
+        setIsAwaitingGenerationJobId(false);
+        setIsGenerating(true);
+        return;
+      }
+      if (awaitingJobId && Date.now() - startedAtMs <= 2 * 60 * 1000) {
+        setGenerationStartedAtMs(startedAtMs);
+        setGenerationTime((Date.now() - startedAtMs) / 1000);
+        setPendingGenerationJobId(null);
+        setIsAwaitingGenerationJobId(true);
+        setIsGenerating(true);
+        return;
+      }
+      window.sessionStorage.removeItem(storageKey);
     } catch {
       window.sessionStorage.removeItem(storageKey);
     }
@@ -705,18 +711,20 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
   useEffect(() => {
     const storageKey = getActiveGenerationStorageKey();
     if (!storageKey || typeof window === 'undefined') return;
-    if (!isGenerating || !generationStartedAtMs || !pendingGenerationJobId || !isWorkflowExecutionId(pendingGenerationJobId)) {
+    const hasValidPendingJobId = !!pendingGenerationJobId && isWorkflowExecutionId(pendingGenerationJobId);
+    if (!isGenerating || !generationStartedAtMs || (!hasValidPendingJobId && !isAwaitingGenerationJobId)) {
       window.sessionStorage.removeItem(storageKey);
       return;
     }
     window.sessionStorage.setItem(
       storageKey,
       JSON.stringify({
-        jobId: pendingGenerationJobId,
+        jobId: hasValidPendingJobId ? pendingGenerationJobId : null,
         startedAtMs: generationStartedAtMs,
+        awaitingJobId: isAwaitingGenerationJobId,
       })
     );
-  }, [screenplayId, isGenerating, pendingGenerationJobId, generationStartedAtMs]);
+  }, [screenplayId, isGenerating, pendingGenerationJobId, generationStartedAtMs, isAwaitingGenerationJobId]);
 
   useEffect(() => {
     if (!isGenerating || !generationStartedAtMs) return;
@@ -785,10 +793,10 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
         if (!response.ok) return;
         const payload = await response.json();
         const jobs = Array.isArray(payload?.data?.jobs) ? payload.data.jobs : [];
-        jobs
+        const imageJobs = jobs
           .filter((job: any) => job?.jobType === 'image-generation')
-          .slice(0, 12)
-          .forEach((job: any) => {
+          .slice(0, 12);
+        imageJobs.forEach((job: any) => {
             const mappedExecution = {
               executionId: job.jobId,
               status: job.status,
@@ -809,16 +817,53 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
             }
           });
 
+        if (isGenerating && isAwaitingGenerationJobId && !pendingGenerationJobId && generationStartedAtMs) {
+          const thresholdMs = generationStartedAtMs - 30_000;
+          const candidate = imageJobs
+            .filter((job: any) => isWorkflowExecutionId(job?.jobId))
+            .filter((job: any) => {
+              const jobCreatedAtMs = new Date(job?.createdAt || job?.startedAt || 0).getTime();
+              return Number.isFinite(jobCreatedAtMs) && jobCreatedAtMs >= thresholdMs;
+            })
+            .sort((a: any, b: any) => {
+              const bMs = new Date(b?.createdAt || b?.startedAt || 0).getTime();
+              const aMs = new Date(a?.createdAt || a?.startedAt || 0).getTime();
+              return bMs - aMs;
+            })[0];
+
+          if (candidate?.jobId) {
+            setPendingGenerationJobId(String(candidate.jobId));
+            setIsAwaitingGenerationJobId(false);
+          } else if (Date.now() - generationStartedAtMs > 120_000) {
+            upsertAttempt({
+              id: `attempt_${Date.now()}`,
+              status: 'failed',
+              message: 'Failed: generation state could not be reconciled after refresh.',
+              at: new Date().toISOString(),
+              modelId: selectedModel || undefined,
+              aspectRatio,
+            });
+            setIsGenerating(false);
+            setPendingGenerationJobId(null);
+            setIsAwaitingGenerationJobId(false);
+            setGenerationStartedAtMs(null);
+          }
+        }
+
       } catch {
         // Silent fallback; recents media still works.
       }
     };
 
-    const now = Date.now();
-    if (now - lastHydrateAtMsRef.current > 10000) {
+    const runHydrate = () => {
+      const now = Date.now();
+      if (now - lastHydrateAtMsRef.current < 10000) return;
       lastHydrateAtMsRef.current = now;
       void hydrateRecentWorkflowJobs();
-    }
+    };
+
+    runHydrate();
+    const hydrateInterval = window.setInterval(runHydrate, 10000);
     const runningJobs = recentAttempts
       .filter((attempt) => attempt.jobId && (attempt.status === 'running' || attempt.status === 'queued'))
       .map((attempt) => String(attempt.jobId))
@@ -827,8 +872,20 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
 
     return () => {
       cancelled = true;
+      window.clearInterval(hydrateInterval);
     };
-  }, [attemptsHydrated, recentAttempts, screenplayId, getToken]);
+  }, [
+    attemptsHydrated,
+    recentAttempts,
+    screenplayId,
+    getToken,
+    isGenerating,
+    isAwaitingGenerationJobId,
+    pendingGenerationJobId,
+    generationStartedAtMs,
+    selectedModel,
+    aspectRatio,
+  ]);
 
   useEffect(() => {
     if (!pendingGenerationJobId) return;
@@ -844,6 +901,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
     }
     setIsGenerating(false);
     setPendingGenerationJobId(null);
+    setIsAwaitingGenerationJobId(false);
     setGenerationStartedAtMs(null);
   }, [pendingGenerationJobId, recentAttempts, generationStartedAtMs]);
 
@@ -963,6 +1021,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
     setGeneratedImageUrl(null);
     setGenerationTime(undefined);
     setPendingGenerationJobId(null);
+    setIsAwaitingGenerationJobId(true);
     const startTime = Date.now();
     setGenerationStartedAtMs(startTime);
     let keepGeneratingUntilAsyncTerminal = false;
@@ -980,6 +1039,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
         toast.error('Reference images are visible but not valid for generation. Please re-add them.');
         setIsGenerating(false);
         setPendingGenerationJobId(null);
+        setIsAwaitingGenerationJobId(false);
         setGenerationStartedAtMs(null);
         return;
       }
@@ -1017,6 +1077,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
       const effectiveJobId = returnedJobId || null;
       if (effectiveJobId) {
         setPendingGenerationJobId(effectiveJobId);
+        setIsAwaitingGenerationJobId(false);
         keepGeneratingUntilAsyncTerminal = true;
         upsertAttempt({
           id: `job_${effectiveJobId}`,
@@ -1067,6 +1128,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
         });
         keepGeneratingUntilAsyncTerminal = false;
         setPendingGenerationJobId(null);
+        setIsAwaitingGenerationJobId(false);
       } else {
         // Build proxy URL from key if backend returned only key.
         if (responseS3Key) {
@@ -1087,6 +1149,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
           });
           keepGeneratingUntilAsyncTerminal = false;
           setPendingGenerationJobId(null);
+          setIsAwaitingGenerationJobId(false);
         }
       }
 
@@ -1104,7 +1167,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
       const isGatewayTimeout = statusCode === 502 || statusCode === 503 || statusCode === 504;
       if (isGatewayTimeout) {
         toast.warning('Request timed out, but generation may still complete. Watch Recent attempts.');
-        keepGeneratingUntilAsyncTerminal = false;
+        keepGeneratingUntilAsyncTerminal = true;
       } else {
         toast.error(errorMessage);
         upsertAttempt({
@@ -1116,12 +1179,14 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
           aspectRatio,
         });
         keepGeneratingUntilAsyncTerminal = false;
+        setIsAwaitingGenerationJobId(false);
       }
       setGeneratedImageUrl(null);
     } finally {
       if (!keepGeneratingUntilAsyncTerminal) {
         setIsGenerating(false);
         setPendingGenerationJobId(null);
+        setIsAwaitingGenerationJobId(false);
         setGenerationStartedAtMs(null);
       }
     }
