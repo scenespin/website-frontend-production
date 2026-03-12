@@ -31,6 +31,7 @@ import { useRouter } from 'next/navigation';
 import { Z_INDEX } from '@/config/z-index';
 import { getEstimatedDuration } from '@/utils/jobTimeEstimates';
 import { useMediaFiles, useBulkPresignedUrls } from '@/hooks/useMediaLibrary';
+import { downloadImageAsBlob } from '@/utils/imageDownload';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -1556,6 +1557,16 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
     return date.toLocaleDateString();
   };
 
+  const getJobDisplayName = (job: WorkflowJob): string => {
+    if (job.jobType === 'screenplay-reading' && job.metadata?.inputs?.screenplayTitle) {
+      return `Screenplay Reading - ${job.metadata.inputs.screenplayTitle}`;
+    }
+    if (job.jobType === 'image-generation') {
+      return 'Image Generation';
+    }
+    return job.workflowName;
+  };
+
   // Determine z-index based on chat drawer state
   const zIndex = isChatDrawerOpen ? Z_INDEX.JOBS_DRAWER : Z_INDEX.JOBS_DRAWER;
 
@@ -1605,9 +1616,7 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-1.5 mb-1">
                       <h4 className="text-xs font-semibold text-[#E5E7EB] truncate">
-                        {job.jobType === 'screenplay-reading' && job.metadata?.inputs?.screenplayTitle
-                          ? `Screenplay Reading - ${job.metadata.inputs.screenplayTitle}`
-                          : job.workflowName}
+                        {getJobDisplayName(job)}
                       </h4>
                       {getStatusBadge(job.status)}
                     </div>
@@ -1895,20 +1904,47 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
                           const entityId = characterId || locationId || assetId;
                           const entityName = job.metadata?.inputs?.characterName || job.metadata?.inputs?.locationName || job.metadata?.inputs?.assetName;
                           const canNavigate = onNavigateToEntity && entityType && entityId;
+                          const resolvedImageUrl = img.s3Key
+                            ? `/api/media/file?key=${encodeURIComponent(img.s3Key)}`
+                            : (img.imageUrl || '').trim();
+                          const canOpenImage = resolvedImageUrl.length > 0;
                           
                           return (
                             <div
                               key={index}
                               className={`relative aspect-square rounded overflow-hidden border border-[#3F3F46] bg-[#1F1F1F] ${
-                                canNavigate ? 'cursor-pointer hover:border-blue-500 transition-colors' : ''
+                                (canOpenImage || canNavigate) ? 'cursor-pointer hover:border-blue-500 transition-colors' : ''
                               }`}
                               onClick={() => {
+                                if (canOpenImage) {
+                                  const timestamp = Date.now();
+                                  const baseName = (img.label || entityName || 'generated-image')
+                                    .toString()
+                                    .trim()
+                                    .replace(/[^a-z0-9-_]+/gi, '-')
+                                    .replace(/^-+|-+$/g, '')
+                                    .toLowerCase() || 'generated-image';
+                                  void downloadImageAsBlob(
+                                    resolvedImageUrl,
+                                    `${baseName}-${timestamp}`,
+                                    img.s3Key
+                                  ).catch(() => {
+                                    toast.error('Failed to download image');
+                                  });
+                                  return;
+                                }
                                 if (canNavigate && entityType) {
                                   onNavigateToEntity(entityType, entityId);
                                   onClose();
                                 }
                               }}
-                              title={canNavigate ? `View ${entityName || entityType}` : undefined}
+                              title={
+                                canOpenImage
+                                  ? 'Download generated image'
+                                  : canNavigate
+                                    ? `View ${entityName || entityType}`
+                                    : undefined
+                              }
                             >
                               {img.s3Key ? (
 <ImageThumbnailFromS3Key 
