@@ -1557,11 +1557,17 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
     return date.toLocaleDateString();
   };
 
+  const isDirectImageGenJob = (job: WorkflowJob): boolean => {
+    if (job.jobType !== 'image-generation') return false;
+    const inputs = job.metadata?.inputs || {};
+    return !inputs.characterId && !inputs.locationId && !inputs.assetId;
+  };
+
   const getJobDisplayName = (job: WorkflowJob): string => {
     if (job.jobType === 'screenplay-reading' && job.metadata?.inputs?.screenplayTitle) {
       return `Screenplay Reading - ${job.metadata.inputs.screenplayTitle}`;
     }
-    if (job.jobType === 'image-generation') {
+    if (isDirectImageGenJob(job)) {
       return 'Image Generation';
     }
     return job.workflowName;
@@ -1904,10 +1910,11 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
                           const entityId = characterId || locationId || assetId;
                           const entityName = job.metadata?.inputs?.characterName || job.metadata?.inputs?.locationName || job.metadata?.inputs?.assetName;
                           const canNavigate = onNavigateToEntity && entityType && entityId;
+                          const isDirectJob = isDirectImageGenJob(job);
                           const resolvedImageUrl = img.s3Key
                             ? `/api/media/file?key=${encodeURIComponent(img.s3Key)}`
                             : (img.imageUrl || '').trim();
-                          const canOpenImage = resolvedImageUrl.length > 0;
+                          const canOpenImage = isDirectJob && resolvedImageUrl.length > 0;
                           
                           return (
                             <div
@@ -1916,6 +1923,13 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
                                 (canOpenImage || canNavigate) ? 'cursor-pointer hover:border-blue-500 transition-colors' : ''
                               }`}
                               onClick={() => {
+                                // Keep existing behavior for entity-linked jobs: navigate to modal.
+                                // Blob download is only for Direct Image Gen jobs.
+                                if (canNavigate && entityType) {
+                                  onNavigateToEntity(entityType, entityId);
+                                  onClose();
+                                  return;
+                                }
                                 if (canOpenImage) {
                                   const timestamp = Date.now();
                                   const baseName = (img.label || entityName || 'generated-image')
@@ -1933,16 +1947,12 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
                                   });
                                   return;
                                 }
-                                if (canNavigate && entityType) {
-                                  onNavigateToEntity(entityType, entityId);
-                                  onClose();
-                                }
                               }}
                               title={
-                                canOpenImage
-                                  ? 'Download generated image'
-                                  : canNavigate
-                                    ? `View ${entityName || entityType}`
+                                canNavigate
+                                  ? `View ${entityName || entityType}`
+                                  : canOpenImage
+                                    ? 'Download generated image'
                                     : undefined
                               }
                             >
