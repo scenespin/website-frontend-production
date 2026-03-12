@@ -201,6 +201,11 @@ export function VideoGenerationTools({
   const [recentAttempts, setRecentAttempts] = useState<DirectVideoAttempt[]>([]);
   const [attemptsHydrated, setAttemptsHydrated] = useState(false);
   const activeAttemptPollsRef = useRef<Set<string>>(new Set());
+  const lastHydrateAtMsRef = useRef(0);
+  const pendingReconcileMissRef = useRef<{ jobId: string | null; misses: number }>({
+    jobId: null,
+    misses: 0,
+  });
 
   const getDismissedLatestVideoStorageKey = () =>
     `wryda:dismissed-latest-video:${screenplayId || 'default'}`;
@@ -499,23 +504,44 @@ export function VideoGenerationTools({
           Date.now() - generationStartedAtMs > 120000 &&
           !backendJobIds.has(String(pendingGenerationJobId))
         ) {
-          upsertVideoAttempt({
-            id: `job_${pendingGenerationJobId}`,
-            jobId: pendingGenerationJobId,
-            status: 'failed',
-            message: 'Failed: generation state could not be reconciled after refresh.',
-            at: new Date().toISOString(),
-          });
-          setIsGenerating(false);
-          setPendingGenerationJobId(null);
-          setGenerationStartedAtMs(null);
+          if (pendingReconcileMissRef.current.jobId !== pendingGenerationJobId) {
+            pendingReconcileMissRef.current = { jobId: pendingGenerationJobId, misses: 1 };
+          } else {
+            pendingReconcileMissRef.current = {
+              jobId: pendingGenerationJobId,
+              misses: pendingReconcileMissRef.current.misses + 1,
+            };
+          }
+
+          if (pendingReconcileMissRef.current.misses >= 3) {
+            upsertVideoAttempt({
+              id: `job_${pendingGenerationJobId}`,
+              jobId: pendingGenerationJobId,
+              status: 'failed',
+              message: 'Failed: generation state could not be reconciled after refresh.',
+              at: new Date().toISOString(),
+            });
+            setIsGenerating(false);
+            setPendingGenerationJobId(null);
+            setGenerationStartedAtMs(null);
+            pendingReconcileMissRef.current = { jobId: null, misses: 0 };
+          }
+        } else if (
+          !pendingGenerationJobId ||
+          backendJobIds.has(String(pendingGenerationJobId))
+        ) {
+          pendingReconcileMissRef.current = { jobId: null, misses: 0 };
         }
       } catch {
         // Ignore hydration failures to avoid blocking panel render.
       }
     };
 
-    void hydrateVideoJobs();
+    const now = Date.now();
+    if (now - lastHydrateAtMsRef.current > 10000) {
+      lastHydrateAtMsRef.current = now;
+      void hydrateVideoJobs();
+    }
     recentAttempts
       .filter((attempt) => attempt.jobId && (attempt.status === 'running' || attempt.status === 'queued'))
       .forEach((attempt) => pollVideoJobUntilTerminal(String(attempt.jobId)));
