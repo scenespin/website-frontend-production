@@ -67,6 +67,8 @@ interface DirectImageAttempt {
   at: string;
   imageUrl?: string;
   s3Key?: string;
+  modelId?: string;
+  aspectRatio?: string;
 }
 
 const DIRECT_HUB_ALLOWED_PROMPT_MODELS = new Set([
@@ -129,11 +131,20 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
 
   const upsertAttempt = (attempt: DirectImageAttempt) => {
     setRecentAttempts((prev) => {
+      const existing = prev.find(
+        (item) => item.id === attempt.id || (!!attempt.jobId && !!item.jobId && item.jobId === attempt.jobId)
+      );
       const withoutExisting = prev.filter(
         (item) => item.id !== attempt.id && !(attempt.jobId && item.jobId && item.jobId === attempt.jobId)
       );
+      const mergedAttempt: DirectImageAttempt = {
+        ...existing,
+        ...attempt,
+        modelId: attempt.modelId ?? existing?.modelId,
+        aspectRatio: attempt.aspectRatio ?? existing?.aspectRatio,
+      };
       const now = Date.now();
-      const next = [attempt, ...withoutExisting]
+      const next = [mergedAttempt, ...withoutExisting]
         .filter((item) => {
           const atMs = new Date(item.at || 0).getTime();
           return Number.isFinite(atMs) && now - atMs <= DIRECT_IMAGE_ATTEMPTS_RETENTION_MS;
@@ -162,6 +173,18 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
           ? image.imageUrl
           : undefined;
     const errorMessage = execution.error?.userMessage || execution.error?.message || execution.error;
+    const executionInput = execution.input || execution.inputs || execution.request || {};
+    const modelId = String(
+      executionInput.desiredModelId ||
+      executionInput.modelId ||
+      execution.modelId ||
+      ''
+    ).trim() || undefined;
+    const executionAspectRatio = String(
+      executionInput.aspectRatio ||
+      execution.aspectRatio ||
+      ''
+    ).trim() || undefined;
     upsertAttempt({
       id: `job_${jobId}`,
       jobId,
@@ -175,6 +198,8 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
       at: execution.completedAt || execution.updatedAt || execution.startedAt || new Date().toISOString(),
       imageUrl,
       s3Key: imageS3Key,
+      modelId,
+      aspectRatio: executionAspectRatio,
     });
   };
 
@@ -810,6 +835,8 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
           status: 'running',
           message: 'Image generation in progress...',
           at: new Date().toISOString(),
+          modelId: selectedModel,
+          aspectRatio,
         });
       }
       if (returnedJobId && screenplayId) {
@@ -845,6 +872,8 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
           at: new Date().toISOString(),
           imageUrl,
           s3Key: typeof responseS3Key === 'string' ? responseS3Key : undefined,
+          modelId: selectedModel,
+          aspectRatio,
         });
       } else {
         // Build proxy URL from key if backend returned only key.
@@ -859,6 +888,8 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
             at: new Date().toISOString(),
             imageUrl: proxyUrl,
             s3Key: responseS3Key,
+            modelId: selectedModel,
+            aspectRatio,
           });
         }
       }
@@ -877,6 +908,8 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
         status: 'failed',
         message: `Failed: ${errorMessage}`,
         at: new Date().toISOString(),
+        modelId: selectedModel || undefined,
+        aspectRatio,
       });
       setGeneratedImageUrl(null);
     } finally {
@@ -1176,6 +1209,13 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
                   >
                     <div className="min-w-0 pr-2">
                       <p className="truncate">{attempt.message}</p>
+                      {(attempt.modelId || attempt.aspectRatio) && (
+                        <p className="mt-0.5 text-[10px] opacity-80">
+                          {attempt.modelId ? `Model: ${attempt.modelId}` : ''}
+                          {attempt.modelId && attempt.aspectRatio ? ' - ' : ''}
+                          {attempt.aspectRatio ? `Aspect: ${attempt.aspectRatio}` : ''}
+                        </p>
+                      )}
                       {attempt.imageUrl ? (
                         <button
                           type="button"

@@ -768,13 +768,11 @@ export function VideoGenerationTools({
         window.refreshCredits();
       }
       
-      // Calculate generation time
-      const elapsed = (Date.now() - startTime) / 1000;
-      setGenerationTime(elapsed);
-
       // Extract video URL from response (if available immediately)
       const videoUrl = result.data?.videoUrl || result.data?.url || result.data?.s3Url;
       if (videoUrl) {
+        const elapsed = (Date.now() - startTime) / 1000;
+        setGenerationTime(elapsed);
         clearDismissedLatestVideo();
         setGeneratedVideoUrl(videoUrl);
         upsertVideoAttempt({
@@ -791,13 +789,12 @@ export function VideoGenerationTools({
         if (jobId) {
           keepGeneratingUntilAsyncTerminal = true;
           setPendingGenerationJobId(jobId);
-          toast.success('Video generation started!', {
-            description: `Estimated time: ${getEstimatedDuration('complete-scene')}. Check Jobs panel for progress.`
-          });
         } else {
           // Build proxy URL from key if backend returned only key.
           const s3Key = result.data?.s3Key || result.data?.key;
           if (s3Key) {
+            const elapsed = (Date.now() - startTime) / 1000;
+            setGenerationTime(elapsed);
             clearDismissedLatestVideo();
             const proxyUrl = `/api/media/file?key=${encodeURIComponent(s3Key)}`;
             setGeneratedVideoUrl(proxyUrl);
@@ -811,11 +808,6 @@ export function VideoGenerationTools({
             });
           }
         }
-      }
-      
-      // Show toast if no immediate video URL
-      if (!videoUrl && !result.data?.jobId && !result.jobId) {
-        toast.success(`Video generation started (${selectedResolution})! Check your Media Library.`);
       }
       
       // Reset form (but keep generated video visible if available)
