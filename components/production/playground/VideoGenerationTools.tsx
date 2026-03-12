@@ -1474,7 +1474,6 @@ export function VideoGenerationTools({
               </>
             ) : (
               <>
-                <Video className="w-5 h-5" />
                 <span>Generate Video</span>
               </>
             )}

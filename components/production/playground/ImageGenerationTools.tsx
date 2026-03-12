@@ -8,7 +8,7 @@
  */
 
 import React, { useState, useEffect, useRef } from 'react';
-import { FolderOpen, Loader2, Sparkles, Upload, X } from 'lucide-react';
+import { FolderOpen, Loader2, Upload, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
@@ -1376,7 +1376,6 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
               </>
             ) : (
               <>
-                <Sparkles className="w-5 h-5" />
                 <span>Generate Image</span>
               </>
             )}
