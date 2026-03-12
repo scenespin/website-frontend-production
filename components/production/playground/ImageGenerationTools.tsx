@@ -118,6 +118,8 @@ const DIRECT_HUB_ALLOWED_REFERENCE_MODELS = new Set([
   'nano-banana-pro-2k',
 ]);
 const DIRECT_IMAGE_ATTEMPTS_RETENTION_MS = 12 * 60 * 60 * 1000;
+const LOCAL_RECONCILE_FAILURE_MESSAGE =
+  'Could not reconcile generation after refresh. Check Jobs for final status and billing.';
 const isWorkflowExecutionId = (value: unknown): boolean => {
   const jobId = String(value || '').trim();
   if (!jobId) return false;
@@ -208,6 +210,18 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
     if (value === 'completed' || value === 'succeeded' || value === 'success') return 'success';
     return 'failed';
   };
+  const buildFailureMessage = (
+    message: unknown,
+    source: 'backend' | 'local-reconcile' = 'backend'
+  ): string => {
+    if (source === 'local-reconcile') {
+      return `Failed: ${LOCAL_RECONCILE_FAILURE_MESSAGE}`;
+    }
+    const normalized = String(message || '').trim();
+    if (!normalized) return 'Failed: generation error';
+    if (normalized.toLowerCase().startsWith('failed:')) return normalized;
+    return `Failed: ${normalized}`;
+  };
 
   const upsertAttempt = (attempt: DirectImageAttempt) => {
     setRecentAttempts((prev) => {
@@ -288,7 +302,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
           ? 'Image generated successfully.'
           : status === 'running' || status === 'queued'
             ? 'Image generation in progress...'
-            : `Failed: ${String(errorMessage || 'generation error')}`,
+            : buildFailureMessage(errorMessage, 'backend'),
       at: execution.completedAt || execution.updatedAt || execution.startedAt || new Date().toISOString(),
       imageUrl,
       s3Key: imageS3Key,
@@ -921,7 +935,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
             upsertAttempt({
               id: `attempt_${Date.now()}`,
               status: 'failed',
-              message: 'Failed: generation state could not be reconciled after refresh.',
+              message: buildFailureMessage(null, 'local-reconcile'),
               at: new Date().toISOString(),
               modelId: selectedModel || undefined,
               aspectRatio,
@@ -1279,7 +1293,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
         upsertAttempt({
           id: `attempt_${Date.now()}`,
           status: 'failed',
-          message: `Failed: ${errorMessage}`,
+          message: buildFailureMessage(errorMessage, 'backend'),
           at: new Date().toISOString(),
           modelId: selectedModel || undefined,
           aspectRatio,
