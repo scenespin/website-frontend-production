@@ -908,7 +908,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
                 );
               })
             : null;
-          const candidate = candidateByCorrelationId || imageJobs
+          const candidateByTimeWindow = imageJobs
             .filter((job: any) => isWorkflowExecutionId(job?.jobId))
             .filter((job: any) => {
               const jobCreatedAtMs = new Date(job?.createdAt || job?.startedAt || 0).getTime();
@@ -919,6 +919,11 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
               const aMs = new Date(a?.createdAt || a?.startedAt || 0).getTime();
               return bMs - aMs;
             })[0];
+          // When we have a correlation id, require correlation match to avoid
+          // accidentally attaching a different in-flight job.
+          const candidate = normalizedPendingRequestCorrelationId
+            ? candidateByCorrelationId
+            : candidateByTimeWindow;
 
           if (candidate?.jobId) {
             setPendingGenerationJobId(String(candidate.jobId));
@@ -1131,6 +1136,8 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
 
   const handleGenerate = async () => {
     if (!prompt.trim() || isGenerating || !selectedModel) return;
+    const requestModelId = selectedModel;
+    const requestAspectRatio = aspectRatio;
 
     const requestCorrelationId =
       typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
@@ -1173,14 +1180,14 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
       // Build final prompt with camera angle
       let finalPrompt = prompt.trim();
       if (selectedCameraAngle) {
-        const angleText = formatCameraAngleForModel(selectedCameraAngle, selectedModel);
+        const angleText = formatCameraAngleForModel(selectedCameraAngle, requestModelId);
         finalPrompt = finalPrompt + angleText;
       }
 
       const requestBody: any = {
         prompt: finalPrompt,
-        desiredModelId: selectedModel,
-        aspectRatio,
+        desiredModelId: requestModelId,
+        aspectRatio: requestAspectRatio,
         projectId: screenplayId,
         entityType: 'playground',
         entityId: screenplayId, // Jobs Panel: backend requires entityId to create job
@@ -1216,8 +1223,8 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
           status: 'running',
           message: 'Image generation in progress...',
           at: new Date().toISOString(),
-          modelId: selectedModel,
-          aspectRatio,
+          modelId: requestModelId,
+          aspectRatio: requestAspectRatio,
         });
       }
       if (effectiveJobId && screenplayId) {
@@ -1255,8 +1262,8 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
           at: new Date().toISOString(),
           imageUrl: resolvedImageUrl,
           s3Key: typeof responseS3Key === 'string' ? responseS3Key : undefined,
-          modelId: selectedModel,
-          aspectRatio,
+          modelId: requestModelId,
+          aspectRatio: requestAspectRatio,
         });
         keepGeneratingUntilAsyncTerminal = false;
         setPendingGenerationJobId(null);
@@ -1278,8 +1285,8 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
             at: new Date().toISOString(),
             imageUrl: proxyUrl,
             s3Key: responseS3Key,
-            modelId: selectedModel,
-            aspectRatio,
+            modelId: requestModelId,
+            aspectRatio: requestAspectRatio,
           });
           keepGeneratingUntilAsyncTerminal = false;
           setPendingGenerationJobId(null);
@@ -1310,8 +1317,8 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
           status: 'failed',
           message: buildFailureMessage(errorMessage, 'backend'),
           at: new Date().toISOString(),
-          modelId: selectedModel || undefined,
-          aspectRatio,
+          modelId: requestModelId || undefined,
+          aspectRatio: requestAspectRatio,
         });
         keepGeneratingUntilAsyncTerminal = false;
         setIsAwaitingGenerationJobId(false);
