@@ -475,6 +475,11 @@ export function VideoGenerationTools({
         const response = await apiModule.video.getJobs({ limit: 20 });
         const payload = response?.data ?? response;
         const jobs = Array.isArray(payload?.jobs) ? payload.jobs : [];
+        const backendJobIds = new Set(
+          jobs
+            .map((job: any) => String(job?.jobId || job?.id || ''))
+            .filter((jobId: string) => jobId.length > 0)
+        );
         jobs.filter((job: any) => isJobRelevantToPanel(job)).slice(0, 12).forEach((job: any) => {
           upsertVideoAttemptFromJob(job);
           const status = normalizeVideoAttemptStatus(job.status);
@@ -486,6 +491,25 @@ export function VideoGenerationTools({
             pollVideoJobUntilTerminal(String(job.jobId || job.id || ''));
           }
         });
+
+        // Recovery guard: clear stale local "running" state when backend no longer has this job.
+        if (
+          pendingGenerationJobId &&
+          generationStartedAtMs &&
+          Date.now() - generationStartedAtMs > 120000 &&
+          !backendJobIds.has(String(pendingGenerationJobId))
+        ) {
+          upsertVideoAttempt({
+            id: `job_${pendingGenerationJobId}`,
+            jobId: pendingGenerationJobId,
+            status: 'failed',
+            message: 'Failed: generation state could not be reconciled after refresh.',
+            at: new Date().toISOString(),
+          });
+          setIsGenerating(false);
+          setPendingGenerationJobId(null);
+          setGenerationStartedAtMs(null);
+        }
       } catch {
         // Ignore hydration failures to avoid blocking panel render.
       }
@@ -499,7 +523,7 @@ export function VideoGenerationTools({
     return () => {
       cancelled = true;
     };
-  }, [attemptsHydrated, recentAttempts, screenplayId, getToken, propSceneId]);
+  }, [attemptsHydrated, recentAttempts, screenplayId, getToken, propSceneId, pendingGenerationJobId, generationStartedAtMs]);
 
   useEffect(() => {
     if (!pendingGenerationJobId) return;

@@ -774,6 +774,11 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
         if (!response.ok) return;
         const payload = await response.json();
         const jobs = Array.isArray(payload?.data?.jobs) ? payload.data.jobs : [];
+        const backendJobIds = new Set(
+          jobs
+            .map((job: any) => String(job?.jobId || ''))
+            .filter((jobId: string) => jobId.length > 0)
+        );
         jobs
           .filter((job: any) => job?.jobType === 'image-generation')
           .slice(0, 12)
@@ -794,6 +799,25 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
               pollJobUntilTerminal(String(job.jobId || ''));
             }
           });
+
+        // Recovery guard: clear stale local "running" state when backend no longer has this job.
+        if (
+          pendingGenerationJobId &&
+          generationStartedAtMs &&
+          Date.now() - generationStartedAtMs > 120000 &&
+          !backendJobIds.has(String(pendingGenerationJobId))
+        ) {
+          upsertAttempt({
+            id: `job_${pendingGenerationJobId}`,
+            jobId: pendingGenerationJobId,
+            status: 'failed',
+            message: 'Failed: generation state could not be reconciled after refresh.',
+            at: new Date().toISOString(),
+          });
+          setIsGenerating(false);
+          setPendingGenerationJobId(null);
+          setGenerationStartedAtMs(null);
+        }
       } catch {
         // Silent fallback; recents media still works.
       }
@@ -808,7 +832,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
     return () => {
       cancelled = true;
     };
-  }, [attemptsHydrated, recentAttempts, screenplayId, getToken]);
+  }, [attemptsHydrated, recentAttempts, screenplayId, getToken, pendingGenerationJobId, generationStartedAtMs]);
 
   useEffect(() => {
     if (!pendingGenerationJobId) return;
