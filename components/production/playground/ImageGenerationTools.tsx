@@ -117,6 +117,13 @@ const DIRECT_HUB_ALLOWED_REFERENCE_MODELS = new Set([
   'nano-banana-pro-2k',
 ]);
 const DIRECT_IMAGE_ATTEMPTS_RETENTION_MS = 12 * 60 * 60 * 1000;
+const isWorkflowExecutionId = (value: unknown): boolean => {
+  const jobId = String(value || '').trim();
+  if (!jobId) return false;
+  // Legacy client-side placeholder IDs used `job_<uuid>` and are not valid for /api/workflows/:id.
+  if (jobId.startsWith('job_')) return false;
+  return true;
+};
 
 export function ImageGenerationTools({ className = '' }: ImageGenerationToolsProps) {
   const screenplay = useScreenplay();
@@ -664,6 +671,10 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
         window.sessionStorage.removeItem(storageKey);
         return;
       }
+      if (!isWorkflowExecutionId(restoredJobId)) {
+        window.sessionStorage.removeItem(storageKey);
+        return;
+      }
       // Guard stale timers from old sessions.
       if (Date.now() - startedAtMs > 24 * 60 * 60 * 1000) {
         window.sessionStorage.removeItem(storageKey);
@@ -681,7 +692,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
   useEffect(() => {
     const storageKey = getActiveGenerationStorageKey();
     if (!storageKey || typeof window === 'undefined') return;
-    if (!isGenerating || !generationStartedAtMs || !pendingGenerationJobId) {
+    if (!isGenerating || !generationStartedAtMs || !pendingGenerationJobId || !isWorkflowExecutionId(pendingGenerationJobId)) {
       window.sessionStorage.removeItem(storageKey);
       return;
     }
@@ -708,7 +719,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
     let cancelled = false;
 
     const pollJobUntilTerminal = (jobId: string) => {
-      if (!jobId) return;
+      if (!isWorkflowExecutionId(jobId)) return;
       if (activeAttemptPollsRef.current.has(jobId)) {
         window.setTimeout(() => {
           if (!cancelled) {
@@ -780,6 +791,9 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
               startedAt: job.createdAt,
               completedAt: job.completedAt,
               error: job.error,
+              input: job.input || job.inputs || job.request || {},
+              modelId: job.modelId,
+              aspectRatio: job.aspectRatio,
               finalOutputs: {
                 images: Array.isArray(job?.results?.images) ? job.results.images : [],
               },
@@ -803,7 +817,8 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
     }
     const runningJobs = recentAttempts
       .filter((attempt) => attempt.jobId && (attempt.status === 'running' || attempt.status === 'queued'))
-      .map((attempt) => String(attempt.jobId));
+      .map((attempt) => String(attempt.jobId))
+      .filter((jobId) => isWorkflowExecutionId(jobId));
     runningJobs.forEach((jobId) => pollJobUntilTerminal(jobId));
 
     return () => {
