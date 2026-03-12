@@ -362,8 +362,14 @@ export function VideoGenerationTools({
       const raw = window.sessionStorage.getItem(storageKey);
       if (!raw) return;
       const parsed = JSON.parse(raw) as { jobId?: string; startedAtMs?: number };
+      const restoredJobId = parsed?.jobId ? String(parsed.jobId).trim() : '';
       const startedAtMs = Number(parsed?.startedAtMs || 0);
       if (!Number.isFinite(startedAtMs) || startedAtMs <= 0) {
+        window.sessionStorage.removeItem(storageKey);
+        return;
+      }
+      // Without a jobId we cannot reconcile terminal status after refresh; clear stale pending marker.
+      if (!restoredJobId) {
         window.sessionStorage.removeItem(storageKey);
         return;
       }
@@ -373,7 +379,7 @@ export function VideoGenerationTools({
       }
       setGenerationStartedAtMs(startedAtMs);
       setGenerationTime((Date.now() - startedAtMs) / 1000);
-      setPendingGenerationJobId(parsed?.jobId ? String(parsed.jobId) : null);
+      setPendingGenerationJobId(restoredJobId);
       setIsGenerating(true);
     } catch {
       window.sessionStorage.removeItem(storageKey);
@@ -395,7 +401,7 @@ export function VideoGenerationTools({
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const storageKey = getVideoActiveGenerationStorageKey();
-    if (!isGenerating || !generationStartedAtMs) {
+    if (!isGenerating || !generationStartedAtMs || !pendingGenerationJobId) {
       window.sessionStorage.removeItem(storageKey);
       return;
     }
