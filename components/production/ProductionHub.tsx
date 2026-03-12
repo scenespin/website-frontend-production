@@ -147,6 +147,15 @@ export function ProductionHub({}: ProductionHubProps) {
     }
   }, [searchParams]);
 
+  // Support deep-link opening of entity detail modals (used by DirectHub Jobs drawer navigation).
+  useEffect(() => {
+    const openEntityType = searchParams.get('openEntityType');
+    const openEntityId = searchParams.get('openEntityId');
+    if (!openEntityType || !openEntityId) return;
+    if (openEntityType !== 'character' && openEntityType !== 'location' && openEntityType !== 'asset') return;
+    setEntityToOpen({ type: openEntityType, id: openEntityId });
+  }, [searchParams]);
+
   // Responsive detection
   useEffect(() => {
     const checkMobile = () => {

@@ -197,6 +197,14 @@ export function DirectHub() {
           screenplayIdFromHub={screenplayId}
           jobCount={0}
           showCountBadge={false}
+          onNavigateToEntity={(entityType, entityId) => {
+            const targetTab = entityType === 'character' ? 'characters' : entityType === 'location' ? 'locations' : 'assets';
+            const newUrl = new URL(window.location.origin + '/produce');
+            newUrl.searchParams.set('tab', targetTab);
+            newUrl.searchParams.set('openEntityType', entityType);
+            newUrl.searchParams.set('openEntityId', entityId);
+            router.push(newUrl.pathname + newUrl.search, { scroll: false });
+          }}
         />
       )}
     </div>
