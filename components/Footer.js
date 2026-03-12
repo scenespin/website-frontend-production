@@ -122,8 +122,8 @@ export default function Footer() {
         {/* Bottom Bar */}
         <div className="mt-8 pt-8 border-t border-[#3F3F46]">
           <div className="flex flex-col md:flex-row justify-between items-center gap-4">
-            <p className="text-xs text-gray-500">
-              © {currentYear} Garden State Concentrate LLC (DBA Wryda.ai). All rights reserved.
+            <p className="text-xs text-gray-500 text-center md:text-left">
+              © {currentYear} Garden State Concentrate LLC, doing business as Wryda.ai, and wryda.ai. All rights reserved.
             </p>
             <p className="text-xs text-gray-500">
               Screenplay-first connected workflow

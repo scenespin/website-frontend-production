@@ -482,7 +482,7 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
               <button type="button" onClick={() => handleSort('type')} className="flex items-center gap-1 w-28 flex-shrink-0 text-left hover:text-[#B3B3B3]">
                 Type {sortKey === 'type' ? (sortDir === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />) : <ArrowUpDown className="w-3 h-3 opacity-50" />}
               </button>
-              <button type="button" onClick={() => handleSort('provider')} className="flex items-center gap-1 w-24 flex-shrink-0 text-left hover:text-[#B3B3B3]">
+              <button type="button" onClick={() => handleSort('provider')} className="flex items-center gap-1 w-24 sm:w-32 flex-shrink-0 text-left sm:whitespace-nowrap hover:text-[#B3B3B3]">
                 Provider {sortKey === 'provider' ? (sortDir === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />) : <ArrowUpDown className="w-3 h-3 opacity-50" />}
               </button>
               <span className="w-16 flex-shrink-0 text-left">Aspect Ratio</span>
@@ -533,7 +533,10 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
                       </span>
                     )}
                   </span>
-                  <span className="text-xs text-[#808080] w-24 flex-shrink-0">
+                  <span
+                    className="text-xs text-[#808080] w-24 sm:w-32 flex-shrink-0 whitespace-normal break-words sm:whitespace-nowrap sm:overflow-hidden sm:text-ellipsis"
+                    title={entry.providerDisplayLabel ?? getProviderLabel(entry.videoProvider)}
+                  >
                     {entry.providerDisplayLabel ?? getProviderLabel(entry.videoProvider)}
                   </span>
                   <span className="text-xs text-[#808080] w-16 flex-shrink-0">
