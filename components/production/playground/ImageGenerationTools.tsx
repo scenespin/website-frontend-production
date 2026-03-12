@@ -62,6 +62,7 @@ type DirectImageAttemptStatus = 'queued' | 'running' | 'success' | 'failed';
 interface DirectImageAttempt {
   id: string;
   jobId?: string;
+  requestCorrelationId?: string;
   status: DirectImageAttemptStatus;
   message: string;
   at: string;
@@ -165,6 +166,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   const [generationTime, setGenerationTime] = useState<number | undefined>(undefined);
   const [pendingGenerationJobId, setPendingGenerationJobId] = useState<string | null>(null);
+  const [pendingRequestCorrelationId, setPendingRequestCorrelationId] = useState<string | null>(null);
   const [isAwaitingGenerationJobId, setIsAwaitingGenerationJobId] = useState(false);
   const [generationStartedAtMs, setGenerationStartedAtMs] = useState<number | null>(null);
   const [recentAttempts, setRecentAttempts] = useState<DirectImageAttempt[]>([]);
@@ -209,15 +211,29 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
 
   const upsertAttempt = (attempt: DirectImageAttempt) => {
     setRecentAttempts((prev) => {
+      const normalizedAttemptCorrelationId = String(attempt.requestCorrelationId || '').trim();
       const existing = prev.find(
-        (item) => item.id === attempt.id || (!!attempt.jobId && !!item.jobId && item.jobId === attempt.jobId)
+        (item) =>
+          item.id === attempt.id ||
+          (!!attempt.jobId && !!item.jobId && item.jobId === attempt.jobId) ||
+          (!!normalizedAttemptCorrelationId &&
+            !!item.requestCorrelationId &&
+            item.requestCorrelationId === normalizedAttemptCorrelationId)
       );
       const withoutExisting = prev.filter(
-        (item) => item.id !== attempt.id && !(attempt.jobId && item.jobId && item.jobId === attempt.jobId)
+        (item) =>
+          item.id !== attempt.id &&
+          !(attempt.jobId && item.jobId && item.jobId === attempt.jobId) &&
+          !(
+            normalizedAttemptCorrelationId &&
+            item.requestCorrelationId &&
+            item.requestCorrelationId === normalizedAttemptCorrelationId
+          )
       );
       const mergedAttempt: DirectImageAttempt = {
         ...existing,
         ...attempt,
+        requestCorrelationId: attempt.requestCorrelationId ?? existing?.requestCorrelationId,
         modelId: attempt.modelId ?? existing?.modelId,
         aspectRatio: attempt.aspectRatio ?? existing?.aspectRatio,
       };
@@ -244,6 +260,13 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
     const imageUrl = resolveImageUrl(image);
     const errorMessage = execution.error?.userMessage || execution.error?.message || execution.error;
     const executionInput = execution.input || execution.inputs || execution.request || {};
+    const requestCorrelationId = String(
+      execution.requestCorrelationId ||
+      executionInput.requestCorrelationId ||
+      execution.metadata?.requestCorrelationId ||
+      execution.metadata?.inputs?.requestCorrelationId ||
+      ''
+    ).trim() || undefined;
     const modelId = String(
       executionInput.desiredModelId ||
       executionInput.modelId ||
@@ -258,6 +281,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
     upsertAttempt({
       id: `job_${jobId}`,
       jobId,
+      requestCorrelationId,
       status,
       message:
         status === 'success'
@@ -673,10 +697,19 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
     try {
       const raw = window.sessionStorage.getItem(storageKey);
       if (!raw) return;
-      const parsed = JSON.parse(raw) as { jobId?: string; startedAtMs?: number; awaitingJobId?: boolean };
+      const parsed = JSON.parse(raw) as {
+        jobId?: string;
+        startedAtMs?: number;
+        awaitingJobId?: boolean;
+        requestCorrelationId?: string;
+      };
       const restoredJobId = parsed?.jobId ? String(parsed.jobId).trim() : '';
       const startedAtMs = Number(parsed?.startedAtMs || 0);
       const awaitingJobId = parsed?.awaitingJobId === true;
+      const restoredRequestCorrelationId =
+        typeof parsed?.requestCorrelationId === 'string' && parsed.requestCorrelationId.trim().length > 0
+          ? parsed.requestCorrelationId.trim()
+          : null;
       if (!Number.isFinite(startedAtMs) || startedAtMs <= 0) {
         window.sessionStorage.removeItem(storageKey);
         return;
@@ -690,6 +723,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
         setGenerationStartedAtMs(startedAtMs);
         setGenerationTime((Date.now() - startedAtMs) / 1000);
         setPendingGenerationJobId(restoredJobId);
+        setPendingRequestCorrelationId(restoredRequestCorrelationId);
         setIsAwaitingGenerationJobId(false);
         setIsGenerating(true);
         return;
@@ -698,6 +732,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
         setGenerationStartedAtMs(startedAtMs);
         setGenerationTime((Date.now() - startedAtMs) / 1000);
         setPendingGenerationJobId(null);
+        setPendingRequestCorrelationId(restoredRequestCorrelationId);
         setIsAwaitingGenerationJobId(true);
         setIsGenerating(true);
         return;
@@ -712,7 +747,12 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
     const storageKey = getActiveGenerationStorageKey();
     if (!storageKey || typeof window === 'undefined') return;
     const hasValidPendingJobId = !!pendingGenerationJobId && isWorkflowExecutionId(pendingGenerationJobId);
-    if (!isGenerating || !generationStartedAtMs || (!hasValidPendingJobId && !isAwaitingGenerationJobId)) {
+    const normalizedRequestCorrelationId = String(pendingRequestCorrelationId || '').trim() || null;
+    if (
+      !isGenerating ||
+      !generationStartedAtMs ||
+      (!hasValidPendingJobId && !isAwaitingGenerationJobId && !normalizedRequestCorrelationId)
+    ) {
       window.sessionStorage.removeItem(storageKey);
       return;
     }
@@ -722,9 +762,17 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
         jobId: hasValidPendingJobId ? pendingGenerationJobId : null,
         startedAtMs: generationStartedAtMs,
         awaitingJobId: isAwaitingGenerationJobId,
+        requestCorrelationId: normalizedRequestCorrelationId,
       })
     );
-  }, [screenplayId, isGenerating, pendingGenerationJobId, generationStartedAtMs, isAwaitingGenerationJobId]);
+  }, [
+    screenplayId,
+    isGenerating,
+    pendingGenerationJobId,
+    generationStartedAtMs,
+    isAwaitingGenerationJobId,
+    pendingRequestCorrelationId,
+  ]);
 
   useEffect(() => {
     if (!isGenerating || !generationStartedAtMs) return;
@@ -804,6 +852,12 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
               completedAt: job.completedAt,
               error: job.error,
               input: job.input || job.inputs || job.request || {},
+              requestCorrelationId:
+                job.requestCorrelationId ||
+                job.input?.requestCorrelationId ||
+                job.inputs?.requestCorrelationId ||
+                job.metadata?.requestCorrelationId ||
+                job.metadata?.inputs?.requestCorrelationId,
               modelId: job.modelId,
               aspectRatio: job.aspectRatio,
               finalOutputs: {
@@ -819,7 +873,26 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
 
         if (isGenerating && isAwaitingGenerationJobId && !pendingGenerationJobId && generationStartedAtMs) {
           const thresholdMs = generationStartedAtMs - 30_000;
-          const candidate = imageJobs
+          const normalizedPendingRequestCorrelationId =
+            String(pendingRequestCorrelationId || '').trim() || null;
+          const candidateByCorrelationId = normalizedPendingRequestCorrelationId
+            ? imageJobs.find((job: any) => {
+                const jobCorrelationId = String(
+                  job?.requestCorrelationId ||
+                  job?.input?.requestCorrelationId ||
+                  job?.inputs?.requestCorrelationId ||
+                  job?.metadata?.requestCorrelationId ||
+                  job?.metadata?.inputs?.requestCorrelationId ||
+                  ''
+                ).trim();
+                return (
+                  jobCorrelationId.length > 0 &&
+                  jobCorrelationId === normalizedPendingRequestCorrelationId &&
+                  isWorkflowExecutionId(job?.jobId)
+                );
+              })
+            : null;
+          const candidate = candidateByCorrelationId || imageJobs
             .filter((job: any) => isWorkflowExecutionId(job?.jobId))
             .filter((job: any) => {
               const jobCreatedAtMs = new Date(job?.createdAt || job?.startedAt || 0).getTime();
@@ -833,6 +906,16 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
 
           if (candidate?.jobId) {
             setPendingGenerationJobId(String(candidate.jobId));
+            const matchedCorrelationId = String(
+              candidate?.requestCorrelationId ||
+              candidate?.input?.requestCorrelationId ||
+              candidate?.inputs?.requestCorrelationId ||
+              candidate?.metadata?.requestCorrelationId ||
+              candidate?.metadata?.inputs?.requestCorrelationId ||
+              pendingRequestCorrelationId ||
+              ''
+            ).trim();
+            setPendingRequestCorrelationId(matchedCorrelationId || null);
             setIsAwaitingGenerationJobId(false);
           } else if (Date.now() - generationStartedAtMs > 120_000) {
             upsertAttempt({
@@ -845,6 +928,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
             });
             setIsGenerating(false);
             setPendingGenerationJobId(null);
+            setPendingRequestCorrelationId(null);
             setIsAwaitingGenerationJobId(false);
             setGenerationStartedAtMs(null);
           }
@@ -882,6 +966,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
     isGenerating,
     isAwaitingGenerationJobId,
     pendingGenerationJobId,
+    pendingRequestCorrelationId,
     generationStartedAtMs,
     selectedModel,
     aspectRatio,
@@ -901,6 +986,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
     }
     setIsGenerating(false);
     setPendingGenerationJobId(null);
+    setPendingRequestCorrelationId(null);
     setIsAwaitingGenerationJobId(false);
     setGenerationStartedAtMs(null);
   }, [pendingGenerationJobId, recentAttempts, generationStartedAtMs]);
@@ -1017,10 +1103,15 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
   const handleGenerate = async () => {
     if (!prompt.trim() || isGenerating || !selectedModel) return;
 
+    const requestCorrelationId =
+      typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+        ? crypto.randomUUID()
+        : `corr_${Date.now()}_${Math.random().toString(16).slice(2)}`;
     setIsGenerating(true);
     setGeneratedImageUrl(null);
     setGenerationTime(undefined);
     setPendingGenerationJobId(null);
+    setPendingRequestCorrelationId(requestCorrelationId);
     setIsAwaitingGenerationJobId(true);
     const startTime = Date.now();
     setGenerationStartedAtMs(startTime);
@@ -1039,6 +1130,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
         toast.error('Reference images are visible but not valid for generation. Please re-add them.');
         setIsGenerating(false);
         setPendingGenerationJobId(null);
+        setPendingRequestCorrelationId(null);
         setIsAwaitingGenerationJobId(false);
         setGenerationStartedAtMs(null);
         return;
@@ -1063,6 +1155,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
         projectId: screenplayId,
         entityType: 'playground',
         entityId: screenplayId, // Jobs Panel: backend requires entityId to create job
+        requestCorrelationId,
       };
 
       // Add reference images if available
@@ -1074,7 +1167,15 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
 
       const response = await apiModule.image.generate(requestBody);
       const returnedJobId = response.data?.jobId || response.data?.data?.jobId;
+      const returnedRequestCorrelationId =
+        response.data?.requestCorrelationId ||
+        response.data?.data?.requestCorrelationId;
+      const effectiveRequestCorrelationId =
+        (typeof returnedRequestCorrelationId === 'string' && returnedRequestCorrelationId.trim().length > 0
+          ? returnedRequestCorrelationId.trim()
+          : requestCorrelationId);
       const effectiveJobId = returnedJobId || null;
+      setPendingRequestCorrelationId(effectiveRequestCorrelationId);
       if (effectiveJobId) {
         setPendingGenerationJobId(effectiveJobId);
         setIsAwaitingGenerationJobId(false);
@@ -1082,6 +1183,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
         upsertAttempt({
           id: `job_${effectiveJobId}`,
           jobId: effectiveJobId,
+          requestCorrelationId: effectiveRequestCorrelationId,
           status: 'running',
           message: 'Image generation in progress...',
           at: new Date().toISOString(),
@@ -1118,6 +1220,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
         upsertAttempt({
           id: effectiveJobId ? `job_${effectiveJobId}` : `attempt_${Date.now()}`,
           jobId: effectiveJobId || undefined,
+          requestCorrelationId: effectiveRequestCorrelationId,
           status: 'success',
           message: 'Image generated successfully.',
           at: new Date().toISOString(),
@@ -1128,6 +1231,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
         });
         keepGeneratingUntilAsyncTerminal = false;
         setPendingGenerationJobId(null);
+        setPendingRequestCorrelationId(null);
         setIsAwaitingGenerationJobId(false);
       } else {
         // Build proxy URL from key if backend returned only key.
@@ -1139,6 +1243,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
           upsertAttempt({
             id: effectiveJobId ? `job_${effectiveJobId}` : `attempt_${Date.now()}`,
             jobId: effectiveJobId || undefined,
+            requestCorrelationId: effectiveRequestCorrelationId,
             status: 'success',
             message: 'Image generated successfully.',
             at: new Date().toISOString(),
@@ -1149,6 +1254,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
           });
           keepGeneratingUntilAsyncTerminal = false;
           setPendingGenerationJobId(null);
+          setPendingRequestCorrelationId(null);
           setIsAwaitingGenerationJobId(false);
         }
       }
@@ -1180,12 +1286,14 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
         });
         keepGeneratingUntilAsyncTerminal = false;
         setIsAwaitingGenerationJobId(false);
+        setPendingRequestCorrelationId(null);
       }
       setGeneratedImageUrl(null);
     } finally {
       if (!keepGeneratingUntilAsyncTerminal) {
         setIsGenerating(false);
         setPendingGenerationJobId(null);
+        setPendingRequestCorrelationId(null);
         setIsAwaitingGenerationJobId(false);
         setGenerationStartedAtMs(null);
       }
