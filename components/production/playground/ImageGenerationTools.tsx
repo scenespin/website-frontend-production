@@ -124,6 +124,27 @@ const isWorkflowExecutionId = (value: unknown): boolean => {
   if (jobId.startsWith('job_')) return false;
   return true;
 };
+const resolveImageS3Key = (image: any): string | undefined => {
+  const raw =
+    image?.s3Key ||
+    image?.key ||
+    image?.fileKey ||
+    image?.media?.s3Key ||
+    image?.media?.key;
+  if (typeof raw !== 'string') return undefined;
+  const trimmed = raw.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+};
+const resolveImageUrl = (image: any): string | undefined => {
+  const imageS3Key = resolveImageS3Key(image);
+  if (imageS3Key) {
+    return `/api/media/file?key=${encodeURIComponent(imageS3Key)}`;
+  }
+  const raw = image?.imageUrl || image?.url || image?.s3Url;
+  if (typeof raw !== 'string') return undefined;
+  const trimmed = raw.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+};
 
 export function ImageGenerationTools({ className = '' }: ImageGenerationToolsProps) {
   const screenplay = useScreenplay();
@@ -218,16 +239,8 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
     const status = normalizeAttemptStatus(execution.status);
     const outputs = execution.finalOutputs || {};
     const image = Array.isArray(outputs.images) && outputs.images.length > 0 ? outputs.images[0] : null;
-    const imageS3Key =
-      typeof image?.s3Key === 'string' && image.s3Key.trim().length > 0
-        ? image.s3Key.trim()
-        : undefined;
-    const imageUrl =
-      imageS3Key
-        ? `/api/media/file?key=${encodeURIComponent(imageS3Key)}`
-        : typeof image?.imageUrl === 'string' && image.imageUrl.trim().length > 0
-          ? image.imageUrl
-          : undefined;
+    const imageS3Key = resolveImageS3Key(image);
+    const imageUrl = resolveImageUrl(image);
     const errorMessage = execution.error?.userMessage || execution.error?.message || execution.error;
     const executionInput = execution.input || execution.inputs || execution.request || {};
     const modelId = String(
@@ -744,16 +757,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
               if (status === 'success') {
                 const outputs = execution.finalOutputs || {};
                 const image = Array.isArray(outputs.images) && outputs.images.length > 0 ? outputs.images[0] : null;
-                const imageS3Key =
-                  typeof image?.s3Key === 'string' && image.s3Key.trim().length > 0
-                    ? image.s3Key.trim()
-                    : undefined;
-                const imageUrl =
-                  imageS3Key
-                    ? `/api/media/file?key=${encodeURIComponent(imageS3Key)}`
-                    : typeof image?.imageUrl === 'string' && image.imageUrl.trim().length > 0
-                      ? image.imageUrl
-                      : undefined;
+                const imageUrl = resolveImageUrl(image);
                 if (imageUrl) setGeneratedImageUrl(imageUrl);
               }
               return;
@@ -1041,19 +1045,22 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
       }
       
       // Extract image URL from response
+      const responseS3Key = resolveImageS3Key(response?.data);
       const imageUrl = response.data?.imageUrl || response.data?.url || response.data?.s3Url;
-      const responseS3Key = response.data?.s3Key || response.data?.key;
-      if (imageUrl) {
+      const resolvedImageUrl = responseS3Key
+        ? `/api/media/file?key=${encodeURIComponent(responseS3Key)}`
+        : (typeof imageUrl === 'string' && imageUrl.trim().length > 0 ? imageUrl.trim() : undefined);
+      if (resolvedImageUrl) {
         const elapsed = (Date.now() - startTime) / 1000;
         setGenerationTime(elapsed);
-        setGeneratedImageUrl(imageUrl);
+        setGeneratedImageUrl(resolvedImageUrl);
         upsertAttempt({
           id: effectiveJobId ? `job_${effectiveJobId}` : `attempt_${Date.now()}`,
           jobId: effectiveJobId || undefined,
           status: 'success',
           message: 'Image generated successfully.',
           at: new Date().toISOString(),
-          imageUrl,
+          imageUrl: resolvedImageUrl,
           s3Key: typeof responseS3Key === 'string' ? responseS3Key : undefined,
           modelId: selectedModel,
           aspectRatio,
@@ -1394,6 +1401,9 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
               <p className="text-xs uppercase tracking-wide text-gray-400">Recent attempts</p>
               <span className="text-[10px] text-gray-500">retained ~12h</span>
             </div>
+          <p className="mb-2 text-[10px] text-[#808080]">
+            Generated images save to Archive under <span className="text-[#B3B3B3]">Images/Generated</span>.
+          </p>
             {recentAttempts.length === 0 ? (
               <p className="text-xs text-[#808080]">No recent attempts yet.</p>
             ) : (
