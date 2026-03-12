@@ -99,13 +99,6 @@ const resolveReferenceInputForRequest = (img: ReferenceImage): string | null => 
   return null;
 };
 
-const createClientJobId = (): string => {
-  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-    return `job_${crypto.randomUUID()}`;
-  }
-  return `job_${Date.now()}_${Math.random().toString(16).slice(2)}`;
-};
-
 const DIRECT_HUB_ALLOWED_PROMPT_MODELS = new Set([
   'flux2-pro-2k',
   'flux2-pro-4k',
@@ -149,6 +142,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
   const [attemptsHydrated, setAttemptsHydrated] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const activeAttemptPollsRef = useRef<Set<string>>(new Set());
+  const lastHydrateAtMsRef = useRef(0);
   const getImageGenDraftStorageKey = () => {
     if (!screenplayId) return null;
     return `direct-image-gen:draft:${screenplayId}`;
@@ -265,6 +259,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
       headers: { Authorization: `Bearer ${token}` },
       cache: 'no-store',
     });
+    if (response.status === 404) return { __notFound: true } as any;
     if (!response.ok) return null;
     const payload = await response.json();
     return payload?.data?.execution || null;
@@ -730,6 +725,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
             await new Promise((resolve) => setTimeout(resolve, 2500));
             if (cancelled) return;
             const execution = await fetchWorkflowExecution(jobId);
+            if (execution?.__notFound) return;
             if (!execution || cancelled) continue;
             upsertAttemptFromWorkflowExecution(execution);
             const status = normalizeAttemptStatus(execution.status);
@@ -774,11 +770,6 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
         if (!response.ok) return;
         const payload = await response.json();
         const jobs = Array.isArray(payload?.data?.jobs) ? payload.data.jobs : [];
-        const backendJobIds = new Set(
-          jobs
-            .map((job: any) => String(job?.jobId || ''))
-            .filter((jobId: string) => jobId.length > 0)
-        );
         jobs
           .filter((job: any) => job?.jobType === 'image-generation')
           .slice(0, 12)
@@ -800,30 +791,16 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
             }
           });
 
-        // Recovery guard: clear stale local "running" state when backend no longer has this job.
-        if (
-          pendingGenerationJobId &&
-          generationStartedAtMs &&
-          Date.now() - generationStartedAtMs > 120000 &&
-          !backendJobIds.has(String(pendingGenerationJobId))
-        ) {
-          upsertAttempt({
-            id: `job_${pendingGenerationJobId}`,
-            jobId: pendingGenerationJobId,
-            status: 'failed',
-            message: 'Failed: generation state could not be reconciled after refresh.',
-            at: new Date().toISOString(),
-          });
-          setIsGenerating(false);
-          setPendingGenerationJobId(null);
-          setGenerationStartedAtMs(null);
-        }
       } catch {
         // Silent fallback; recents media still works.
       }
     };
 
-    void hydrateRecentWorkflowJobs();
+    const now = Date.now();
+    if (now - lastHydrateAtMsRef.current > 10000) {
+      lastHydrateAtMsRef.current = now;
+      void hydrateRecentWorkflowJobs();
+    }
     const runningJobs = recentAttempts
       .filter((attempt) => attempt.jobId && (attempt.status === 'running' || attempt.status === 'queued'))
       .map((attempt) => String(attempt.jobId));
@@ -832,7 +809,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
     return () => {
       cancelled = true;
     };
-  }, [attemptsHydrated, recentAttempts, screenplayId, getToken, pendingGenerationJobId, generationStartedAtMs]);
+  }, [attemptsHydrated, recentAttempts, screenplayId, getToken]);
 
   useEffect(() => {
     if (!pendingGenerationJobId) return;
@@ -963,14 +940,13 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
   const handleGenerate = async () => {
     if (!prompt.trim() || isGenerating || !selectedModel) return;
 
-    const clientJobId = createClientJobId();
     setIsGenerating(true);
     setGeneratedImageUrl(null);
     setGenerationTime(undefined);
-    setPendingGenerationJobId(clientJobId);
+    setPendingGenerationJobId(null);
     const startTime = Date.now();
     setGenerationStartedAtMs(startTime);
-    let keepGeneratingUntilAsyncTerminal = true;
+    let keepGeneratingUntilAsyncTerminal = false;
 
     try {
       const { api: apiModule, setAuthTokenGetter } = await import('@/lib/api');
@@ -1008,7 +984,6 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
         projectId: screenplayId,
         entityType: 'playground',
         entityId: screenplayId, // Jobs Panel: backend requires entityId to create job
-        jobId: clientJobId,
       };
 
       // Add reference images if available
@@ -1018,21 +993,21 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
           : referenceImageInputs;
       }
 
-      upsertAttempt({
-        id: `job_${clientJobId}`,
-        jobId: clientJobId,
-        status: 'running',
-        message: 'Image generation in progress...',
-        at: new Date().toISOString(),
-        modelId: selectedModel,
-        aspectRatio,
-      });
-
       const response = await apiModule.image.generate(requestBody);
       const returnedJobId = response.data?.jobId || response.data?.data?.jobId;
-      const effectiveJobId = returnedJobId || clientJobId;
-      if (effectiveJobId && effectiveJobId !== pendingGenerationJobId) {
+      const effectiveJobId = returnedJobId || null;
+      if (effectiveJobId) {
         setPendingGenerationJobId(effectiveJobId);
+        keepGeneratingUntilAsyncTerminal = true;
+        upsertAttempt({
+          id: `job_${effectiveJobId}`,
+          jobId: effectiveJobId,
+          status: 'running',
+          message: 'Image generation in progress...',
+          at: new Date().toISOString(),
+          modelId: selectedModel,
+          aspectRatio,
+        });
       }
       if (effectiveJobId && screenplayId) {
         addInFlightJob(effectiveJobId);
@@ -1107,12 +1082,11 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
       const isGatewayTimeout = statusCode === 502 || statusCode === 503 || statusCode === 504;
       if (isGatewayTimeout) {
         toast.warning('Request timed out, but generation may still complete. Watch Recent attempts.');
-        // Keep pending state alive; backend may still complete the provided jobId.
+        keepGeneratingUntilAsyncTerminal = false;
       } else {
         toast.error(errorMessage);
         upsertAttempt({
-          id: `job_${clientJobId}`,
-          jobId: clientJobId,
+          id: `attempt_${Date.now()}`,
           status: 'failed',
           message: `Failed: ${errorMessage}`,
           at: new Date().toISOString(),
