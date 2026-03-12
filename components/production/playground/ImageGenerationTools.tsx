@@ -108,6 +108,8 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
   const [selectedCameraAngle, setSelectedCameraAngle] = useState<string>('');
   const [generatedImageUrl, setGeneratedImageUrl] = useState<string | null>(null);
   const [generationTime, setGenerationTime] = useState<number | undefined>(undefined);
+  const [pendingGenerationJobId, setPendingGenerationJobId] = useState<string | null>(null);
+  const [generationStartedAtMs, setGenerationStartedAtMs] = useState<number | null>(null);
   const [recentAttempts, setRecentAttempts] = useState<DirectImageAttempt[]>([]);
   const [attemptsHydrated, setAttemptsHydrated] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -120,11 +122,29 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
     if (!screenplayId) return null;
     return `direct-image-gen:attempts:${screenplayId}`;
   };
+  const getActiveGenerationStorageKey = () => {
+    if (!screenplayId) return null;
+    return `direct-image-gen:active-generation:${screenplayId}`;
+  };
 
   const normalizeAttemptStatus = (status: unknown): DirectImageAttemptStatus => {
     const value = String(status || '').toLowerCase();
     if (value === 'queued') return 'queued';
-    if (value === 'running' || value === 'processing' || value === 'pending' || value === 'in_progress') return 'running';
+    if (
+      value === 'running' ||
+      value === 'processing' ||
+      value === 'pending' ||
+      value === 'in_progress' ||
+      value === 'submitted' ||
+      value === 'starting' ||
+      value === 'rendering' ||
+      value === 'finalizing' ||
+      value === 'generating' ||
+      value === 'enhancing' ||
+      value === 'accepted'
+    ) {
+      return 'running';
+    }
     if (value === 'completed' || value === 'succeeded' || value === 'success') return 'success';
     return 'failed';
   };
@@ -597,6 +617,57 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
   }, [attemptsHydrated, recentAttempts, screenplayId]);
 
   useEffect(() => {
+    const storageKey = getActiveGenerationStorageKey();
+    if (!storageKey || typeof window === 'undefined') return;
+    try {
+      const raw = window.sessionStorage.getItem(storageKey);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as { jobId?: string; startedAtMs?: number };
+      const startedAtMs = Number(parsed?.startedAtMs || 0);
+      if (!Number.isFinite(startedAtMs) || startedAtMs <= 0) {
+        window.sessionStorage.removeItem(storageKey);
+        return;
+      }
+      // Guard stale timers from old sessions.
+      if (Date.now() - startedAtMs > 24 * 60 * 60 * 1000) {
+        window.sessionStorage.removeItem(storageKey);
+        return;
+      }
+      setGenerationStartedAtMs(startedAtMs);
+      setGenerationTime((Date.now() - startedAtMs) / 1000);
+      setPendingGenerationJobId(parsed?.jobId ? String(parsed.jobId) : null);
+      setIsGenerating(true);
+    } catch {
+      window.sessionStorage.removeItem(storageKey);
+    }
+  }, [screenplayId]);
+
+  useEffect(() => {
+    const storageKey = getActiveGenerationStorageKey();
+    if (!storageKey || typeof window === 'undefined') return;
+    if (!isGenerating || !generationStartedAtMs) {
+      window.sessionStorage.removeItem(storageKey);
+      return;
+    }
+    window.sessionStorage.setItem(
+      storageKey,
+      JSON.stringify({
+        jobId: pendingGenerationJobId,
+        startedAtMs: generationStartedAtMs,
+      })
+    );
+  }, [screenplayId, isGenerating, pendingGenerationJobId, generationStartedAtMs]);
+
+  useEffect(() => {
+    if (!isGenerating || !generationStartedAtMs) return;
+    setGenerationTime((Date.now() - generationStartedAtMs) / 1000);
+    const interval = window.setInterval(() => {
+      setGenerationTime((Date.now() - generationStartedAtMs) / 1000);
+    }, 250);
+    return () => window.clearInterval(interval);
+  }, [isGenerating, generationStartedAtMs]);
+
+  useEffect(() => {
     if (!screenplayId || !attemptsHydrated) return;
     let cancelled = false;
 
@@ -606,7 +677,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
       void (async () => {
         try {
           const startedAt = Date.now();
-          while (!cancelled && Date.now() - startedAt < 3 * 60 * 1000) {
+          while (!cancelled && Date.now() - startedAt < 20 * 60 * 1000) {
             await new Promise((resolve) => setTimeout(resolve, 2500));
             if (cancelled) return;
             const execution = await fetchWorkflowExecution(jobId);
@@ -614,6 +685,21 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
             upsertAttemptFromWorkflowExecution(execution);
             const status = normalizeAttemptStatus(execution.status);
             if (status === 'success' || status === 'failed') {
+              if (status === 'success') {
+                const outputs = execution.finalOutputs || {};
+                const image = Array.isArray(outputs.images) && outputs.images.length > 0 ? outputs.images[0] : null;
+                const imageS3Key =
+                  typeof image?.s3Key === 'string' && image.s3Key.trim().length > 0
+                    ? image.s3Key.trim()
+                    : undefined;
+                const imageUrl =
+                  imageS3Key
+                    ? `/api/media/file?key=${encodeURIComponent(imageS3Key)}`
+                    : typeof image?.imageUrl === 'string' && image.imageUrl.trim().length > 0
+                      ? image.imageUrl
+                      : undefined;
+                if (imageUrl) setGeneratedImageUrl(imageUrl);
+              }
               return;
             }
           }
@@ -674,6 +760,23 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
       cancelled = true;
     };
   }, [attemptsHydrated, recentAttempts, screenplayId, getToken]);
+
+  useEffect(() => {
+    if (!pendingGenerationJobId) return;
+    const matchingAttempt = recentAttempts.find((attempt) => attempt.jobId === pendingGenerationJobId);
+    if (!matchingAttempt) return;
+    if (matchingAttempt.status !== 'success' && matchingAttempt.status !== 'failed') return;
+
+    if (generationStartedAtMs) {
+      setGenerationTime((Date.now() - generationStartedAtMs) / 1000);
+    }
+    if (matchingAttempt.status === 'success' && matchingAttempt.imageUrl) {
+      setGeneratedImageUrl(matchingAttempt.imageUrl);
+    }
+    setIsGenerating(false);
+    setPendingGenerationJobId(null);
+    setGenerationStartedAtMs(null);
+  }, [pendingGenerationJobId, recentAttempts, generationStartedAtMs]);
 
   useEffect(() => {
     const storageKey = getImageGenDraftStorageKey();
@@ -790,7 +893,10 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
     setIsGenerating(true);
     setGeneratedImageUrl(null);
     setGenerationTime(undefined);
+    setPendingGenerationJobId(null);
     const startTime = Date.now();
+    setGenerationStartedAtMs(startTime);
+    let keepGeneratingUntilAsyncTerminal = false;
 
     try {
       const { api: apiModule, setAuthTokenGetter } = await import('@/lib/api');
@@ -838,6 +944,8 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
           modelId: selectedModel,
           aspectRatio,
         });
+        keepGeneratingUntilAsyncTerminal = true;
+        setPendingGenerationJobId(returnedJobId);
       }
       if (returnedJobId && screenplayId) {
         addInFlightJob(returnedJobId);
@@ -855,14 +963,12 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
         }
       }
       
-      // Calculate generation time
-      const elapsed = (Date.now() - startTime) / 1000;
-      setGenerationTime(elapsed);
-
       // Extract image URL from response
       const imageUrl = response.data?.imageUrl || response.data?.url || response.data?.s3Url;
       const responseS3Key = response.data?.s3Key || response.data?.key;
       if (imageUrl) {
+        const elapsed = (Date.now() - startTime) / 1000;
+        setGenerationTime(elapsed);
         setGeneratedImageUrl(imageUrl);
         upsertAttempt({
           id: returnedJobId ? `job_${returnedJobId}` : `attempt_${Date.now()}`,
@@ -875,9 +981,13 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
           modelId: selectedModel,
           aspectRatio,
         });
+        keepGeneratingUntilAsyncTerminal = false;
+        setPendingGenerationJobId(null);
       } else {
         // Build proxy URL from key if backend returned only key.
         if (responseS3Key) {
+          const elapsed = (Date.now() - startTime) / 1000;
+          setGenerationTime(elapsed);
           const proxyUrl = `/api/media/file?key=${encodeURIComponent(responseS3Key)}`;
           setGeneratedImageUrl(proxyUrl);
           upsertAttempt({
@@ -891,10 +1001,14 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
             modelId: selectedModel,
             aspectRatio,
           });
+          keepGeneratingUntilAsyncTerminal = false;
+          setPendingGenerationJobId(null);
         }
       }
 
-      toast.success('Image generated!');
+      if (!keepGeneratingUntilAsyncTerminal) {
+        toast.success('Image generated!');
+      }
       
       // Keep draft inputs after generate (matches remix workflow behavior).
       setShowMediaLibraryBrowser(false);
@@ -902,18 +1016,32 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
     } catch (error: any) {
       console.error('Image generation failed:', error);
       const errorMessage = error.response?.data?.message || error.message || 'Failed to generate image';
-      toast.error(errorMessage);
-      upsertAttempt({
-        id: `attempt_${Date.now()}`,
-        status: 'failed',
-        message: `Failed: ${errorMessage}`,
-        at: new Date().toISOString(),
-        modelId: selectedModel || undefined,
-        aspectRatio,
-      });
+      const statusCode = Number(error?.response?.status || 0);
+      const isGatewayTimeout = statusCode === 502 || statusCode === 503 || statusCode === 504;
+      if (isGatewayTimeout) {
+        toast.warning('Request timed out, but generation may still complete. Watch Recent attempts.');
+      } else {
+        toast.error(errorMessage);
+        upsertAttempt({
+          id: `attempt_${Date.now()}`,
+          status: 'failed',
+          message: `Failed: ${errorMessage}`,
+          at: new Date().toISOString(),
+          modelId: selectedModel || undefined,
+          aspectRatio,
+        });
+      }
       setGeneratedImageUrl(null);
+      if (!keepGeneratingUntilAsyncTerminal) {
+        setPendingGenerationJobId(null);
+        setGenerationStartedAtMs(null);
+      }
     } finally {
-      setIsGenerating(false);
+      if (!keepGeneratingUntilAsyncTerminal) {
+        setIsGenerating(false);
+        setPendingGenerationJobId(null);
+        setGenerationStartedAtMs(null);
+      }
     }
   };
 

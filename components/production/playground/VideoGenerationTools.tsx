@@ -206,6 +206,8 @@ export function VideoGenerationTools({
     `wryda:dismissed-latest-video:${screenplayId || 'default'}`;
   const getVideoAttemptsStorageKey = () =>
     `direct-video-gen:attempts:${screenplayId || 'default'}`;
+  const getVideoActiveGenerationStorageKey = () =>
+    `direct-video-gen:active-generation:${screenplayId || 'default'}`;
 
   const normalizeVideoAttemptStatus = (status: unknown): DirectVideoAttemptStatus => {
     const value = String(status || '').toLowerCase();
@@ -216,7 +218,12 @@ export function VideoGenerationTools({
       value === 'pending' ||
       value === 'generating' ||
       value === 'enhancing' ||
-      value === 'in_progress'
+      value === 'in_progress' ||
+      value === 'submitted' ||
+      value === 'starting' ||
+      value === 'rendering' ||
+      value === 'finalizing' ||
+      value === 'accepted'
     ) {
       return 'running';
     }
@@ -349,6 +356,31 @@ export function VideoGenerationTools({
   }, [screenplayId]);
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const storageKey = getVideoActiveGenerationStorageKey();
+    try {
+      const raw = window.sessionStorage.getItem(storageKey);
+      if (!raw) return;
+      const parsed = JSON.parse(raw) as { jobId?: string; startedAtMs?: number };
+      const startedAtMs = Number(parsed?.startedAtMs || 0);
+      if (!Number.isFinite(startedAtMs) || startedAtMs <= 0) {
+        window.sessionStorage.removeItem(storageKey);
+        return;
+      }
+      if (Date.now() - startedAtMs > 24 * 60 * 60 * 1000) {
+        window.sessionStorage.removeItem(storageKey);
+        return;
+      }
+      setGenerationStartedAtMs(startedAtMs);
+      setGenerationTime((Date.now() - startedAtMs) / 1000);
+      setPendingGenerationJobId(parsed?.jobId ? String(parsed.jobId) : null);
+      setIsGenerating(true);
+    } catch {
+      window.sessionStorage.removeItem(storageKey);
+    }
+  }, [screenplayId]);
+
+  useEffect(() => {
     if (typeof window === 'undefined' || !attemptsHydrated) return;
     const now = Date.now();
     const retained = recentAttempts
@@ -359,6 +391,31 @@ export function VideoGenerationTools({
       .slice(0, 20);
     window.sessionStorage.setItem(getVideoAttemptsStorageKey(), JSON.stringify(retained));
   }, [attemptsHydrated, recentAttempts, screenplayId]);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const storageKey = getVideoActiveGenerationStorageKey();
+    if (!isGenerating || !generationStartedAtMs) {
+      window.sessionStorage.removeItem(storageKey);
+      return;
+    }
+    window.sessionStorage.setItem(
+      storageKey,
+      JSON.stringify({
+        jobId: pendingGenerationJobId,
+        startedAtMs: generationStartedAtMs,
+      })
+    );
+  }, [screenplayId, isGenerating, pendingGenerationJobId, generationStartedAtMs]);
+
+  useEffect(() => {
+    if (!isGenerating || !generationStartedAtMs) return;
+    setGenerationTime((Date.now() - generationStartedAtMs) / 1000);
+    const interval = window.setInterval(() => {
+      setGenerationTime((Date.now() - generationStartedAtMs) / 1000);
+    }, 250);
+    return () => window.clearInterval(interval);
+  }, [isGenerating, generationStartedAtMs]);
 
   useEffect(() => {
     if (!screenplayId || !attemptsHydrated) return;
@@ -372,7 +429,7 @@ export function VideoGenerationTools({
           const { api: apiModule, setAuthTokenGetter } = await import('@/lib/api');
           setAuthTokenGetter(() => getToken({ template: 'wryda-backend' }));
           const startedAt = Date.now();
-          while (!cancelled && Date.now() - startedAt < 6 * 60 * 1000) {
+          while (!cancelled && Date.now() - startedAt < 20 * 60 * 1000) {
             await new Promise((resolve) => setTimeout(resolve, 2500));
             if (cancelled) return;
             const response = await apiModule.video.getJobStatus(jobId);
@@ -407,6 +464,10 @@ export function VideoGenerationTools({
         jobs.filter((job: any) => isJobRelevantToPanel(job)).slice(0, 12).forEach((job: any) => {
           upsertVideoAttemptFromJob(job);
           const status = normalizeVideoAttemptStatus(job.status);
+          if (status === 'success' && typeof job?.videos?.[0]?.videoUrl === 'string') {
+            clearDismissedLatestVideo();
+            setGeneratedVideoUrl(job.videos[0].videoUrl);
+          }
           if (status === 'running' || status === 'queued') {
             pollVideoJobUntilTerminal(String(job.jobId || job.id || ''));
           }
