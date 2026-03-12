@@ -1652,61 +1652,9 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
           isGenerating={isGenerating}
           generatedImageUrl={generatedImageUrl}
           generationTime={generationTime}
+          showTiming={false}
           onDownload={handleDownload}
         />
-        <div className="border-t border-white/10 p-4 md:p-5 bg-[#141414]">
-          <div className="mb-3 rounded border border-[#2a2a2a] bg-[#101010] p-3">
-            <div className="mb-2 flex items-center justify-between">
-              <p className="text-xs uppercase tracking-wide text-gray-400">Recent attempts</p>
-              <span className="text-[10px] text-gray-500">retained ~12h</span>
-            </div>
-          <p className="mb-2 text-[10px] text-[#808080]">
-            Generated images save to Archive under <span className="text-[#B3B3B3]">Images/Generated</span>.
-          </p>
-            {recentAttempts.length === 0 ? (
-              <p className="text-xs text-[#808080]">No recent attempts yet.</p>
-            ) : (
-              <div className="space-y-1.5">
-                {recentAttempts.slice(0, 6).map((attempt) => (
-                  <div
-                    key={attempt.id}
-                    className={cn(
-                      'flex items-center justify-between rounded border px-2 py-1 text-[11px]',
-                      attempt.status === 'failed'
-                        ? 'border-red-500/40 bg-red-500/10 text-red-200'
-                        : attempt.status === 'running' || attempt.status === 'queued'
-                          ? 'border-amber-500/40 bg-amber-500/10 text-amber-200'
-                          : 'border-emerald-500/30 bg-emerald-500/10 text-emerald-200'
-                    )}
-                  >
-                    <div className="min-w-0 pr-2">
-                      <p className="truncate">{attempt.message}</p>
-                      {(attempt.modelId || attempt.aspectRatio) && (
-                        <p className="mt-0.5 text-[10px] opacity-80">
-                          {attempt.modelId ? `Model: ${attempt.modelId}` : ''}
-                          {attempt.modelId && attempt.aspectRatio ? ' - ' : ''}
-                          {attempt.aspectRatio ? `Aspect: ${attempt.aspectRatio}` : ''}
-                        </p>
-                      )}
-                      {attempt.imageUrl ? (
-                        <button
-                          type="button"
-                          onClick={() => setGeneratedImageUrl(attempt.imageUrl || null)}
-                          className="mt-0.5 text-[10px] underline hover:text-white"
-                        >
-                          Open result
-                        </button>
-                      ) : null}
-                    </div>
-                    <span className="shrink-0 text-[10px] opacity-80">
-                      {new Date(attempt.at).toLocaleTimeString()}
-                    </span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
       </div>
 
       {showMediaLibraryBrowser && screenplayId && (

@@ -16,6 +16,7 @@ interface GenerationPreviewProps {
   generatedImageUrl?: string | null;
   generatedVideoUrl?: string | null;
   generationTime?: number; // in seconds
+  showTiming?: boolean;
   onDownload?: () => void;
   onShare?: () => void;
   onClear?: () => void;
@@ -31,6 +32,7 @@ export function GenerationPreview({
   generatedImageUrl,
   generatedVideoUrl,
   generationTime,
+  showTiming = true,
   onDownload,
   onShare,
   onClear,
@@ -38,13 +40,11 @@ export function GenerationPreview({
   className = '',
   title = 'Output',
 }: GenerationPreviewProps) {
-  const [elapsedTime, setElapsedTime] = useState(0);
   const [displayTime, setDisplayTime] = useState(0);
 
   // Timer for generation
   useEffect(() => {
     if (!isGenerating) {
-      setElapsedTime(0);
       setDisplayTime(0);
       return;
     }
@@ -52,7 +52,6 @@ export function GenerationPreview({
     const startTime = Date.now();
     const interval = setInterval(() => {
       const elapsed = (Date.now() - startTime) / 1000;
-      setElapsedTime(elapsed);
       setDisplayTime(Math.round(elapsed * 10) / 10); // Round to 1 decimal
     }, 100); // Update every 100ms for smooth timer
 
@@ -90,10 +89,12 @@ export function GenerationPreview({
               <Loader2 className="w-12 h-12 text-cinema-red animate-spin mx-auto" />
               <div className="space-y-2">
                 <p className="text-base-content/80 font-medium">Generating...</p>
-                <div className="flex items-center justify-center gap-2 text-sm text-base-content/60">
-                  <Clock className="w-4 h-4" />
-                  <span>{finalTime.toFixed(1)}s</span>
-                </div>
+                {showTiming ? (
+                  <div className="flex items-center justify-center gap-2 text-sm text-base-content/60">
+                    <Clock className="w-4 h-4" />
+                    <span>{finalTime.toFixed(1)}s</span>
+                  </div>
+                ) : null}
               </div>
             </div>
           </div>
@@ -123,7 +124,7 @@ export function GenerationPreview({
             </div>
 
             {/* Generation Info */}
-            {finalTime > 0 && (
+            {showTiming && finalTime > 0 && (
               <div className="text-sm text-base-content/60 text-center">
                 Generated in {finalTime.toFixed(1)} seconds
               </div>
