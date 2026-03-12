@@ -118,8 +118,10 @@ const DIRECT_HUB_ALLOWED_REFERENCE_MODELS = new Set([
   'nano-banana-pro-2k',
 ]);
 const DIRECT_IMAGE_ATTEMPTS_RETENTION_MS = 12 * 60 * 60 * 1000;
+const MAX_RECONCILE_AWAIT_MS = 15 * 60 * 1000;
 const LOCAL_RECONCILE_FAILURE_MESSAGE =
   'Could not reconcile generation after refresh. Check Jobs for final status and billing.';
+const LOCAL_RECONCILE_PENDING_MESSAGE = 'Awaiting backend confirmation...';
 const isWorkflowExecutionId = (value: unknown): boolean => {
   const jobId = String(value || '').trim();
   if (!jobId) return false;
@@ -212,9 +214,9 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
   };
   const buildFailureMessage = (
     message: unknown,
-    source: 'backend' | 'local-reconcile' = 'backend'
+    source: 'backend' | 'local-reconcile-timeout' = 'backend'
   ): string => {
-    if (source === 'local-reconcile') {
+    if (source === 'local-reconcile-timeout') {
       return `Failed: ${LOCAL_RECONCILE_FAILURE_MESSAGE}`;
     }
     const normalized = String(message || '').trim();
@@ -742,7 +744,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
         setIsGenerating(true);
         return;
       }
-      if (awaitingJobId && Date.now() - startedAtMs <= 2 * 60 * 1000) {
+      if (awaitingJobId && Date.now() - startedAtMs <= MAX_RECONCILE_AWAIT_MS) {
         setGenerationStartedAtMs(startedAtMs);
         setGenerationTime((Date.now() - startedAtMs) / 1000);
         setPendingGenerationJobId(null);
@@ -931,20 +933,33 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
             ).trim();
             setPendingRequestCorrelationId(matchedCorrelationId || null);
             setIsAwaitingGenerationJobId(false);
-          } else if (Date.now() - generationStartedAtMs > 120_000) {
+          } else if (Date.now() - generationStartedAtMs > MAX_RECONCILE_AWAIT_MS) {
             upsertAttempt({
               id: `attempt_${Date.now()}`,
               status: 'failed',
-              message: buildFailureMessage(null, 'local-reconcile'),
+              message: buildFailureMessage(null, 'local-reconcile-timeout'),
               at: new Date().toISOString(),
               modelId: selectedModel || undefined,
               aspectRatio,
+              requestCorrelationId: pendingRequestCorrelationId || undefined,
             });
             setIsGenerating(false);
             setPendingGenerationJobId(null);
             setPendingRequestCorrelationId(null);
             setIsAwaitingGenerationJobId(false);
             setGenerationStartedAtMs(null);
+          } else {
+            upsertAttempt({
+              id: pendingRequestCorrelationId
+                ? `awaiting_${pendingRequestCorrelationId}`
+                : `awaiting_${generationStartedAtMs}`,
+              status: 'running',
+              message: LOCAL_RECONCILE_PENDING_MESSAGE,
+              at: new Date().toISOString(),
+              modelId: selectedModel || undefined,
+              aspectRatio,
+              requestCorrelationId: pendingRequestCorrelationId || undefined,
+            });
           }
         }
 
