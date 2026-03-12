@@ -1168,7 +1168,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
   };
 
   const handleGenerate = async () => {
-    if (!prompt.trim() || isGenerating || !selectedModel) return;
+    if (!prompt.trim() || !selectedModel) return;
     const requestModelId = selectedModel;
     const requestAspectRatio = aspectRatio;
 
@@ -1380,14 +1380,6 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
       toast.error('Failed to download image');
     }
   };
-  const handleStopWaiting = () => {
-    if (!isGenerating) return;
-    setIsGenerating(false);
-    setGenerationStartedAtMs(null);
-    setGenerationTime(undefined);
-    toast.info('Stopped waiting. This generation continues in background and will still update in Recent attempts.');
-  };
-
   return (
     <div className={cn("min-h-full flex flex-col md:flex-row bg-[#0A0A0A]", className)}>
       {/* Left Panel - Form Controls */}
@@ -1409,7 +1401,6 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
                 "placeholder:text-[#4A4A4A]"
               )}
               rows={4}
-              disabled={isGenerating}
             />
           </div>
           {selectedModel && (
@@ -1435,18 +1426,18 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
                 multiple
                 onChange={handleReferenceImageUpload}
                 className="hidden"
-                disabled={isUploading || isGenerating || referenceImages.length >= getReferenceLimit()}
+                disabled={isUploading || referenceImages.length >= getReferenceLimit()}
               />
               <div className="space-y-3">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    disabled={isUploading || isGenerating || referenceImages.length >= getReferenceLimit()}
+                    disabled={isUploading || referenceImages.length >= getReferenceLimit()}
                     className={cn(
                       "px-4 py-3 border-2 border-dashed rounded-lg",
                       "flex items-center justify-center gap-2 text-sm font-medium transition-colors",
-                      isUploading || isGenerating || referenceImages.length >= getReferenceLimit()
+                      isUploading || referenceImages.length >= getReferenceLimit()
                         ? "border-[#3F3F46] text-[#808080] cursor-not-allowed"
                         : "border-[#3F3F46] text-[#808080] hover:border-cinema-red hover:text-cinema-red"
                     )}
@@ -1466,11 +1457,11 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
                   <button
                     type="button"
                     onClick={() => setShowMediaLibraryBrowser(true)}
-                    disabled={!screenplayId || isGenerating}
+                    disabled={!screenplayId}
                     className={cn(
                       "px-4 py-3 border rounded-lg",
                       "flex items-center justify-center gap-2 text-sm font-medium transition-colors",
-                      !screenplayId || isGenerating
+                      !screenplayId
                         ? "border-[#3F3F46] text-[#808080] cursor-not-allowed"
                         : "border-[#3F3F46] text-[#B3B3B3] hover:border-cinema-red hover:text-cinema-red"
                     )}
@@ -1546,7 +1537,6 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
               value={selectedModel}
               onChange={(e) => setSelectedModel(e.target.value)}
               className="w-full px-4 py-2.5 bg-[#1F1F1F] border border-[#3F3F46] rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cinema-red focus:border-transparent"
-              disabled={isGenerating}
             >
               {models.map((model) => (
                 <option key={model.id} value={model.id}>
@@ -1571,7 +1561,6 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
             value={selectedCameraAngle}
             onChange={(e) => setSelectedCameraAngle(e.target.value)}
             className="w-full px-4 py-2.5 bg-[#1F1F1F] border border-[#3F3F46] rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cinema-red focus:border-transparent"
-            disabled={isGenerating}
           >
             {cameraAngles.map((angle) => (
               <option key={angle.id} value={angle.id}>
@@ -1595,7 +1584,6 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
               value={aspectRatio}
               onChange={(e) => setAspectRatio(e.target.value)}
               className="w-full px-4 py-2.5 bg-[#1F1F1F] border border-[#3F3F46] rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cinema-red focus:border-transparent"
-              disabled={isGenerating}
             >
               {aspectRatios.map((ratio) => (
                 <option key={ratio.value} value={ratio.value}>
@@ -1612,33 +1600,17 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
           <div className="space-y-2">
             <button
               onClick={handleGenerate}
-              disabled={!prompt.trim() || isGenerating || !selectedModel}
+              disabled={!prompt.trim() || !selectedModel}
               className={cn(
                 "w-full px-6 py-3 rounded-lg font-medium text-white transition-colors",
                 "bg-cinema-red hover:bg-red-700 disabled:bg-[#3F3F46] disabled:text-[#808080] disabled:cursor-not-allowed",
                 "flex items-center justify-center gap-2"
               )}
             >
-              {isGenerating ? (
-                <>
-                  <Loader2 className="w-5 h-5 animate-spin" />
-                  <span>Generating...</span>
-                </>
-              ) : (
-                <>
-                  <span>Generate Image</span>
-                </>
-              )}
+              <>
+                <span>Generate Image</span>
+              </>
             </button>
-            {isGenerating ? (
-              <button
-                type="button"
-                onClick={handleStopWaiting}
-                className="w-full px-4 py-2 rounded-lg border border-[#3F3F46] bg-[#1A1A1A] text-[#B3B3B3] hover:text-white hover:border-[#52525B] transition-colors"
-              >
-                Stop waiting (continue in background)
-              </button>
-            ) : null}
           </div>
         </div>
       </div>
@@ -1649,7 +1621,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
       {/* Right Panel - Preview */}
       <div className="w-full md:w-1/2 flex flex-col">
         <GenerationPreview
-          isGenerating={isGenerating}
+          isGenerating={false}
           generatedImageUrl={generatedImageUrl}
           generationTime={generationTime}
           showTiming={false}
