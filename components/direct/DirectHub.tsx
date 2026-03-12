@@ -36,7 +36,6 @@ export function DirectHub() {
   const jobIdsKey = useInFlightWorkflowJobsStore((s) =>
     [...s.jobIds].sort().join(',')
   );
-  const inFlightJobIds = useInFlightWorkflowJobsStore((s) => [...s.jobIds].sort());
 
   useEffect(() => {
     const tabFromUrl = searchParams.get('tab');
@@ -89,7 +88,12 @@ export function DirectHub() {
   // Auto-open Jobs drawer on Image Gen when a newly tracked job appears,
   // so users get immediate confirmation their generation is running.
   useEffect(() => {
-    const currentJobIds = new Set(inFlightJobIds);
+    const currentJobIds = new Set(
+      jobIdsKey
+        .split(',')
+        .map((id) => id.trim())
+        .filter(Boolean)
+    );
 
     if (!hasInitializedInFlightJobsRef.current) {
       previousInFlightJobIdsRef.current = currentJobIds;
@@ -97,13 +101,15 @@ export function DirectHub() {
       return;
     }
 
-    const hasNewTrackedJob = inFlightJobIds.some((jobId) => !previousInFlightJobIdsRef.current.has(jobId));
+    const hasNewTrackedJob = Array.from(currentJobIds).some(
+      (jobId) => !previousInFlightJobIdsRef.current.has(jobId)
+    );
     previousInFlightJobIdsRef.current = currentJobIds;
 
     if (activeTab === 'image-gen' && hasNewTrackedJob) {
       setIsJobsDrawerOpen(true);
     }
-  }, [inFlightJobIds, activeTab]);
+  }, [jobIdsKey, activeTab]);
 
   // Early return if no screenplay
   if (!screenplayId) {
