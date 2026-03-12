@@ -274,6 +274,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
     const image = Array.isArray(outputs.images) && outputs.images.length > 0 ? outputs.images[0] : null;
     const imageS3Key = resolveImageS3Key(image);
     const imageUrl = resolveImageUrl(image);
+    const hasDeliveredImage = !!(imageUrl || imageS3Key);
     const errorMessage = execution.error?.userMessage || execution.error?.message || execution.error;
     const executionInput = execution.input || execution.inputs || execution.request || {};
     const requestCorrelationId = String(
@@ -294,15 +295,17 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
       execution.aspectRatio ||
       ''
     ).trim() || undefined;
+    const effectiveStatus: DirectImageAttemptStatus =
+      hasDeliveredImage && (status === 'running' || status === 'queued') ? 'success' : status;
     upsertAttempt({
       id: `job_${jobId}`,
       jobId,
       requestCorrelationId,
-      status,
+      status: effectiveStatus,
       message:
-        status === 'success'
+        effectiveStatus === 'success'
           ? 'Image generated successfully.'
-          : status === 'running' || status === 'queued'
+          : effectiveStatus === 'running' || effectiveStatus === 'queued'
             ? 'Image generation in progress...'
             : buildFailureMessage(errorMessage, 'backend'),
       at: execution.completedAt || execution.updatedAt || execution.startedAt || new Date().toISOString(),
@@ -1347,6 +1350,13 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
       toast.error('Failed to download image');
     }
   };
+  const handleStopWaiting = () => {
+    if (!isGenerating) return;
+    setIsGenerating(false);
+    setGenerationStartedAtMs(null);
+    setGenerationTime(undefined);
+    toast.info('Stopped waiting. This generation continues in background and will still update in Recent attempts.');
+  };
 
   return (
     <div className={cn("min-h-full flex flex-col md:flex-row bg-[#0A0A0A]", className)}>
@@ -1569,26 +1579,37 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
         
         {/* Generate Button */}
         <div className="flex-shrink-0 border-t border-white/10 p-4 md:p-6 bg-[#0A0A0A]">
-          <button
-            onClick={handleGenerate}
-            disabled={!prompt.trim() || isGenerating || !selectedModel}
-            className={cn(
-              "w-full px-6 py-3 rounded-lg font-medium text-white transition-colors",
-              "bg-cinema-red hover:bg-red-700 disabled:bg-[#3F3F46] disabled:text-[#808080] disabled:cursor-not-allowed",
-              "flex items-center justify-center gap-2"
-            )}
-          >
+          <div className="space-y-2">
+            <button
+              onClick={handleGenerate}
+              disabled={!prompt.trim() || isGenerating || !selectedModel}
+              className={cn(
+                "w-full px-6 py-3 rounded-lg font-medium text-white transition-colors",
+                "bg-cinema-red hover:bg-red-700 disabled:bg-[#3F3F46] disabled:text-[#808080] disabled:cursor-not-allowed",
+                "flex items-center justify-center gap-2"
+              )}
+            >
+              {isGenerating ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span>Generating...</span>
+                </>
+              ) : (
+                <>
+                  <span>Generate Image</span>
+                </>
+              )}
+            </button>
             {isGenerating ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                <span>Generating...</span>
-              </>
-            ) : (
-              <>
-                <span>Generate Image</span>
-              </>
-            )}
-          </button>
+              <button
+                type="button"
+                onClick={handleStopWaiting}
+                className="w-full px-4 py-2 rounded-lg border border-[#3F3F46] bg-[#1A1A1A] text-[#B3B3B3] hover:text-white hover:border-[#52525B] transition-colors"
+              >
+                Stop waiting (continue in background)
+              </button>
+            ) : null}
+          </div>
         </div>
       </div>
 

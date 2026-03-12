@@ -1017,6 +1017,13 @@ export function VideoGenerationTools({
       toast.error('Failed to download video');
     }
   };
+  const handleStopWaiting = () => {
+    if (!isGenerating) return;
+    setIsGenerating(false);
+    setGenerationStartedAtMs(null);
+    setGenerationTime(undefined);
+    toast.info('Stopped waiting. This generation continues in background and will still update in Recent attempts.');
+  };
 
   const renderRecentAttemptsPanel = () => (
     <div className="border-t border-white/10 p-4 md:p-5 bg-[#141414]">
@@ -1484,28 +1491,39 @@ export function VideoGenerationTools({
 
         {/* Generate Button */}
         <div className="flex-shrink-0 border-t border-white/10 p-4 md:p-6 bg-[#0A0A0A]">
-          <button
-            onClick={handleGenerate}
-            disabled={!prompt.trim() || isGenerating || displayModels.length === 0 || !selectedModel ||
-              (activeMode === 'starting-frame' && !startImage && !startImageUrlFromProp) ||
-              (activeMode === 'frame-to-frame' && (!frame1 || !frame2))}
-            className={cn(
-              "w-full px-6 py-3 rounded-lg font-medium text-white transition-colors",
-              "bg-cinema-red hover:bg-red-700 disabled:bg-[#3F3F46] disabled:text-[#808080] disabled:cursor-not-allowed",
-              "flex items-center justify-center gap-2"
-            )}
-          >
+          <div className="space-y-2">
+            <button
+              onClick={handleGenerate}
+              disabled={!prompt.trim() || isGenerating || displayModels.length === 0 || !selectedModel ||
+                (activeMode === 'starting-frame' && !startImage && !startImageUrlFromProp) ||
+                (activeMode === 'frame-to-frame' && (!frame1 || !frame2))}
+              className={cn(
+                "w-full px-6 py-3 rounded-lg font-medium text-white transition-colors",
+                "bg-cinema-red hover:bg-red-700 disabled:bg-[#3F3F46] disabled:text-[#808080] disabled:cursor-not-allowed",
+                "flex items-center justify-center gap-2"
+              )}
+            >
+              {isGenerating ? (
+                <>
+                  <Loader2 className="w-5 h-5 animate-spin" />
+                  <span>Generating...</span>
+                </>
+              ) : (
+                <>
+                  <span>Generate Video</span>
+                </>
+              )}
+            </button>
             {isGenerating ? (
-              <>
-                <Loader2 className="w-5 h-5 animate-spin" />
-                <span>Generating...</span>
-              </>
-            ) : (
-              <>
-                <span>Generate Video</span>
-              </>
-            )}
-          </button>
+              <button
+                type="button"
+                onClick={handleStopWaiting}
+                className="w-full px-4 py-2 rounded-lg border border-[#3F3F46] bg-[#1A1A1A] text-[#B3B3B3] hover:text-white hover:border-[#52525B] transition-colors"
+              >
+                Stop waiting (continue in background)
+              </button>
+            ) : null}
+          </div>
         </div>
       </div>
 
