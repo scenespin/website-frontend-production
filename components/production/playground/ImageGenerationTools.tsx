@@ -22,8 +22,6 @@ import { downloadImageAsBlob } from '@/utils/imageDownload';
 
 interface ImageGenerationToolsProps {
   className?: string;
-  /** Called when user clicks Generate (before API call). Use to e.g. open Jobs drawer. */
-  onGenerationStarted?: () => void;
 }
 
 interface ImageModel {
@@ -57,21 +55,6 @@ interface PersistedReferenceImage {
   preview?: string;
   source: 'upload' | 'library';
   label?: string;
-}
-
-type DirectImageAttemptStatus = 'queued' | 'running' | 'success' | 'failed';
-
-interface DirectImageAttempt {
-  id: string;
-  jobId?: string;
-  requestCorrelationId?: string;
-  status: DirectImageAttemptStatus;
-  message: string;
-  at: string;
-  imageUrl?: string;
-  s3Key?: string;
-  modelId?: string;
-  aspectRatio?: string;
 }
 
 const resolveReferenceInputForRequest = (img: ReferenceImage): string | null => {
@@ -145,11 +128,7 @@ const getModelDisplayName = (model: ImageModel): string => {
   }
   return model.id.replace(/-/g, ' ');
 };
-const DIRECT_IMAGE_ATTEMPTS_RETENTION_MS = 12 * 60 * 60 * 1000;
 const MAX_RECONCILE_AWAIT_MS = 15 * 60 * 1000;
-const LOCAL_RECONCILE_FAILURE_MESSAGE =
-  'Could not reconcile generation after refresh. Check Jobs for final status and billing.';
-const LOCAL_RECONCILE_PENDING_MESSAGE = 'Awaiting backend confirmation...';
 const isWorkflowExecutionId = (value: unknown): boolean => {
   const jobId = String(value || '').trim();
   if (!jobId) return false;
@@ -179,7 +158,7 @@ const resolveImageUrl = (image: any): string | undefined => {
   return trimmed.length > 0 ? trimmed : undefined;
 };
 
-export function ImageGenerationTools({ className = '', onGenerationStarted }: ImageGenerationToolsProps) {
+export function ImageGenerationTools({ className = '' }: ImageGenerationToolsProps) {
   const screenplay = useScreenplay();
   const screenplayId = screenplay.screenplayId;
   const { getToken } = useAuth();
@@ -199,150 +178,16 @@ export function ImageGenerationTools({ className = '', onGenerationStarted }: Im
   const [generationTime, setGenerationTime] = useState<number | undefined>(undefined);
   const [pendingGenerationJobId, setPendingGenerationJobId] = useState<string | null>(null);
   const [pendingRequestCorrelationId, setPendingRequestCorrelationId] = useState<string | null>(null);
-  const [isAwaitingGenerationJobId, setIsAwaitingGenerationJobId] = useState(false);
   const [generationStartedAtMs, setGenerationStartedAtMs] = useState<number | null>(null);
-  const [recentAttempts, setRecentAttempts] = useState<DirectImageAttempt[]>([]);
-  const [attemptsHydrated, setAttemptsHydrated] = useState(false);
   const [draftHydrated, setDraftHydrated] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const activeAttemptPollsRef = useRef<Set<string>>(new Set());
-  const lastHydrateAtMsRef = useRef(0);
   const getImageGenDraftStorageKey = () => {
     if (!screenplayId) return null;
     return `direct-image-gen:draft:${screenplayId}`;
   };
-  const getAttemptsStorageKey = () => {
-    if (!screenplayId) return null;
-    return `direct-image-gen:attempts:${screenplayId}`;
-  };
   const getActiveGenerationStorageKey = () => {
     if (!screenplayId) return null;
     return `direct-image-gen:active-generation:${screenplayId}`;
-  };
-
-  const normalizeAttemptStatus = (status: unknown): DirectImageAttemptStatus => {
-    const value = String(status || '').toLowerCase();
-    if (value === 'queued') return 'queued';
-    if (
-      value === 'running' ||
-      value === 'processing' ||
-      value === 'pending' ||
-      value === 'in_progress' ||
-      value === 'submitted' ||
-      value === 'starting' ||
-      value === 'rendering' ||
-      value === 'finalizing' ||
-      value === 'generating' ||
-      value === 'enhancing' ||
-      value === 'accepted'
-    ) {
-      return 'running';
-    }
-    if (value === 'completed' || value === 'succeeded' || value === 'success') return 'success';
-    return 'failed';
-  };
-  const buildFailureMessage = (
-    message: unknown,
-    source: 'backend' | 'local-reconcile-timeout' = 'backend'
-  ): string => {
-    if (source === 'local-reconcile-timeout') {
-      return `Failed: ${LOCAL_RECONCILE_FAILURE_MESSAGE}`;
-    }
-    const normalized = String(message || '').trim();
-    if (!normalized) return 'Failed: generation error';
-    if (normalized.toLowerCase().startsWith('failed:')) return normalized;
-    return `Failed: ${normalized}`;
-  };
-
-  const upsertAttempt = (attempt: DirectImageAttempt) => {
-    setRecentAttempts((prev) => {
-      const normalizedAttemptCorrelationId = String(attempt.requestCorrelationId || '').trim();
-      const existing = prev.find(
-        (item) =>
-          item.id === attempt.id ||
-          (!!attempt.jobId && !!item.jobId && item.jobId === attempt.jobId) ||
-          (!!normalizedAttemptCorrelationId &&
-            !!item.requestCorrelationId &&
-            item.requestCorrelationId === normalizedAttemptCorrelationId)
-      );
-      const withoutExisting = prev.filter(
-        (item) =>
-          item.id !== attempt.id &&
-          !(attempt.jobId && item.jobId && item.jobId === attempt.jobId) &&
-          !(
-            normalizedAttemptCorrelationId &&
-            item.requestCorrelationId &&
-            item.requestCorrelationId === normalizedAttemptCorrelationId
-          )
-      );
-      const mergedAttempt: DirectImageAttempt = {
-        ...existing,
-        ...attempt,
-        requestCorrelationId: attempt.requestCorrelationId ?? existing?.requestCorrelationId,
-        modelId: attempt.modelId ?? existing?.modelId,
-        aspectRatio: attempt.aspectRatio ?? existing?.aspectRatio,
-      };
-      const now = Date.now();
-      const next = [mergedAttempt, ...withoutExisting]
-        .filter((item) => {
-          const atMs = new Date(item.at || 0).getTime();
-          return Number.isFinite(atMs) && now - atMs <= DIRECT_IMAGE_ATTEMPTS_RETENTION_MS;
-        })
-        .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())
-        .slice(0, 20);
-      return next;
-    });
-  };
-
-  const upsertAttemptFromWorkflowExecution = (execution: any) => {
-    if (!execution) return;
-    const jobId = String(execution.executionId || execution.jobId || '');
-    if (!jobId) return;
-    const status = normalizeAttemptStatus(execution.status);
-    const outputs = execution.finalOutputs || {};
-    const image = Array.isArray(outputs.images) && outputs.images.length > 0 ? outputs.images[0] : null;
-    const imageS3Key = resolveImageS3Key(image);
-    const imageUrl = resolveImageUrl(image);
-    const hasDeliveredImage = !!(imageUrl || imageS3Key);
-    const errorMessage = execution.error?.userMessage || execution.error?.message || execution.error;
-    const executionInput = execution.input || execution.inputs || execution.request || {};
-    const requestCorrelationId = String(
-      execution.requestCorrelationId ||
-      executionInput.requestCorrelationId ||
-      execution.metadata?.requestCorrelationId ||
-      execution.metadata?.inputs?.requestCorrelationId ||
-      ''
-    ).trim() || undefined;
-    const modelId = String(
-      executionInput.desiredModelId ||
-      executionInput.modelId ||
-      execution.modelId ||
-      ''
-    ).trim() || undefined;
-    const executionAspectRatio = String(
-      executionInput.aspectRatio ||
-      execution.aspectRatio ||
-      ''
-    ).trim() || undefined;
-    const effectiveStatus: DirectImageAttemptStatus =
-      hasDeliveredImage && (status === 'running' || status === 'queued') ? 'success' : status;
-    upsertAttempt({
-      id: `job_${jobId}`,
-      jobId,
-      requestCorrelationId,
-      status: effectiveStatus,
-      message:
-        effectiveStatus === 'success'
-          ? 'Image generated successfully.'
-          : effectiveStatus === 'running' || effectiveStatus === 'queued'
-            ? 'Image generation in progress...'
-            : buildFailureMessage(errorMessage, 'backend'),
-      at: execution.completedAt || execution.updatedAt || execution.startedAt || new Date().toISOString(),
-      imageUrl,
-      s3Key: imageS3Key,
-      modelId,
-      aspectRatio: executionAspectRatio,
-    });
   };
 
   const fetchWorkflowExecution = async (jobId: string) => {
@@ -711,45 +556,6 @@ export function ImageGenerationTools({ className = '', onGenerationStarted }: Im
   };
 
   useEffect(() => {
-    const storageKey = getAttemptsStorageKey();
-    if (!storageKey || typeof window === 'undefined') {
-      setRecentAttempts([]);
-      setAttemptsHydrated(true);
-      return;
-    }
-    try {
-      const raw = window.sessionStorage.getItem(storageKey);
-      const parsed = raw ? JSON.parse(raw) : [];
-      const now = Date.now();
-      const retained = (Array.isArray(parsed) ? parsed : [])
-        .filter((item): item is DirectImageAttempt => !!item && typeof item === 'object')
-        .filter((item) => {
-          const atMs = new Date(item.at || 0).getTime();
-          return Number.isFinite(atMs) && now - atMs <= DIRECT_IMAGE_ATTEMPTS_RETENTION_MS;
-        })
-        .slice(0, 20);
-      setRecentAttempts(retained);
-    } catch {
-      setRecentAttempts([]);
-    } finally {
-      setAttemptsHydrated(true);
-    }
-  }, [screenplayId]);
-
-  useEffect(() => {
-    const storageKey = getAttemptsStorageKey();
-    if (!storageKey || typeof window === 'undefined' || !attemptsHydrated) return;
-    const now = Date.now();
-    const retained = recentAttempts
-      .filter((item) => {
-        const atMs = new Date(item.at || 0).getTime();
-        return Number.isFinite(atMs) && now - atMs <= DIRECT_IMAGE_ATTEMPTS_RETENTION_MS;
-      })
-      .slice(0, 20);
-    window.sessionStorage.setItem(storageKey, JSON.stringify(retained));
-  }, [attemptsHydrated, recentAttempts, screenplayId]);
-
-  useEffect(() => {
     const storageKey = getActiveGenerationStorageKey();
     if (!storageKey || typeof window === 'undefined') return;
     try {
@@ -758,12 +564,10 @@ export function ImageGenerationTools({ className = '', onGenerationStarted }: Im
       const parsed = JSON.parse(raw) as {
         jobId?: string;
         startedAtMs?: number;
-        awaitingJobId?: boolean;
         requestCorrelationId?: string;
       };
       const restoredJobId = parsed?.jobId ? String(parsed.jobId).trim() : '';
       const startedAtMs = Number(parsed?.startedAtMs || 0);
-      const awaitingJobId = parsed?.awaitingJobId === true;
       const restoredRequestCorrelationId =
         typeof parsed?.requestCorrelationId === 'string' && parsed.requestCorrelationId.trim().length > 0
           ? parsed.requestCorrelationId.trim()
@@ -782,16 +586,14 @@ export function ImageGenerationTools({ className = '', onGenerationStarted }: Im
         setGenerationTime((Date.now() - startedAtMs) / 1000);
         setPendingGenerationJobId(restoredJobId);
         setPendingRequestCorrelationId(restoredRequestCorrelationId);
-        setIsAwaitingGenerationJobId(false);
         setIsGenerating(true);
         return;
       }
-      if (awaitingJobId && Date.now() - startedAtMs <= MAX_RECONCILE_AWAIT_MS) {
+      if (restoredRequestCorrelationId && Date.now() - startedAtMs <= MAX_RECONCILE_AWAIT_MS) {
         setGenerationStartedAtMs(startedAtMs);
         setGenerationTime((Date.now() - startedAtMs) / 1000);
         setPendingGenerationJobId(null);
         setPendingRequestCorrelationId(restoredRequestCorrelationId);
-        setIsAwaitingGenerationJobId(true);
         setIsGenerating(true);
         return;
       }
@@ -809,7 +611,7 @@ export function ImageGenerationTools({ className = '', onGenerationStarted }: Im
     if (
       !isGenerating ||
       !generationStartedAtMs ||
-      (!hasValidPendingJobId && !isAwaitingGenerationJobId && !normalizedRequestCorrelationId)
+      (!hasValidPendingJobId && !normalizedRequestCorrelationId)
     ) {
       window.sessionStorage.removeItem(storageKey);
       return;
@@ -819,7 +621,6 @@ export function ImageGenerationTools({ className = '', onGenerationStarted }: Im
       JSON.stringify({
         jobId: hasValidPendingJobId ? pendingGenerationJobId : null,
         startedAtMs: generationStartedAtMs,
-        awaitingJobId: isAwaitingGenerationJobId,
         requestCorrelationId: normalizedRequestCorrelationId,
       })
     );
@@ -828,7 +629,6 @@ export function ImageGenerationTools({ className = '', onGenerationStarted }: Im
     isGenerating,
     pendingGenerationJobId,
     generationStartedAtMs,
-    isAwaitingGenerationJobId,
     pendingRequestCorrelationId,
   ]);
 
@@ -842,53 +642,76 @@ export function ImageGenerationTools({ className = '', onGenerationStarted }: Im
   }, [isGenerating, generationStartedAtMs]);
 
   useEffect(() => {
-    if (!screenplayId || !attemptsHydrated) return;
+    if (!isGenerating || !pendingGenerationJobId || !isWorkflowExecutionId(pendingGenerationJobId)) return;
     let cancelled = false;
 
-    const pollJobUntilTerminal = (jobId: string) => {
-      if (!isWorkflowExecutionId(jobId)) return;
-      if (activeAttemptPollsRef.current.has(jobId)) {
-        window.setTimeout(() => {
-          if (!cancelled) {
-            pollJobUntilTerminal(jobId);
-          }
-        }, 3000);
-        return;
-      }
-      activeAttemptPollsRef.current.add(jobId);
-      void (async () => {
-        try {
-          const startedAt = Date.now();
-          while (!cancelled && Date.now() - startedAt < 20 * 60 * 1000) {
-            await new Promise((resolve) => setTimeout(resolve, 2500));
-            if (cancelled) return;
-            const execution = await fetchWorkflowExecution(jobId);
-            if (execution?.__notFound) return;
-            if (!execution || cancelled) continue;
-            upsertAttemptFromWorkflowExecution(execution);
-            const status = normalizeAttemptStatus(execution.status);
-            if (status === 'success' || status === 'failed') {
-              if (status === 'success') {
-                const outputs = execution.finalOutputs || {};
-                const image = Array.isArray(outputs.images) && outputs.images.length > 0 ? outputs.images[0] : null;
-                const imageUrl = resolveImageUrl(image);
-                if (imageUrl) setGeneratedImageUrl(imageUrl);
-              }
-              return;
-            }
-          }
-        } catch {
-          // Non-fatal: attempts panel should remain resilient.
-        } finally {
-          activeAttemptPollsRef.current.delete(jobId);
+    const pollByJobId = async () => {
+      try {
+        const execution = await fetchWorkflowExecution(pendingGenerationJobId);
+        if (!execution || cancelled) return;
+        const status = String(execution.status || '').toLowerCase();
+        const terminal =
+          status === 'completed' ||
+          status === 'success' ||
+          status === 'succeeded' ||
+          status === 'failed';
+        if (!terminal) return;
+
+        if (generationStartedAtMs) {
+          setGenerationTime((Date.now() - generationStartedAtMs) / 1000);
         }
-      })();
+
+        if (status === 'failed') {
+          const failureMessage =
+            execution.error?.userMessage || execution.error?.message || execution.error || 'Image generation failed';
+          toast.error(String(failureMessage));
+          setGeneratedImageUrl(null);
+        } else {
+          const outputs = execution.finalOutputs || {};
+          const image = Array.isArray(outputs.images) && outputs.images.length > 0 ? outputs.images[0] : null;
+          const imageUrl = resolveImageUrl(image);
+          if (imageUrl) {
+            setGeneratedImageUrl(imageUrl);
+          }
+          toast.success('Image generated!');
+        }
+
+        setIsGenerating(false);
+        setPendingGenerationJobId(null);
+        setPendingRequestCorrelationId(null);
+        setGenerationStartedAtMs(null);
+      } catch {
+        // Keep polling on transient fetch failures.
+      }
     };
 
-    const hydrateRecentWorkflowJobs = async () => {
+    void pollByJobId();
+    const interval = window.setInterval(() => {
+      void pollByJobId();
+    }, 2500);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(interval);
+    };
+  }, [
+    isGenerating,
+    pendingGenerationJobId,
+    generationStartedAtMs,
+  ]);
+
+  useEffect(() => {
+    if (!isGenerating || pendingGenerationJobId || !pendingRequestCorrelationId || !screenplayId || !generationStartedAtMs) return;
+
+    let cancelled = false;
+    const correlationId = pendingRequestCorrelationId.trim();
+    if (!correlationId) return;
+
+    const recoverJobId = async () => {
       try {
         const token = await getToken({ template: 'wryda-backend' });
-        if (!token) return;
+        if (!token || cancelled) return;
+
         const response = await fetch(
           `/api/workflows/executions?screenplayId=${encodeURIComponent(screenplayId)}&limit=20`,
           {
@@ -896,199 +719,72 @@ export function ImageGenerationTools({ className = '', onGenerationStarted }: Im
             cache: 'no-store',
           }
         );
-        if (!response.ok) return;
+        if (!response.ok || cancelled) return;
         const payload = await response.json();
         const jobs = Array.isArray(payload?.data?.jobs) ? payload.data.jobs : [];
-        const imageJobs = jobs
-          .filter((job: any) => job?.jobType === 'image-generation')
-          .slice(0, 12);
-        imageJobs.forEach((job: any) => {
-            const mappedExecution = {
-              executionId: job.jobId,
-              status: job.status,
-              startedAt: job.createdAt,
-              completedAt: job.completedAt,
-              error: job.error,
-              input: job.input || job.inputs || job.request || {},
-              requestCorrelationId:
-                job.requestCorrelationId ||
-                job.input?.requestCorrelationId ||
-                job.inputs?.requestCorrelationId ||
-                job.metadata?.requestCorrelationId ||
-                job.metadata?.inputs?.requestCorrelationId,
-              modelId: job.modelId,
-              aspectRatio: job.aspectRatio,
-              finalOutputs: {
-                images: Array.isArray(job?.results?.images) ? job.results.images : [],
-              },
-            };
-            upsertAttemptFromWorkflowExecution(mappedExecution);
-            const status = normalizeAttemptStatus(job.status);
-            if (status === 'running' || status === 'queued') {
-              pollJobUntilTerminal(String(job.jobId || ''));
-            }
-          });
-
-        if (isGenerating && isAwaitingGenerationJobId && !pendingGenerationJobId && generationStartedAtMs) {
-          const thresholdMs = generationStartedAtMs - 30_000;
-          const normalizedPendingRequestCorrelationId =
-            String(pendingRequestCorrelationId || '').trim() || null;
-          const candidateByCorrelationId = normalizedPendingRequestCorrelationId
-            ? imageJobs.find((job: any) => {
-                const jobCorrelationId = String(
-                  job?.requestCorrelationId ||
-                  job?.input?.requestCorrelationId ||
-                  job?.inputs?.requestCorrelationId ||
-                  job?.metadata?.requestCorrelationId ||
-                  job?.metadata?.inputs?.requestCorrelationId ||
-                  ''
-                ).trim();
-                return (
-                  jobCorrelationId.length > 0 &&
-                  jobCorrelationId === normalizedPendingRequestCorrelationId &&
-                  isWorkflowExecutionId(job?.jobId)
-                );
+        const match = jobs.find((job: any) => {
+          if (job?.jobType !== 'image-generation') return false;
+          const jobId = String(job?.jobId || '').trim();
+          if (!isWorkflowExecutionId(jobId)) return false;
+          const jobCorrelationId = String(
+            job?.requestCorrelationId ||
+            job?.input?.requestCorrelationId ||
+            job?.inputs?.requestCorrelationId ||
+            job?.metadata?.requestCorrelationId ||
+            job?.metadata?.inputs?.requestCorrelationId ||
+            ''
+          ).trim();
+          return jobCorrelationId.length > 0 && jobCorrelationId === correlationId;
+        });
+        if (match?.jobId && !cancelled) {
+          const jobId = String(match.jobId).trim();
+          setPendingGenerationJobId(jobId);
+          addInFlightJob(jobId);
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(
+              new CustomEvent('wryda:optimistic-job', {
+                detail: {
+                  jobId,
+                  screenplayId,
+                  jobType: 'image-generation',
+                  assetName: 'Direct Image Gen',
+                },
               })
-            : null;
-          const candidatesByTimeWindow = imageJobs
-            .filter((job: any) => isWorkflowExecutionId(job?.jobId))
-            .filter((job: any) => {
-              const jobCreatedAtMs = new Date(job?.createdAt || job?.startedAt || 0).getTime();
-              return Number.isFinite(jobCreatedAtMs) && jobCreatedAtMs >= thresholdMs;
-            })
-            .sort((a: any, b: any) => {
-              const bMs = new Date(b?.createdAt || b?.startedAt || 0).getTime();
-              const aMs = new Date(a?.createdAt || a?.startedAt || 0).getTime();
-              return bMs - aMs;
-            });
-          const candidateByTimeWindow = candidatesByTimeWindow[0];
-          const terminalCandidateByTimeWindow = candidatesByTimeWindow.find((job: any) => {
-            const normalized = normalizeAttemptStatus(job?.status);
-            return normalized === 'success' || normalized === 'failed';
-          });
-          // When we have a correlation id, require correlation match to avoid
-          // accidentally attaching a different in-flight job.
-          const candidate = normalizedPendingRequestCorrelationId
-            ? (
-              candidateByCorrelationId ||
-              (
-                !candidateByCorrelationId &&
-                terminalCandidateByTimeWindow &&
-                candidatesByTimeWindow.length === 1
-                  ? terminalCandidateByTimeWindow
-                  : null
-              )
-            )
-            : candidateByTimeWindow;
-
-          if (candidate?.jobId) {
-            setPendingGenerationJobId(String(candidate.jobId));
-            const matchedCorrelationId = String(
-              candidate?.requestCorrelationId ||
-              candidate?.input?.requestCorrelationId ||
-              candidate?.inputs?.requestCorrelationId ||
-              candidate?.metadata?.requestCorrelationId ||
-              candidate?.metadata?.inputs?.requestCorrelationId ||
-              pendingRequestCorrelationId ||
-              ''
-            ).trim();
-            setPendingRequestCorrelationId(matchedCorrelationId || null);
-            setIsAwaitingGenerationJobId(false);
-            setRecentAttempts((prev) =>
-              prev.filter(
-                (attempt) =>
-                  !(
-                    (attempt.status === 'running' || attempt.status === 'queued') &&
-                    attempt.message === LOCAL_RECONCILE_PENDING_MESSAGE
-                  )
-              )
             );
-          } else if (Date.now() - generationStartedAtMs > MAX_RECONCILE_AWAIT_MS) {
-            upsertAttempt({
-              id: `attempt_${Date.now()}`,
-              status: 'failed',
-              message: buildFailureMessage(null, 'local-reconcile-timeout'),
-              at: new Date().toISOString(),
-              modelId: selectedModel || undefined,
-              aspectRatio,
-              requestCorrelationId: pendingRequestCorrelationId || undefined,
-            });
-            setIsGenerating(false);
-            setPendingGenerationJobId(null);
-            setPendingRequestCorrelationId(null);
-            setIsAwaitingGenerationJobId(false);
-            setGenerationStartedAtMs(null);
-          } else {
-            upsertAttempt({
-              id: pendingRequestCorrelationId
-                ? `awaiting_${pendingRequestCorrelationId}`
-                : `awaiting_${generationStartedAtMs}`,
-              status: 'running',
-              message: LOCAL_RECONCILE_PENDING_MESSAGE,
-              at: new Date().toISOString(),
-              modelId: selectedModel || undefined,
-              aspectRatio,
-              requestCorrelationId: pendingRequestCorrelationId || undefined,
-            });
           }
         }
-
       } catch {
-        // Silent fallback; recents media still works.
+        // Retry on next interval.
       }
     };
 
-    const runHydrate = () => {
-      const now = Date.now();
-      if (now - lastHydrateAtMsRef.current < 10000) return;
-      lastHydrateAtMsRef.current = now;
-      void hydrateRecentWorkflowJobs();
-    };
-
-    runHydrate();
-    const hydrateInterval = window.setInterval(runHydrate, 10000);
-    const runningJobs = recentAttempts
-      .filter((attempt) => attempt.jobId && (attempt.status === 'running' || attempt.status === 'queued'))
-      .map((attempt) => String(attempt.jobId))
-      .filter((jobId) => isWorkflowExecutionId(jobId));
-    runningJobs.forEach((jobId) => pollJobUntilTerminal(jobId));
+    void recoverJobId();
+    const interval = window.setInterval(() => {
+      if (cancelled) return;
+      if (Date.now() - generationStartedAtMs > MAX_RECONCILE_AWAIT_MS) {
+        setIsGenerating(false);
+        setPendingGenerationJobId(null);
+        setPendingRequestCorrelationId(null);
+        setGenerationStartedAtMs(null);
+        window.clearInterval(interval);
+        return;
+      }
+      void recoverJobId();
+    }, 2500);
 
     return () => {
       cancelled = true;
-      window.clearInterval(hydrateInterval);
+      window.clearInterval(interval);
     };
   }, [
-    attemptsHydrated,
-    recentAttempts,
-    screenplayId,
-    getToken,
     isGenerating,
-    isAwaitingGenerationJobId,
     pendingGenerationJobId,
     pendingRequestCorrelationId,
+    screenplayId,
     generationStartedAtMs,
-    selectedModel,
-    aspectRatio,
+    getToken,
+    addInFlightJob,
   ]);
-
-  useEffect(() => {
-    if (!pendingGenerationJobId) return;
-    const matchingAttempt = recentAttempts.find((attempt) => attempt.jobId === pendingGenerationJobId);
-    if (!matchingAttempt) return;
-    if (matchingAttempt.status !== 'success' && matchingAttempt.status !== 'failed') return;
-
-    if (generationStartedAtMs) {
-      setGenerationTime((Date.now() - generationStartedAtMs) / 1000);
-    }
-    if (matchingAttempt.status === 'success' && matchingAttempt.imageUrl) {
-      setGeneratedImageUrl(matchingAttempt.imageUrl);
-    }
-    setIsGenerating(false);
-    setPendingGenerationJobId(null);
-    setPendingRequestCorrelationId(null);
-    setIsAwaitingGenerationJobId(false);
-    setGenerationStartedAtMs(null);
-  }, [pendingGenerationJobId, recentAttempts, generationStartedAtMs]);
 
   useEffect(() => {
     const storageKey = getImageGenDraftStorageKey();
@@ -1207,7 +903,6 @@ export function ImageGenerationTools({ className = '', onGenerationStarted }: Im
 
   const handleGenerate = async () => {
     if (!prompt.trim() || !selectedModel) return;
-    onGenerationStarted?.();
     const requestModelId = selectedModel;
     const requestAspectRatio = aspectRatio;
 
@@ -1220,7 +915,6 @@ export function ImageGenerationTools({ className = '', onGenerationStarted }: Im
     setGenerationTime(undefined);
     setPendingGenerationJobId(null);
     setPendingRequestCorrelationId(requestCorrelationId);
-    setIsAwaitingGenerationJobId(true);
     const startTime = Date.now();
     setGenerationStartedAtMs(startTime);
     let keepGeneratingUntilAsyncTerminal = false;
@@ -1239,7 +933,6 @@ export function ImageGenerationTools({ className = '', onGenerationStarted }: Im
         setIsGenerating(false);
         setPendingGenerationJobId(null);
         setPendingRequestCorrelationId(null);
-        setIsAwaitingGenerationJobId(false);
         setGenerationStartedAtMs(null);
         return;
       }
@@ -1286,18 +979,7 @@ export function ImageGenerationTools({ className = '', onGenerationStarted }: Im
       setPendingRequestCorrelationId(effectiveRequestCorrelationId);
       if (effectiveJobId) {
         setPendingGenerationJobId(effectiveJobId);
-        setIsAwaitingGenerationJobId(false);
         keepGeneratingUntilAsyncTerminal = true;
-        upsertAttempt({
-          id: `job_${effectiveJobId}`,
-          jobId: effectiveJobId,
-          requestCorrelationId: effectiveRequestCorrelationId,
-          status: 'running',
-          message: 'Image generation in progress...',
-          at: new Date().toISOString(),
-          modelId: requestModelId,
-          aspectRatio: requestAspectRatio,
-        });
       }
       if (effectiveJobId && screenplayId) {
         addInFlightJob(effectiveJobId);
@@ -1325,22 +1007,9 @@ export function ImageGenerationTools({ className = '', onGenerationStarted }: Im
         const elapsed = (Date.now() - startTime) / 1000;
         setGenerationTime(elapsed);
         setGeneratedImageUrl(resolvedImageUrl);
-        upsertAttempt({
-          id: effectiveJobId ? `job_${effectiveJobId}` : `attempt_${Date.now()}`,
-          jobId: effectiveJobId || undefined,
-          requestCorrelationId: effectiveRequestCorrelationId,
-          status: 'success',
-          message: 'Image generated successfully.',
-          at: new Date().toISOString(),
-          imageUrl: resolvedImageUrl,
-          s3Key: typeof responseS3Key === 'string' ? responseS3Key : undefined,
-          modelId: requestModelId,
-          aspectRatio: requestAspectRatio,
-        });
         keepGeneratingUntilAsyncTerminal = false;
         setPendingGenerationJobId(null);
         setPendingRequestCorrelationId(null);
-        setIsAwaitingGenerationJobId(false);
       } else {
         // Build proxy URL from key if backend returned only key.
         if (responseS3Key) {
@@ -1348,22 +1017,9 @@ export function ImageGenerationTools({ className = '', onGenerationStarted }: Im
           setGenerationTime(elapsed);
           const proxyUrl = `/api/media/file?key=${encodeURIComponent(responseS3Key)}`;
           setGeneratedImageUrl(proxyUrl);
-          upsertAttempt({
-            id: effectiveJobId ? `job_${effectiveJobId}` : `attempt_${Date.now()}`,
-            jobId: effectiveJobId || undefined,
-            requestCorrelationId: effectiveRequestCorrelationId,
-            status: 'success',
-            message: 'Image generated successfully.',
-            at: new Date().toISOString(),
-            imageUrl: proxyUrl,
-            s3Key: responseS3Key,
-            modelId: requestModelId,
-            aspectRatio: requestAspectRatio,
-          });
           keepGeneratingUntilAsyncTerminal = false;
           setPendingGenerationJobId(null);
           setPendingRequestCorrelationId(null);
-          setIsAwaitingGenerationJobId(false);
         }
       }
 
@@ -1375,25 +1031,20 @@ export function ImageGenerationTools({ className = '', onGenerationStarted }: Im
       setShowMediaLibraryBrowser(false);
       
     } catch (error: any) {
-      console.error('Image generation failed:', error);
-      const errorMessage = error.response?.data?.message || error.message || 'Failed to generate image';
       const statusCode = Number(error?.response?.status || 0);
       const isGatewayTimeout = statusCode === 502 || statusCode === 503 || statusCode === 504;
       if (isGatewayTimeout) {
-        toast.warning('Request timed out, but generation may still complete. Watch Recent attempts.');
+        // Long generations can outlive the edge timeout. Keep tracking in background via jobs reconciliation.
+        console.warn('Image generation request timed out; continuing background reconciliation.');
+      } else {
+        console.error('Image generation failed:', error);
+      }
+      const errorMessage = error.response?.data?.message || error.message || 'Failed to generate image';
+      if (isGatewayTimeout) {
         keepGeneratingUntilAsyncTerminal = true;
       } else {
         toast.error(errorMessage);
-        upsertAttempt({
-          id: `attempt_${Date.now()}`,
-          status: 'failed',
-          message: buildFailureMessage(errorMessage, 'backend'),
-          at: new Date().toISOString(),
-          modelId: requestModelId || undefined,
-          aspectRatio: requestAspectRatio,
-        });
         keepGeneratingUntilAsyncTerminal = false;
-        setIsAwaitingGenerationJobId(false);
         setPendingRequestCorrelationId(null);
       }
       setGeneratedImageUrl(null);
@@ -1402,7 +1053,6 @@ export function ImageGenerationTools({ className = '', onGenerationStarted }: Im
         setIsGenerating(false);
         setPendingGenerationJobId(null);
         setPendingRequestCorrelationId(null);
-        setIsAwaitingGenerationJobId(false);
         setGenerationStartedAtMs(null);
       }
     }
@@ -1639,16 +1289,21 @@ export function ImageGenerationTools({ className = '', onGenerationStarted }: Im
           <div className="space-y-2">
             <button
               onClick={handleGenerate}
-              disabled={!prompt.trim() || !selectedModel}
+              disabled={!prompt.trim() || !selectedModel || isGenerating}
               className={cn(
                 "w-full px-6 py-3 rounded-lg font-medium text-white transition-colors",
                 "bg-cinema-red hover:bg-red-700 disabled:bg-[#3F3F46] disabled:text-[#808080] disabled:cursor-not-allowed",
                 "flex items-center justify-center gap-2"
               )}
             >
-              <>
+              {isGenerating ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>Generating...</span>
+                </>
+              ) : (
                 <span>Generate Image</span>
-              </>
+              )}
             </button>
           </div>
         </div>
@@ -1660,7 +1315,7 @@ export function ImageGenerationTools({ className = '', onGenerationStarted }: Im
       {/* Right Panel - Preview */}
       <div className="w-full md:w-1/2 flex flex-col">
         <GenerationPreview
-          isGenerating={false}
+          isGenerating={isGenerating}
           generatedImageUrl={generatedImageUrl}
           generationTime={generationTime}
           showTiming={false}

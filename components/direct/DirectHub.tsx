@@ -182,7 +182,6 @@ export function DirectHub() {
           <div className="h-full overflow-y-auto">
             <ImageGenerationTools
               className="min-h-full"
-              onGenerationStarted={() => setIsJobsDrawerOpen(true)}
             />
           </div>
         )}
