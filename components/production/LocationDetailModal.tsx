@@ -174,6 +174,7 @@ export function LocationDetailModal({
   // Track which dropdown is open (only one at a time)
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const suppressPreviewClickUntilRef = useRef(0);
+  const [flipCacheBustByS3Key, setFlipCacheBustByS3Key] = useState<Record<string, number>>({});
   
   // 🔥 CRITICAL: Don't render until screenplayId is available (after all hooks are called)
   if (!screenplayId) {
@@ -375,6 +376,10 @@ export function LocationDetailModal({
           exact: false // Refetch all presigned URL queries
         })
       ]);
+      setFlipCacheBustByS3Key((current) => ({
+        ...current,
+        [angleS3Key]: Date.now(),
+      }));
       
       toast.success('Angle flipped successfully');
     } catch (error: any) {
@@ -693,17 +698,27 @@ export function LocationDetailModal({
     thumbnailUrlsMap: new Map<string, string>(),
   }), [mediaLibraryUrls, thumbnailS3KeyMapLoc]);
 
+  const appendFlipCacheBust = useCallback((url: string, s3Key?: string) => {
+    if (!url) return url;
+    if (!s3Key) return url;
+    const nonce = flipCacheBustByS3Key[s3Key];
+    if (!nonce) return url;
+    const separator = url.includes('?') ? '&' : '?';
+    return `${url}${separator}flipv=${nonce}`;
+  }, [flipCacheBustByS3Key]);
+
   const getDisplayUrl = useCallback((img: { s3Key: string; imageUrl?: string }) => {
     const file = mediaFileMap.get(img.s3Key);
     if (!file) {
-      return img.imageUrl || '';
+      return appendFlipCacheBust(img.imageUrl || '', img.s3Key);
     }
-    return getMediaFileDisplayUrl(
+    const resolved = getMediaFileDisplayUrl(
       file,
       presignedMapsForDisplay,
       dropboxUrlMap
     ) || img.imageUrl || '';
-  }, [mediaFileMap, presignedMapsForDisplay, dropboxUrlMap]);
+    return appendFlipCacheBust(resolved, img.s3Key);
+  }, [appendFlipCacheBust, mediaFileMap, presignedMapsForDisplay, dropboxUrlMap]);
   
   // Feature 0256: allImages = payload list enriched with display URLs (payload URL or presigned/ML).
   const allImages = useMemo(() => {
@@ -1339,7 +1354,7 @@ export function LocationDetailModal({
                           const imgId = img.id || `ref_${variation.s3Key}`;
                           const isSelected = selectedImageIds.has(imgId);
                           // 🔥 NEW: Use thumbnail URL from mapping, fallback to full image
-                          const displayUrl = referenceThumbnailMap.get(imgId) || img.imageUrl;
+                          const displayUrl = appendFlipCacheBust(referenceThumbnailMap.get(imgId) || img.imageUrl, variation.s3Key || img.s3Key);
                           
                           return (
                             <div
@@ -1642,7 +1657,7 @@ export function LocationDetailModal({
                                       const imgId = img.id || `bg_${background.s3Key}`;
                                       const isSelected = selectedImageIds.has(imgId);
                                       // 🔥 NEW: Use thumbnail URL from mapping, fallback to full image
-                                      const displayUrl = referenceThumbnailMap.get(imgId) || img.imageUrl;
+                                      const displayUrl = appendFlipCacheBust(referenceThumbnailMap.get(imgId) || img.imageUrl, background.s3Key || img.s3Key);
                                       
                                       // Get display label for background type
                                       const backgroundTypeLabels: Record<string, string> = {
@@ -1991,7 +2006,7 @@ export function LocationDetailModal({
                           if (!img) return null;
                           const imgId = img.id || `bg_${background.s3Key}`;
                           const isSelected = selectedImageIds.has(imgId);
-                          const displayUrl = referenceThumbnailMap.get(imgId) || img.imageUrl;
+                          const displayUrl = appendFlipCacheBust(referenceThumbnailMap.get(imgId) || img.imageUrl, background.s3Key || img.s3Key);
                           const backgroundTypeLabels: Record<string, string> = {
                             'window': 'Window', 'wall': 'Wall', 'doorway': 'Doorway', 'texture': 'Texture',
                             'corner-detail': 'Corner Detail', 'furniture': 'Furniture', 'architectural-feature': 'Architectural Feature',

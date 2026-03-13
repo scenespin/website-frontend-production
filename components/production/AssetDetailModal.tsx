@@ -123,6 +123,7 @@ export default function AssetDetailModal({
   // Track which dropdown is open (only one at a time)
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const suppressPreviewClickUntilRef = useRef(0);
+  const [flipCacheBustByS3Key, setFlipCacheBustByS3Key] = useState<Record<string, number>>({});
 
   // Helper function for downloading images via blob (more reliable than download attribute)
   // Follows MediaLibrary pattern: fetches fresh presigned URL if s3Key available
@@ -275,6 +276,10 @@ export default function AssetDetailModal({
         queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] })
       ]);
       onUpdate(); // Refresh asset data
+      setFlipCacheBustByS3Key((current) => ({
+        ...current,
+        [angleS3Key]: Date.now(),
+      }));
       
       toast.success('Angle flipped successfully');
     } catch (error: any) {
@@ -456,14 +461,24 @@ export default function AssetDetailModal({
     thumbnailUrlsMap: new Map<string, string>(),
   }), [mediaLibraryUrls, thumbnailS3KeyMapForDisplay]);
 
+  const appendFlipCacheBust = useCallback((url: string, s3Key?: string) => {
+    if (!url) return url;
+    if (!s3Key) return url;
+    const nonce = flipCacheBustByS3Key[s3Key];
+    if (!nonce) return url;
+    const separator = url.includes('?') ? '&' : '?';
+    return `${url}${separator}flipv=${nonce}`;
+  }, [flipCacheBustByS3Key]);
+
   const getDisplayUrl = useCallback((img: { s3Key: string; imageUrl?: string }) => {
     const file = mediaFileMap.get(img.s3Key);
-    return getMediaFileDisplayUrl(
+    const resolved = getMediaFileDisplayUrl(
       file ?? { ...img, storageType: 'local' as const, s3Key: img.s3Key },
       presignedMapsForDisplay,
       dropboxUrlMap
     ) || img.imageUrl || '';
-  }, [mediaFileMap, presignedMapsForDisplay, dropboxUrlMap]);
+    return appendFlipCacheBust(resolved, img.s3Key);
+  }, [appendFlipCacheBust, mediaFileMap, presignedMapsForDisplay, dropboxUrlMap]);
 
   const allImages = useMemo(() => {
     return payloadImages.map(img => ({
@@ -1175,7 +1190,7 @@ export default function AssetDetailModal({
                           // All angleImages are Production Hub images (editable/deletable)
                           const isSelected = selectedImageIds.has(img.id);
                           // 🔥 NEW: Use thumbnail URL from mapping, fallback to full image
-                          const displayUrl = referenceThumbnailMap.get(img.id) || img.imageUrl;
+                          const displayUrl = appendFlipCacheBust(referenceThumbnailMap.get(img.id) || img.imageUrl, img.s3Key);
                           return (
                             <div
                               key={img.id}

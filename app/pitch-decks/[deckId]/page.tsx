@@ -897,9 +897,9 @@ export default function PitchDeckEditorPage() {
     [existingMedia, selectedExistingMediaId]
   );
   const selectedReferenceMedia = useMemo(() => {
-    const primaryReferenceId = referenceMediaIds[0] || referenceMediaId;
+    const primaryReferenceId = referenceMediaIds[0];
     return existingMedia.find((item) => item.id === primaryReferenceId) || null;
-  }, [existingMedia, referenceMediaId, referenceMediaIds]);
+  }, [existingMedia, referenceMediaIds]);
   const selectedReferenceMediaList = useMemo(
     () => referenceMediaIds.map((id) => existingMedia.find((item) => item.id === id)).filter(Boolean) as ExistingMediaItem[],
     [existingMedia, referenceMediaIds]
@@ -2906,6 +2906,9 @@ export default function PitchDeckEditorPage() {
         if (referenceMediaId === mediaId) {
           setReferenceMediaId(next[0] || '');
         }
+        if (next.length === 0) {
+          setReferenceMediaIdentityKeys([]);
+        }
         return next;
       }
       if (current.length >= maxReferenceCount) {
@@ -2988,7 +2991,7 @@ export default function PitchDeckEditorPage() {
       addImageAttempt('failed', 'reference', 'Failed: deckId is missing.');
       return;
     }
-    const primaryReference = selectedReferenceMediaList[0] || selectedReferenceMedia;
+    const primaryReference = selectedReferenceMediaList[0];
     if (!primaryReference?.imageUrl) {
       setImageActionError('Choose at least one reference image first.');
       addImageAttempt('failed', 'reference', 'Failed: no reference media selected.');
@@ -3082,7 +3085,7 @@ export default function PitchDeckEditorPage() {
   };
 
   const requestGenerateFromReference = () => {
-    if (!selectedReferenceMediaList[0] && !selectedReferenceMedia?.imageUrl) {
+    if (!selectedReferenceMediaList[0]) {
       setImageActionError('Choose at least one reference image first.');
       return;
     }
