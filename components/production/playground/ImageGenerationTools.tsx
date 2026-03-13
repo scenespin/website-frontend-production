@@ -116,6 +116,8 @@ const DIRECT_HUB_ALLOWED_REFERENCE_MODELS = new Set([
   'flux2-max-4k-16:9',
   'nano-banana-pro',
   'nano-banana-pro-2k',
+  'grok-imagine-image',      // xAI: up to 3 reference images
+  'grok-imagine-image-pro',  // xAI: up to 3 reference images
 ]);
 const DIRECT_IMAGE_ATTEMPTS_RETENTION_MS = 12 * 60 * 60 * 1000;
 const MAX_RECONCILE_AWAIT_MS = 15 * 60 * 1000;
@@ -368,6 +370,8 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
           'imagen-3': 9,
           'imagen-3-fast': 9,
           'runway-gen4-image': 10,
+          'grok-imagine-image': 10,      // xAI Grok Imagine (standard)
+          'grok-imagine-image-pro': 10,  // xAI Grok Imagine Pro
           'nano-banana': 11, // editing tool, oldest
         };
         
@@ -420,6 +424,12 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
         referenceHint: 'Best practices: Upload 1-3 reference images. First image gets highest priority. Use clear, front-facing images for best results. Combine character + clothing in one image when possible to maximize reference slots.'
       };
     }
+    if (modelId === 'grok-imagine-image' || modelId === 'grok-imagine-image-pro') {
+      return {
+        promptHint: 'Grok Imagine (xAI): Great for style transfer and image editing. Describe the desired aesthetic (oil painting, pencil sketch, anime, etc.). Supports up to 3 reference images. Pro = higher quality.',
+        referenceHint: 'Best practices: Upload 1-3 reference images for style transfer or composition. Works well for "add X from first image to second" type edits. Clear, well-lit images produce best results.'
+      };
+    }
     if (modelId.includes('flux2')) {
       return {
         promptHint: 'FLUX.2: Use structured prompts: Subject + Action + Style + Context. Supports color hex codes (e.g., "color #FF0000"). Supports up to 8 reference images. Best for high-quality, detailed images.',
@@ -453,6 +463,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
     if (!selectedModelInfo) return 0;
     if (selectedModelInfo.id.includes('nano-banana-pro')) return 14;
     if (selectedModelInfo.id.includes('flux2')) return 8;
+    if (selectedModelInfo.id === 'grok-imagine-image' || selectedModelInfo.id === 'grok-imagine-image-pro') return 3;
     return 0;
   };
 
