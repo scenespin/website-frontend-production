@@ -2066,6 +2066,11 @@ export default function PitchDeckEditorPage() {
     if (existingMediaLoading) return;
     if (existingMediaLoadedScopeRef.current !== mediaScopeKey) return;
     if (referenceMediaIdentityKeys.length === 0) return;
+    const existingIds = new Set(existingMedia.map((item) => item.id));
+    const hasValidCurrentSelection = referenceMediaIds.some((id) => existingIds.has(id));
+    // Preserve active user toggles/order when IDs are still valid; identity->ID remap is only for rehydration
+    // after media refreshes or storage-key changes where old IDs no longer resolve.
+    if (hasValidCurrentSelection) return;
     const identityToId = new Map<string, string>();
     existingMedia.forEach((item) => {
       const key = getExistingMediaIdentityKey(item);
@@ -3578,8 +3583,10 @@ export default function PitchDeckEditorPage() {
                                     >
                                       <DropdownMenuItem
                                         className="text-white hover:bg-white/10 hover:text-white cursor-pointer focus:bg-white/10 focus:text-white"
-                                        onClick={(e) => {
+                                        onSelect={(e) => {
+                                          e.preventDefault();
                                           e.stopPropagation();
+                                          setOpenImageMenuId(null);
                                           setImageViewerOption(option);
                                         }}
                                       >
@@ -3588,8 +3595,10 @@ export default function PitchDeckEditorPage() {
                                       </DropdownMenuItem>
                                       <DropdownMenuItem
                                         className="text-[#DC143C] hover:bg-[#DC143C]/10 hover:text-[#DC143C] cursor-pointer focus:bg-[#DC143C]/10 focus:text-[#DC143C]"
-                                        onClick={(e) => {
+                                        onSelect={(e) => {
+                                          e.preventDefault();
                                           e.stopPropagation();
+                                          setOpenImageMenuId(null);
                                           requestRemoveSlotImageOption(option.id);
                                         }}
                                       >

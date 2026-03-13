@@ -13,7 +13,7 @@
  * Consistent with CharacterDetailModal and LocationDetailModal
  */
 
-import { useState, useEffect, useMemo, useCallback } from 'react';
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import React from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { X, Trash2, Image as ImageIcon, Package, Car, Armchair, Box, Upload, FileText, MoreVertical, Info, Eye, Download, CheckSquare, Square, FlipHorizontal } from 'lucide-react';
@@ -122,6 +122,7 @@ export default function AssetDetailModal({
   const [flippingAngleId, setFlippingAngleId] = useState<string | null>(null);
   // Track which dropdown is open (only one at a time)
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
+  const suppressPreviewClickUntilRef = useRef(0);
 
   // Helper function for downloading images via blob (more reliable than download attribute)
   // Follows MediaLibrary pattern: fetches fresh presigned URL if s3Key available
@@ -1186,6 +1187,10 @@ export default function AssetDetailModal({
                                   : 'border-[#3F3F46] hover:border-[#DC143C]'
                               }`}
                               onClick={(e) => {
+                                if (Date.now() < suppressPreviewClickUntilRef.current) {
+                                  e.stopPropagation();
+                                  return;
+                                }
                                 if (!selectionMode) {
                                   // Find index in all images
                                   const allAngleImages = [...userImages, ...angleImageObjects];
@@ -1346,8 +1351,10 @@ export default function AssetDetailModal({
                                         onSelect={(e) => {
                                           e.preventDefault();
                                           e.stopPropagation();
+                                          suppressPreviewClickUntilRef.current = Date.now() + 400;
                                           setOpenDropdownId(null);
-                                          void handleFlipAngle(img.id, img.s3Key);
+                                          const angleIdentifier = img.id || img.s3Key;
+                                          void handleFlipAngle(angleIdentifier, img.s3Key);
                                         }}
                                       >
                                         <FlipHorizontal className="w-4 h-4 mr-2 text-[#808080]" />

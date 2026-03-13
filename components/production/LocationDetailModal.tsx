@@ -13,7 +13,7 @@
  * Consistent with CharacterDetailModal for scene consistency and AI generation
  */
 
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import { X, Upload, Sparkles, Image as ImageIcon, MapPin, FileText, Box, Download, Trash2, Plus, Camera, MoreVertical, Info, Eye, CheckSquare, Square, FlipHorizontal } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
@@ -173,6 +173,7 @@ export function LocationDetailModal({
   const [flippingAngleId, setFlippingAngleId] = useState<string | null>(null);
   // Track which dropdown is open (only one at a time)
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
+  const suppressPreviewClickUntilRef = useRef(0);
   
   // 🔥 CRITICAL: Don't render until screenplayId is available (after all hooks are called)
   if (!screenplayId) {
@@ -1413,6 +1414,10 @@ export function LocationDetailModal({
                                   }
                                 }}
                                 onClick={(e) => {
+                                  if (Date.now() < suppressPreviewClickUntilRef.current) {
+                                    e.stopPropagation();
+                                    return;
+                                  }
                                   if (!selectionMode) {
                                     e.stopPropagation();
                                     const allIndex = allImages.findIndex(aImg => 
@@ -1524,8 +1529,10 @@ export function LocationDetailModal({
                                           onSelect={(e) => {
                                             e.preventDefault();
                                             e.stopPropagation();
+                                            suppressPreviewClickUntilRef.current = Date.now() + 400;
                                             setOpenDropdownId(null);
-                                            void handleFlipAngle(variation.id, variation.s3Key);
+                                            const angleIdentifier = variation.id || variation.s3Key;
+                                            void handleFlipAngle(angleIdentifier, variation.s3Key);
                                           }}
                                         >
                                           <FlipHorizontal className="w-4 h-4 mr-2 text-[#808080]" />
