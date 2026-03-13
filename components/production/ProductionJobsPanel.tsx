@@ -757,11 +757,19 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
       }
 
       const exec = data.data.execution;
+      const resolvedJobType = exec.jobType || exec.metadata?.jobType || (exec.workflowId === 'complete-scene' ? 'workflow-execution' : exec.workflowId) || 'workflow-execution';
+      const resolvedWorkflowName =
+        exec.workflowName ||
+        exec.metadata?.workflowName ||
+        (exec.workflowId === 'complete-scene' ? 'Complete Scene' : undefined) ||
+        (resolvedJobType === 'workflow-execution' ? 'Workflow Execution' : undefined) ||
+        exec.workflowId ||
+        'Workflow Execution';
       const job: WorkflowJob = {
         jobId: exec.executionId,
         workflowId: exec.workflowId || 'image-generation',
-        workflowName: exec.workflowName || 'Image Generation',
-        jobType: exec.jobType || 'image-generation',
+        workflowName: resolvedWorkflowName,
+        jobType: resolvedJobType,
         status: exec.status,
         progress: exec.progress ?? (exec.currentStep != null && exec.totalSteps != null ? Math.round((exec.currentStep / exec.totalSteps) * 100) : 0),
         createdAt: exec.startedAt || new Date().toISOString(),
