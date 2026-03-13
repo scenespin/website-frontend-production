@@ -107,15 +107,17 @@ export default function AccountPage() {
         setLoadingUsage(true);
       }
       const response = await getBillingUsageHistory({
-        limit: 50,
+        limit: 20,
         cursor: append ? usagePages[usagePageIndex]?.nextCursor || null : null,
       });
       const items = Array.isArray(response?.items) ? response.items : [];
       const nextCursor = response?.page?.nextCursor || null;
       if (append) {
-        setUsagePages((prev) => [...prev, { items, nextCursor }]);
-        setUsagePageIndex((prev) => prev + 1);
-        setUsageItems(items);
+        if (items.length > 0) {
+          setUsagePages((prev) => [...prev, { items, nextCursor }]);
+          setUsagePageIndex((prev) => prev + 1);
+          setUsageItems(items);
+        }
       } else {
         setUsagePages([{ items, nextCursor }]);
         setUsagePageIndex(0);
@@ -144,6 +146,17 @@ export default function AccountPage() {
       if (target) setUsageItems(target.items || []);
       return nextIndex;
     });
+  }
+
+  async function goToNextUsagePage() {
+    const existingNextPage = usagePages[usagePageIndex + 1];
+    if (existingNextPage) {
+      setUsagePageIndex((prev) => prev + 1);
+      setUsageItems(existingNextPage.items || []);
+      return;
+    }
+    if (!usagePages[usagePageIndex]?.nextCursor) return;
+    await fetchUsageHistory({ append: true });
   }
 
   async function handleSaveOverage() {
@@ -505,7 +518,7 @@ export default function AccountPage() {
                         Previous
                       </button>
                       <button
-                        onClick={() => fetchUsageHistory({ append: true })}
+                        onClick={goToNextUsagePage}
                         disabled={loadingMoreUsage || !usagePages[usagePageIndex]?.nextCursor}
                         className="px-4 py-2 bg-[#0A0A0A] border border-[#3F3F46] hover:border-cinema-red text-white rounded-lg text-sm font-medium transition-colors disabled:opacity-50"
                       >
