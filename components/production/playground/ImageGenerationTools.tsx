@@ -92,6 +92,8 @@ const DIRECT_HUB_ALLOWED_PROMPT_MODELS = new Set([
   'flux2-max-4k-16:9',
   'nano-banana-pro',
   'nano-banana-pro-2k',
+  'gemini-3.1-flash-image-4k',
+  'gemini-3.1-flash-image-2k',
   'grok-imagine-image',
   'grok-imagine-image-pro',
 ]);
@@ -103,6 +105,8 @@ const DIRECT_HUB_ALLOWED_REFERENCE_MODELS = new Set([
   'flux2-max-4k-16:9',
   'nano-banana-pro',
   'nano-banana-pro-2k',
+  'gemini-3.1-flash-image-4k',
+  'gemini-3.1-flash-image-2k',
   'grok-imagine-image',      // xAI: up to 3 reference images
   'grok-imagine-image-pro',  // xAI: max 1 reference image
 ]);
@@ -110,6 +114,8 @@ const DIRECT_HUB_ALLOWED_REFERENCE_MODELS = new Set([
 const MODEL_DISPLAY_NAME_BY_ID: Record<string, string> = {
   'nano-banana-pro': 'Nano Banana Pro 4k',
   'nano-banana-pro-2k': 'Nano Banana Pro 2k',
+  'gemini-3.1-flash-image-4k': 'Nano Banana Pro2 4k',
+  'gemini-3.1-flash-image-2k': 'Nano Banana Pro2 2k',
   'flux2-max-4k-16:9': 'Flux2 Max 4k',
   'flux2-max-2k': 'Flux2 Max 2k',
   'flux2-pro-4k': 'Flux2 Pro 4k',
@@ -228,6 +234,8 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
           'imagen-4-ultra': 2,
           'nano-banana-pro': 3,
           'nano-banana-pro-2k': 3,
+          'gemini-3.1-flash-image-4k': 3,
+          'gemini-3.1-flash-image-2k': 3,
           'flux2-max-4k-16:9': 4,
           'flux2-flex': 4,
           'flux2-pro-4k': 5,
@@ -283,7 +291,11 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
 
   // Model-specific prompt hints and reference image instructions
   const getModelHints = (modelId: string): { promptHint: string; referenceHint: string } => {
-    if (modelId.includes('nano-banana-pro')) {
+    if (
+      modelId.includes('nano-banana-pro') ||
+      modelId === 'gemini-3.1-flash-image-4k' ||
+      modelId === 'gemini-3.1-flash-image-2k'
+    ) {
       return {
         promptHint: 'Nano Banana Pro: Use detailed descriptions with specific details. Best for photorealistic characters and locations. Supports up to 14 reference images for maximum consistency.',
         referenceHint: 'Best practices: Upload 1-3 character reference images showing face and body. For locations, upload 1-2 reference images of similar settings. All images should be clear, well-lit, and show the subject prominently.'
@@ -332,7 +344,11 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
   // Get reference limit based on model
   const getReferenceLimit = (): number => {
     if (!selectedModelInfo) return 0;
-    if (selectedModelInfo.id.includes('nano-banana-pro')) return 14;
+    if (
+      selectedModelInfo.id.includes('nano-banana-pro') ||
+      selectedModelInfo.id === 'gemini-3.1-flash-image-4k' ||
+      selectedModelInfo.id === 'gemini-3.1-flash-image-2k'
+    ) return 14;
     if (selectedModelInfo.id.includes('flux2')) return 8;
     if (selectedModelInfo.id === 'grok-imagine-image') return 3;
     if (selectedModelInfo.id === 'grok-imagine-image-pro') return 1; // xAI: Pro supports max 1 ref

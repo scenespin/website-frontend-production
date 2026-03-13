@@ -14,6 +14,8 @@ import { DEFAULT_REFERENCE_SHOT_MODEL } from '@/contexts/SceneBuilderContext';
 export type ReferenceShotModel =
   | 'nano-banana-pro'
   | 'nano-banana-pro-2k'
+  | 'gemini-3.1-flash-image-4k'
+  | 'gemini-3.1-flash-image-2k'
   | 'flux2-max-4k-16:9'
   | 'flux2-max-2k'
   | 'flux2-pro-4k'

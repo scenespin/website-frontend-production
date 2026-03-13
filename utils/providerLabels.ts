@@ -11,6 +11,8 @@ export function getProviderLabel(providerId: string | undefined): string | null 
   const providerMap: Record<string, string> = {
     'nano-banana-pro': 'Nano Banana Pro',
     'nano-banana-pro-2k': 'Nano Banana Pro', // Same base name; resolution shown via getResolutionLabel
+    'gemini-3.1-flash-image-4k': 'Nano Banana Pro2',
+    'gemini-3.1-flash-image-2k': 'Nano Banana Pro2',
     'runway-gen4-image': 'Gen4',
     'luma-photon-1': 'Photon',
     'luma-photon-flash': 'Photon',
@@ -31,8 +33,8 @@ export function getProviderLabel(providerId: string | undefined): string | null 
 /** Resolution tag for provider (2K, 4K, or null) */
 export function getResolutionLabel(providerId: string | undefined): string | null {
   if (!providerId) return null;
-  const twoK = ['nano-banana-pro-2k', 'flux2-pro-2k', 'flux2-max-2k'];
-  const fourK = ['nano-banana-pro', 'flux2-max-4k-16:9', 'flux2-pro-4k'];
+  const twoK = ['nano-banana-pro-2k', 'gemini-3.1-flash-image-2k', 'flux2-pro-2k', 'flux2-max-2k'];
+  const fourK = ['nano-banana-pro', 'gemini-3.1-flash-image-4k', 'flux2-max-4k-16:9', 'flux2-pro-4k'];
   if (twoK.includes(providerId)) return '2K';
   if (fourK.includes(providerId)) return '4K';
   return null;

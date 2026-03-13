@@ -457,7 +457,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     // 🔥 FIX: contextActions functions are stable (useCallback with empty deps), so we don't need contextActions in deps
   }, [contextState.shotDurations]);
   
-  const setSelectedReferenceShotModels = useCallback((updater: Record<number, 'nano-banana-pro' | 'nano-banana-pro-2k' | 'flux2-max-4k-16:9' | 'flux2-max-2k' | 'flux2-pro-4k' | 'flux2-pro-2k'> | ((prev: Record<number, 'nano-banana-pro' | 'nano-banana-pro-2k' | 'flux2-max-4k-16:9' | 'flux2-max-2k' | 'flux2-pro-4k' | 'flux2-pro-2k'>) => Record<number, 'nano-banana-pro' | 'nano-banana-pro-2k' | 'flux2-max-4k-16:9' | 'flux2-max-2k' | 'flux2-pro-4k' | 'flux2-pro-2k'>)) => {
+  const setSelectedReferenceShotModels = useCallback((updater: Record<number, 'nano-banana-pro' | 'nano-banana-pro-2k' | 'gemini-3.1-flash-image-4k' | 'gemini-3.1-flash-image-2k' | 'flux2-max-4k-16:9' | 'flux2-max-2k' | 'flux2-pro-4k' | 'flux2-pro-2k'> | ((prev: Record<number, 'nano-banana-pro' | 'nano-banana-pro-2k' | 'gemini-3.1-flash-image-4k' | 'gemini-3.1-flash-image-2k' | 'flux2-max-4k-16:9' | 'flux2-max-2k' | 'flux2-pro-4k' | 'flux2-pro-2k'>) => Record<number, 'nano-banana-pro' | 'nano-banana-pro-2k' | 'gemini-3.1-flash-image-4k' | 'gemini-3.1-flash-image-2k' | 'flux2-max-4k-16:9' | 'flux2-max-2k' | 'flux2-pro-4k' | 'flux2-pro-2k'>)) => {
     if (typeof updater === 'function') {
       const newValue = updater(contextState.selectedReferenceShotModels);
       contextActions.setSelectedReferenceShotModels(newValue);
@@ -667,7 +667,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     let cancelled = false;
     const run = async () => {
       try {
-        const referenceShotModels: Record<number, 'nano-banana-pro' | 'nano-banana-pro-2k' | 'flux2-max-4k-16:9' | 'flux2-max-2k' | 'flux2-pro-4k' | 'flux2-pro-2k'> = {};
+        const referenceShotModels: Record<number, 'nano-banana-pro' | 'nano-banana-pro-2k' | 'gemini-3.1-flash-image-4k' | 'gemini-3.1-flash-image-2k' | 'flux2-max-4k-16:9' | 'flux2-max-2k' | 'flux2-pro-4k' | 'flux2-pro-2k'> = {};
         shots.forEach((s: any) => {
           referenceShotModels[s.slot] = selectedReferenceShotModels[s.slot] || DEFAULT_REFERENCE_SHOT_MODEL;
         });
@@ -3336,7 +3336,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
           : {}),
         // Always send per-shot model with defaults so backend uses UI default (2K) when user never changed dropdown (Option A: production-ready)
         selectedReferenceShotModels: enabledShots.length > 0
-          ? enabledShots.reduce<Record<number, 'nano-banana-pro' | 'nano-banana-pro-2k' | 'flux2-max-4k-16:9' | 'flux2-max-2k' | 'flux2-pro-4k' | 'flux2-pro-2k'>>((acc, slot) => {
+          ? enabledShots.reduce<Record<number, 'nano-banana-pro' | 'nano-banana-pro-2k' | 'gemini-3.1-flash-image-4k' | 'gemini-3.1-flash-image-2k' | 'flux2-max-4k-16:9' | 'flux2-max-2k' | 'flux2-pro-4k' | 'flux2-pro-2k'>>((acc, slot) => {
               acc[slot] = selectedReferenceShotModels[slot] || DEFAULT_REFERENCE_SHOT_MODEL;
               return acc;
             }, {})
@@ -3463,7 +3463,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
         if (shots.length === 0) return null;
 
         try {
-          const referenceShotModels: Record<number, 'nano-banana-pro' | 'nano-banana-pro-2k' | 'flux2-max-4k-16:9' | 'flux2-max-2k' | 'flux2-pro-4k' | 'flux2-pro-2k'> = {};
+          const referenceShotModels: Record<number, 'nano-banana-pro' | 'nano-banana-pro-2k' | 'gemini-3.1-flash-image-4k' | 'gemini-3.1-flash-image-2k' | 'flux2-max-4k-16:9' | 'flux2-max-2k' | 'flux2-pro-4k' | 'flux2-pro-2k'> = {};
           shots.forEach((s: any) => {
             referenceShotModels[s.slot] = selectedReferenceShotModels[s.slot] || DEFAULT_REFERENCE_SHOT_MODEL;
           });

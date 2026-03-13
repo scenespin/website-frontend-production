@@ -174,6 +174,8 @@ const ALLOWED_PITCH_DECK_IMAGE_MODELS = new Set([
   'flux2-max-4k-16:9',
   'nano-banana-pro',
   'nano-banana-pro-2k',
+  'gemini-3.1-flash-image-4k',
+  'gemini-3.1-flash-image-2k',
 ]);
 const ALLOWED_PITCH_DECK_REFERENCE_MODELS = new Set([
   'flux2-pro-2k',
@@ -182,6 +184,8 @@ const ALLOWED_PITCH_DECK_REFERENCE_MODELS = new Set([
   'flux2-max-4k-16:9',
   'nano-banana-pro',
   'nano-banana-pro-2k',
+  'gemini-3.1-flash-image-4k',
+  'gemini-3.1-flash-image-2k',
 ]);
 
 const PITCH_DECK_IMAGE_MODEL_LABELS: Record<string, string> = {
@@ -191,10 +195,16 @@ const PITCH_DECK_IMAGE_MODEL_LABELS: Record<string, string> = {
   'flux2-max-4k-16:9': 'FLUX.2 [max] (4K)',
   'nano-banana-pro': 'Nano Banana Pro (4K)',
   'nano-banana-pro-2k': 'Nano Banana Pro (2K)',
+  'gemini-3.1-flash-image-4k': 'Nano Banana Pro2 (4K)',
+  'gemini-3.1-flash-image-2k': 'Nano Banana Pro2 (2K)',
 };
 
 function getReferenceLimitByModel(modelId: string): number {
-  return modelId.includes('nano-banana-pro') ? 14 : 8;
+  return (
+    modelId.includes('nano-banana-pro') ||
+    modelId === 'gemini-3.1-flash-image-4k' ||
+    modelId === 'gemini-3.1-flash-image-2k'
+  ) ? 14 : 8;
 }
 
 type PdfImageLayout =
@@ -235,6 +245,8 @@ const MODEL_ASPECT_RATIO_SUPPORT: Partial<Record<string, PitchDeckAspectRatio[]>
   'flux2-max-4k-16:9': PITCH_DECK_ASPECT_RATIOS,
   'nano-banana-pro': PITCH_DECK_ASPECT_RATIOS,
   'nano-banana-pro-2k': PITCH_DECK_ASPECT_RATIOS,
+  'gemini-3.1-flash-image-4k': PITCH_DECK_ASPECT_RATIOS,
+  'gemini-3.1-flash-image-2k': PITCH_DECK_ASPECT_RATIOS,
 };
 
 const PDF_LAYOUT_REGISTRY: Record<string, Partial<Record<string, PdfImageLayout>>> = {

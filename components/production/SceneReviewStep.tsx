@@ -35,6 +35,8 @@ import { isValidImageUrl } from './utils/imageUrlResolver';
 const REFERENCE_SHOT_MODEL_LABELS: Record<string, string> = {
   'nano-banana-pro': 'Nano Banana Pro (4K)',
   'nano-banana-pro-2k': 'Nano Banana Pro (2K)',
+  'gemini-3.1-flash-image-4k': 'Nano Banana Pro2 (4K)',
+  'gemini-3.1-flash-image-2k': 'Nano Banana Pro2 (2K)',
   'flux2-max-4k-16:9': 'FLUX.2 [max] (4K)',
   'flux2-max-2k': 'FLUX.2 [max] (2K)',
   'flux2-pro-4k': 'FLUX.2 [pro] (4K)',
@@ -74,7 +76,7 @@ interface SceneReviewStepProps {
   propsToShots: Record<string, number[]>;
   shotProps: Record<number, Record<string, { selectedImageId?: string; usageDescription?: string }>>;
   // Reference Shot Models (First Frame)
-  selectedReferenceShotModels?: Record<number, 'nano-banana-pro' | 'nano-banana-pro-2k' | 'flux2-max-4k-16:9' | 'flux2-max-2k' | 'flux2-pro-4k' | 'flux2-pro-2k'>;
+  selectedReferenceShotModels?: Record<number, 'nano-banana-pro' | 'nano-banana-pro-2k' | 'gemini-3.1-flash-image-4k' | 'gemini-3.1-flash-image-2k' | 'flux2-max-4k-16:9' | 'flux2-max-2k' | 'flux2-pro-4k' | 'flux2-pro-2k'>;
   // Actions
   onBack: () => void;
   onGenerate: () => void;
@@ -181,7 +183,7 @@ export function SceneReviewStep({
       setIsLoadingPricing(true);
       try {
         // Ensure all shots have a reference model (default when not selected)
-        const referenceShotModelsWithDefaults: Record<number, 'nano-banana-pro' | 'nano-banana-pro-2k' | 'flux2-max-4k-16:9' | 'flux2-max-2k' | 'flux2-pro-4k' | 'flux2-pro-2k'> = {};
+        const referenceShotModelsWithDefaults: Record<number, 'nano-banana-pro' | 'nano-banana-pro-2k' | 'gemini-3.1-flash-image-4k' | 'gemini-3.1-flash-image-2k' | 'flux2-max-4k-16:9' | 'flux2-max-2k' | 'flux2-pro-4k' | 'flux2-pro-2k'> = {};
         selectedShots.forEach((shot: any) => {
           referenceShotModelsWithDefaults[shot.slot] = selectedReferenceShotModels?.[shot.slot] || DEFAULT_REFERENCE_SHOT_MODEL;
         });
