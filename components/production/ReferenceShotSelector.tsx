@@ -10,6 +10,7 @@
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { DEFAULT_REFERENCE_SHOT_MODEL } from '@/contexts/SceneBuilderContext';
+import { formatImageModelLabel } from '@/utils/providerLabels';
 
 export type ReferenceShotModel =
   | 'nano-banana-pro'
@@ -42,7 +43,7 @@ export function ReferenceShotSelector({
   onModelChange
 }: ReferenceShotSelectorProps) {
   const { getToken } = useAuth();
-  const [models, setModels] = useState<Array<{ id: ReferenceShotModel; name: string; credits: number; resolution: string }>>([]);
+  const [models, setModels] = useState<Array<{ id: ReferenceShotModel; name: string; credits: number }>>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
@@ -61,9 +62,8 @@ export function ReferenceShotSelector({
         const enabled = raw.filter((m: ApiModel) => m.enabled !== false);
         const mapped = enabled.map((m: ApiModel) => ({
           id: m.id as ReferenceShotModel,
-          name: m.name,
+          name: formatImageModelLabel(m.id) || m.name || m.id,
           credits: m.credits ?? 0,
-          resolution: m.quality === '4K' ? '4K' : '2K'
         }));
         if (!cancelled) setModels(mapped);
       } catch (_) {
@@ -110,12 +110,12 @@ export function ReferenceShotSelector({
         >
           {models.map((model) => (
             <option key={model.id} value={model.id} className="bg-[#1A1A1A] text-[#FFFFFF]">
-              {model.name} ({model.resolution} • {model.credits} credits)
+              {model.name} - {model.credits} credits
             </option>
           ))}
         </select>
         <div className="text-[10px] text-[#808080]">
-          Selected: {currentModel.name} ({currentModel.credits} credits, {currentModel.resolution})
+          Selected: {currentModel.name} - {currentModel.credits} credits
         </div>
         <div className="text-[10px] text-[#808080]">
           Supports 16:9, 9:16, 1:1, 21:9, 9:21 (depends on workflow/model).

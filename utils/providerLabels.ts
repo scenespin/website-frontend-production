@@ -21,6 +21,8 @@ export function getProviderLabel(providerId: string | undefined): string | null 
     'flux2-pro-4k': 'FLUX.2 [pro]',
     'flux2-pro-2k': 'FLUX.2 [pro]',
     'flux2-flex': 'FLUX.2 [flex]',
+    'grok-imagine-image': 'Grok Imagine',
+    'grok-imagine-image-pro': 'Grok Imagine Pro',
     'imagen-3-fast': 'Imagen 3 Fast',
     'imagen-4-fast': 'Imagen 4 Fast',
     'imagen-3': 'Imagen 3',
@@ -33,7 +35,7 @@ export function getProviderLabel(providerId: string | undefined): string | null 
 /** Resolution tag for provider (2K, 4K, or null) */
 export function getResolutionLabel(providerId: string | undefined): string | null {
   if (!providerId) return null;
-  const twoK = ['nano-banana-pro-2k', 'gemini-3.1-flash-image-2k', 'flux2-pro-2k', 'flux2-max-2k'];
+  const twoK = ['nano-banana-pro-2k', 'gemini-3.1-flash-image-2k', 'flux2-pro-2k', 'flux2-max-2k', 'grok-imagine-image', 'grok-imagine-image-pro'];
   const fourK = ['nano-banana-pro', 'gemini-3.1-flash-image-4k', 'flux2-max-4k-16:9', 'flux2-pro-4k'];
   if (twoK.includes(providerId)) return '2K';
   if (fourK.includes(providerId)) return '4K';
@@ -46,4 +48,12 @@ export function formatProviderTag(providerId: string | undefined): string | null
   if (!providerLabel) return null;
   const resLabel = getResolutionLabel(providerId);
   return resLabel ? `${providerLabel} / ${resLabel}` : providerLabel;
+}
+
+/** Canonical image model label for dropdowns: "Provider (2K)" / "Provider (4K)" / "Provider". */
+export function formatImageModelLabel(providerId: string | undefined): string | null {
+  const providerLabel = getProviderLabel(providerId);
+  if (!providerLabel) return null;
+  const resLabel = getResolutionLabel(providerId);
+  return resLabel ? `${providerLabel} (${resLabel})` : providerLabel;
 }

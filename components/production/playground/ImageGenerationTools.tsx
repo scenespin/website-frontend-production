@@ -19,6 +19,7 @@ import { MediaLibraryBrowser } from '@/components/production/CharacterStudio/Med
 import type { MediaFile } from '@/types/media';
 import { useInFlightWorkflowJobsStore } from '@/lib/inFlightWorkflowJobsStore';
 import { downloadImageAsBlob } from '@/utils/imageDownload';
+import { formatImageModelLabel } from '@/utils/providerLabels';
 
 interface ImageGenerationToolsProps {
   className?: string;
@@ -111,24 +112,9 @@ const DIRECT_HUB_ALLOWED_REFERENCE_MODELS = new Set([
   'grok-imagine-image-pro',  // xAI: max 1 reference image
 ]);
 
-const MODEL_DISPLAY_NAME_BY_ID: Record<string, string> = {
-  'nano-banana-pro': 'Nano Banana Pro 4k',
-  'nano-banana-pro-2k': 'Nano Banana Pro 2k',
-  'gemini-3.1-flash-image-4k': 'Nano Banana Pro2 4k',
-  'gemini-3.1-flash-image-2k': 'Nano Banana Pro2 2k',
-  'flux2-max-4k-16:9': 'Flux2 Max 4k',
-  'flux2-max-2k': 'Flux2 Max 2k',
-  'flux2-pro-4k': 'Flux2 Pro 4k',
-  'flux2-pro-2k': 'Flux2 Pro 2k',
-  'flux2-flex': 'Flux2 Flex',
-  'grok-imagine-image': 'Grok Imagine 2k',
-  'grok-imagine-image-pro': 'Grok Imagine Pro 2k',
-};
-
 const getModelDisplayName = (model: ImageModel): string => {
-  if (MODEL_DISPLAY_NAME_BY_ID[model.id]) {
-    return MODEL_DISPLAY_NAME_BY_ID[model.id];
-  }
+  const canonical = formatImageModelLabel(model.id);
+  if (canonical) return canonical;
   if (model.label && model.label.trim().length > 0) {
     return model.label.trim();
   }

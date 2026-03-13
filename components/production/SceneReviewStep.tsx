@@ -28,20 +28,9 @@ import { useAuth } from '@clerk/nextjs';
 import { getCharacterName, getCharacterSource } from './utils/sceneBuilderUtils';
 import { DEFAULT_ELEMENTS_VIDEO_MODEL, getEffectiveElementsVideoDuration } from '@/lib/elementsWorkflowUtils';
 import { isValidImageUrl } from './utils/imageUrlResolver';
+import { formatImageModelLabel } from '@/utils/providerLabels';
 
 // Honest resolution (0237): No resolution selector. Output is 720p (Reliable/LongCat) or 1080p (Premium/VEO) by workflow.
-
-/** Display labels for reference shot (first frame) model IDs. Kept in sync with model-selection API / ReferenceShotSelector. */
-const REFERENCE_SHOT_MODEL_LABELS: Record<string, string> = {
-  'nano-banana-pro': 'Nano Banana Pro (4K)',
-  'nano-banana-pro-2k': 'Nano Banana Pro (2K)',
-  'gemini-3.1-flash-image-4k': 'Nano Banana Pro2 (4K)',
-  'gemini-3.1-flash-image-2k': 'Nano Banana Pro2 (2K)',
-  'flux2-max-4k-16:9': 'FLUX.2 [max] (4K)',
-  'flux2-max-2k': 'FLUX.2 [max] (2K)',
-  'flux2-pro-4k': 'FLUX.2 [pro] (4K)',
-  'flux2-pro-2k': 'FLUX.2 [pro] (2K)'
-};
 
 interface SceneReviewStepProps {
   sceneAnalysisResult: SceneAnalysisResult | null;
@@ -720,7 +709,8 @@ export function SceneReviewStep({
                                   <>
                                     <div className="text-[10px] text-[#808080] mb-0.5">First frame model</div>
                                     <div className="text-xs text-[#FFFFFF]">
-                                      {REFERENCE_SHOT_MODEL_LABELS[selectedReferenceShotModels[shot.slot] || DEFAULT_REFERENCE_SHOT_MODEL] ?? (selectedReferenceShotModels[shot.slot] || DEFAULT_REFERENCE_SHOT_MODEL)}
+                                      {formatImageModelLabel(selectedReferenceShotModels[shot.slot] || DEFAULT_REFERENCE_SHOT_MODEL) ??
+                                        (selectedReferenceShotModels[shot.slot] || DEFAULT_REFERENCE_SHOT_MODEL)}
                                     </div>
                                   </>
                                 )}

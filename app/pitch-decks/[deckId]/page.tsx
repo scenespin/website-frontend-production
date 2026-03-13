@@ -27,6 +27,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { useOptionalPitchDeckAdvisorContext, type PitchDeckStoryAdvisorContextPacket } from '@/contexts/PitchDeckAdvisorContext';
 import type { FolderTreeNode, MediaFile } from '@/types/media';
 import { downloadImageAsBlob } from '@/utils/imageDownload';
+import { formatImageModelLabel } from '@/utils/providerLabels';
 
 function isFeatureEnabled(): boolean {
   return process.env.NEXT_PUBLIC_ENABLE_PITCH_DECK_V1 === 'true';
@@ -188,25 +189,18 @@ const ALLOWED_PITCH_DECK_REFERENCE_MODELS = new Set([
   'gemini-3.1-flash-image-2k',
 ]);
 
-const PITCH_DECK_IMAGE_MODEL_LABELS: Record<string, string> = {
-  'flux2-pro-2k': 'FLUX.2 [pro] (2K)',
-  'flux2-pro-4k': 'FLUX.2 [pro] (4K)',
-  'flux2-max-2k': 'FLUX.2 [max] (2K)',
-  'flux2-max-4k-16:9': 'FLUX.2 [max] (4K)',
-  'nano-banana-pro': 'Nano Banana Pro (4K)',
-  'nano-banana-pro-2k': 'Nano Banana Pro (2K)',
-  'gemini-3.1-flash-image-4k': 'Nano Banana Pro2 (4K)',
-  'gemini-3.1-flash-image-2k': 'Nano Banana Pro2 (2K)',
-};
-
 function getPitchDeckModelTierRank(modelId: string): number {
   if (modelId.endsWith('-2k')) return 0;
   if (modelId.endsWith('-4k') || modelId === 'nano-banana-pro' || modelId === 'flux2-max-4k-16:9') return 1;
   return 2;
 }
 
+function getPitchDeckModelLabelById(modelId: string, fallbackLabel?: string): string {
+  return formatImageModelLabel(modelId) || fallbackLabel || modelId;
+}
+
 function getPitchDeckModelDisplayName(model: PitchDeckImageModel): string {
-  return PITCH_DECK_IMAGE_MODEL_LABELS[model.id] || model.label || model.id;
+  return getPitchDeckModelLabelById(model.id, model.label);
 }
 
 function sortPitchDeckModelsForPicker(models: PitchDeckImageModel[]): PitchDeckImageModel[] {
@@ -3914,7 +3908,7 @@ export default function PitchDeckEditorPage() {
                               ) : (
                                 filteredPromptPitchDeckImageModels.map((model) => (
                                   <option key={model.id} value={model.id}>
-                                    {(PITCH_DECK_IMAGE_MODEL_LABELS[model.id] || model.label || model.id)} ({model.creditsPerImage} credits)
+                                    {getPitchDeckModelLabelById(model.id, model.label)} ({model.creditsPerImage} credits)
                                   </option>
                                 ))
                               )}
@@ -4045,7 +4039,7 @@ export default function PitchDeckEditorPage() {
                               ) : (
                                 filteredReferencePitchDeckImageModels.map((model) => (
                                   <option key={model.id} value={model.id}>
-                                    {(PITCH_DECK_IMAGE_MODEL_LABELS[model.id] || model.label || model.id)} ({model.creditsPerImage} credits)
+                                    {getPitchDeckModelLabelById(model.id, model.label)} ({model.creditsPerImage} credits)
                                   </option>
                                 ))
                               )}
@@ -4291,14 +4285,14 @@ export default function PitchDeckEditorPage() {
                 <span>Model</span>
                 <span>
                   {pendingImageAction === 'prompt'
-                    ? PITCH_DECK_IMAGE_MODEL_LABELS[promptGenerationModel?.id || ''] ||
-                      promptGenerationModel?.label ||
-                      promptGenerationModel?.id ||
-                      'Selected model'
-                    : PITCH_DECK_IMAGE_MODEL_LABELS[referenceGenerationModel?.id || ''] ||
-                      referenceGenerationModel?.label ||
-                      referenceGenerationModel?.id ||
-                      'Selected model'}
+                    ? getPitchDeckModelLabelById(
+                      promptGenerationModel?.id || '',
+                      promptGenerationModel?.label || promptGenerationModel?.id || 'Selected model'
+                    )
+                    : getPitchDeckModelLabelById(
+                      referenceGenerationModel?.id || '',
+                      referenceGenerationModel?.label || referenceGenerationModel?.id || 'Selected model'
+                    )}
                 </span>
               </div>
               <div className="mt-1 flex items-center justify-between text-gray-400">
