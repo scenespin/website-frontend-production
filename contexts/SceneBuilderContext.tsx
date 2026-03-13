@@ -78,7 +78,7 @@ export type ReferenceShotModel =
   | 'flux2-pro-4k'
   | 'flux2-pro-2k';
 /** Single source of truth for default first-frame model when user has not selected one. Change here to update dropdown display, review step, pricing, and workflow payload. */
-export const DEFAULT_REFERENCE_SHOT_MODEL: ReferenceShotModel = 'nano-banana-pro-2k';
+export const DEFAULT_REFERENCE_SHOT_MODEL: ReferenceShotModel = 'gemini-3.1-flash-image-2k';
 /** Feature 0259: Max reference elements per shot for video (VEO limit). */
 export const VEO_MAX_ELEMENTS = 3;
 export type VideoType = 'cinematic-visuals' | 'natural-motion' | 'premium-quality';

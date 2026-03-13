@@ -238,8 +238,8 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
           const currentValid = current && modelsData.some((model: ImageModel) => model.id === current);
           if (currentValid) return current;
           const preferred =
+            modelsData.find((model: ImageModel) => model.id === 'gemini-3.1-flash-image-2k') ||
             modelsData.find((model: ImageModel) => model.id === 'flux2-pro-2k') ||
-            modelsData.find((model: ImageModel) => model.id === 'nano-banana-pro-2k') ||
             modelsData[0];
           return preferred?.id || '';
         });
@@ -341,6 +341,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
     if (!selectedModel || models.length === 0 || referenceImages.length === 0) return;
     if (DIRECT_HUB_ALLOWED_REFERENCE_MODELS.has(selectedModel)) return;
     const fallbackModel =
+      models.find((model) => model.id === 'gemini-3.1-flash-image-2k' && DIRECT_HUB_ALLOWED_REFERENCE_MODELS.has(model.id)) ||
       models.find((model) => model.id === 'nano-banana-pro-2k' && DIRECT_HUB_ALLOWED_REFERENCE_MODELS.has(model.id)) ||
       models.find((model) => DIRECT_HUB_ALLOWED_REFERENCE_MODELS.has(model.id));
     if (fallbackModel?.id) {

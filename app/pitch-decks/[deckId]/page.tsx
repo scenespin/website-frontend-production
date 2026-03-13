@@ -855,12 +855,12 @@ export default function PitchDeckEditorPage() {
   const [imageModelsLoading, setImageModelsLoading] = useState(false);
   const [imageModelsError, setImageModelsError] = useState<string | null>(null);
   const [promptGenerationText, setPromptGenerationText] = useState('');
-  const [promptGenerationModelId, setPromptGenerationModelId] = useState('flux2-pro-2k');
+  const [promptGenerationModelId, setPromptGenerationModelId] = useState('gemini-3.1-flash-image-2k');
   const [referencePromptText, setReferencePromptText] = useState('');
   const [referenceMediaId, setReferenceMediaId] = useState('');
   const [referenceMediaIds, setReferenceMediaIds] = useState<string[]>([]);
   const [referenceMediaIdentityKeys, setReferenceMediaIdentityKeys] = useState<string[]>([]);
-  const [referenceGenerationModelId, setReferenceGenerationModelId] = useState('nano-banana-pro-2k');
+  const [referenceGenerationModelId, setReferenceGenerationModelId] = useState('gemini-3.1-flash-image-2k');
   const [promptAspectRatio, setPromptAspectRatio] = useState<PitchDeckAspectRatio>('16:9');
   const [referenceAspectRatio, setReferenceAspectRatio] = useState<PitchDeckAspectRatio>('16:9');
   const [imageActionDraftHydratedKey, setImageActionDraftHydratedKey] = useState<string | null>(null);
@@ -1948,13 +1948,17 @@ export default function PitchDeckEditorPage() {
         setImageModels(models);
         const allowedPromptModels = sortPitchDeckModelsForPicker(models.filter((model) => ALLOWED_PITCH_DECK_IMAGE_MODELS.has(model.id)));
         const allowedReferenceModels = sortPitchDeckModelsForPicker(models.filter((model) => ALLOWED_PITCH_DECK_REFERENCE_MODELS.has(model.id)));
-        const preferred = allowedPromptModels.find((model) => model.id === 'flux2-pro-2k') || allowedPromptModels[0];
+        const preferred =
+          allowedPromptModels.find((model) => model.id === 'gemini-3.1-flash-image-2k') ||
+          allowedPromptModels.find((model) => model.id === 'flux2-pro-2k') ||
+          allowedPromptModels[0];
         if (preferred) {
           setPromptGenerationModelId((current) =>
             allowedPromptModels.some((model) => model.id === current) ? current : preferred.id
           );
         }
         const preferredReference =
+          allowedReferenceModels.find((model) => model.id === 'gemini-3.1-flash-image-2k') ||
           allowedReferenceModels.find((model) => model.id === 'nano-banana-pro-2k') ||
           allowedReferenceModels.find((model) => model.id === 'nano-banana-pro');
         if (preferredReference) {
