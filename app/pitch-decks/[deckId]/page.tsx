@@ -3765,16 +3765,24 @@ export default function PitchDeckEditorPage() {
                                     const isActive = selectedExistingMediaId === item.id;
                                     const isReferenceSelected = referenceMediaIds.includes(item.id);
                                     return (
-                                      <button
+                                      <div
                                         key={item.id}
-                                        type="button"
                                         onClick={() => {
                                           setSelectedExistingMediaId(item.id);
                                           setReferenceMediaId(item.id);
                                         }}
+                                        onKeyDown={(e) => {
+                                          if (e.key === 'Enter' || e.key === ' ') {
+                                            e.preventDefault();
+                                            setSelectedExistingMediaId(item.id);
+                                            setReferenceMediaId(item.id);
+                                          }
+                                        }}
+                                        role="button"
+                                        tabIndex={0}
                                         className={`relative overflow-hidden rounded border ${
                                           isActive ? 'border-[#DC143C]' : 'border-[#3F3F46]'
-                                        } bg-[#151515]`}
+                                        } bg-[#151515] cursor-pointer`}
                                         title={item.label}
                                       >
                                         <img
@@ -3803,7 +3811,7 @@ export default function PitchDeckEditorPage() {
                                         <div className="absolute inset-x-0 bottom-0 bg-black/70 px-1 py-0.5 text-[10px] text-left text-white truncate">
                                           {item.label}
                                         </div>
-                                      </button>
+                                      </div>
                                     );
                                   })}
                                 </div>
@@ -3934,13 +3942,20 @@ export default function PitchDeckEditorPage() {
                             ) : (
                               <div className="flex flex-wrap gap-1.5">
                                 {selectedReferenceMediaList.map((item, index) => (
-                                  <button
+                                  <div
                                     key={item.id}
-                                    type="button"
                                     onClick={() => setReferenceMediaIds((current) => [item.id, ...current.filter((id) => id !== item.id)])}
+                                    onKeyDown={(e) => {
+                                      if (e.key === 'Enter' || e.key === ' ') {
+                                        e.preventDefault();
+                                        setReferenceMediaIds((current) => [item.id, ...current.filter((id) => id !== item.id)]);
+                                      }
+                                    }}
+                                    role="button"
+                                    tabIndex={0}
                                     className={`relative overflow-hidden rounded border ${
                                       index === 0 ? 'border-[#DC143C]' : 'border-[#3F3F46]'
-                                    }`}
+                                    } cursor-pointer`}
                                     title={`${item.label}${index === 0 ? ' (primary)' : ''}`}
                                   >
                                     <img
@@ -3962,7 +3977,7 @@ export default function PitchDeckEditorPage() {
                                     >
                                       x
                                     </button>
-                                  </button>
+                                  </div>
                                 ))}
                               </div>
                             )}

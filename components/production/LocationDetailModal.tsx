@@ -1521,9 +1521,11 @@ export function LocationDetailModal({
                                         <DropdownMenuItem
                                           className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF] disabled:opacity-50 disabled:cursor-not-allowed"
                                           disabled={flippingAngleId === variation.id}
-                                          onClick={(e) => {
+                                          onSelect={(e) => {
+                                            e.preventDefault();
                                             e.stopPropagation();
-                                            handleFlipAngle(variation.id, variation.s3Key);
+                                            setOpenDropdownId(null);
+                                            void handleFlipAngle(variation.id, variation.s3Key);
                                           }}
                                         >
                                           <FlipHorizontal className="w-4 h-4 mr-2 text-[#808080]" />
