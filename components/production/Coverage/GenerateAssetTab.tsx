@@ -236,6 +236,7 @@ export function GenerateAssetTab({
   
   // Step 1: Model (unified list from API, no quality tier)
   const [providerId, setProviderId] = useState<string>('');
+  const [defaultModelId, setDefaultModelId] = useState<string>('');
   const [models, setModels] = useState<Array<{ id: string; name: string; referenceLimit: number; quality: '1080p' | '4K'; credits: number; enabled: boolean }>>([]);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
   
@@ -275,10 +276,16 @@ export function GenerateAssetTab({
         if (!response.ok) throw new Error('Failed to load models');
         const data = await response.json();
         const availableModels = data.data?.models || data.models || [];
+        const apiDefaultModelId = data.data?.defaultModelId || data.defaultModelId || '';
         const enabledModels = availableModels.filter((m: any) => m.enabled);
         setModels(enabledModels);
-        if (enabledModels.length > 0 && !providerId) {
-          setProviderId(enabledModels[0].id);
+        setDefaultModelId(apiDefaultModelId);
+        const preferredDefault =
+          enabledModels.find((m: any) => m.id === apiDefaultModelId)?.id ||
+          enabledModels[0]?.id ||
+          '';
+        if (enabledModels.length > 0 && !providerId && preferredDefault) {
+          setProviderId(preferredDefault);
         }
       } catch (error: any) {
         console.error('[GenerateAssetTab] Failed to load models:', error);
@@ -293,9 +300,14 @@ export function GenerateAssetTab({
   // Auto-select first model when models are loaded
   useEffect(() => {
     if (models.length > 0 && !providerId && !isLoadingModels) {
-      setProviderId(models[0].id);
+      const preferredDefault =
+        models.find((model) => model.id === defaultModelId)?.id ||
+        models[0]?.id;
+      if (preferredDefault) {
+        setProviderId(preferredDefault);
+      }
     }
-  }, [models, providerId, isLoadingModels]);
+  }, [models, providerId, isLoadingModels, defaultModelId]);
   
   const handleGenerate = async () => {
     if (!hasAssetReference(asset)) {

@@ -99,10 +99,15 @@ export default function LocationBackgroundGenerationModal({
         if (!response.ok) throw new Error('Failed to load models');
         const data = await response.json();
         const availableModels = data.data?.models || data.models || [];
+        const apiDefaultModelId = data.data?.defaultModelId || data.defaultModelId || '';
         const enabledModels = availableModels.filter((m: any) => m.enabled);
         setModels(enabledModels);
+        const preferredDefault =
+          enabledModels.find((m: any) => m.id === apiDefaultModelId)?.id ||
+          enabledModels[0]?.id ||
+          '';
         if (enabledModels.length > 0) {
-          setProviderId(enabledModels[0].id);
+          setProviderId(preferredDefault);
         } else {
           setProviderId('');
         }

@@ -63,10 +63,14 @@ export function RegenerateAngleModal({
         if (!response.ok) throw new Error('Failed to load models');
         const data = await response.json();
         const availableModels = data.data?.models || data.models || [];
+        const apiDefaultModelId = data.data?.defaultModelId || data.defaultModelId || '';
         const enabled = availableModels.filter((m: Model) => m.enabled);
         setModels(enabled);
-        if (enabled.length > 0 && !selectedModelId) {
-          setSelectedModelId(enabled[0].id);
+        const preferredDefault =
+          enabled.find((m: Model) => m.id === apiDefaultModelId)?.id ||
+          enabled[0]?.id;
+        if (preferredDefault && !selectedModelId) {
+          setSelectedModelId(preferredDefault);
         }
       } catch (error: any) {
         console.error('[RegenerateAngleModal] Failed to load models:', error);

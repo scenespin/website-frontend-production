@@ -64,6 +64,7 @@ export function GenerateWardrobeTab({
   // Step 2: Model (unified list from API, no quality tier)
   const [providerId, setProviderId] = useState<string>('');
   const [models, setModels] = useState<Array<{ id: string; name: string; referenceLimit: number; quality: '1080p' | '4K'; credits: number; enabled: boolean; supportsClothingImages?: boolean }>>([]);
+  const [defaultModelId, setDefaultModelId] = useState<string>('');
   const [isLoadingModels, setIsLoadingModels] = useState(false);
   
   // Step 3: Clothing Images (Virtual Try-On)
@@ -150,8 +151,10 @@ export function GenerateWardrobeTab({
         if (!response.ok) throw new Error('Failed to load models');
         const data = await response.json();
         const availableModels = data.data?.models || data.models || [];
+        const apiDefaultModelId = data.data?.defaultModelId || data.defaultModelId || '';
         const enabledModels = availableModels.filter((m: any) => m.enabled);
         setModels(enabledModels);
+        setDefaultModelId(apiDefaultModelId);
       } catch (error: any) {
         console.error('[GenerateWardrobeTab] Failed to load models:', error);
         toast.error('Failed to load available models');
@@ -165,9 +168,14 @@ export function GenerateWardrobeTab({
   // Auto-select first model when models are loaded and providerId is empty
   useEffect(() => {
     if (models.length > 0 && !providerId && !isLoadingModels) {
-      setProviderId(models[0].id);
+      const preferredDefault =
+        models.find((model) => model.id === defaultModelId)?.id ||
+        models[0]?.id;
+      if (preferredDefault) {
+        setProviderId(preferredDefault);
+      }
     }
-  }, [models, providerId, isLoadingModels]);
+  }, [models, providerId, isLoadingModels, defaultModelId]);
 
   // Handle clothing image upload (Virtual Try-On)
   const handleClothingImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
