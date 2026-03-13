@@ -22,6 +22,8 @@ import { downloadImageAsBlob } from '@/utils/imageDownload';
 
 interface ImageGenerationToolsProps {
   className?: string;
+  /** Called when user clicks Generate (before API call). Use to e.g. open Jobs drawer. */
+  onGenerationStarted?: () => void;
 }
 
 interface ImageModel {
@@ -119,7 +121,7 @@ const DIRECT_HUB_ALLOWED_REFERENCE_MODELS = new Set([
   'nano-banana-pro',
   'nano-banana-pro-2k',
   'grok-imagine-image',      // xAI: up to 3 reference images
-  'grok-imagine-image-pro',  // xAI: up to 3 reference images
+  'grok-imagine-image-pro',  // xAI: max 1 reference image
 ]);
 
 const MODEL_DISPLAY_NAME_BY_ID: Record<string, string> = {
@@ -177,7 +179,7 @@ const resolveImageUrl = (image: any): string | undefined => {
   return trimmed.length > 0 ? trimmed : undefined;
 };
 
-export function ImageGenerationTools({ className = '' }: ImageGenerationToolsProps) {
+export function ImageGenerationTools({ className = '', onGenerationStarted }: ImageGenerationToolsProps) {
   const screenplay = useScreenplay();
   const screenplayId = screenplay.screenplayId;
   const { getToken } = useAuth();
@@ -450,8 +452,8 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
     }
     if (modelId === 'grok-imagine-image' || modelId === 'grok-imagine-image-pro') {
       return {
-        promptHint: 'Grok Imagine (xAI): Great for style transfer and image editing. Describe the desired aesthetic (oil painting, pencil sketch, anime, etc.). Supports up to 3 reference images. Pro = higher quality.',
-        referenceHint: 'Best practices: Upload 1-3 reference images for style transfer or composition. Works well for "add X from first image to second" type edits. Clear, well-lit images produce best results.'
+        promptHint: 'Grok Imagine (xAI): Great for style transfer and image editing. Describe the desired aesthetic (oil painting, pencil sketch, anime, etc.). Standard: up to 3 refs; Pro: 1 ref, higher quality.',
+        referenceHint: 'Standard: 1–3 refs for style transfer. Pro: 1 ref only. Clear, well-lit images produce best results.'
       };
     }
     if (modelId.includes('flux2')) {
@@ -487,7 +489,8 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
     if (!selectedModelInfo) return 0;
     if (selectedModelInfo.id.includes('nano-banana-pro')) return 14;
     if (selectedModelInfo.id.includes('flux2')) return 8;
-    if (selectedModelInfo.id === 'grok-imagine-image' || selectedModelInfo.id === 'grok-imagine-image-pro') return 3;
+    if (selectedModelInfo.id === 'grok-imagine-image') return 3;
+    if (selectedModelInfo.id === 'grok-imagine-image-pro') return 1; // xAI: Pro supports max 1 ref
     return 0;
   };
 
@@ -1204,6 +1207,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
 
   const handleGenerate = async () => {
     if (!prompt.trim() || !selectedModel) return;
+    onGenerationStarted?.();
     const requestModelId = selectedModel;
     const requestAspectRatio = aspectRatio;
 
