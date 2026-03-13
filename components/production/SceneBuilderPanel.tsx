@@ -114,6 +114,7 @@ import { api } from '@/lib/api';
 import { SceneAnalysisResult } from '@/types/screenplay';
 import { SceneBuilderService } from '@/services/SceneBuilderService';
 import { createClientLogger } from '@/utils/clientLogger';
+import { canonicalOutfitName, canonicalToDisplay } from '@/utils/outfitUtils';
 
 const MAX_IMAGE_SIZE_MB = 10;
 const MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024;
@@ -4544,10 +4545,10 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                 const selectedOutfit = characterOutfits[shotSlot]?.[charId];
                 
                 // 🔥 FIX: Only filter by outfit if headshots are loaded (not loading)
-                let headshots = !isLoading && selectedOutfit && selectedOutfit !== 'default' 
+                let headshots = !isLoading && selectedOutfit && canonicalOutfitName(selectedOutfit) !== 'default' 
                   ? allHeadshots.filter((h: any) => {
-                      const headshotOutfit = h.outfitName || h.metadata?.outfitName;
-                      return headshotOutfit === selectedOutfit;
+                      const headshotOutfit = canonicalOutfitName(h.outfitName || h.metadata?.outfitName || '');
+                      return headshotOutfit === canonicalOutfitName(selectedOutfit || '');
                     })
                   : allHeadshots;
                 
@@ -4578,9 +4579,9 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                       <div className="text-[10px] text-[#808080]">Loading headshots...</div>
                     ) : headshots.length > 0 ? (
                       <div>
-                        {selectedOutfit && selectedOutfit !== 'default' && (
+                        {selectedOutfit && canonicalOutfitName(selectedOutfit) !== 'default' && (
                           <div className="text-[10px] text-[#808080] mb-1.5">
-                            Outfit: <span className="text-[#DC143C] font-medium">{selectedOutfit}</span>
+                            Outfit: <span className="text-[#DC143C] font-medium">{canonicalToDisplay(canonicalOutfitName(selectedOutfit), selectedOutfit)}</span>
                           </div>
                         )}
                         <div className={`grid ${SCENE_BUILDER_GRID_COLS} ${SCENE_BUILDER_GRID_GAP}`}>

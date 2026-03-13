@@ -8,9 +8,10 @@
  * Allows selection of default outfit or custom outfit entry
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { Label } from '@/components/ui/label';
 import { Users } from 'lucide-react';
+import { canonicalOutfitName, canonicalToDisplay } from '@/utils/outfitUtils';
 
 interface CharacterOutfitSelectorProps {
   characterId: string;
@@ -35,11 +36,30 @@ export function CharacterOutfitSelector({
   hideLabel = false,
   compact = false
 }: CharacterOutfitSelectorProps) {
-  const [localSelectedOutfit, setLocalSelectedOutfit] = useState<string>(selectedOutfit || 'default');
+  const normalizedOutfitOptions = useMemo(() => {
+    const map = new Map<string, string>();
+    availableOutfits.forEach((outfit) => {
+      const canonical = canonicalOutfitName(outfit || '');
+      if (!canonical || canonical === 'default') return;
+      if (!map.has(canonical)) {
+        map.set(canonical, canonicalToDisplay(canonical, outfit));
+      }
+    });
+    return Array.from(map.entries())
+      .map(([value, label]) => ({ value, label }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+  }, [availableOutfits]);
+
+  const normalizedDefaultOutfit = useMemo(() => {
+    const canonical = canonicalOutfitName(defaultOutfit || '');
+    return canonical && canonical !== 'default' ? canonical : undefined;
+  }, [defaultOutfit]);
+
+  const [localSelectedOutfit, setLocalSelectedOutfit] = useState<string>(canonicalOutfitName(selectedOutfit || 'default') || 'default');
 
   // Initialize with selectedOutfit or default to first available outfit (not "All Outfits")
   useEffect(() => {
-    const outfitsArray = availableOutfits || [];
+    const outfitsArray = normalizedOutfitOptions.map((o) => o.value);
     
     // If no outfits available, don't try to set one (will show "No outfits available" message)
     if (outfitsArray.length === 0 && !defaultOutfit) {
@@ -48,15 +68,16 @@ export function CharacterOutfitSelector({
       return;
     }
     
-    if (selectedOutfit && selectedOutfit !== 'default') {
+    const normalizedSelected = canonicalOutfitName(selectedOutfit || 'default');
+    if (normalizedSelected && normalizedSelected !== 'default') {
       // Check if it's a preset outfit
-      const isPreset = outfitsArray.includes(selectedOutfit);
+      const isPreset = outfitsArray.includes(normalizedSelected);
       if (isPreset) {
-        setLocalSelectedOutfit(selectedOutfit);
+        setLocalSelectedOutfit(normalizedSelected);
       } else {
         // If not a preset, default to first available or default outfit
-        const initialOutfit = defaultOutfit && outfitsArray.includes(defaultOutfit)
-          ? defaultOutfit
+        const initialOutfit = normalizedDefaultOutfit && outfitsArray.includes(normalizedDefaultOutfit)
+          ? normalizedDefaultOutfit
           : (outfitsArray.length > 0 ? outfitsArray[0] : 'default');
         setLocalSelectedOutfit(initialOutfit);
         // Auto-select if we had to change it
@@ -66,8 +87,8 @@ export function CharacterOutfitSelector({
       }
     } else {
       // If selectedOutfit is undefined, default to first available or default outfit
-      const initialOutfit = defaultOutfit && outfitsArray.includes(defaultOutfit)
-        ? defaultOutfit
+      const initialOutfit = normalizedDefaultOutfit && outfitsArray.includes(normalizedDefaultOutfit)
+        ? normalizedDefaultOutfit
         : (outfitsArray.length > 0 ? outfitsArray[0] : 'default');
       setLocalSelectedOutfit(initialOutfit);
       // Auto-select if we had to change it
@@ -75,23 +96,24 @@ export function CharacterOutfitSelector({
         onOutfitChange(characterId, initialOutfit);
       }
     }
-  }, [selectedOutfit, availableOutfits, defaultOutfit, characterId, onOutfitChange]);
+  }, [selectedOutfit, normalizedOutfitOptions, normalizedDefaultOutfit, characterId, onOutfitChange]);
 
   const handleOutfitChange = (value: string) => {
     // Require a specific outfit - "All Outfits" is not allowed as final selection
     // This ensures only one outfit's images are sent, not all images
     // Only call onOutfitChange if we have outfits available
-    const outfitsArray = availableOutfits || [];
+    const outfitsArray = normalizedOutfitOptions.map((o) => o.value);
     if (outfitsArray.length > 0 || defaultOutfit) {
-      setLocalSelectedOutfit(value);
-      onOutfitChange(characterId, value); // specific outfit name
+      const normalizedValue = canonicalOutfitName(value || '');
+      setLocalSelectedOutfit(normalizedValue || 'default');
+      onOutfitChange(characterId, normalizedValue || undefined); // specific outfit name
     }
     // If no outfits available, do nothing (will show "No outfits available" message)
   };
 
   // Determine if we should show dropdown or just display
   // Use actual prop value, not default parameter, to detect if data has loaded
-  const outfitsArray = Array.isArray(availableOutfits) ? availableOutfits : [];
+  const outfitsArray = normalizedOutfitOptions.map((o) => o.value);
   const hasMultipleOutfits = outfitsArray.length > 1;
   const hasAnyOutfits = outfitsArray.length > 0 || !!defaultOutfit;
   
@@ -111,20 +133,20 @@ export function CharacterOutfitSelector({
         {hasAnyOutfits ? (
           shouldShowDropdown ? (
             <select
-              value={localSelectedOutfit === 'default' ? (defaultOutfit || outfitsArray[0] || '') : localSelectedOutfit}
+              value={localSelectedOutfit === 'default' ? (normalizedDefaultOutfit || outfitsArray[0] || '') : localSelectedOutfit}
               onChange={(e) => handleOutfitChange(e.target.value)}
               className="flex-1 px-2 py-1 bg-[#141414] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] focus:outline-none focus:ring-1 focus:ring-[#DC143C]"
               required
             >
-              {outfitsArray.map((outfit) => (
-                <option key={outfit} value={outfit}>
-                  {outfit}
+              {normalizedOutfitOptions.map((outfit) => (
+                <option key={outfit.value} value={outfit.value}>
+                  {outfit.label}
                 </option>
               ))}
             </select>
           ) : (
             <span className="text-xs text-[#808080]">
-              {defaultOutfit || outfitsArray[0] || 'No outfit set'}
+              {canonicalToDisplay(normalizedDefaultOutfit || outfitsArray[0] || '', defaultOutfit || outfitsArray[0] || '') || 'No outfit set'}
             </span>
           )
         ) : (
@@ -149,7 +171,7 @@ export function CharacterOutfitSelector({
           <Users className="w-3 h-3" />
           <span>{characterName}</span>
           {defaultOutfit && (
-            <span className="text-[10px] text-[#3F3F46]">(Default: {defaultOutfit})</span>
+            <span className="text-[10px] text-[#3F3F46]">(Default: {canonicalToDisplay(normalizedDefaultOutfit || defaultOutfit, defaultOutfit)})</span>
           )}
         </Label>
       )}
@@ -158,21 +180,21 @@ export function CharacterOutfitSelector({
         shouldShowDropdown ? (
           // Multiple outfits - show dropdown
           <select
-            value={localSelectedOutfit === 'default' ? (defaultOutfit || outfitsArray[0] || '') : localSelectedOutfit}
+            value={localSelectedOutfit === 'default' ? (normalizedDefaultOutfit || outfitsArray[0] || '') : localSelectedOutfit}
             onChange={(e) => handleOutfitChange(e.target.value)}
             className="w-full px-3 py-2 bg-[#141414] border border-[#3F3F46] rounded-lg text-xs text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C]"
             required
           >
-            {outfitsArray.map((outfit) => (
-              <option key={outfit} value={outfit}>
-                {outfit}
+            {normalizedOutfitOptions.map((outfit) => (
+              <option key={outfit.value} value={outfit.value}>
+                {outfit.label}
               </option>
             ))}
           </select>
         ) : (
           // Single outfit - show as read-only
           <div className="px-3 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded-lg text-xs text-[#808080]">
-            {defaultOutfit || outfitsArray[0] || 'No outfit set'}
+            {canonicalToDisplay(normalizedDefaultOutfit || outfitsArray[0] || '', defaultOutfit || outfitsArray[0] || '') || 'No outfit set'}
           </div>
         )
       ) : (

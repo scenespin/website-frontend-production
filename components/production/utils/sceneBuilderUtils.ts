@@ -6,6 +6,7 @@
  */
 
 import { SceneAnalysisResult } from '@/types/screenplay';
+import { canonicalOutfitName } from '@/utils/outfitUtils';
 
 /**
  * Get full text content from a shot (narration, dialogue, or description)
@@ -177,7 +178,8 @@ export function getCharacterWithExtractedOutfits(
   const outfitSet = new Set<string>();
   headshots.forEach((headshot: any) => {
     const outfitName = headshot.outfitName || headshot.metadata?.outfitName;
-    if (outfitName && outfitName !== 'default') outfitSet.add(outfitName);
+    const canonical = canonicalOutfitName(outfitName || '');
+    if (canonical && canonical !== 'default') outfitSet.add(canonical);
   });
   const extractedOutfits = Array.from(outfitSet).sort();
   if (extractedOutfits.length > 0) {
