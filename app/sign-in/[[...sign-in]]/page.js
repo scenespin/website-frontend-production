@@ -27,14 +27,6 @@ export default function SignInPage() {
       {/* Main Content */}
       <div className="flex items-center justify-center px-4 py-6 md:py-8 w-full min-h-[calc(100vh-80px)]">
         <div className="w-full max-w-md mx-auto">
-          {/* ISE Badge */}
-          <div className="text-center mb-6">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#141414] border border-[#DC143C]/30 text-sm mb-4">
-              <span className="font-semibold text-gray-300">✨ The First Integrated Screenwriting Environment</span>
-            </div>
-            <p className="text-sm text-gray-400">Write → Produce → Direct — All in one platform</p>
-          </div>
-
           <div className="bg-[#141414] border border-white/10 rounded-lg shadow-2xl p-4 sm:p-6 md:p-8 mx-auto">
             <SignIn 
               routing="path"

@@ -50,10 +50,6 @@ export default function StudioPricingPage() {
         {/* Hero Section */}
         <section className="py-16 md:py-24 bg-gradient-to-br from-[#141414] to-[#0A0A0A]">
           <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <div className="inline-flex items-center gap-2 px-4 py-2 bg-[#DC143C]/10 border border-[#DC143C]/30 rounded-full mb-6">
-              <Building2 className="w-4 h-4 text-[#DC143C]" />
-              <span className="text-sm font-semibold text-[#DC143C]">STUDIO PLAN • ENTERPRISE</span>
-            </div>
             <h1 className="text-4xl sm:text-5xl md:text-6xl font-extrabold tracking-tight mb-4 md:mb-6">
               Enterprise Teams. Same Features.
             </h1>

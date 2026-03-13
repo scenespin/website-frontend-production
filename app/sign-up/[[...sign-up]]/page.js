@@ -38,11 +38,6 @@ export default function SignUpPage() {
           
           {/* LEFT: Value Proposition - DYNAMIC BASED ON PLAN */}
           <div className="space-y-6 order-2 md:order-1">
-            {/* Positioning Badge */}
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#141414] border border-[#DC143C]/30 text-sm">
-              <span className="font-semibold text-gray-300">✨ Early Access • Writer-First Workflow</span>
-            </div>
-
             {/* Main Headline - Dynamic */}
             <div>
               <h1 className="text-2xl sm:text-3xl md:text-4xl font-extrabold tracking-tight mb-3 text-white">

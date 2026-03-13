@@ -83,13 +83,6 @@ export default function Page() {
         <section className="relative overflow-hidden">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 md:py-16">
             <div className="text-center">
-              {/* Badge */}
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-[#141414] border border-[#3F3F46] text-sm mb-6">
-                <span className="font-semibold text-gray-300">Early Access</span>
-                <span className="text-gray-600">•</span>
-                <span className="text-gray-300">Built with Working Writers</span>
-              </div>
-
               {/* Main Headline */}
               <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-extrabold tracking-tight mb-4 md:mb-6 px-2">
                 Write the script only you can write.

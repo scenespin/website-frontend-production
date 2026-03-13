@@ -60,9 +60,6 @@ export default function Features() {
         <section className="py-16 md:py-20 bg-gradient-to-b from-[#141414] to-[#0A0A0A]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="max-w-4xl">
-              <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-black border border-[#DC143C]/30 text-sm mb-6">
-                <span className="font-semibold text-gray-300">Screenplay-First Platform</span>
-              </div>
               <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight mb-5">
                 Feature depth across Create, Produce, and Direct
               </h1>

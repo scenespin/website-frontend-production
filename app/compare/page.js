@@ -59,9 +59,6 @@ export default function ComparePage() {
         {/* Hero */}
         <section className="py-20 bg-[#141414]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-black border border-[#DC143C]/30 text-sm mb-6">
-              <span className="font-semibold text-gray-300">Screenplay-First Integrated Environment</span>
-            </div>
             <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight mb-6">
               What Makes Wryda Unique
             </h1>

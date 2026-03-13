@@ -29,10 +29,6 @@ export default function FountainFormatHelp() {
       <main className="max-w-4xl mx-auto px-6 py-12">
         {/* Hero */}
         <div className="text-center mb-12">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-semibold mb-4">
-            <span>🎬</span>
-            <span>Industry Standard</span>
-          </div>
           <h1 className="text-4xl md:text-5xl font-extrabold mb-4">
             Why Fountain Format?
           </h1>

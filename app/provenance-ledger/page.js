@@ -58,9 +58,6 @@ export default function ProvenanceLedgerPage() {
           <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="bg-[#141414] border border-[#3F3F46] rounded-xl p-5 md:p-6">
               <div className="text-center mb-5 md:mb-6">
-                <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-black border border-[#DC143C]/30 text-sm mb-4">
-                  <span className="font-semibold text-gray-300">Writer-First Trust</span>
-                </div>
                 <h1 className="text-4xl md:text-6xl font-extrabold tracking-tight mb-4">
                   Wryda Provenance Ledger
                 </h1>
