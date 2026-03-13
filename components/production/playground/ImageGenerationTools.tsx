@@ -130,8 +130,8 @@ const MODEL_DISPLAY_NAME_BY_ID: Record<string, string> = {
   'flux2-pro-4k': 'Flux2 Pro 4k',
   'flux2-pro-2k': 'Flux2 Pro 2k',
   'flux2-flex': 'Flux2 Flex',
-  'grok-imagine-image': 'Grok Imagine',
-  'grok-imagine-image-pro': 'Grok Imagine Pro',
+  'grok-imagine-image': 'Grok Imagine 2k',
+  'grok-imagine-image-pro': 'Grok Imagine Pro 2k',
 };
 
 const getModelDisplayName = (model: ImageModel): string => {
