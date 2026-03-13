@@ -77,10 +77,11 @@ export function ReferenceShotSelector({
   }, [getToken]);
 
   const requestedValue = selectedModel ?? DEFAULT_REFERENCE_SHOT_MODEL;
-  const selectValue = models.some((m) => m.id === requestedValue)
-    ? requestedValue
-    : models[0].id;
-  const currentModel = models.find((m) => m.id === selectValue) ?? models[0];
+  const resolvedModel =
+    models.find((m) => m.id === requestedValue) ??
+    models[0];
+  const selectValue = resolvedModel?.id ?? '';
+  const currentModel = resolvedModel;
 
   if (isLoading) {
     return (
