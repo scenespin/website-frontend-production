@@ -1310,7 +1310,6 @@ export default function PitchDeckEditorPage() {
 
   useEffect(() => {
     if (referenceMediaIds.length === 0) {
-      if (referenceMediaIdentityKeys.length > 0) setReferenceMediaIdentityKeys([]);
       return;
     }
     const nextKeys = Array.from(

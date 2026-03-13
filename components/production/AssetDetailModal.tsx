@@ -1366,7 +1366,7 @@ export default function AssetDetailModal({
                                         onSelect={(e) => {
                                           e.preventDefault();
                                           e.stopPropagation();
-                                          suppressPreviewClickUntilRef.current = Date.now() + 400;
+                                          suppressPreviewClickUntilRef.current = Date.now() + 1000;
                                           setOpenDropdownId(null);
                                           const angleIdentifier = img.id || img.s3Key;
                                           void handleFlipAngle(angleIdentifier, img.s3Key);

@@ -1367,6 +1367,10 @@ export function LocationDetailModal({
                                   : 'border-[#3F3F46] hover:border-[#DC143C]'
                               }`}
                               onClick={(e) => {
+                                if (Date.now() < suppressPreviewClickUntilRef.current) {
+                                  e.stopPropagation();
+                                  return;
+                                }
                                 if (!selectionMode) {
                                   // Find index in allImages
                                   const allIndex = allImages.findIndex(aImg => 
@@ -1544,7 +1548,7 @@ export function LocationDetailModal({
                                           onSelect={(e) => {
                                             e.preventDefault();
                                             e.stopPropagation();
-                                            suppressPreviewClickUntilRef.current = Date.now() + 400;
+                                            suppressPreviewClickUntilRef.current = Date.now() + 1000;
                                             setOpenDropdownId(null);
                                             const angleIdentifier = variation.id || variation.s3Key;
                                             void handleFlipAngle(angleIdentifier, variation.s3Key);
