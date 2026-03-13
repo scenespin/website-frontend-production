@@ -23,6 +23,7 @@ import { useIsMobile } from '@/hooks/use-mobile';
 import { extractCreditError, getCreditErrorDisplayMessage, syncCreditsFromError } from '@/utils/creditGuard';
 import { useInFlightWorkflowJobsStore } from '@/lib/inFlightWorkflowJobsStore';
 import { uploadToObjectStorage } from '@/lib/objectStorageUpload';
+import { canonicalOutfitName, canonicalToDisplay } from '@/utils/outfitUtils';
 
 interface GenerateWardrobeTabProps {
   characterId: string;
@@ -87,22 +88,25 @@ export function GenerateWardrobeTab({
 
   // Extract existing outfit names
   const existingOutfits = useMemo(() => {
-    const outfits = new Set<string>();
+    const outfits = new Map<string, string>();
     existingReferences.forEach(ref => {
-      const outfit = ref.metadata?.outfitName || 'default';
-      if (outfit !== 'default') {
-        outfits.add(outfit);
+      const rawOutfit = ref.metadata?.outfitName || 'default';
+      const canonical = canonicalOutfitName(rawOutfit);
+      if (canonical !== 'default' && canonical.length > 0 && !outfits.has(canonical)) {
+        outfits.set(canonical, canonicalToDisplay(canonical, rawOutfit));
       }
     });
-    return Array.from(outfits).sort();
+    return Array.from(outfits.entries())
+      .map(([value, label]) => ({ value, label }))
+      .sort((a, b) => a.label.localeCompare(b.label));
   }, [existingReferences]);
 
   // Get final outfit name (no auto-generated name; require user input or selection)
   const finalOutfitName = useMemo(() => {
     if (outfitMode === 'create') {
-      return newOutfitName.trim() || '';
+      return canonicalOutfitName(newOutfitName.trim() || '');
     }
-    return selectedExistingOutfit || '';
+    return canonicalOutfitName(selectedExistingOutfit || '');
   }, [outfitMode, newOutfitName, selectedExistingOutfit]);
 
   // Get selected model
@@ -424,8 +428,8 @@ export function GenerateWardrobeTab({
                   className="select select-bordered w-full h-9 text-sm bg-[#0A0A0A] border-[#3F3F46] text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-[#DC143C]"
                 >
                   <option value="__select__" className="bg-[#1A1A1A] text-[#FFFFFF]">Select an outfit...</option>
-                  {existingOutfits.map(outfit => (
-                    <option key={outfit} value={outfit} className="bg-[#1A1A1A] text-[#FFFFFF]">{outfit}</option>
+                  {existingOutfits.map((outfit) => (
+                    <option key={outfit.value} value={outfit.value} className="bg-[#1A1A1A] text-[#FFFFFF]">{outfit.label}</option>
                   ))}
                 </select>
               ) : (

@@ -216,7 +216,7 @@ export function UploadAssetImagesTab({
       }
 
       if (uploadedS3Keys.length > 0) {
-        toast.success(`Successfully uploaded ${uploadedS3Keys.length} image(s) to ${angleNameToUse}`);
+        // Parent modal owns success notification to avoid duplicate toasts.
         onComplete({ angleName: angleNameToUse, images: uploadedS3Keys });
       }
 

@@ -8,6 +8,7 @@ import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { VoiceBrowserModal } from '@/components/production/VoiceBrowserModal';
+import { useInFlightWorkflowJobsStore } from '@/lib/inFlightWorkflowJobsStore';
 
 interface Scene {
   id: string;
@@ -64,6 +65,7 @@ export default function ScreenplayReadingModal({
   const { getToken } = useAuth();
   const { characters, scenes: screenplayScenes, getSceneCharacters } = useScreenplay();
   const router = useRouter();
+  const addInFlightJob = useInFlightWorkflowJobsStore((state) => state.addJob);
   
   // State
   const [scenes, setScenes] = useState<Scene[]>([]);
@@ -362,11 +364,20 @@ export default function ScreenplayReadingModal({
     setIsGenerating(true);
     setGenerationProgress({ current: 0, total: selectedSceneIds.length });
 
+    const startedAt = Date.now();
+    const requestSelectedSceneIds = selectedSceneIds.length === scenes.length ? [] : selectedSceneIds;
+
+    // Close immediately and hand off progress tracking to Jobs panel.
+    onClose();
+    router.push('/produce?tab=jobs');
+    toast.info('Screenplay reading started', {
+      description: 'Processing in background. Track progress in Jobs.',
+    });
+
     try {
       const token = await getToken({ template: 'wryda-backend' });
       if (!token) {
-        toast.error('Authentication failed');
-        return;
+        throw new Error('Authentication failed');
       }
 
       const response = await fetch(`/api/screenplay/${screenplayId}/read`, {
@@ -376,7 +387,7 @@ export default function ScreenplayReadingModal({
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify({
-          selectedSceneIds: selectedSceneIds.length === scenes.length ? [] : selectedSceneIds, // Empty array = all scenes
+          selectedSceneIds: requestSelectedSceneIds,
           includeNarration,
           includeTimestamps,
           narratorVoiceId: narratorVoiceId || undefined
@@ -393,17 +404,54 @@ export default function ScreenplayReadingModal({
         }
       }
 
+      const registerJobInUi = (jobId: string) => {
+        addInFlightJob(jobId);
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(
+            new CustomEvent('wryda:optimistic-job', {
+              detail: {
+                jobId,
+                screenplayId,
+                jobType: 'screenplay-reading',
+                assetName: screenplayTitle || 'Screenplay reading',
+              },
+            })
+          );
+        }
+      };
+
+      const reconcileRecentScreenplayReadingJob = async () => {
+        const recentResponse = await fetch(
+          `/api/workflows/executions?screenplayId=${encodeURIComponent(screenplayId)}&limit=20`,
+          {
+            headers: { Authorization: `Bearer ${token}` },
+            cache: 'no-store',
+          }
+        );
+        if (!recentResponse.ok) return null;
+        const payload = await recentResponse.json();
+        const jobs = Array.isArray(payload?.data?.jobs) ? payload.data.jobs : [];
+        const thresholdMs = startedAt - 120000;
+        const match = jobs.find((job: any) => {
+          if (String(job?.jobType || '').toLowerCase() !== 'screenplay-reading') return false;
+          const jobId = String(job?.jobId || '').trim();
+          if (!jobId) return false;
+          const createdAtMs = new Date(job?.createdAt || 0).getTime();
+          return Number.isFinite(createdAtMs) && createdAtMs >= thresholdMs;
+        });
+        return match?.jobId ? String(match.jobId).trim() : null;
+      };
+
       if (!response.ok) {
         const isGatewayTimeout = response.status === 502 || response.status === 503 || response.status === 504;
         if (isGatewayTimeout) {
-          toast.info('Screenplay reading is still processing', {
-            description: 'The request timed out, but the backend may still complete. Opening Jobs tab for live status.'
-          });
-          onClose();
-          router.push('/produce?tab=jobs');
+          const recoveredJobId = await reconcileRecentScreenplayReadingJob();
+          if (recoveredJobId) {
+            registerJobInUi(recoveredJobId);
+            router.push(`/produce?tab=jobs&jobId=${recoveredJobId}`);
+          }
           return;
         }
-
         const errorMessage =
           data?.message ||
           data?.error ||
@@ -412,70 +460,27 @@ export default function ScreenplayReadingModal({
         throw new Error(errorMessage);
       }
 
-      if (data.success) {
-        // Check if async job (has jobId)
-        if (data.jobId) {
-          // Async job - redirect to jobs tab
-          setJobId(data.jobId);
-          setEstimatedTime(data.estimatedTime);
-          setIsAsyncJob(true);
-          
-          toast.info('Screenplay reading started', {
-            description: `This will take approximately ${data.estimatedTime} minutes. Redirecting to Jobs tab...`
-          });
-          
-          // Close modal and redirect to jobs tab
-          onClose();
-          router.push(`/produce?tab=jobs&jobId=${data.jobId}`);
-        } else {
-          // Synchronous result - backend may return result in data.result or data.data
-          const syncResult = data.result ?? data.data;
-          if (syncResult) {
-            setResult(syncResult);
-
-            // Handle failed scenes
-            if (syncResult.scenesFailed && syncResult.scenesFailed.length > 0) {
-              setFailedScenes(syncResult.scenesFailed);
-              toast.warning(`Audio generated with ${syncResult.scenesFailed.length} failed scene(s)`, {
-                description: 'Some scenes could not be processed. Check the error details below.'
-              });
-            } else {
-              toast.success('Audio generated successfully!');
-            }
-
-            // 🔥 Refresh credits immediately after screenplay reading completes
-            if (typeof window !== 'undefined' && window.refreshCredits) {
-              window.refreshCredits();
-            }
-
-            // Show Media Library notification
-            toast.info('Files saved to Media Library', {
-              description: 'You can access them from the Media Library tab'
-            });
-
-            // Initialize audio player
-            if (syncResult.audioUrl) {
-              const audio = new Audio(syncResult.audioUrl);
-            audio.addEventListener('loadedmetadata', () => {
-              setDuration(audio.duration);
-            });
-            audio.addEventListener('timeupdate', () => {
-              setCurrentTime(audio.currentTime);
-            });
-            audio.addEventListener('ended', () => {
-              setIsPlaying(false);
-              setCurrentTime(0);
-            });
-            setAudioElement(audio);
-          }
-          }
+      if (data?.success && data?.jobId) {
+        const jobId = String(data.jobId).trim();
+        if (jobId) {
+          registerJobInUi(jobId);
+          router.push(`/produce?tab=jobs&jobId=${jobId}`);
         }
-      } else {
-        throw new Error(data?.message || data?.error || 'Failed to generate audio');
+        return;
       }
+
+      // If backend responds without jobId, attempt to recover from recent jobs.
+      const recoveredJobId = await reconcileRecentScreenplayReadingJob();
+      if (recoveredJobId) {
+        registerJobInUi(recoveredJobId);
+        router.push(`/produce?tab=jobs&jobId=${recoveredJobId}`);
+        return;
+      }
+
+      throw new Error(data?.message || data?.error || 'Failed to start screenplay reading');
     } catch (error) {
       console.error('[ScreenplayReadingModal] Generation failed:', error);
-      toast.error('Failed to generate audio', {
+      toast.error('Failed to start screenplay reading', {
         description: error instanceof Error ? error.message : 'Unknown error'
       });
     } finally {

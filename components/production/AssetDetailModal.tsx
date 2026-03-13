@@ -1195,7 +1195,7 @@ export default function AssetDetailModal({
                           // All angleImages are Production Hub images (editable/deletable)
                           const isSelected = selectedImageIds.has(img.id);
                           // 🔥 NEW: Use thumbnail URL from mapping, fallback to full image
-                          const displayUrl = appendFlipCacheBust(referenceThumbnailMap.get(img.id) || img.imageUrl, img.s3Key);
+                          const displayUrl = appendFlipCacheBust(img.imageUrl, img.s3Key) || getDisplayUrl({ s3Key: img.s3Key || '', imageUrl: img.imageUrl });
                           return (
                             <div
                               key={img.id}

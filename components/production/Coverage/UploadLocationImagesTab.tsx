@@ -257,8 +257,7 @@ export function UploadLocationImagesTab({
       }
 
       if (uploadedS3Keys.length > 0) {
-        const categoryLabel = category === 'angles' ? 'Location Angles' : 'Location Backgrounds';
-        toast.success(`Successfully uploaded ${uploadedS3Keys.length} image(s) to ${categoryLabel}: ${nameToUse}`);
+        // Parent modal owns success notification to avoid duplicate toasts.
         onComplete({ viewName: nameToUse, images: uploadedS3Keys, category });
       }
 

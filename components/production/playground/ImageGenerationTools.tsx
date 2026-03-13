@@ -544,42 +544,8 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
     try {
       const raw = window.sessionStorage.getItem(storageKey);
       if (!raw) return;
-      const parsed = JSON.parse(raw) as {
-        jobId?: string;
-        startedAtMs?: number;
-        requestCorrelationId?: string;
-      };
-      const restoredJobId = parsed?.jobId ? String(parsed.jobId).trim() : '';
-      const startedAtMs = Number(parsed?.startedAtMs || 0);
-      const restoredRequestCorrelationId =
-        typeof parsed?.requestCorrelationId === 'string' && parsed.requestCorrelationId.trim().length > 0
-          ? parsed.requestCorrelationId.trim()
-          : null;
-      if (!Number.isFinite(startedAtMs) || startedAtMs <= 0) {
-        window.sessionStorage.removeItem(storageKey);
-        return;
-      }
-      // Guard stale timers from old sessions.
-      if (Date.now() - startedAtMs > 24 * 60 * 60 * 1000) {
-        window.sessionStorage.removeItem(storageKey);
-        return;
-      }
-      if (restoredJobId && isWorkflowExecutionId(restoredJobId)) {
-        setGenerationStartedAtMs(startedAtMs);
-        setGenerationTime((Date.now() - startedAtMs) / 1000);
-        setPendingGenerationJobId(restoredJobId);
-        setPendingRequestCorrelationId(restoredRequestCorrelationId);
-        setIsGenerating(true);
-        return;
-      }
-      if (restoredRequestCorrelationId && Date.now() - startedAtMs <= MAX_RECONCILE_AWAIT_MS) {
-        setGenerationStartedAtMs(startedAtMs);
-        setGenerationTime((Date.now() - startedAtMs) / 1000);
-        setPendingGenerationJobId(null);
-        setPendingRequestCorrelationId(restoredRequestCorrelationId);
-        setIsGenerating(true);
-        return;
-      }
+      // Do not restore "Generating..." state across navigation.
+      // We hand off long-running work to Jobs panel and keep this surface immediately interactive.
       window.sessionStorage.removeItem(storageKey);
     } catch {
       window.sessionStorage.removeItem(storageKey);
@@ -1010,7 +976,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
       setPendingRequestCorrelationId(effectiveRequestCorrelationId);
       if (effectiveJobId) {
         setPendingGenerationJobId(effectiveJobId);
-        keepGeneratingUntilAsyncTerminal = true;
+        keepGeneratingUntilAsyncTerminal = false;
       }
       if (effectiveJobId && screenplayId) {
         addInFlightJob(effectiveJobId);
@@ -1026,6 +992,15 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
             })
           );
         }
+        // Keep ImageGen available immediately; job progress and completion are tracked in Jobs.
+        toast.info('Image generation started', {
+          description: 'Track progress in Jobs tab.',
+        });
+        setPendingGenerationJobId(null);
+        setPendingRequestCorrelationId(null);
+        setGenerationStartedAtMs(null);
+        setShowMediaLibraryBrowser(false);
+        return;
       }
       
       // Extract image URL from response
@@ -1072,7 +1047,13 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
       }
       const errorMessage = error.response?.data?.message || error.message || 'Failed to generate image';
       if (isGatewayTimeout) {
-        keepGeneratingUntilAsyncTerminal = true;
+        toast.info('Generation request timed out, but may still be running', {
+          description: 'Check Jobs tab for final status.',
+        });
+        keepGeneratingUntilAsyncTerminal = false;
+        setPendingGenerationJobId(null);
+        setPendingRequestCorrelationId(null);
+        setGenerationStartedAtMs(null);
       } else {
         toast.error(errorMessage);
         keepGeneratingUntilAsyncTerminal = false;
