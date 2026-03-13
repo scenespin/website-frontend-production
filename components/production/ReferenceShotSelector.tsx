@@ -76,8 +76,11 @@ export function ReferenceShotSelector({
     return () => { cancelled = true; };
   }, [getToken]);
 
-  const currentModel = models.find((m) => m.id === selectedModel) ?? models[0];
-  const selectValue = selectedModel ?? DEFAULT_REFERENCE_SHOT_MODEL;
+  const requestedValue = selectedModel ?? DEFAULT_REFERENCE_SHOT_MODEL;
+  const selectValue = models.some((m) => m.id === requestedValue)
+    ? requestedValue
+    : models[0].id;
+  const currentModel = models.find((m) => m.id === selectValue) ?? models[0];
 
   if (isLoading) {
     return (
