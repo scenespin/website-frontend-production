@@ -834,7 +834,7 @@ export default function ScreenplayReadingModal({
                           <div className="flex items-center justify-between">
                             <div>
                               <p className="text-sm font-medium">
-                                {narratorVoiceName || 'Drew (default)'}
+                                {narratorVoiceName || 'Brian (default)'}
                               </p>
                               <p className="text-xs text-base-content/60">
                                 Voice for action lines and narration
@@ -856,7 +856,7 @@ export default function ScreenplayReadingModal({
                               }}
                               className="text-xs text-base-content/60 hover:text-base-content underline"
                             >
-                              Reset to default (Drew)
+                              Reset to default (Brian)
                             </button>
                           )}
                         </div>

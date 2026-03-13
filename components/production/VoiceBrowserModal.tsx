@@ -5,7 +5,7 @@
  * 
  * Features:
  * - Browse voices from ElevenLabs library
- * - Filter by gender, age, accent
+ * - Filter by gender, accent
  * - Search voices by name
  * - Preview voice with sample text
  * - Select voice for assignment
@@ -54,7 +54,6 @@ export function VoiceBrowserModal({
   const [searchQuery, setSearchQuery] = useState('');
   const [filters, setFilters] = useState({
     gender: characterDemographics?.gender || '',
-    age: characterDemographics?.age || '',
     accent: characterDemographics?.accent || '',
   });
   const [selectedVoiceId, setSelectedVoiceId] = useState<string | null>(null);
@@ -90,11 +89,6 @@ export function VoiceBrowserModal({
       filtered = filtered.filter(voice => voice.gender?.toLowerCase() === filters.gender.toLowerCase());
     }
 
-    // Apply age filter
-    if (filters.age && filters.age !== 'unknown') {
-      filtered = filtered.filter(voice => voice.age?.toLowerCase() === filters.age.toLowerCase());
-    }
-
     // Apply accent filter
     if (filters.accent) {
       filtered = filtered.filter(voice => voice.accent?.toLowerCase().includes(filters.accent.toLowerCase()));
@@ -109,7 +103,6 @@ export function VoiceBrowserModal({
       const token = await getToken();
       const queryParams = new URLSearchParams();
       if (filters.gender && filters.gender !== 'unknown') queryParams.append('gender', filters.gender);
-      if (filters.age && filters.age !== 'unknown') queryParams.append('age', filters.age);
       if (filters.accent) queryParams.append('accent', filters.accent);
       queryParams.append('limit', '100');
 
@@ -339,17 +332,6 @@ export function VoiceBrowserModal({
                   <option value="">All Genders</option>
                   <option value="male">Male</option>
                   <option value="female">Female</option>
-                  <option value="non-binary">Non-Binary</option>
-                </select>
-                <select
-                  value={filters.age}
-                  onChange={(e) => setFilters({ ...filters, age: e.target.value })}
-                  className="px-3 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded-lg text-[#FFFFFF] text-sm focus:border-[#DC143C] focus:outline-none"
-                >
-                  <option value="">All Ages</option>
-                  <option value="young">Young</option>
-                  <option value="middle">Middle</option>
-                  <option value="elderly">Elderly</option>
                 </select>
                 <select
                   value={filters.accent}
