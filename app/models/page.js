@@ -103,7 +103,7 @@ export default function ModelsPage() {
 
           <ModelTable
             title="Image Models"
-            subtitle={`${imageModels.length} models exposed in Scene Builder / reference-shot selectors`}
+            subtitle={`${imageModels.length} models exposed across Scene Builder and image generation tools`}
             rows={imageModels}
           />
 
