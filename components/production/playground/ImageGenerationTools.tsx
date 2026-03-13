@@ -107,6 +107,8 @@ const DIRECT_HUB_ALLOWED_PROMPT_MODELS = new Set([
   'flux2-max-4k-16:9',
   'nano-banana-pro',
   'nano-banana-pro-2k',
+  'grok-imagine-image',
+  'grok-imagine-image-pro',
 ]);
 
 const DIRECT_HUB_ALLOWED_REFERENCE_MODELS = new Set([
@@ -119,6 +121,28 @@ const DIRECT_HUB_ALLOWED_REFERENCE_MODELS = new Set([
   'grok-imagine-image',      // xAI: up to 3 reference images
   'grok-imagine-image-pro',  // xAI: up to 3 reference images
 ]);
+
+const MODEL_DISPLAY_NAME_BY_ID: Record<string, string> = {
+  'nano-banana-pro': 'Nano Banana Pro 4k',
+  'nano-banana-pro-2k': 'Nano Banana Pro 2k',
+  'flux2-max-4k-16:9': 'Flux2 Max 4k',
+  'flux2-max-2k': 'Flux2 Max 2k',
+  'flux2-pro-4k': 'Flux2 Pro 4k',
+  'flux2-pro-2k': 'Flux2 Pro 2k',
+  'flux2-flex': 'Flux2 Flex',
+  'grok-imagine-image': 'Grok Imagine',
+  'grok-imagine-image-pro': 'Grok Imagine Pro',
+};
+
+const getModelDisplayName = (model: ImageModel): string => {
+  if (MODEL_DISPLAY_NAME_BY_ID[model.id]) {
+    return MODEL_DISPLAY_NAME_BY_ID[model.id];
+  }
+  if (model.label && model.label.trim().length > 0) {
+    return model.label.trim();
+  }
+  return model.id.replace(/-/g, ' ');
+};
 const DIRECT_IMAGE_ATTEMPTS_RETENTION_MS = 12 * 60 * 60 * 1000;
 const MAX_RECONCILE_AWAIT_MS = 15 * 60 * 1000;
 const LOCAL_RECONCILE_FAILURE_MESSAGE =
@@ -1551,7 +1575,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
             >
               {models.map((model) => (
                 <option key={model.id} value={model.id}>
-                  {model.id} ({model.creditsPerImage} credits)
+                  {getModelDisplayName(model)} ({model.creditsPerImage} credits)
                 </option>
               ))}
             </select>
