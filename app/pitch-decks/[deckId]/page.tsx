@@ -1948,7 +1948,8 @@ export default function PitchDeckEditorPage() {
       }
     };
 
-    if (imageActionTab === 'library' && existingMediaLoadedScopeRef.current !== mediaScopeKey) {
+    const needsMediaForActiveTab = imageActionTab === 'library' || imageActionTab === 'reference';
+    if (needsMediaForActiveTab && existingMediaLoadedScopeRef.current !== mediaScopeKey) {
       void (async () => {
         const loaded = await refreshExistingMedia();
         if (!cancelled && loaded) {
