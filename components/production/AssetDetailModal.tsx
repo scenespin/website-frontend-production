@@ -580,10 +580,15 @@ export default function AssetDetailModal({
   const referenceThumbnailMap = useMemo(() => {
     const map = new Map<string, string>();
     referenceGalleryImages.forEach((galleryImg) => {
-      map.set(galleryImg.id, galleryImg.thumbnailUrl || galleryImg.imageUrl);
+      const resolvedS3Key = (galleryImg as any).s3Key || (galleryImg as any).metadata?.s3Key;
+      const hasRecentFlip = !!(resolvedS3Key && flipCacheBustByS3Key[resolvedS3Key]);
+      const baseUrl = hasRecentFlip
+        ? (galleryImg.imageUrl || galleryImg.thumbnailUrl)
+        : (galleryImg.thumbnailUrl || galleryImg.imageUrl);
+      map.set(galleryImg.id, appendFlipCacheBust(baseUrl || '', resolvedS3Key));
     });
     return map;
-  }, [referenceGalleryImages]);
+  }, [appendFlipCacheBust, flipCacheBustByS3Key, referenceGalleryImages]);
   
   const canGenerateAngles = userImages.length >= 1; // Need at least 1 creation image for angle generation
   

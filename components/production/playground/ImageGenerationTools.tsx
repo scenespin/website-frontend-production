@@ -631,7 +631,22 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
     const pollByJobId = async () => {
       try {
         const execution = await fetchWorkflowExecution(pendingGenerationJobId);
-        if (!execution || cancelled) return;
+        if (cancelled) return;
+        if (!execution) return;
+        if ((execution as any).__notFound) {
+          // Job exists in Jobs panel but may not resolve on workflow endpoint (or already archived).
+          // Fall back to correlation-based reconciliation instead of spinning forever.
+          const hasCorrelationId = !!String(pendingRequestCorrelationId || '').trim();
+          if (hasCorrelationId) {
+            setPendingGenerationJobId(null);
+            return;
+          }
+          setIsGenerating(false);
+          setPendingGenerationJobId(null);
+          setPendingRequestCorrelationId(null);
+          setGenerationStartedAtMs(null);
+          return;
+        }
         const status = String(execution.status || '').toLowerCase();
         const terminal =
           status === 'completed' ||
@@ -681,6 +696,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
     isGenerating,
     pendingGenerationJobId,
     generationStartedAtMs,
+    pendingRequestCorrelationId,
   ]);
 
   useEffect(() => {
@@ -719,6 +735,38 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
           ).trim();
           return jobCorrelationId.length > 0 && jobCorrelationId === correlationId;
         });
+        if (!match || cancelled) return;
+
+        const matchStatus = String(match.status || '').toLowerCase();
+        const terminalMatch =
+          matchStatus === 'completed' ||
+          matchStatus === 'success' ||
+          matchStatus === 'succeeded' ||
+          matchStatus === 'failed';
+
+        if (terminalMatch) {
+          if (generationStartedAtMs) {
+            setGenerationTime((Date.now() - generationStartedAtMs) / 1000);
+          }
+          if (matchStatus === 'failed') {
+            toast.error('Image generation failed');
+            setGeneratedImageUrl(null);
+          } else {
+            const outputs = match.finalOutputs || {};
+            const image = Array.isArray(outputs.images) && outputs.images.length > 0 ? outputs.images[0] : null;
+            const imageUrl = resolveImageUrl(image);
+            if (imageUrl) {
+              setGeneratedImageUrl(imageUrl);
+            }
+            toast.success('Image generated!');
+          }
+          setIsGenerating(false);
+          setPendingGenerationJobId(null);
+          setPendingRequestCorrelationId(null);
+          setGenerationStartedAtMs(null);
+          return;
+        }
+
         if (match?.jobId && !cancelled) {
           const jobId = String(match.jobId).trim();
           setPendingGenerationJobId(jobId);

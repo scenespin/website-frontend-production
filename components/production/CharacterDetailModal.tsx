@@ -144,6 +144,7 @@ export function CharacterDetailModal({
   const [prefilledVoiceId, setPrefilledVoiceId] = useState<string | undefined>(undefined);
   // Track which thumbnail dropdown is open (for mobile - close others when opening new one)
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
+  const [flipCacheBustByS3Key, setFlipCacheBustByS3Key] = useState<Record<string, number>>({});
   
   // 🔥 READ-ONLY: Get values from contextCharacter for display only (no editing)
   const displayName = contextCharacter?.name || character.name;
@@ -298,6 +299,10 @@ export function CharacterDetailModal({
         queryClient.refetchQueries({ queryKey: ['characters', screenplayId, 'production-hub'] }),
         queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] })
       ]);
+      setFlipCacheBustByS3Key((current) => ({
+        ...current,
+        [imageS3Key]: Date.now(),
+      }));
       
       toast.success('Image flipped successfully');
     } catch (error: any) {
@@ -645,14 +650,24 @@ export function CharacterDetailModal({
     thumbnailUrlsMap: new Map<string, string>(),
   }), [mediaLibraryUrls, thumbnailS3KeyMap]);
 
+  const appendFlipCacheBust = useCallback((url: string, s3Key?: string) => {
+    if (!url) return url;
+    if (!s3Key) return url;
+    const nonce = flipCacheBustByS3Key[s3Key];
+    if (!nonce) return url;
+    const separator = url.includes('?') ? '&' : '?';
+    return `${url}${separator}flipv=${nonce}`;
+  }, [flipCacheBustByS3Key]);
+
   const getDisplayUrl = useCallback((img: { s3Key: string; imageUrl?: string }) => {
     const file = mediaFileMap.get(img.s3Key);
-    return getMediaFileDisplayUrl(
+    const resolved = getMediaFileDisplayUrl(
       file ?? { ...img, storageType: 'local' as const, s3Key: img.s3Key },
       presignedMapsForDisplay,
       dropboxUrlMap
     ) || img.imageUrl || '';
-  }, [mediaFileMap, presignedMapsForDisplay, dropboxUrlMap]);
+    return appendFlipCacheBust(resolved, img.s3Key);
+  }, [appendFlipCacheBust, mediaFileMap, presignedMapsForDisplay, dropboxUrlMap]);
   
   // Feature 0256: allImages = payload list enriched with display URLs.
   const allImages = useMemo(() => {
@@ -790,10 +805,15 @@ export function CharacterDetailModal({
   const referenceThumbnailMap = useMemo(() => {
     const map = new Map<string, string>();
     referenceGalleryImages.forEach((galleryImg) => {
-      map.set(galleryImg.id, galleryImg.thumbnailUrl || galleryImg.imageUrl);
+      const resolvedS3Key = (galleryImg as any).s3Key || (galleryImg as any).metadata?.s3Key;
+      const hasRecentFlip = !!(resolvedS3Key && flipCacheBustByS3Key[resolvedS3Key]);
+      const baseUrl = hasRecentFlip
+        ? (galleryImg.imageUrl || galleryImg.thumbnailUrl)
+        : (galleryImg.thumbnailUrl || galleryImg.imageUrl);
+      map.set(galleryImg.id, appendFlipCacheBust(baseUrl || '', resolvedS3Key));
     });
     return map;
-  }, [referenceGalleryImages]);
+  }, [appendFlipCacheBust, flipCacheBustByS3Key, referenceGalleryImages]);
   
   // 🔥 FIX: Reset outfit filter if the selected outfit becomes empty (after image deletion)
   useEffect(() => {
@@ -1810,7 +1830,7 @@ export function CharacterDetailModal({
                           // All images in poseReferences are Production Hub images (editable/deletable)
                           const isSelected = selectedImageIds.has(img.id);
                           // 🔥 NEW: Use thumbnail URL from mapping, fallback to full image
-                          const displayUrl = referenceThumbnailMap.get(img.id) || img.imageUrl;
+                          const displayUrl = referenceThumbnailMap.get(img.id) || appendFlipCacheBust(img.imageUrl, img.s3Key);
                           return (
                             <div
                               key={img.id}

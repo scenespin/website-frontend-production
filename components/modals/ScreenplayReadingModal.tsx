@@ -288,7 +288,7 @@ export default function ScreenplayReadingModal({
       }
 
       const data = await response.json();
-      if (data.success) {
+      if (data?.success) {
         const character = characters?.find(c => c.id === characterId);
         toast.success(`Voice "${voiceName}" assigned to ${character?.name || 'character'}!`);
         fetchCharacterVoices(); // Refresh the list
@@ -383,7 +383,34 @@ export default function ScreenplayReadingModal({
         })
       });
 
-      const data = await response.json();
+      const rawBody = await response.text();
+      let data: any = null;
+      if (rawBody) {
+        try {
+          data = JSON.parse(rawBody);
+        } catch {
+          data = null;
+        }
+      }
+
+      if (!response.ok) {
+        const isGatewayTimeout = response.status === 502 || response.status === 503 || response.status === 504;
+        if (isGatewayTimeout) {
+          toast.info('Screenplay reading is still processing', {
+            description: 'The request timed out, but the backend may still complete. Opening Jobs tab for live status.'
+          });
+          onClose();
+          router.push('/produce?tab=jobs');
+          return;
+        }
+
+        const errorMessage =
+          data?.message ||
+          data?.error ||
+          (rawBody && rawBody.trim().length > 0 ? rawBody.trim() : '') ||
+          `Request failed (${response.status})`;
+        throw new Error(errorMessage);
+      }
 
       if (data.success) {
         // Check if async job (has jobId)
@@ -444,7 +471,7 @@ export default function ScreenplayReadingModal({
           }
         }
       } else {
-        throw new Error(data.message || 'Failed to generate audio');
+        throw new Error(data?.message || data?.error || 'Failed to generate audio');
       }
     } catch (error) {
       console.error('[ScreenplayReadingModal] Generation failed:', error);
