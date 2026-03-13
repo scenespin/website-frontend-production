@@ -134,6 +134,20 @@ const getModelDisplayName = (model: ImageModel): string => {
   }
   return model.id.replace(/-/g, ' ');
 };
+
+const getImageGenTierRank = (modelId: string): number => {
+  if (modelId.endsWith('-2k') || modelId === 'grok-imagine-image' || modelId === 'grok-imagine-image-pro') return 0;
+  if (modelId.endsWith('-4k') || modelId === 'nano-banana-pro' || modelId === 'flux2-max-4k-16:9') return 1;
+  return 2;
+};
+
+const sortImageGenModels = (models: ImageModel[]): ImageModel[] => {
+  return [...models].sort((a, b) => {
+    const tierDelta = getImageGenTierRank(a.id) - getImageGenTierRank(b.id);
+    if (tierDelta !== 0) return tierDelta;
+    return getModelDisplayName(a).localeCompare(getModelDisplayName(b), undefined, { sensitivity: 'base' });
+  });
+};
 const MAX_RECONCILE_AWAIT_MS = 15 * 60 * 1000;
 const isWorkflowExecutionId = (value: unknown): boolean => {
   const jobId = String(value || '').trim();
@@ -226,43 +240,10 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
           DIRECT_HUB_ALLOWED_PROMPT_MODELS.has(model.id)
         );
         
-        // Sort by newest first (model release date), then most expensive second
-        // Model release order (newest to oldest): gpt-image-1.5 > imagen-4-ultra > nano-banana-pro > flux2-max > flux2-pro > imagen-4 > gpt-image-1 > imagen-3 > runway-gen4-image
-        const modelOrder: Record<string, number> = {
-          'gpt-image-1.5': 1,
-          'gpt-image-1-high': 1, // maps to 1.5
-          'imagen-4-ultra': 2,
-          'nano-banana-pro': 3,
-          'nano-banana-pro-2k': 3,
-          'gemini-3.1-flash-image-4k': 3,
-          'gemini-3.1-flash-image-2k': 3,
-          'flux2-max-4k-16:9': 4,
-          'flux2-flex': 4,
-          'flux2-pro-4k': 5,
-          'flux2-pro-2k': 5,
-          'imagen-4': 6,
-          'imagen-4-fast': 6,
-          'gpt-image-1': 7,
-          'gpt-image-1-medium': 7,
-          'gpt-image-1-mini': 8,
-          'gpt-image-1-low': 8,
-          'imagen-3': 9,
-          'imagen-3-fast': 9,
-          'runway-gen4-image': 10,
-          'grok-imagine-image': 10,      // xAI Grok Imagine (standard)
-          'grok-imagine-image-pro': 10,  // xAI Grok Imagine Pro
-          'nano-banana': 11, // editing tool, oldest
-        };
-        
-        modelsData.sort((a: ImageModel, b: ImageModel) => {
-          const orderA = modelOrder[a.id] || 999;
-          const orderB = modelOrder[b.id] || 999;
-          if (orderA !== orderB) {
-            return orderA - orderB; // Lower number = newer
-          }
-          // If same order, sort by credits (most expensive first)
-          return (b.creditsPerImage || 0) - (a.creditsPerImage || 0);
-        });
+        // Keep ordering consistent across surfaces:
+        // 1) 2K tier models (alphabetical)
+        // 2) 4K tier models (alphabetical)
+        modelsData = sortImageGenModels(modelsData);
         
         setModels(modelsData);
         

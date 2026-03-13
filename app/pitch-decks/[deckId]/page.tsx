@@ -199,6 +199,24 @@ const PITCH_DECK_IMAGE_MODEL_LABELS: Record<string, string> = {
   'gemini-3.1-flash-image-2k': 'Nano Banana Pro2 (2K)',
 };
 
+function getPitchDeckModelTierRank(modelId: string): number {
+  if (modelId.endsWith('-2k')) return 0;
+  if (modelId.endsWith('-4k') || modelId === 'nano-banana-pro' || modelId === 'flux2-max-4k-16:9') return 1;
+  return 2;
+}
+
+function getPitchDeckModelDisplayName(model: PitchDeckImageModel): string {
+  return PITCH_DECK_IMAGE_MODEL_LABELS[model.id] || model.label || model.id;
+}
+
+function sortPitchDeckModelsForPicker(models: PitchDeckImageModel[]): PitchDeckImageModel[] {
+  return [...models].sort((a, b) => {
+    const tierDelta = getPitchDeckModelTierRank(a.id) - getPitchDeckModelTierRank(b.id);
+    if (tierDelta !== 0) return tierDelta;
+    return getPitchDeckModelDisplayName(a).localeCompare(getPitchDeckModelDisplayName(b), undefined, { sensitivity: 'base' });
+  });
+}
+
 function getReferenceLimitByModel(modelId: string): number {
   return (
     modelId.includes('nano-banana-pro') ||
@@ -917,11 +935,11 @@ export default function PitchDeckEditorPage() {
     [existingMedia, referenceMediaIds]
   );
   const filteredPromptPitchDeckImageModels = useMemo(
-    () => imageModels.filter((model) => ALLOWED_PITCH_DECK_IMAGE_MODELS.has(model.id)),
+    () => sortPitchDeckModelsForPicker(imageModels.filter((model) => ALLOWED_PITCH_DECK_IMAGE_MODELS.has(model.id))),
     [imageModels]
   );
   const filteredReferencePitchDeckImageModels = useMemo(
-    () => imageModels.filter((model) => ALLOWED_PITCH_DECK_REFERENCE_MODELS.has(model.id)),
+    () => sortPitchDeckModelsForPicker(imageModels.filter((model) => ALLOWED_PITCH_DECK_REFERENCE_MODELS.has(model.id))),
     [imageModels]
   );
   const promptGenerationModel = useMemo(
@@ -1934,8 +1952,8 @@ export default function PitchDeckEditorPage() {
         const models = await listImageGenerationModels();
         if (cancelled) return;
         setImageModels(models);
-        const allowedPromptModels = models.filter((model) => ALLOWED_PITCH_DECK_IMAGE_MODELS.has(model.id));
-        const allowedReferenceModels = models.filter((model) => ALLOWED_PITCH_DECK_REFERENCE_MODELS.has(model.id));
+        const allowedPromptModels = sortPitchDeckModelsForPicker(models.filter((model) => ALLOWED_PITCH_DECK_IMAGE_MODELS.has(model.id)));
+        const allowedReferenceModels = sortPitchDeckModelsForPicker(models.filter((model) => ALLOWED_PITCH_DECK_REFERENCE_MODELS.has(model.id)));
         const preferred = allowedPromptModels.find((model) => model.id === 'flux2-pro-2k') || allowedPromptModels[0];
         if (preferred) {
           setPromptGenerationModelId((current) =>
