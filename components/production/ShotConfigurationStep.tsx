@@ -26,7 +26,7 @@ import { ReferenceShotSelector } from './ReferenceShotSelector';
 import { VideoGenerationSelector } from './VideoGenerationSelector';
 import { UnifiedDialogueDropdown, type DialogueWorkflowType } from './UnifiedDialogueDropdown';
 import { getAvailablePropImages, getSelectedPropImageUrl } from './utils/propImageUtils';
-import { useSceneBuilderState, useSceneBuilderActions, VideoType, DEFAULT_REFERENCE_SHOT_MODEL, VEO_MAX_ELEMENTS } from '@/contexts/SceneBuilderContext';
+import { useSceneBuilderState, useSceneBuilderActions, VideoType, DEFAULT_REFERENCE_SHOT_MODEL, VEO_MAX_ELEMENTS, type DialogueCompositionType } from '@/contexts/SceneBuilderContext';
 import { useBulkPresignedUrls } from '@/hooks/useMediaLibrary';
 import { cn } from '@/lib/utils';
 import { resolveLocationImageUrl } from './utils/imageUrlResolver';
@@ -1480,6 +1480,57 @@ export function ShotConfigurationStep({
                       ))}
                     </select>
                     <p className="text-[10px] text-[#808080] mt-1">Choose whose voice will be used for the dialogue overlay.</p>
+                  </div>
+                );
+              })()}
+              {/* Keep composition controls available even in uploaded-first-frame compact mode. */}
+              {(() => {
+                const workflowForComposition = (finalSelectedDialogueWorkflow || sceneAnalysisResult?.dialogue?.workflowType || 'first-frame-lipsync') as string;
+                const isLipSyncWorkflow =
+                  workflowForComposition === 'first-frame-lipsync' ||
+                  workflowForComposition === 'extreme-closeup' ||
+                  workflowForComposition === 'extreme-closeup-mouth';
+                if (!isLipSyncWorkflow) return null;
+
+                return (
+                  <div className="pt-2 border-t border-[#3F3F46]">
+                    <div className="text-xs font-medium text-[#FFFFFF] mb-2">Non-speaking characters in scene</div>
+                    <label className="inline-flex items-center gap-2 text-xs text-[#FFFFFF] mb-3 cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={!!finalDialogueCompositionType}
+                        onChange={(e) => {
+                          const enabled = e.target.checked;
+                          if (!enabled) {
+                            actions.updateDialogueCompositionType(shotSlot, null);
+                            actions.updateNonSpeakingCharactersForShot(shotSlot, []);
+                            return;
+                          }
+                          actions.updateDialogueCompositionType(shotSlot, 'over-the-shoulder');
+                        }}
+                        className="w-3.5 h-3.5 rounded border-[#3F3F46] bg-[#1F1F1F] text-[#DC143C] focus:ring-[#DC143C] focus:ring-offset-0"
+                      />
+                      <span>Add non-speaking characters</span>
+                    </label>
+
+                    {finalDialogueCompositionType && (
+                      <div className="space-y-3 p-3 bg-[#0A0A0A] border border-[#3F3F46] rounded">
+                        <div>
+                          <label className="block text-[10px] font-medium text-[#808080] mb-1.5">Composition</label>
+                          <select
+                            value={finalDialogueCompositionType}
+                            onChange={(e) => actions.updateDialogueCompositionType(shotSlot, e.target.value as DialogueCompositionType)}
+                            className="w-full h-9 text-sm px-3 py-2 bg-[#1F1F1F] border border-[#3F3F46] rounded-md text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
+                          >
+                            <option value="over-the-shoulder">Over-the-shoulder</option>
+                            <option value="two-shot">Two-shot</option>
+                          </select>
+                        </div>
+                        <div className="text-[10px] text-yellow-200 bg-yellow-500/10 border border-yellow-500/30 rounded px-2.5 py-2">
+                          Uploaded first frame remains the visual source. Composition selection here is sent as video guidance metadata for OTS/two-shot framing intent.
+                        </div>
+                      </div>
+                    )}
                   </div>
                 );
               })()}
