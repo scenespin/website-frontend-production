@@ -6,14 +6,12 @@ import { useEditor } from '@/contexts/EditorContext';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { parseContentForImport } from '@/utils/fountainAutoImport';
 import { updateScreenplay } from '@/utils/screenplayStorage';
-import { normalizeScreenplayText, cleanWebPastedText, fixCharacterEncoding, addBasicFountainSpacing } from '@/utils/screenplayNormalizer';
-import { processChunkedImport } from '@/utils/screenplayStreamParser';
+import { fixCharacterEncoding, addBasicFountainSpacing } from '@/utils/screenplayNormalizer';
 import { toast } from 'sonner';
-import { FileText, Upload, AlertTriangle, CheckCircle, X, File } from 'lucide-react';
+import { FileText, Upload, AlertTriangle, CheckCircle, X } from 'lucide-react';
 import { extractTextFromPDF, isPDFFile } from '@/utils/pdfTextExtractor';
 import { extractTextFromWord, isWordFile } from '@/utils/wordTextExtractor';
 import { extractTextFromFDX, isFDXFile } from '@/utils/fdxTextExtractor';
-import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 
 interface ScriptImportModalProps {
     isOpen: boolean;
@@ -28,16 +26,17 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
     
     const [content, setContentLocal] = useState('');
     const [isImporting, setIsImporting] = useState(false);
+    const [isPostImportRescanning, setIsPostImportRescanning] = useState(false);
     const [parseResult, setParseResult] = useState<any>(null);
     const [showWarning, setShowWarning] = useState(false); // 🔥 NEW: Warning dialog state
-    const [normalizationProgress, setNormalizationProgress] = useState<number | null>(null); // Feature 0177: Progress for large files
     const [isExtractingPDF, setIsExtractingPDF] = useState(false); // 🔥 NEW: PDF extraction state
     const [isExtractingWord, setIsExtractingWord] = useState(false); // 🔥 NEW: Word extraction state
     const [isExtractingFDX, setIsExtractingFDX] = useState(false); // 🔥 NEW: FDX extraction state
+    const [isExtractingFountain, setIsExtractingFountain] = useState(false); // 🔥 NEW: Fountain extraction state
     const [uploadedFileName, setUploadedFileName] = useState<string | null>(null); // 🔥 NEW: Track uploaded file name
-    const [activeTab, setActiveTab] = useState<'upload' | 'paste'>('upload'); // 🔥 NEW: Tab state
+    const [uploadedFileType, setUploadedFileType] = useState<'pdf' | 'word' | 'fdx' | 'fountain' | null>(null);
     const [selectedTimeOfDay, setSelectedTimeOfDay] = useState<Record<number, string>>({}); // 🔥 NEW: Track selected time of day for each scene heading issue
-    const [enableWebCleaning, setEnableWebCleaning] = useState(false); // Feature 0197: Opt-in web paste cleaning
+    const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
     
     // Reset all state when modal closes
     useEffect(() => {
@@ -45,12 +44,16 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
             setContentLocal('');
             setParseResult(null);
             setShowWarning(false);
-            setNormalizationProgress(null);
             setIsExtractingPDF(false);
             setIsExtractingWord(false);
             setIsExtractingFDX(false);
+            setIsExtractingFountain(false);
+            setIsImporting(false);
+            setIsPostImportRescanning(false);
             setUploadedFileName(null);
+            setUploadedFileType(null);
             setSelectedTimeOfDay({});
+            setShowAdvancedOptions(false);
         }
     }, [isOpen]);
     
@@ -59,25 +62,19 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
     useEffect(() => {
         if (!content.trim()) {
             setParseResult(null);
-            setNormalizationProgress(null);
             return;
         }
         
         const timer = setTimeout(async () => {
             try {
-                // Feature 0197: Apply web cleaning if enabled (paste tab only)
                 let processedContent = content;
-                if (enableWebCleaning && activeTab === 'paste') {
-                    processedContent = cleanWebPastedText(content);
-                }
-                
                 // Always fix character encoding issues (safe for all sources)
                 // This handles UTF-8 corruption from PDF extraction, copy-paste, etc.
                 processedContent = fixCharacterEncoding(processedContent);
                 
-                // Add basic Fountain spacing for PDF/Word imports (they lack blank lines)
-                // Only applies to upload tab (PDF/Word), not paste tab (already has spacing)
-                if (activeTab === 'upload') {
+                // Add basic Fountain spacing for extracted formats.
+                // Skip this for native Fountain uploads to preserve author formatting.
+                if (uploadedFileType !== 'fountain') {
                     processedContent = addBasicFountainSpacing(processedContent);
                 }
                 
@@ -86,14 +83,19 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                 setParseResult(result);
             } catch (error) {
                 console.error('[ScriptImportModal] Parse error:', error);
-                setNormalizationProgress(null);
             }
         }, 500); // Debounce 500ms
         
         return () => clearTimeout(timer);
-    }, [content, enableWebCleaning, activeTab]);
+    }, [content, uploadedFileType]);
     
-    // 🔥 NEW: Handle file upload (PDF or Word)
+    const isFountainFile = (file: File): boolean => {
+        const extension = file.name.toLowerCase().split('.').pop();
+        const mimeType = file.type.toLowerCase();
+        return extension === 'fountain' || mimeType === 'text/plain';
+    };
+    
+    // 🔥 NEW: Handle file upload (PDF, Word, FDX, or Fountain)
     const handleFileUpload = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
         const files = event.target.files;
         if (!files || files.length === 0) return;
@@ -114,6 +116,7 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
             
             setIsExtractingPDF(true);
             setUploadedFileName(file.name);
+            setUploadedFileType('pdf');
             
             try {
                 toast.info('Extracting text from PDF...', { duration: 2000 });
@@ -141,6 +144,7 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                     description: error instanceof Error ? error.message : 'Please try another PDF file'
                 });
                 setUploadedFileName(null);
+                setUploadedFileType(null);
             } finally {
                 setIsExtractingPDF(false);
                 event.target.value = '';
@@ -152,6 +156,7 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
             
             setIsExtractingWord(true);
             setUploadedFileName(file.name);
+            setUploadedFileType('word');
             
             try {
                 toast.info('Extracting text from Word document...', { duration: 2000 });
@@ -179,6 +184,7 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                     description: error instanceof Error ? error.message : 'Please try another Word file'
                 });
                 setUploadedFileName(null);
+                setUploadedFileType(null);
             } finally {
                 setIsExtractingWord(false);
                 event.target.value = '';
@@ -190,6 +196,7 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
             
             setIsExtractingFDX(true);
             setUploadedFileName(file.name);
+            setUploadedFileType('fdx');
             
             try {
                 toast.info('Extracting text from Final Draft file...', { duration: 2000 });
@@ -217,19 +224,50 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                     description: error instanceof Error ? error.message : 'Please try another FDX file'
                 });
                 setUploadedFileName(null);
+                setUploadedFileType(null);
             } finally {
                 setIsExtractingFDX(false);
                 event.target.value = '';
             }
+        } else if (isFountainFile(file)) {
+            setContentLocal('');
+            setParseResult(null);
+            
+            setIsExtractingFountain(true);
+            setUploadedFileName(file.name);
+            setUploadedFileType('fountain');
+            
+            try {
+                const text = await file.text();
+                
+                if (!text.trim()) {
+                    throw new Error('Fountain file appears to be empty');
+                }
+                
+                setContentLocal(text);
+                toast.success('✅ Fountain file loaded successfully', {
+                    description: 'Review the preview below, then import when ready'
+                });
+            } catch (error) {
+                console.error('[ScriptImportModal] Fountain file read error:', error);
+                toast.error('Failed to read Fountain file', {
+                    description: error instanceof Error ? error.message : 'Please try another Fountain file'
+                });
+                setUploadedFileName(null);
+                setUploadedFileType(null);
+            } finally {
+                setIsExtractingFountain(false);
+                event.target.value = '';
+            }
         } else {
-            toast.error('Please select a PDF, Word (.docx), or Final Draft (.fdx) file');
+            toast.error('Please select a PDF, Word (.docx), Final Draft (.fdx), or Fountain (.fountain) file');
             return;
         }
     }, []);
     
-    const handleImport = useCallback(async () => {
+    const handleImport = useCallback(async (rescanAfterImport: boolean, skipWarning = false) => {
         if (!content.trim()) {
-            toast.error('Please paste a screenplay first');
+            toast.error('Please upload a screenplay file first');
             return;
         }
         
@@ -244,15 +282,17 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
             || screenplay.scenes.length > 0
             || (editorContent && editorContent.trim().length > 0);
         
-        if (hasExistingData && !showWarning) {
+        if (hasExistingData && !showWarning && !skipWarning) {
             setShowWarning(true);
             return;
         }
         
         setIsImporting(true);
+        setIsPostImportRescanning(false);
+        let importCompleted = false;
         
         try {
-            console.log('[ScriptImportModal] Import script only (non-destructive)...');
+            console.log('[ScriptImportModal] Importing script...');
             
             // Apply time of day corrections to scene headings
             let correctedContent = content;
@@ -292,11 +332,10 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
             }
             
             let processedContent = correctedContent;
-            if (enableWebCleaning && activeTab === 'paste') {
-                processedContent = cleanWebPastedText(correctedContent);
-            }
             processedContent = fixCharacterEncoding(processedContent);
-            processedContent = addBasicFountainSpacing(processedContent);
+            if (uploadedFileType !== 'fountain') {
+                processedContent = addBasicFountainSpacing(processedContent);
+            }
             
             // Only overwrite editor content; do not touch characters, locations, scenes, or media
             setContent(processedContent);
@@ -312,21 +351,33 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                     content: processedContent
                 }, getToken);
             }
+            importCompleted = true;
             
-            toast.success('Script updated', {
-                description: 'Use Rescan in the toolbar to add new characters/locations from the script. Your boards and media are unchanged.'
-            });
+            if (rescanAfterImport) {
+                setIsPostImportRescanning(true);
+                const rescanResult = await screenplay.rescanScript(processedContent);
+                toast.success('Import + rescan complete', {
+                    description: `Added ${rescanResult.newCharacters} characters, ${rescanResult.newLocations} locations, and ${rescanResult.newScenes} scenes.`
+                });
+            } else {
+                toast.success('Script imported', {
+                    description: 'Import only mode completed. Use Rescan when you are ready to update characters, locations, and scenes.'
+                });
+            }
+            
             onClose();
             
         } catch (error) {
             console.error('[ScriptImportModal] Import failed:', error);
-            toast.error('Import failed', {
+            const shouldShowRescanFailureMessage = rescanAfterImport && importCompleted;
+            toast.error(shouldShowRescanFailureMessage ? 'Import completed, but rescan failed' : 'Import failed', {
                 description: error instanceof Error ? error.message : 'Please try again'
             });
         } finally {
             setIsImporting(false);
+            setIsPostImportRescanning(false);
         }
-    }, [content, parseResult, setContent, screenplay, saveNow, onClose, showWarning, editorContent, enableWebCleaning, activeTab, selectedTimeOfDay]);
+    }, [content, parseResult, setContent, screenplay, saveNow, onClose, showWarning, editorContent, selectedTimeOfDay, uploadedFileType, getToken]);
     
     if (!isOpen) return null;
     
@@ -373,135 +424,61 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                         <div className="p-4 bg-[#141414] border border-[#3F3F46] rounded-lg">
                             <div className="flex items-start gap-3">
                                 <Upload className="w-5 h-5 text-[#DC143C] mt-0.5" />
-                                <span className="text-[#FFFFFF] text-sm">Upload a PDF, Word document, or Final Draft (.fdx) file, or paste your screenplay in Fountain format. We'll automatically detect characters, locations, and scenes.</span>
+                                <span className="text-[#FFFFFF] text-sm">Upload screenplay files (PDF, Word, Final Draft, or Fountain). Import replaces script text. The recommended action is Import + Rescan to update characters, locations, and scenes in one step.</span>
                             </div>
                         </div>
                         
-                        {/* 🔥 NEW: Tabs for Upload vs Paste */}
-                        <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'upload' | 'paste')} className="w-full">
-                            <TabsList className="grid w-full grid-cols-2 bg-[#1F1F1F] border border-[#3F3F46]">
-                                <TabsTrigger 
-                                    value="upload" 
-                                    className="data-[state=active]:bg-[#DC143C] data-[state=active]:text-white data-[state=inactive]:text-[#808080]"
-                                >
-                                    <Upload className="w-4 h-4 mr-2" />
-                                    Upload File
-                                </TabsTrigger>
-                                <TabsTrigger 
-                                    value="paste" 
-                                    className="data-[state=active]:bg-[#DC143C] data-[state=active]:text-white data-[state=inactive]:text-[#808080]"
-                                >
-                                    <FileText className="w-4 h-4 mr-2" />
-                                    Paste Text
-                                </TabsTrigger>
-                            </TabsList>
-                            
-                            {/* Upload Tab */}
-                            <TabsContent value="upload" className="mt-4 space-y-4">
-                                <div>
-                                    <label className="block mb-2">
-                                        <span className="text-sm font-medium text-[#FFFFFF]">Upload PDF, Word, or Final Draft File</span>
-                                    </label>
-                                    <div className="flex items-center gap-3">
-                                        <input
-                                            type="file"
-                                            accept=".pdf,application/pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.fdx,application/xml,text/xml"
-                                            onChange={handleFileUpload}
-                                            disabled={isImporting || isExtractingPDF || isExtractingWord || isExtractingFDX}
-                                            className="file-input w-full max-w-xs bg-[#1F1F1F] border-[#3F3F46] text-[#FFFFFF] file:bg-[#DC143C] file:text-white file:border-0 file:rounded file:px-4 file:py-2 file:cursor-pointer hover:file:bg-[#DC143C]/90"
-                                        />
-                                        {(isExtractingPDF || isExtractingWord || isExtractingFDX) && (
-                                            <div className="flex items-center gap-2 text-sm text-[#808080]">
-                                                <span className="loading loading-spinner loading-sm"></span>
-                                                <span>
-                                                    {isExtractingPDF && 'Extracting text from PDF...'}
-                                                    {isExtractingWord && 'Extracting text from Word document...'}
-                                                    {isExtractingFDX && 'Extracting text from Final Draft file...'}
-                                                </span>
-                                            </div>
-                                        )}
-                                        {uploadedFileName && !isExtractingPDF && !isExtractingWord && !isExtractingFDX && (
-                                            <div className="flex items-center gap-2 text-sm text-[#DC143C]">
-                                                <CheckCircle className="w-4 h-4" />
-                                                <span className="text-[#FFFFFF]">{uploadedFileName}</span>
-                                            </div>
-                                        )}
-                                    </div>
-                                    <div className="mt-2">
-                                        <span className="text-xs text-[#808080]">
-                                            Supports PDF, Word (.docx), and Final Draft (.fdx) files. Files will be automatically converted to Fountain format.
-                                        </span>
-                                    </div>
-                                </div>
-                                
-                                {content && (
-                                    <div className="mt-4 p-4 bg-[#141414] border border-[#3F3F46] rounded-lg">
-                                        <div className="text-sm text-[#808080] mb-2">
-                                            Extracted content preview ({content.length} characters):
-                                        </div>
-                                        <textarea
-                                            className="textarea w-full h-32 font-mono text-xs bg-[#0A0A0A] border-[#3F3F46] text-[#FFFFFF]"
-                                            value={content}
-                                            readOnly
-                                        />
-                                    </div>
-                                )}
-                            </TabsContent>
-                            
-                            {/* Paste Tab */}
-                            <TabsContent value="paste" className="mt-4">
-                                <div>
-                                    <label className="block mb-2">
-                                        <span className="text-sm font-medium text-[#FFFFFF]">Paste Screenplay Content</span>
-                                    </label>
-                                    <textarea
-                                        className="textarea w-full h-64 font-mono text-sm bg-[#0A0A0A] border-[#3F3F46] text-[#FFFFFF] placeholder:text-[#808080]"
-                                        placeholder="Paste your screenplay here in Fountain format..."
-                                        value={content}
-                                        onChange={(e) => {
-                                            setContentLocal(e.target.value);
-                                            setUploadedFileName(null); // Clear file name when manually editing
-                                        }}
-                                        disabled={isImporting || isExtractingPDF || isExtractingWord}
+                        <div className="space-y-4">
+                            <div>
+                                <label className="block mb-2">
+                                    <span className="text-sm font-medium text-[#FFFFFF]">Upload screenplay file</span>
+                                </label>
+                                <div className="flex items-center gap-3">
+                                    <input
+                                        type="file"
+                                        accept=".pdf,application/pdf,.docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document,.fdx,application/xml,text/xml,.fountain,text/plain"
+                                        onChange={handleFileUpload}
+                                        disabled={isImporting || isExtractingPDF || isExtractingWord || isExtractingFDX || isExtractingFountain}
+                                        className="file-input w-full max-w-xs bg-[#1F1F1F] border-[#3F3F46] text-[#FFFFFF] file:bg-[#DC143C] file:text-white file:border-0 file:rounded file:px-4 file:py-2 file:cursor-pointer hover:file:bg-[#DC143C]/90"
                                     />
-                                    {/* Feature 0177: Progress indicator for large file normalization */}
-                                    {normalizationProgress !== null && (
-                                        <div className="mt-2">
-                                            <div className="flex items-center justify-between text-sm text-[#808080] mb-1">
-                                                <span>Normalizing screenplay...</span>
-                                                <span>{Math.round(normalizationProgress * 100)}%</span>
-                                            </div>
-                                            <progress 
-                                                className="progress w-full bg-[#1F1F1F] progress-[#DC143C]" 
-                                                value={normalizationProgress} 
-                                                max={1}
-                                            />
+                                    {(isExtractingPDF || isExtractingWord || isExtractingFDX || isExtractingFountain) && (
+                                        <div className="flex items-center gap-2 text-sm text-[#808080]">
+                                            <span className="loading loading-spinner loading-sm"></span>
+                                            <span>
+                                                {isExtractingPDF && 'Extracting text from PDF...'}
+                                                {isExtractingWord && 'Extracting text from Word document...'}
+                                                {isExtractingFDX && 'Extracting text from Final Draft file...'}
+                                                {isExtractingFountain && 'Reading Fountain file...'}
+                                            </span>
                                         </div>
                                     )}
-                                    
-                                    {/* Feature 0197: Web paste cleaning checkbox */}
-                                    <div className="mt-4">
-                                        <label className="label cursor-pointer gap-2">
-                                            <input
-                                                type="checkbox"
-                                                checked={enableWebCleaning}
-                                                onChange={(e) => setEnableWebCleaning(e.target.checked)}
-                                                className="checkbox checkbox-sm bg-[#1F1F1F] border-[#3F3F46] checked:bg-[#DC143C] checked:border-[#DC143C]"
-                                            />
-                                            <div className="flex flex-col gap-1">
-                                                <span className="label-text text-sm text-[#FFFFFF]">
-                                                    Clean web-pasted content (for imports from websites or imperfect sources)
-                                                </span>
-                                                <span className="label-text text-xs text-[#808080]">
-                                                    Note: This may not work perfectly for all content. Manual cleanup may still be required.
-                                                    Perfect Fountain format is always recommended for best results.
-                                                </span>
-                                            </div>
-                                        </label>
-                                    </div>
+                                    {uploadedFileName && !isExtractingPDF && !isExtractingWord && !isExtractingFDX && !isExtractingFountain && (
+                                        <div className="flex items-center gap-2 text-sm text-[#DC143C]">
+                                            <CheckCircle className="w-4 h-4" />
+                                            <span className="text-[#FFFFFF]">{uploadedFileName}</span>
+                                        </div>
+                                    )}
                                 </div>
-                            </TabsContent>
-                        </Tabs>
+                                <div className="mt-2">
+                                    <span className="text-xs text-[#808080]">
+                                        Supports PDF, Word (.docx), Final Draft (.fdx), and Fountain (.fountain) files.
+                                    </span>
+                                </div>
+                            </div>
+                            
+                            {content && (
+                                <div className="mt-4 p-4 bg-[#141414] border border-[#3F3F46] rounded-lg">
+                                    <div className="text-sm text-[#808080] mb-2">
+                                        Extracted content preview ({content.length} characters):
+                                    </div>
+                                    <textarea
+                                        className="textarea w-full h-32 font-mono text-xs bg-[#0A0A0A] border-[#3F3F46] text-[#FFFFFF]"
+                                        value={content}
+                                        readOnly
+                                    />
+                                </div>
+                            )}
+                        </div>
                         
                         {/* Preview Panel */}
                         {hasData && (
@@ -549,7 +526,7 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                                                         )}
                                                     </ul>
                                                     <p className="mt-2 text-[#FFFFFF]">
-                                                        Use <strong>Rescan</strong> in the toolbar after import to add new characters/locations from the script. Your boards and media are not deleted.
+                                                        Recommended: use <strong>Import + Rescan</strong> to update entities immediately. Use <strong>Import only</strong> for very large scripts or when you want to clean formatting before rescanning.
                                                     </p>
                                                 </div>
                                                 <div className="flex gap-2 mt-3">
@@ -561,17 +538,31 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                                                         Cancel
                                                     </button>
                                                     <button 
-                                                        onClick={handleImport} 
+                                                        onClick={() => handleImport(false, true)} 
+                                                        className="px-4 py-2 bg-[#1F1F1F] hover:bg-[#2A2A2A] text-[#FFFFFF] rounded-lg text-sm font-medium transition-colors"
+                                                        disabled={isImporting}
+                                                    >
+                                                        {isImporting && !isPostImportRescanning ? (
+                                                            <>
+                                                                <span className="loading loading-spinner loading-xs"></span>
+                                                                Importing...
+                                                            </>
+                                                        ) : (
+                                                            'Import only (advanced)'
+                                                        )}
+                                                    </button>
+                                                    <button 
+                                                        onClick={() => handleImport(true, true)} 
                                                         className="px-4 py-2 bg-[#3B82F6] hover:bg-[#3B82F6]/90 text-white rounded-lg text-sm font-medium transition-colors"
                                                         disabled={isImporting}
                                                     >
                                                         {isImporting ? (
                                                             <>
                                                                 <span className="loading loading-spinner loading-xs"></span>
-                                                                Importing...
+                                                                {isPostImportRescanning ? 'Rescanning...' : 'Importing...'}
                                                             </>
                                                         ) : (
-                                                            'Replace script only'
+                                                            'Import + Rescan (recommended)'
                                                         )}
                                                     </button>
                                                 </div>
@@ -662,6 +653,21 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                                 )}
                             </div>
                         )}
+
+                        <div className="p-4 bg-[#141414] border border-[#3F3F46] rounded-lg">
+                            <button
+                                onClick={() => setShowAdvancedOptions(prev => !prev)}
+                                className="text-sm text-[#FFFFFF] hover:text-[#DC143C] transition-colors"
+                                disabled={isImporting}
+                            >
+                                {showAdvancedOptions ? 'Hide advanced options' : 'Show advanced options'}
+                            </button>
+                            {showAdvancedOptions && (
+                                <p className="text-xs text-[#808080] mt-2">
+                                    Advanced mode is useful for very large scripts or when you want to clean and verify imported formatting before rescanning and updating characters, locations, and scenes.
+                                </p>
+                            )}
+                        </div>
                         
                         {/* No data warning */}
                         {content.trim() && !hasData && !parseResult && (
@@ -694,19 +700,36 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                         </button>
                         
                         <button
-                            onClick={handleImport}
-                            className="px-4 py-2 bg-[#DC143C] hover:bg-[#DC143C]/90 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            onClick={() => handleImport(false)}
+                            className="px-4 py-2 bg-[#1F1F1F] hover:bg-[#2A2A2A] text-[#FFFFFF] rounded-lg text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
                             disabled={isImporting || !hasData}
                         >
-                            {isImporting ? (
+                            {isImporting && !isPostImportRescanning ? (
                                 <>
                                     <span className="loading loading-spinner loading-sm"></span>
                                     Importing...
                                 </>
                             ) : (
                                 <>
+                                    Import only
+                                </>
+                            )}
+                        </button>
+
+                        <button
+                            onClick={() => handleImport(true)}
+                            className="px-4 py-2 bg-[#DC143C] hover:bg-[#DC143C]/90 text-white rounded-lg text-sm font-medium transition-colors flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                            disabled={isImporting || !hasData}
+                        >
+                            {isImporting ? (
+                                <>
+                                    <span className="loading loading-spinner loading-sm"></span>
+                                    {isPostImportRescanning ? 'Rescanning...' : 'Importing...'}
+                                </>
+                            ) : (
+                                <>
                                     <CheckCircle className="w-5 h-5" />
-                                    Import Screenplay
+                                    Import + Rescan
                                 </>
                             )}
                         </button>

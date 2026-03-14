@@ -95,35 +95,56 @@ export async function extractTextFromPDF(file: File): Promise<PDFExtractionResul
         .sort((a, b) => b[0] - a[0]); // Sort by Y descending
       
       // Step 3: Process each group as a line
-      for (const [groupY, items] of sortedGroups) {
+      for (const [, items] of sortedGroups) {
         // Sort items within group by X position (ascending - left to right)
         items.sort((a, b) => a.transform[4] - b.transform[4]);
         
         // Build line from items in this group
         let line = '';
         let lastXEnd: number | null = null;
+        let prevItemText = '';
+        let prevItemX: number | null = null;
         
         for (const item of items) {
+          const itemText = String(item.str ?? '');
+          const itemTrimmed = itemText.trim();
+          if (!itemTrimmed) {
+            continue;
+          }
+
           const x = item.transform[4];
           const width = item.width || 0;
           const xEnd = x + width;
+
+          // Some PDFs contain overlapping duplicate text runs (same token, near-identical X).
+          // Skip these at token level to prevent artifacts like "SheShe".
+          if (
+            prevItemText &&
+            itemTrimmed === prevItemText &&
+            prevItemX !== null &&
+            Math.abs(x - prevItemX) <= 1.25
+          ) {
+            continue;
+          }
           
           // Add space if there's a horizontal gap between items
           if (line && lastXEnd !== null) {
             const xGap = x - lastXEnd;
             // Add space if there's a gap and items don't already have spaces
-            if (xGap > 1 && !line.endsWith(' ') && !item.str.startsWith(' ')) {
+            if (xGap > 1 && !line.endsWith(' ') && !itemText.startsWith(' ')) {
               line += ' ';
             }
           }
           
-          line += item.str;
+          line += itemText;
           lastXEnd = xEnd;
+          prevItemText = itemTrimmed;
+          prevItemX = x;
         }
         
         // Add completed line
         if (line.trim()) {
-          textLines.push(line.trim());
+          textLines.push(removeDuplicatedPdfFragments(line.trim()));
         }
       }
       
@@ -154,6 +175,51 @@ export async function extractTextFromPDF(file: File): Promise<PDFExtractionResul
       error: error instanceof Error ? error.message : 'Unknown error extracting PDF'
     };
   }
+}
+
+/**
+ * Remove common PDF overlay duplication artifacts within a single extracted line.
+ * Examples:
+ * - "SheShe complies..." -> "She complies..."
+ * - "The doctors...jaw,The doctors...jaw," -> single copy
+ * - "I'm going...onI'm going...on such precautions." -> keep one prefix
+ */
+function removeDuplicatedPdfFragments(line: string): string {
+  if (!line) return line;
+
+  let cleaned = line;
+
+  // 1) Collapse doubled leading word without spacing ("SheShe").
+  cleaned = cleaned.replace(/^([A-Za-z]{2,})\1(\b|\s|[.,!?;:])/u, '$1$2');
+
+  // 2) Collapse full-line exact duplication where line = X + X.
+  // Use minimum chunk length to avoid aggressive false positives.
+  for (let chunkLen = Math.floor(cleaned.length / 2); chunkLen >= 12; chunkLen--) {
+    if (cleaned.length % chunkLen !== 0) continue;
+    const repeatCount = cleaned.length / chunkLen;
+    if (repeatCount < 2) continue;
+    const chunk = cleaned.slice(0, chunkLen);
+    if (chunk.repeat(repeatCount) === cleaned) {
+      cleaned = chunk;
+      break;
+    }
+  }
+
+  // 3) Collapse duplicated leading phrase where line starts with prefix + prefix + remainder.
+  // This handles partial overlaid duplicates where the second run continues further.
+  for (let prefixLen = Math.floor(cleaned.length / 2); prefixLen >= 10; prefixLen--) {
+    const prefix = cleaned.slice(0, prefixLen);
+    if (!cleaned.startsWith(prefix + prefix)) continue;
+
+    const endsAtBoundary = /[\s,.;:!?'"-]$/.test(prefix);
+    if (!endsAtBoundary) continue;
+
+    const remainder = cleaned.slice(prefixLen * 2);
+    cleaned = prefix + remainder;
+    break;
+  }
+
+  return cleaned;
 }
 
 /**

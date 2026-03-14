@@ -990,7 +990,7 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                 
                 {/* Import Script Button - Emoji */}
                 {effectiveCanEditScript && (
-                    <div className="tooltip tooltip-bottom" data-tip="Import screenplay from paste">
+                    <div className="tooltip tooltip-bottom" data-tip="Import screenplay files (PDF, DOCX, FDX, Fountain)">
                         <button
                             onClick={handleOpenImport}
                             className="px-2 py-2 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-w-[40px] min-h-[40px] flex flex-col items-center justify-center transition-colors"
@@ -1400,7 +1400,7 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                     
                     {/* Import */}
                     {effectiveCanEditScript && (
-                        <div className="tooltip tooltip-bottom" data-tip="Import screenplay from paste">
+                        <div className="tooltip tooltip-bottom" data-tip="Import screenplay files (PDF, DOCX, FDX, Fountain)">
                         <button
                                 onClick={handleOpenImport}
                                 className="w-full px-1 py-1.5 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-colors"
