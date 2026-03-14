@@ -74,6 +74,75 @@ export function parseContentForImport(content: string): AutoImportResult {
         return trimmed.endsWith('TO:') || 
                /^(BACK TO|CUT TO|DISSOLVE TO|FADE TO|SMASH TO|MATCH CUT TO|WIPE TO)/i.test(trimmed);
     };
+
+    const getNextNonEmptyLine = (startIndex: number): string => {
+        for (let i = startIndex + 1; i < lines.length; i++) {
+            const next = lines[i].trim();
+            if (next) return next;
+        }
+        return '';
+    };
+
+    const isLikelyDialogueLine = (text: string): boolean => {
+        if (!text) return false;
+        const t = text.trim();
+        if (!t) return false;
+        // Parenthetical lines are valid immediately after character names.
+        if (/^\(.+\)$/.test(t)) return true;
+        // Dialogue is usually not all-caps.
+        return t !== t.toUpperCase();
+    };
+
+    const isLikelyNonCharacterCue = (text: string): boolean => {
+        const t = text.trim().toUpperCase();
+        if (!t) return true;
+
+        // Camera / framing / transition / blocking phrases that often get misdetected as characters.
+        if (
+            /(?:\bPOV\b|\bANGLE\b|\bCLOSE(?:UP)?\b|\bWIDE\b|\bSHOT\b|\bINSERT\b|\bINTERCUT(?:TING)?\b|\bMONTAGE\b|\bFAVORING\b|\bMOVING\b|\bPULLING\b|\bPUSH(?:ING)?\b|\bTRACK(?:ING)?\b|\bPAN(?:NING)?\b|\bTILT(?:ING)?\b|\bZOOM(?:ING)?\b|\bCONTINUOUS\b|\bEXTREME\b|\bUPWARD\b|\bDOWNWARD\b)/.test(t)
+        ) {
+            return true;
+        }
+
+        // Phrases that are usually action descriptions, not speaking characters.
+        if (
+            /^(IN |ON |AT |UNDER |OVER |INSIDE |OUTSIDE |DOWN IN |JUST AHEAD OF |WE PICK OUT )/.test(t) ||
+            /^(THE |A )/.test(t) && /\b(CAR|DOOR|EYES|FINGERS|HANDS|SCREEN|CELL|MIRROR|POCKETKNIFE|BUCKET|DRESS|DOG|GIRL|FIGURE|PASSAGEWAY|REFRIGERATOR|TARGET|FOOTAGE)\b/.test(t)
+        ) {
+            return true;
+        }
+
+        return false;
+    };
+
+    const normalizeCharacterCandidate = (name: string): string => {
+        return name
+            .replace(/\^$/, '') // Fountain continuation marker
+            .replace(/\(.*\)$/, '') // Parenthetical suffixes
+            .replace(/[’`]/g, "'")
+            .replace(/\b(DR|MR|MRS|MS|OFFICER|OFFICERS|DETECTIVE|SPECIAL AGENT)\.?\s+/gi, '')
+            .replace(/'S\s+(POV|VOICE)$/i, '') // CLARICE'S POV -> CLARICE
+            .replace(/\s+(POV|VOICE)$/i, '') // CLARICE POV -> CLARICE
+            .replace(/\s+/g, ' ')
+            .trim();
+    };
+
+    const splitCharacterCandidates = (name: string): string[] => {
+        // Split merged cues like "CLARICE AND CRAWFORD" into individual names.
+        // Keep this strict to avoid splitting descriptive action phrases.
+        if (!/\s+AND\s+/i.test(name)) {
+            return [name];
+        }
+        const parts = name.split(/\s+AND\s+/i).map(part => part.trim()).filter(Boolean);
+        if (parts.length !== 2) {
+            return [name];
+        }
+        // If either side looks descriptive/cue-like, keep original and let later filters reject.
+        if (parts.some(part => isLikelyNonCharacterCue(part))) {
+            return [name];
+        }
+        return parts;
+    };
     
     console.log('[AutoImport] Parsing', lines.length, 'lines...');
     
@@ -366,15 +435,35 @@ export function parseContentForImport(content: string): AutoImportResult {
                 previousType = elementType;
                 continue;
             }
-            
-            // Clean name - preserve # signs (valid Fountain syntax for numbered characters like "REPORTER #1")
-            let characterName = trimmed
-                .replace(/\^$/, '') // Remove continuation marker
-                .replace(/\(.*\)$/, '') // Remove parentheticals
-                .trim();
-            // Note: # signs are preserved - they're valid Fountain syntax (e.g., "REPORTER #1", "COP #2")
-            
-            if (characterName) {
+
+            // Reject obvious false-positives that pdf imports may surface as all-caps lines.
+            if (isLikelyNonCharacterCue(trimmed)) {
+                previousType = elementType;
+                continue;
+            }
+
+            // Character names should be followed by dialogue/parenthetical.
+            // If the next non-empty line doesn't look like dialogue, skip as likely cue/action.
+            const nextNonEmpty = getNextNonEmptyLine(lineIndex);
+            if (!isLikelyDialogueLine(nextNonEmpty)) {
+                previousType = elementType;
+                continue;
+            }
+
+            // Normalize + split candidate names.
+            const normalizedBase = normalizeCharacterCandidate(trimmed);
+            const candidates = splitCharacterCandidates(normalizedBase)
+                .map(candidate => normalizeCharacterCandidate(candidate))
+                .filter(Boolean);
+
+            for (const characterName of candidates) {
+                if (!characterName) continue;
+                if (isLikelyNonCharacterCue(characterName)) continue;
+
+                // Keep names compact and predictable.
+                const candidateWordCount = characterName.split(/\s+/).length;
+                if (candidateWordCount === 0 || candidateWordCount > 4) continue;
+
                 characters.add(characterName);
                 if (!currentScene.characters.includes(characterName)) {
                     currentScene.characters.push(characterName);

@@ -36,7 +36,6 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
     const [uploadedFileName, setUploadedFileName] = useState<string | null>(null); // 🔥 NEW: Track uploaded file name
     const [uploadedFileType, setUploadedFileType] = useState<'pdf' | 'word' | 'fdx' | 'fountain' | null>(null);
     const [selectedTimeOfDay, setSelectedTimeOfDay] = useState<Record<number, string>>({}); // 🔥 NEW: Track selected time of day for each scene heading issue
-    const [showAdvancedOptions, setShowAdvancedOptions] = useState(false);
     
     // Reset all state when modal closes
     useEffect(() => {
@@ -53,7 +52,6 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
             setUploadedFileName(null);
             setUploadedFileType(null);
             setSelectedTimeOfDay({});
-            setShowAdvancedOptions(false);
         }
     }, [isOpen]);
     
@@ -655,18 +653,10 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                         )}
 
                         <div className="p-4 bg-[#141414] border border-[#3F3F46] rounded-lg">
-                            <button
-                                onClick={() => setShowAdvancedOptions(prev => !prev)}
-                                className="text-sm text-[#FFFFFF] hover:text-[#DC143C] transition-colors"
-                                disabled={isImporting}
-                            >
-                                {showAdvancedOptions ? 'Hide advanced options' : 'Show advanced options'}
-                            </button>
-                            {showAdvancedOptions && (
-                                <p className="text-xs text-[#808080] mt-2">
-                                    Advanced mode is useful for very large scripts or when you want to clean and verify imported formatting before rescanning and updating characters, locations, and scenes.
-                                </p>
-                            )}
+                            <p className="text-xs text-[#808080]">
+                                <strong className="text-[#FFFFFF]">Import + Rescan</strong> is recommended for most users and updates entities right away.
+                                Use <strong className="text-[#FFFFFF]">Import only</strong> for very large scripts or when you want to clean and verify imported formatting before rescanning.
+                            </p>
                         </div>
                         
                         {/* No data warning */}
