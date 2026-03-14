@@ -374,6 +374,8 @@ export function ShotConfigurationStep({
   const finalOffFrameSceneContextPrompt = state.offFrameSceneContextPrompt[shotSlot] ?? '';
   const finalOffFrameVideoPromptAdditive = state.offFrameVideoPromptAdditive[shotSlot] ?? '';
   const finalLipSyncVideoPromptAdditive = state.lipSyncVideoPromptAdditive[shotSlot] ?? '';
+  const finalNonSpeakingCharactersForShot = state.nonSpeakingCharactersForShots[shotSlot] ?? [];
+  const finalDialogueCompositionType = state.dialogueCompositionType[shotSlot] ?? null;
   const finalDialogueVideoAspectRatio = dialogueVideoAspectRatio ?? state.dialogueVideoAspectRatios?.[shotSlot];
   const finalShotWorkflowOverride = state.shotWorkflowOverrides[shotSlot];
   const finalFirstFramePromptOverride = state.firstFramePromptOverrides[shotSlot];
@@ -1156,6 +1158,20 @@ export function ShotConfigurationStep({
         validationErrors.push('Please select a character for "Voice for this shot" to use for the dialogue overlay.');
       }
     }
+
+    // Feature 0308: Composition variants require exactly one non-speaking character unless first frame is uploaded.
+    if (
+      !uploadedFirstFrameUrl &&
+      isDialogueShot &&
+      finalDialogueCompositionType &&
+      (finalSelectedDialogueWorkflow === 'first-frame-lipsync' ||
+        finalSelectedDialogueWorkflow === 'extreme-closeup' ||
+        finalSelectedDialogueWorkflow === 'extreme-closeup-mouth')
+    ) {
+      if ((finalNonSpeakingCharactersForShot || []).length !== 1) {
+        validationErrors.push('Non-speaking composition requires selecting exactly 1 non-speaking character.');
+      }
+    }
     
     // 2. Validate character headshots (required - skip if first frame is uploaded)
     if (!uploadedFirstFrameUrl) {
@@ -1195,6 +1211,9 @@ export function ShotConfigurationStep({
     // Add additional characters for dialogue workflows
     const additionalChars = finalSelectedCharactersForShots[shot.slot] || [];
     additionalChars.forEach(charId => shotCharacterIds.add(charId));
+    if (finalDialogueCompositionType) {
+      (finalNonSpeakingCharactersForShot || []).forEach(charId => shotCharacterIds.add(charId));
+    }
     
     // Check each character has headshots and image selection
     for (const charId of shotCharacterIds) {
@@ -1516,6 +1535,11 @@ export function ShotConfigurationStep({
                           (finalSelectedDialogueWorkflow || sceneAnalysisResult?.dialogue?.workflowType || 'first-frame-lipsync') as string
                         ) && (
                           <div className="pt-2">
+                            {uploadedFirstFrameUrl && finalDialogueCompositionType && (
+                              <div className="mb-2 text-[10px] text-yellow-200 bg-yellow-500/10 border border-yellow-500/30 rounded px-2.5 py-2">
+                                Uploaded first frame overrides composition controls for this shot. If you generate dialogue video, ensure the uploaded framing matches your intended composition.
+                              </div>
+                            )}
                             <label className="block text-[10px] font-medium text-[#808080] mb-1.5">Video additive prompt (optional)</label>
                             <textarea
                               value={finalLipSyncVideoPromptAdditive || ''}
@@ -1600,6 +1624,11 @@ export function ShotConfigurationStep({
                   onOffFrameVideoPromptAdditiveChange={(_, prompt) => actions.updateOffFrameVideoPromptAdditive(shotSlot, prompt)}
                   lipSyncVideoPromptAdditive={finalLipSyncVideoPromptAdditive}
                   onLipSyncVideoPromptAdditiveChange={(_, prompt) => actions.updateLipSyncVideoPromptAdditive(shotSlot, prompt)}
+                  nonSpeakingCharactersForShot={finalNonSpeakingCharactersForShot}
+                  dialogueCompositionType={finalDialogueCompositionType}
+                  onNonSpeakingCharactersForShotChange={(_, ids) => actions.updateNonSpeakingCharactersForShot(shotSlot, ids)}
+                  onDialogueCompositionTypeChange={(_, composition) => actions.updateDialogueCompositionType(shotSlot, composition)}
+                  hasUploadedFirstFrame={!!uploadedFirstFrameUrl}
                   onOffFrameShotTypeChange={(_, shotType) => actions.updateOffFrameShotType(shotSlot, shotType)}
                   onOffFrameListenerCharacterIdChange={(_, id) => actions.updateOffFrameListenerCharacterId(shotSlot, id)}
                   onOffFrameGroupCharacterIdsChange={(_, ids) => actions.updateOffFrameGroupCharacterIds(shotSlot, ids)}
@@ -1717,6 +1746,12 @@ export function ShotConfigurationStep({
                         } else {
                           if (finalOffFrameListenerCharacterId) allShotCharacters.delete(finalOffFrameListenerCharacterId);
                           (finalOffFrameGroupCharacterIds || []).forEach((id: string) => allShotCharacters.delete(id));
+                          if (
+                            finalDialogueCompositionType &&
+                            ['first-frame-lipsync', 'extreme-closeup', 'extreme-closeup-mouth'].includes((finalSelectedDialogueWorkflow || '') as string)
+                          ) {
+                            (finalNonSpeakingCharactersForShot || []).forEach((id: string) => allShotCharacters.add(id));
+                          }
                         }
                         allShotCharacters.forEach(charId => {
                           const char = allCharacters.find(c => c.id === charId);
@@ -1827,6 +1862,11 @@ export function ShotConfigurationStep({
                   onOffFrameVideoPromptAdditiveChange={(_, prompt) => actions.updateOffFrameVideoPromptAdditive(shotSlot, prompt)}
                   lipSyncVideoPromptAdditive={finalLipSyncVideoPromptAdditive}
                   onLipSyncVideoPromptAdditiveChange={(_, prompt) => actions.updateLipSyncVideoPromptAdditive(shotSlot, prompt)}
+                  nonSpeakingCharactersForShot={finalNonSpeakingCharactersForShot}
+                  dialogueCompositionType={finalDialogueCompositionType}
+                  onNonSpeakingCharactersForShotChange={(_, ids) => actions.updateNonSpeakingCharactersForShot(shotSlot, ids)}
+                  onDialogueCompositionTypeChange={(_, composition) => actions.updateDialogueCompositionType(shotSlot, composition)}
+                  hasUploadedFirstFrame={!!uploadedFirstFrameUrl}
                   onOffFrameShotTypeChange={(_, shotType) => actions.updateOffFrameShotType(shotSlot, shotType)}
                   onOffFrameListenerCharacterIdChange={(_, id) => actions.updateOffFrameListenerCharacterId(shotSlot, id)}
                   onOffFrameGroupCharacterIdsChange={(_, ids) => actions.updateOffFrameGroupCharacterIds(shotSlot, ids)}
@@ -1881,6 +1921,12 @@ export function ShotConfigurationStep({
                             } else {
                               if (finalOffFrameListenerCharacterId) allShotCharacters.delete(finalOffFrameListenerCharacterId);
                               (finalOffFrameGroupCharacterIds || []).forEach((id: string) => allShotCharacters.delete(id));
+                              if (
+                                finalDialogueCompositionType &&
+                                ['first-frame-lipsync', 'extreme-closeup', 'extreme-closeup-mouth'].includes((finalSelectedDialogueWorkflow || '') as string)
+                              ) {
+                                (finalNonSpeakingCharactersForShot || []).forEach((id: string) => allShotCharacters.add(id));
+                              }
                             }
                             allShotCharacters.forEach(charId => {
                               const char = allCharacters.find(c => c.id === charId);

@@ -83,6 +83,7 @@ export const DEFAULT_REFERENCE_SHOT_MODEL: ReferenceShotModel = 'gemini-3.1-flas
 export const VEO_MAX_ELEMENTS = 3;
 export type VideoType = 'cinematic-visuals' | 'natural-motion' | 'premium-quality';
 export type DialogueQuality = 'premium' | 'reliable';
+export type DialogueCompositionType = 'over-the-shoulder' | 'two-shot';
 export type WizardStep = 'analysis' | 'shot-config' | 'review';
 
 // ============================================================================
@@ -131,6 +132,10 @@ export interface SceneBuilderState {
   offFrameVideoPromptAdditive: Record<number, string>;
   /** Feature 0277: Additive video prompt for lip-sync dialogue workflows only. */
   lipSyncVideoPromptAdditive: Record<number, string>;
+  /** Feature 0308: Non-speaking character IDs per shot for lip-sync composition variants. */
+  nonSpeakingCharactersForShots: Record<number, string[]>;
+  /** Feature 0308: Composition variant per shot (image-first); null means disabled. */
+  dialogueCompositionType: Record<number, DialogueCompositionType | null>;
   
   // Prompt Override State
   firstFramePromptOverrides: Record<number, string>;
@@ -247,6 +252,10 @@ export interface SceneBuilderActions {
   updateOffFrameVideoPromptAdditive: (shotSlot: number, prompt: string) => void;
   setLipSyncVideoPromptAdditive: (byShot: Record<number, string>) => void;
   updateLipSyncVideoPromptAdditive: (shotSlot: number, prompt: string) => void;
+  setNonSpeakingCharactersForShots: (byShot: Record<number, string[]>) => void;
+  updateNonSpeakingCharactersForShot: (shotSlot: number, characterIds: string[]) => void;
+  setDialogueCompositionType: (byShot: Record<number, DialogueCompositionType | null>) => void;
+  updateDialogueCompositionType: (shotSlot: number, value: DialogueCompositionType | null) => void;
   
   // Prompt Override Actions
   setFirstFramePromptOverrides: (overrides: Record<number, string>) => void;
@@ -381,6 +390,8 @@ function getInitialSceneBuilderState(): SceneBuilderState {
     offFrameSceneContextPrompt: {},
     offFrameVideoPromptAdditive: {},
     lipSyncVideoPromptAdditive: {},
+    nonSpeakingCharactersForShots: {},
+    dialogueCompositionType: {},
     firstFramePromptOverrides: {},
     videoPromptOverrides: {},
     promptOverrideEnabled: {},
@@ -466,6 +477,8 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
     // 2. Get character IDs from pronoun-selected characters
     const pronounSelectedCharacterIds = Object.values(state.selectedCharactersForShots).flat();
     characterIds.push(...pronounSelectedCharacterIds);
+    const nonSpeakingCharacterIds = Object.values(state.nonSpeakingCharactersForShots).flat();
+    characterIds.push(...nonSpeakingCharacterIds);
     
     // 3. Include ALL characters from sceneAnalysisResult.characters
     if (state.sceneAnalysisResult?.characters && Array.isArray(state.sceneAnalysisResult.characters)) {
@@ -492,6 +505,7 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
     state.sceneAnalysisResult?.shotBreakdown?.shots,
     state.sceneAnalysisResult?.characters,
     state.selectedCharactersForShots,
+    state.nonSpeakingCharactersForShots,
     allScreenplayCharacters // 🔥 CRITICAL: Include all screenplay characters
   ]);
   
@@ -1108,6 +1122,38 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
           [shotSlot]: prompt
         }
       }));
+    }, []),
+    setNonSpeakingCharactersForShots: useCallback((byShot) => {
+      setState(prev => ({ ...prev, nonSpeakingCharactersForShots: byShot }));
+    }, []),
+    updateNonSpeakingCharactersForShot: useCallback((shotSlot, characterIds) => {
+      setState(prev => ({
+        ...prev,
+        nonSpeakingCharactersForShots: {
+          ...prev.nonSpeakingCharactersForShots,
+          [shotSlot]: characterIds
+        }
+      }));
+    }, []),
+    setDialogueCompositionType: useCallback((byShot) => {
+      setState(prev => ({ ...prev, dialogueCompositionType: byShot }));
+    }, []),
+    updateDialogueCompositionType: useCallback((shotSlot, value) => {
+      setState(prev => {
+        const nextComposition = { ...prev.dialogueCompositionType };
+        const nextNonSpeaking = { ...prev.nonSpeakingCharactersForShots };
+        if (value === null) {
+          delete nextComposition[shotSlot];
+          delete nextNonSpeaking[shotSlot];
+        } else {
+          nextComposition[shotSlot] = value;
+        }
+        return {
+          ...prev,
+          dialogueCompositionType: nextComposition,
+          nonSpeakingCharactersForShots: nextNonSpeaking
+        };
+      });
     }, []),
     
     // Prompt Override Actions

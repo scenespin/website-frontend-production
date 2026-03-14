@@ -36,6 +36,7 @@ import {
   getElementsVideoDurationOptions,
   getElementsVideoModelMessage,
 } from '@/lib/elementsWorkflowUtils';
+import type { DialogueCompositionType } from '@/contexts/SceneBuilderContext';
 
 export type Resolution = '1080p' | '4k';
 export type ShotDuration = 'quick-cut' | 'extended-take'; // 'quick-cut' = ~5s, 'extended-take' = ~10s
@@ -120,6 +121,12 @@ interface ShotConfigurationPanelProps {
   /** Feature 0277: Additive video prompt for lip-sync dialogue workflows only. */
   lipSyncVideoPromptAdditive?: string;
   onLipSyncVideoPromptAdditiveChange?: (shotSlot: number, prompt: string) => void;
+  /** Feature 0308: Non-speaking character selection + composition variant (lip-sync only). */
+  nonSpeakingCharactersForShot?: string[];
+  dialogueCompositionType?: DialogueCompositionType | null;
+  onNonSpeakingCharactersForShotChange?: (shotSlot: number, characterIds: string[]) => void;
+  onDialogueCompositionTypeChange?: (shotSlot: number, composition: DialogueCompositionType | null) => void;
+  hasUploadedFirstFrame?: boolean;
   onOffFrameShotTypeChange?: (shotSlot: number, shotType: OffFrameShotType) => void;
   onOffFrameListenerCharacterIdChange?: (shotSlot: number, characterId: string | null) => void;
   onOffFrameGroupCharacterIdsChange?: (shotSlot: number, characterIds: string[]) => void;
@@ -233,6 +240,11 @@ export function ShotConfigurationPanel({
   onOffFrameVideoPromptAdditiveChange,
   lipSyncVideoPromptAdditive = '',
   onLipSyncVideoPromptAdditiveChange,
+  nonSpeakingCharactersForShot = [],
+  dialogueCompositionType = null,
+  onNonSpeakingCharactersForShotChange,
+  onDialogueCompositionTypeChange,
+  hasUploadedFirstFrame = false,
   onOffFrameShotTypeChange,
   onOffFrameListenerCharacterIdChange,
   onOffFrameGroupCharacterIdsChange,
@@ -737,6 +749,7 @@ export function ShotConfigurationPanel({
 
   // When Hidden Mouth + "Off-frame (character not in frame)", show Character(s) only on Advanced tab to avoid duplicate sections (plan 0228)
   const isOffFrameMode = currentWorkflow === 'off-frame-voiceover' && offFrameShotType === 'off-frame';
+  const selectedNonSpeakingCharacterId = nonSpeakingCharactersForShot[0] || '';
 
   return (
     <div className="mt-3 space-y-4">
@@ -1416,6 +1429,90 @@ export function ShotConfigurationPanel({
         </div>
         );
       })()}
+
+      {/* Feature 0308: Non-speaking characters for lip-sync composition variants (image-first controls). */}
+      {isDialogueShot &&
+        shot.type === 'dialogue' &&
+        isDialogueBasicTab &&
+        isLipSyncWorkflow &&
+        onDialogueCompositionTypeChange && (
+        <div className="pt-3 border-t border-[#3F3F46]">
+          <div className="text-xs font-medium text-[#FFFFFF] mb-2">Non-speaking characters in scene</div>
+          <label className="inline-flex items-center gap-2 text-xs text-[#FFFFFF] mb-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={!!dialogueCompositionType}
+              onChange={(e) => {
+                const enabled = e.target.checked;
+                if (!enabled) {
+                  onDialogueCompositionTypeChange(shot.slot, null);
+                  onNonSpeakingCharactersForShotChange?.(shot.slot, []);
+                  return;
+                }
+                onDialogueCompositionTypeChange(shot.slot, 'over-the-shoulder');
+              }}
+              className="w-3.5 h-3.5 rounded border-[#3F3F46] bg-[#1F1F1F] text-[#DC143C] focus:ring-[#DC143C] focus:ring-offset-0"
+            />
+            <span>Add non-speaking characters</span>
+          </label>
+
+          {dialogueCompositionType && (
+            <div className="space-y-3 p-3 bg-[#0A0A0A] border border-[#3F3F46] rounded">
+              <div>
+                <label className="block text-[10px] font-medium text-[#808080] mb-1.5">Composition</label>
+                <select
+                  value={dialogueCompositionType}
+                  onChange={(e) => onDialogueCompositionTypeChange(shot.slot, e.target.value as DialogueCompositionType)}
+                  className="w-full h-9 text-sm px-3 py-2 bg-[#1F1F1F] border border-[#3F3F46] rounded-md text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
+                >
+                  <option value="over-the-shoulder">Over-the-shoulder</option>
+                  <option value="two-shot">Two-shot</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[10px] font-medium text-[#808080] mb-1.5">Non-speaking character</label>
+                <select
+                  value={selectedNonSpeakingCharacterId}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    onNonSpeakingCharactersForShotChange?.(shot.slot, value ? [value] : []);
+                  }}
+                  className="w-full h-9 text-sm px-3 py-2 bg-[#1F1F1F] border border-[#3F3F46] rounded-md text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
+                >
+                  <option value="">— Select character —</option>
+                  {getCharacterSource(allCharacters, sceneAnalysisResult)
+                    .filter((c: any) => c.id !== speakingCharacterId)
+                    .map((c: any) => (
+                      <option key={c.id} value={c.id}>
+                        {c.name || c.id}
+                      </option>
+                    ))}
+                </select>
+              </div>
+
+              {!selectedNonSpeakingCharacterId && (
+                <div className="text-[10px] text-yellow-300 bg-yellow-500/10 border border-yellow-500/30 rounded px-2.5 py-2">
+                  Select 1 non-speaking character to use this composition.
+                </div>
+              )}
+
+              {hasUploadedFirstFrame && (
+                <div className="text-[10px] text-yellow-200 bg-yellow-500/10 border border-yellow-500/30 rounded px-2.5 py-2">
+                  Uploaded first frame is active for this shot. Composition controls here do not change that image. If you generate dialogue video, make sure the uploaded frame matches your intended composition.
+                </div>
+              )}
+
+              {selectedNonSpeakingCharacterId && (
+                <div className="pt-2 border-t border-[#3F3F46] space-y-3">
+                  {renderCharacterControlsOnly(selectedNonSpeakingCharacterId, shot.slot, shotMappings, hasPronouns, 'explicit')}
+                  {renderCharacterImagesOnly(selectedNonSpeakingCharacterId, shot.slot)}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       {/* 🔥 REORDERED: Which Character? Section - Second (Pronoun Mappings) */}
       {hasPronouns && (

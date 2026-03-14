@@ -574,6 +574,8 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   const offFrameSceneContextPrompt = contextState.offFrameSceneContextPrompt;
   const offFrameVideoPromptAdditive = contextState.offFrameVideoPromptAdditive;
   const lipSyncVideoPromptAdditive = contextState.lipSyncVideoPromptAdditive;
+  const nonSpeakingCharactersForShots = contextState.nonSpeakingCharactersForShots;
+  const dialogueCompositionType = contextState.dialogueCompositionType;
   const voiceoverBaseWorkflows = contextState.voiceoverBaseWorkflows;
   const shotWorkflowOverrides = contextState.shotWorkflowOverrides;
   const dialogueWorkflowPrompts = contextState.dialogueWorkflowPrompts;
@@ -3387,6 +3389,47 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                   const raw = lipSyncVideoPromptAdditive[slot] ?? '';
                   const normalized = raw.replace(/\s+/g, ' ').trim().slice(0, 160);
                   if (normalized) acc[slot] = normalized;
+                }
+                return acc;
+              }, {}),
+            }
+          : {}),
+        ...(enabledShots.some((slot) => {
+          const workflow = selectedDialogueWorkflows[slot];
+          return (
+            (workflow === 'first-frame-lipsync' ||
+              workflow === 'extreme-closeup' ||
+              workflow === 'extreme-closeup-mouth') &&
+            !!dialogueCompositionType[slot]
+          );
+        })
+          ? {
+              nonSpeakingCharactersForShots: enabledShots.reduce<Record<number, string[]>>((acc, slot) => {
+                const workflow = selectedDialogueWorkflows[slot];
+                if (
+                  workflow === 'first-frame-lipsync' ||
+                  workflow === 'extreme-closeup' ||
+                  workflow === 'extreme-closeup-mouth'
+                ) {
+                  const composition = dialogueCompositionType[slot];
+                  const chars = nonSpeakingCharactersForShots[slot] ?? [];
+                  if (composition && chars.length > 0) {
+                    acc[slot] = chars.slice(0, 1);
+                  }
+                }
+                return acc;
+              }, {}),
+              dialogueCompositionType: enabledShots.reduce<Record<number, 'over-the-shoulder' | 'two-shot'>>((acc, slot) => {
+                const workflow = selectedDialogueWorkflows[slot];
+                if (
+                  workflow === 'first-frame-lipsync' ||
+                  workflow === 'extreme-closeup' ||
+                  workflow === 'extreme-closeup-mouth'
+                ) {
+                  const composition = dialogueCompositionType[slot];
+                  if (composition) {
+                    acc[slot] = composition;
+                  }
                 }
                 return acc;
               }, {}),
