@@ -5249,6 +5249,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                 selectedLocationReferences={selectedLocationReferences}
                 selectedDialogueWorkflows={selectedDialogueWorkflows}
                 selectedDialogueQualities={selectedDialogueQualities}
+                dialogueCompositionType={dialogueCompositionType}
                 voiceoverBaseWorkflows={voiceoverBaseWorkflows}
                 dialogueWorkflowPrompts={dialogueWorkflowPrompts}
                 shotWorkflowOverrides={shotWorkflowOverrides}

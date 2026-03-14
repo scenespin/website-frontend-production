@@ -51,6 +51,7 @@ interface SceneReviewStepProps {
   // Dialogue workflows
   selectedDialogueWorkflows: Record<number, string>;
   selectedDialogueQualities?: Record<number, 'premium' | 'reliable'>;
+  dialogueCompositionType?: Record<number, 'over-the-shoulder' | 'two-shot' | null>;
   voiceoverBaseWorkflows?: Record<number, string>;
   dialogueWorkflowPrompts: Record<number, string>;
   // Per-shot workflow overrides (for action shots and dialogue shots)
@@ -106,6 +107,7 @@ export function SceneReviewStep({
   selectedLocationReferences,
   selectedDialogueWorkflows,
   selectedDialogueQualities,
+  dialogueCompositionType = {},
   voiceoverBaseWorkflows,
   dialogueWorkflowPrompts,
   shotWorkflowOverrides = {},
@@ -424,6 +426,7 @@ export function SceneReviewStep({
                 const shotCameraAngle = shotCameraAngles[shot.slot];
                 const shotDuration = shotDurations[shot.slot] || 'quick-cut';
                 const shotDialogueWorkflow = selectedDialogueWorkflows[shot.slot];
+                const shotDialogueComposition = dialogueCompositionType[shot.slot];
                 const shotDialoguePrompt = dialogueWorkflowPrompts[shot.slot];
                 const shotPronounMappings = pronounMappingsForShots[shot.slot] || {};
                 const shotPronounExtras = pronounExtrasPrompts[shot.slot] || {};
@@ -479,6 +482,11 @@ export function SceneReviewStep({
                         {shotDialoguePrompt && (
                           <div className="mt-1 text-[#808080] italic">"{shotDialoguePrompt.substring(0, 50)}..."</div>
                         )}
+                      </div>
+                    )}
+                    {shot.type === 'dialogue' && shotDialogueComposition && (
+                      <div className="text-[10px] text-[#808080]">
+                        Composition: <span className="text-[#FFFFFF]">{shotDialogueComposition === 'over-the-shoulder' ? 'Over-the-shoulder' : 'Two-shot'}</span>
                       </div>
                     )}
 

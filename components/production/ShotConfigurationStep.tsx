@@ -1803,10 +1803,7 @@ export function ShotConfigurationStep({
                         } else {
                           if (finalOffFrameListenerCharacterId) allShotCharacters.delete(finalOffFrameListenerCharacterId);
                           (finalOffFrameGroupCharacterIds || []).forEach((id: string) => allShotCharacters.delete(id));
-                          if (
-                            finalDialogueCompositionType &&
-                            ['first-frame-lipsync', 'extreme-closeup', 'extreme-closeup-mouth'].includes((finalSelectedDialogueWorkflow || '') as string)
-                          ) {
+                          if (finalDialogueCompositionType) {
                             (finalNonSpeakingCharactersForShot || []).forEach((id: string) => allShotCharacters.add(id));
                           }
                         }
@@ -1978,10 +1975,7 @@ export function ShotConfigurationStep({
                             } else {
                               if (finalOffFrameListenerCharacterId) allShotCharacters.delete(finalOffFrameListenerCharacterId);
                               (finalOffFrameGroupCharacterIds || []).forEach((id: string) => allShotCharacters.delete(id));
-                              if (
-                                finalDialogueCompositionType &&
-                                ['first-frame-lipsync', 'extreme-closeup', 'extreme-closeup-mouth'].includes((finalSelectedDialogueWorkflow || '') as string)
-                              ) {
+                              if (finalDialogueCompositionType) {
                                 (finalNonSpeakingCharactersForShot || []).forEach((id: string) => allShotCharacters.add(id));
                               }
                             }
