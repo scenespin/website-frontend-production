@@ -1483,6 +1483,12 @@ export function ShotConfigurationStep({
                   </div>
                 );
               })()}
+              <div className="pt-2 border-t border-[#3F3F46]">
+                <div className="text-xs font-medium text-[#FFFFFF]">Video options</div>
+                <p className="text-[10px] text-[#808080] mt-1">
+                  These options affect dialogue video generation only. Your uploaded first frame remains unchanged.
+                </p>
+              </div>
               {/* Keep composition controls available even in uploaded-first-frame compact mode. */}
               {(() => {
                 const workflowForComposition = (finalSelectedDialogueWorkflow || sceneAnalysisResult?.dialogue?.workflowType || 'first-frame-lipsync') as string;
