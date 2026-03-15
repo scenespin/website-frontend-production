@@ -1,7 +1,7 @@
 "use client"
 
 import { useState, useEffect, useMemo, useRef, useCallback } from "react"
-import { X, Trash2, Plus, Image as ImageIcon, Upload, Sparkles, Package, Search, Check } from "lucide-react"
+import { X, Trash2, Plus, Image as ImageIcon, Upload, Package, Search, Check } from "lucide-react"
 import { motion } from 'framer-motion'
 import type { Asset, AssetCategory } from '@/types/asset'
 import { useScreenplay } from '@/contexts/ScreenplayContext'
@@ -35,8 +35,7 @@ export default function AssetDetailSidebar({
   onClose,
   onCreate,
   onUpdate,
-  onDelete,
-  onSwitchToChatImageMode
+  onDelete
 }: AssetDetailSidebarProps) {
   const { getAssetScenes, isEntityInScript, screenplayId, assets, updateAsset, scenes, linkAssetToScene, unlinkAssetFromScene, batchUpdatePropAssociations } = useScreenplay()
   // 🔥 FIX: Use ref to track latest assets to avoid stale closures in async functions
@@ -1257,43 +1256,6 @@ export default function AssetDetailSidebar({
 
         {/* Footer Actions */}
         <div className="p-4 sm:p-6 border-t space-y-2" style={{ borderColor: '#2C2C2E' }}>
-          {/* AI Interview Button - Always available when creating */}
-          {isCreating && (
-            <button
-              onClick={() => {
-                if (onSwitchToChatImageMode && typeof onSwitchToChatImageMode === 'function') {
-                  try {
-                    onSwitchToChatImageMode(undefined, {
-                      type: 'asset',
-                      id: 'new',
-                      name: formData.name || 'New Asset',
-                      workflow: 'interview',
-                      existingData: {
-                        name: formData.name || '',
-                        description: formData.description || '',
-                        category: formData.category || ''
-                      }
-                    });
-                  } catch (error) {
-                    console.error('[AssetDetailSidebar] Error calling onSwitchToChatImageMode:', error);
-                  }
-                }
-                onClose();
-              }}
-              className="w-full px-4 py-2.5 rounded-lg text-sm font-medium transition-all hover:bg-[#1F1F1F] flex items-center justify-center gap-2"
-              style={{ 
-                backgroundColor: '#0A0A0A',
-                color: 'white',
-                border: '1px solid #3F3F46'
-              }}
-            >
-              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
-              </svg>
-              ✨ Create with AI Interview
-            </button>
-          )}
-          
           {/* Create/Save Button */}
           <button
             onClick={handleSave}
