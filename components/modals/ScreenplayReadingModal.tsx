@@ -49,6 +49,13 @@ interface ReadingResult {
   characterVoiceMapping: Record<string, string>;
 }
 
+interface ReadingEstimate {
+  estimatedCredits: number;
+  estimatedTimeMinutes: number;
+  sceneCount: number;
+  includeNarration: boolean;
+}
+
 interface ScreenplayReadingModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -98,6 +105,8 @@ export default function ScreenplayReadingModal({
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [pendingAction, setPendingAction] = useState<'selectAll' | 'generate' | null>(null);
   const [pendingSceneCount, setPendingSceneCount] = useState(0);
+  const [readingEstimate, setReadingEstimate] = useState<ReadingEstimate | null>(null);
+  const [isEstimatingReading, setIsEstimatingReading] = useState(false);
   
   // Audio player state
   const [audioElement, setAudioElement] = useState<HTMLAudioElement | null>(null);
@@ -145,6 +154,8 @@ export default function ScreenplayReadingModal({
       setEstimatedTime(null);
       setIsAsyncJob(false);
       setGenerationProgress(null);
+      setReadingEstimate(null);
+      setIsEstimatingReading(false);
       if (audioElement) {
         audioElement.pause();
         audioElement.src = '';
@@ -346,6 +357,51 @@ export default function ScreenplayReadingModal({
     const estimatedMinutes = Math.ceil((sceneCount * ESTIMATED_MINUTES_PER_SCENE) * 2) / 2;
     return { estimatedCredits, estimatedMinutes };
   };
+
+  const fetchReadingEstimate = async (sceneIds: string[], showErrorToast: boolean = false) => {
+    if (!screenplayId || sceneIds.length === 0 || scenes.length === 0) {
+      setReadingEstimate(null);
+      return;
+    }
+
+    setIsEstimatingReading(true);
+    try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) throw new Error('Authentication failed');
+
+      const requestSelectedSceneIds = sceneIds.length === scenes.length ? [] : sceneIds;
+      const response = await fetch(`/api/screenplay/${screenplayId}/read/estimate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          selectedSceneIds: requestSelectedSceneIds,
+          includeNarration,
+        })
+      });
+
+      const payload = await response.json();
+      if (!response.ok || !payload?.success) {
+        throw new Error(payload?.error || payload?.message || 'Failed to estimate screenplay reading');
+      }
+
+      const data = payload?.data || payload;
+      setReadingEstimate({
+        estimatedCredits: Number(data?.estimatedCredits || 0),
+        estimatedTimeMinutes: Number(data?.estimatedTimeMinutes || 0),
+        sceneCount: Number(data?.sceneCount || sceneIds.length),
+        includeNarration: Boolean(data?.includeNarration ?? includeNarration),
+      });
+    } catch (error: any) {
+      if (showErrorToast) {
+        toast.error(error?.message || 'Failed to estimate screenplay reading');
+      }
+    } finally {
+      setIsEstimatingReading(false);
+    }
+  };
   
   // Handle generation
   const handleGenerate = async () => {
@@ -358,6 +414,7 @@ export default function ScreenplayReadingModal({
     setPendingAction('generate');
     setPendingSceneCount(selectedSceneIds.length);
     setShowConfirmModal(true);
+    void fetchReadingEstimate(selectedSceneIds, true);
   };
   
   const executeGeneration = async () => {
@@ -505,6 +562,20 @@ export default function ScreenplayReadingModal({
     setPendingAction(null);
     setPendingSceneCount(0);
   };
+
+  useEffect(() => {
+    if (!isOpen || selectedSceneIds.length === 0) {
+      setReadingEstimate(null);
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      void fetchReadingEstimate(selectedSceneIds);
+    }, 300);
+
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, selectedSceneIds, includeNarration, screenplayId, scenes.length]);
 
   // Audio player controls
   const handlePlayPause = () => {
@@ -786,7 +857,16 @@ export default function ScreenplayReadingModal({
                         
                         {/* Selection Summary & Warnings */}
                         {selectedSceneIds.length > 0 && (() => {
-                          const { estimatedCredits, estimatedMinutes } = calculateEstimates(selectedSceneIds.length);
+                          const roughEstimate = calculateEstimates(selectedSceneIds.length);
+                          const hasRuntimeEstimate = !!readingEstimate
+                            && readingEstimate.sceneCount === selectedSceneIds.length
+                            && readingEstimate.includeNarration === includeNarration;
+                          const estimatedCredits = hasRuntimeEstimate
+                            ? readingEstimate.estimatedCredits
+                            : roughEstimate.estimatedCredits;
+                          const estimatedMinutes = hasRuntimeEstimate
+                            ? readingEstimate.estimatedTimeMinutes
+                            : roughEstimate.estimatedMinutes;
                           const isLargeSelection = selectedSceneIds.length > LARGE_SELECTION_WARNING_THRESHOLD;
                           
                           return (
@@ -805,6 +885,9 @@ export default function ScreenplayReadingModal({
                                     <span className="text-base-content/60">Est. Time:</span>
                                     <span className="ml-2 font-semibold">~{estimatedMinutes} min</span>
                                   </div>
+                                  {isEstimatingReading && (
+                                    <div className="text-xs text-base-content/50">Updating estimate...</div>
+                                  )}
                                 </div>
                               </div>
                               {isLargeSelection && (
@@ -1204,7 +1287,16 @@ export default function ScreenplayReadingModal({
                             </p>
                             
                             {(() => {
-                              const { estimatedCredits, estimatedMinutes } = calculateEstimates(pendingSceneCount);
+                              const roughEstimate = calculateEstimates(pendingSceneCount);
+                              const hasRuntimeEstimate = !!readingEstimate
+                                && readingEstimate.sceneCount === pendingSceneCount
+                                && readingEstimate.includeNarration === includeNarration;
+                              const estimatedCredits = hasRuntimeEstimate
+                                ? readingEstimate.estimatedCredits
+                                : roughEstimate.estimatedCredits;
+                              const estimatedMinutes = hasRuntimeEstimate
+                                ? readingEstimate.estimatedTimeMinutes
+                                : roughEstimate.estimatedMinutes;
                               const isLargeSelection = pendingSceneCount > LARGE_SELECTION_WARNING_THRESHOLD;
                               
                               return (
@@ -1218,6 +1310,9 @@ export default function ScreenplayReadingModal({
                                       <span className="text-base-content/60">Estimated Time:</span>
                                       <span className="font-semibold">~{estimatedMinutes} minutes</span>
                                     </div>
+                                    {isEstimatingReading && (
+                                      <div className="text-xs text-base-content/50 pt-1">Refreshing estimate...</div>
+                                    )}
                                   </div>
                                   
                                   {isLargeSelection && (
