@@ -578,13 +578,7 @@ export function GenerateLocationTab({
       if (packageType === 'angles') {
         // Generate angles
         const apiUrl = `/api/location-bank/generate-angles`;
-        
-        const packageToAngles: Record<string, Array<{ angle: string }>> = {
-          basic: [{ angle: 'front' }, { angle: 'corner' }, { angle: 'wide' }],
-          standard: [{ angle: 'front' }, { angle: 'corner' }, { angle: 'wide' }, { angle: 'low-angle' }, { angle: 'entrance' }, { angle: 'foreground-framing' }],
-          premium: [{ angle: 'front' }, { angle: 'corner' }, { angle: 'wide' }, { angle: 'low-angle' }, { angle: 'entrance' }, { angle: 'foreground-framing' }, { angle: 'aerial' }, { angle: 'pov' }, { angle: 'detail' }, { angle: 'atmospheric' }, { angle: 'golden-hour' }]
-        };
-        
+
         const derivedQuality = selectedModel?.quality === '4K' ? 'high-quality' : 'standard';
         const requestBody = {
           locationProfile: locationProfile,
@@ -596,13 +590,11 @@ export function GenerateLocationTab({
           // 🔥 Feature 0190: Single angle selection
           selectedAngle: selectedAnglePackageId === 'single' ? selectedAngle : undefined,
           additionalPrompt: additionalPrompt.trim() || undefined,
+          // IMPORTANT: For package mode, do not send explicit angles array.
+          // Let backend package mapping remain the single source of truth.
           angles: selectedAnglePackageId === 'single' 
             ? [{ angle: selectedAngle, timeOfDay: defaultTimeOfDay, weather: defaultWeather }]
-            : packageToAngles[selectedAnglePackageId].map(angle => ({
-                angle: angle.angle,
-                timeOfDay: defaultTimeOfDay,
-                weather: defaultWeather
-              }))
+            : undefined
         };
         
         const response = await fetch(apiUrl, {
@@ -746,14 +738,14 @@ export function GenerateLocationTab({
   const angleCounts: Record<string, number> = {
     single: 1,
     basic: 3,
-    standard: 6,
-    premium: 11
+    standard: 4,
+    premium: 6
   };
   const backgroundCounts: Record<string, number> = {
     single: 1,
-    basic: 3,
-    standard: 6,
-    premium: 10 // Feature 0221: includes ecu-soft
+    basic: 2,
+    standard: 4,
+    premium: 5 // Includes ecu-soft
   };
   
   const selectedPackageId = packageType === 'angles' ? selectedAnglePackageId : selectedBackgroundPackageId;
