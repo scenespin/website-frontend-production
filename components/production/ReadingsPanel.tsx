@@ -29,11 +29,14 @@ import {
   Loader2,
   Clock,
   FileText,
-  Music
+  Music,
+  Globe
 } from 'lucide-react';
 import type { MediaFile } from '@/types/media';
 import { getDropboxPath } from './utils/imageUrlResolver';
 import ScreenplayReadingModal from '../modals/ScreenplayReadingModal';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface ReadingsPanelProps {
   className?: string;
@@ -88,6 +91,16 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
   const [playingSceneId, setPlayingSceneId] = useState<string | null>(null); // Track which individual scene is playing
   const [showReadingModal, setShowReadingModal] = useState(false);
   const [deletingReadingId, setDeletingReadingId] = useState<string | null>(null);
+  const [dubDialogOpen, setDubDialogOpen] = useState(false);
+  const [dubReading, setDubReading] = useState<ReadingSession | null>(null);
+  const [dubScope, setDubScope] = useState<'master' | 'scenes'>('master');
+  const [selectedSceneFileIds, setSelectedSceneFileIds] = useState<string[]>([]);
+  const [sourceLanguage, setSourceLanguage] = useState('en');
+  const [targetLanguage, setTargetLanguage] = useState('es');
+  const [languageOptions, setLanguageOptions] = useState<Array<{ code: string; name: string }>>([]);
+  const [estimatedCredits, setEstimatedCredits] = useState<number | null>(null);
+  const [estimatingDub, setEstimatingDub] = useState(false);
+  const [startingDub, setStartingDub] = useState(false);
   const audioRefs = useRef<Map<string, HTMLAudioElement>>(new Map()); // Track audio elements for pause
   const sceneAudioRefs = useRef<Map<string, HTMLAudioElement>>(new Map()); // Track individual scene audio elements
   const downloadingFiles = useRef<Set<string>>(new Set()); // Track files being downloaded
@@ -492,6 +505,150 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
     }
   };
 
+  const fetchDubLanguages = async () => {
+    const token = await getToken({ template: 'wryda-backend' });
+    if (!token) return;
+    const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+    const res = await fetch(`${BACKEND_API_URL}/api/audio/languages`, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (Array.isArray(data?.languages)) {
+      setLanguageOptions(data.languages);
+    }
+  };
+
+  const openDubModal = async (reading: ReadingSession) => {
+    setDubReading(reading);
+    setDubScope(reading.combinedAudio ? 'master' : 'scenes');
+    setSelectedSceneFileIds(reading.sceneAudios.map((f) => f.id));
+    setDubDialogOpen(true);
+    if (languageOptions.length === 0) {
+      fetchDubLanguages().catch(() => undefined);
+    }
+  };
+
+  const getPresignedDownloadUrl = async (s3Key: string): Promise<string> => {
+    const token = await getToken({ template: 'wryda-backend' });
+    if (!token) throw new Error('Not authenticated');
+    const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+    const res = await fetch(`${BACKEND_API_URL}/api/s3/download-url`, {
+      method: 'POST',
+      headers: {
+        Authorization: `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ s3Key, expiresIn: 3600 }),
+    });
+    if (!res.ok) throw new Error('Failed to access source file');
+    const data = await res.json();
+    if (!data?.downloadUrl) throw new Error('Source URL unavailable');
+    return data.downloadUrl;
+  };
+
+  useEffect(() => {
+    if (!dubDialogOpen || !dubReading) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        setEstimatingDub(true);
+        const token = await getToken({ template: 'wryda-backend' });
+        if (!token) return;
+        const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+        const res = await fetch(`${BACKEND_API_URL}/api/audio/dub/estimate`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ sourceLanguage, targetLanguage }),
+        });
+        if (!res.ok) throw new Error('Failed to estimate dubbing');
+        const data = await res.json();
+        if (!cancelled) setEstimatedCredits(Number(data?.estimatedCredits || 0));
+      } catch (err: any) {
+        if (!cancelled) {
+          setEstimatedCredits(null);
+          toast.error(err?.message || 'Failed to estimate dubbing');
+        }
+      } finally {
+        if (!cancelled) setEstimatingDub(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [dubDialogOpen, dubReading, sourceLanguage, targetLanguage, getToken]);
+
+  const startDubbing = async () => {
+    if (!dubReading || !screenplayId) return;
+    setStartingDub(true);
+    try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) throw new Error('Please sign in');
+      const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+
+      const filesToDub: MediaFile[] = dubScope === 'master'
+        ? (dubReading.combinedAudio ? [dubReading.combinedAudio] : [])
+        : dubReading.sceneAudios.filter((f) => selectedSceneFileIds.includes(f.id));
+
+      if (filesToDub.length === 0) {
+        throw new Error('Select at least one file to dub');
+      }
+
+      let started = 0;
+      for (const file of filesToDub) {
+        if (!file.s3Key) continue;
+        const sourceUrl = await getPresignedDownloadUrl(file.s3Key);
+        const res = await fetch(`${BACKEND_API_URL}/api/audio/dub`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            async: true,
+            screenplayId,
+            folderId: file.folderId || dubReading.combinedAudio?.folderId,
+            sourceType: dubScope === 'master' ? 'reading-master' : 'reading-scenes',
+            sourceLanguage,
+            targetLanguage,
+            audioUrl: sourceUrl,
+            sourceS3Key: file.s3Key,
+            sourceFileId: file.id,
+            sourceFileName: file.fileName,
+            sceneId: file.metadata?.sceneId,
+            sceneNumber: file.metadata?.sceneNumber,
+          }),
+        });
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}));
+          throw new Error(err?.message || 'Failed to start dubbing');
+        }
+        const data = await res.json();
+        if (typeof window !== 'undefined' && data?.jobId) {
+          window.dispatchEvent(new CustomEvent('wryda:optimistic-job', {
+            detail: {
+              jobId: data.jobId,
+              screenplayId,
+              jobType: 'dubbing',
+              assetName: `Dubbing - ${targetLanguage.toUpperCase()}`,
+            }
+          }));
+        }
+        started += 1;
+      }
+
+      toast.success(`Started ${started} dubbing job${started === 1 ? '' : 's'}`);
+      setDubDialogOpen(false);
+      setDubReading(null);
+      setSelectedSceneFileIds([]);
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to start dubbing');
+    } finally {
+      setStartingDub(false);
+    }
+  };
+
   // Handle generate new
   const handleGenerateNew = () => {
     setShowReadingModal(true);
@@ -569,6 +726,7 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
                 onDownloadCombined={() => handleDownloadCombined(reading)}
                 onDownloadScene={handleDownloadScene}
                 onDownloadAll={() => handleDownloadAll(reading)}
+                onDub={() => openDubModal(reading)}
                 onDelete={() => handleDeleteReading(reading)}
                 audioRef={(audio: HTMLAudioElement | null) => {
                   if (audio) {
@@ -601,6 +759,94 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
           screenplayTitle={screenplayTitle}
         />
       )}
+
+      <Dialog open={dubDialogOpen} onOpenChange={(open) => { if (!startingDub) setDubDialogOpen(open); }}>
+        <DialogContent className="max-w-lg bg-[#141414] border-[#3F3F46]">
+          <DialogHeader>
+            <DialogTitle>Dub Reading</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="text-xs text-[#B3B3B3]">{dubReading?.title || 'Selected reading'}</div>
+            <div className="space-y-1">
+              <label className="text-xs text-[#B3B3B3]">Scope</label>
+              <Select value={dubScope} onValueChange={(v) => setDubScope(v as 'master' | 'scenes')} disabled={startingDub}>
+                <SelectTrigger className="bg-[#1A1A1A] border-[#3F3F46]"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="master">Dub entire reading (Master)</SelectItem>
+                  <SelectItem value="scenes">Select scenes</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            {dubScope === 'scenes' && (
+              <div className="max-h-36 overflow-y-auto rounded border border-[#3F3F46] p-2 space-y-1">
+                {(dubReading?.sceneAudios || []).map((file) => {
+                  const checked = selectedSceneFileIds.includes(file.id);
+                  return (
+                    <label key={file.id} className="flex items-center gap-2 text-xs text-[#B3B3B3]">
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={(e) => {
+                          setSelectedSceneFileIds((prev) => e.target.checked
+                            ? [...prev, file.id]
+                            : prev.filter((id) => id !== file.id)
+                          );
+                        }}
+                      />
+                      <span>{file.metadata?.sceneNumber ? `Scene ${file.metadata.sceneNumber}: ` : ''}{file.fileName}</span>
+                    </label>
+                  );
+                })}
+              </div>
+            )}
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <label className="text-xs text-[#B3B3B3]">Source</label>
+                <Select value={sourceLanguage} onValueChange={setSourceLanguage} disabled={startingDub}>
+                  <SelectTrigger className="bg-[#1A1A1A] border-[#3F3F46]"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {(languageOptions.length ? languageOptions : [{ code: 'en', name: 'English' }]).map((l) => (
+                      <SelectItem key={`src-${l.code}`} value={l.code}>{l.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-1">
+                <label className="text-xs text-[#B3B3B3]">Target</label>
+                <Select value={targetLanguage} onValueChange={setTargetLanguage} disabled={startingDub}>
+                  <SelectTrigger className="bg-[#1A1A1A] border-[#3F3F46]"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {(languageOptions.length ? languageOptions : [{ code: 'es', name: 'Spanish' }]).map((l) => (
+                      <SelectItem key={`tgt-${l.code}`} value={l.code}>{l.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+            <div className="text-xs text-[#808080]">
+              {estimatingDub ? 'Estimating cost...' : `Estimated cost: ${estimatedCredits ?? '—'} credits per job`}
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setDubDialogOpen(false)}
+                disabled={startingDub}
+                className="px-3 py-1.5 text-xs rounded border border-[#3F3F46] text-[#B3B3B3] hover:bg-[#1A1A1A]"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={startDubbing}
+                disabled={startingDub || estimatingDub || !estimatedCredits}
+                className="px-3 py-1.5 text-xs rounded bg-[#DC143C] text-white hover:bg-[#B0111E] disabled:opacity-50"
+              >
+                {startingDub ? 'Starting...' : `Charge ${estimatedCredits ?? 0} & Start`}
+              </button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
@@ -616,6 +862,7 @@ interface ReadingCardProps {
   onDownloadCombined: () => void;
   onDownloadScene: (sceneFile: MediaFile) => void;
   onDownloadAll: () => void;
+  onDub: () => void;
   onDelete: () => void;
   audioRef: (audio: HTMLAudioElement | null) => void;
   sceneAudioRef: (sceneId: string, audio: HTMLAudioElement | null) => void;
@@ -631,6 +878,7 @@ function ReadingCard({
   onDownloadCombined,
   onDownloadScene,
   onDownloadAll,
+  onDub,
   onDelete,
   audioRef,
   sceneAudioRef
@@ -928,6 +1176,16 @@ function ReadingCard({
             </button>
           )}
           
+          {reading.combinedAudio && (
+            <button
+              onClick={onDub}
+              className="inline-flex items-center gap-1 px-2 py-1 rounded text-xs font-medium bg-[#1F1F1F] border border-[#3F3F46] text-gray-300 hover:bg-[#2A2A2A] hover:border-[#DC143C] transition-colors"
+            >
+              <Globe className="w-3 h-3" />
+              Dub
+            </button>
+          )}
+
           {reading.combinedAudio && (
             <button
               onClick={onDownloadCombined}

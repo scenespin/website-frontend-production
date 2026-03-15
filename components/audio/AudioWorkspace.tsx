@@ -322,7 +322,7 @@ function TextToSpeechTab({ isProcessing, setIsProcessing, setResult, setError }:
   const [language, setLanguage] = useState('en');
   const [speed, setSpeed] = useState(1.0);
   const [provider, setProvider] = useState<'runway' | 'elevenlabs'>('runway');
-  const [model, setModel] = useState('eleven_turbo_v2.5');
+  const [model, setModel] = useState('eleven_flash_v2.5');
   const [voices, setVoices] = useState<any[]>([]);
   const [loadingVoices, setLoadingVoices] = useState(false);
   const [showConnectionModal, setShowConnectionModal] = useState(false);

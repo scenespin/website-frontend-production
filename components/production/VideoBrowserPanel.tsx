@@ -7,8 +7,8 @@
  * Segmented control next to Refresh switches between sections. Same table: Scene | Shot | Type | Time | Actions.
  */
 
-import React, { useMemo, useState, useCallback } from 'react';
-import { RefreshCw, Loader2, Play, Video, Download, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
+import React, { useMemo, useState, useCallback, useEffect } from 'react';
+import { RefreshCw, Loader2, Play, Video, Download, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Globe } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@clerk/nextjs';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
@@ -20,6 +20,7 @@ import {
 import { useMediaFiles, useBulkPresignedUrls, useStandaloneVideosPaginated, type StandaloneVideosPage } from '@/hooks/useMediaLibrary';
 import type { MediaFile } from '@/types/media';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
 
 export type VideoSection = 'scene' | 'standalone';
@@ -46,6 +47,9 @@ export interface VideoBrowserEntry {
   aspectRatio?: string | null;
   /** Stable key for list (fileId or scene-shot-timestamp) */
   entryKey: string;
+  /** Dubbing metadata */
+  isDubbed?: boolean;
+  dubbedLanguage?: string | null;
 }
 
 /** Max length for unknown provider display (avoid overflow in table cell) */
@@ -141,6 +145,8 @@ function buildVideoEntries(
           videoProvider: metadata.videoProvider ?? metadata.videoModel ?? null,
           providerDisplayLabel: metadata.providerDisplayLabel ?? null,
           aspectRatio,
+          isDubbed: metadata.isDubbed === true,
+          dubbedLanguage: metadata.targetLanguageName || metadata.targetLanguageCode || null,
           entryKey: `${scene.sceneId}-${shot.shotNumber}-${videoTimestamp}`,
         });
       }
@@ -173,6 +179,8 @@ function buildStandaloneEntries(
         videoProvider: metadata.videoProvider ?? metadata.videoModel ?? null,
         providerDisplayLabel: metadata.providerDisplayLabel ?? null,
         aspectRatio,
+        isDubbed: metadata.isDubbed === true,
+        dubbedLanguage: metadata.targetLanguageName || metadata.targetLanguageCode || null,
         entryKey: (file as any).id || file.s3Key || `standalone-${index}`,
       };
     });
@@ -198,6 +206,14 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
   const [playingVideoUrl, setPlayingVideoUrl] = useState<string | null>(null);
   const [deletingKey, setDeletingKey] = useState<string | null>(null);
+  const [dubDialogEntry, setDubDialogEntry] = useState<VideoBrowserEntry | null>(null);
+  const [dubDialogOpen, setDubDialogOpen] = useState(false);
+  const [sourceLanguage, setSourceLanguage] = useState('en');
+  const [targetLanguage, setTargetLanguage] = useState('es');
+  const [languageOptions, setLanguageOptions] = useState<Array<{ code: string; name: string }>>([]);
+  const [estimatedCredits, setEstimatedCredits] = useState<number | null>(null);
+  const [estimating, setEstimating] = useState(false);
+  const [dubbing, setDubbing] = useState(false);
 
   const handleSort = useCallback((key: VideoSortKey) => {
     setSortKey((prev) => {
@@ -377,6 +393,132 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
     [screenplayId, getToken, queryClient, refetch]
   );
 
+  useEffect(() => {
+    if (!dubDialogOpen || languageOptions.length > 0) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        const token = await getToken({ template: 'wryda-backend' });
+        if (!token) return;
+        const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+        const res = await fetch(`${BACKEND_API_URL}/api/audio/languages`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!cancelled && Array.isArray(data?.languages)) {
+          setLanguageOptions(data.languages);
+        }
+      } catch {
+        // non-fatal
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [dubDialogOpen, languageOptions.length, getToken]);
+
+  useEffect(() => {
+    if (!dubDialogOpen || !dubDialogEntry) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        setEstimating(true);
+        const token = await getToken({ template: 'wryda-backend' });
+        if (!token) return;
+        const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+        const res = await fetch(`${BACKEND_API_URL}/api/audio/dub/estimate`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${token}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({ sourceLanguage, targetLanguage }),
+        });
+        if (!res.ok) throw new Error('Failed to estimate dubbing cost');
+        const data = await res.json();
+        if (!cancelled) setEstimatedCredits(Number(data?.estimatedCredits || 0));
+      } catch (err: any) {
+        if (!cancelled) {
+          setEstimatedCredits(null);
+          toast.error(err?.message || 'Failed to estimate dubbing');
+        }
+      } finally {
+        if (!cancelled) setEstimating(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [dubDialogOpen, dubDialogEntry, sourceLanguage, targetLanguage, getToken]);
+
+  const handleOpenDubDialog = useCallback((entry: VideoBrowserEntry) => {
+    setDubDialogEntry(entry);
+    setDubDialogOpen(true);
+  }, []);
+
+  const handleConfirmDub = useCallback(async () => {
+    if (!dubDialogEntry || !dubDialogEntry.videoS3Key || !screenplayId) return;
+    setDubbing(true);
+    try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) throw new Error('Please sign in');
+      const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+
+      const presignedRes = await fetch(`${BACKEND_API_URL}/api/s3/download-url`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ s3Key: dubDialogEntry.videoS3Key, expiresIn: 3600 }),
+      });
+      if (!presignedRes.ok) throw new Error('Failed to access source video');
+      const presignedData = await presignedRes.json();
+      const sourceUrl = presignedData.downloadUrl;
+      if (!sourceUrl) throw new Error('Source URL unavailable');
+
+      const dubRes = await fetch(`${BACKEND_API_URL}/api/audio/dub`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          async: true,
+          screenplayId,
+          sourceType: 'dialogue-video',
+          sourceLanguage,
+          targetLanguage,
+          audioUrl: sourceUrl,
+          sourceS3Key: dubDialogEntry.videoS3Key,
+          sourceFileName: dubDialogEntry.videoFileName,
+          sceneId: dubDialogEntry.sceneId,
+          sceneNumber: dubDialogEntry.sceneNumber,
+          shotNumber: dubDialogEntry.shotNumber,
+        }),
+      });
+      if (!dubRes.ok) {
+        const err = await dubRes.json().catch(() => ({}));
+        throw new Error(err?.message || 'Failed to start dubbing');
+      }
+      const data = await dubRes.json();
+      if (typeof window !== 'undefined' && data?.jobId) {
+        window.dispatchEvent(new CustomEvent('wryda:optimistic-job', {
+          detail: {
+            jobId: data.jobId,
+            screenplayId,
+            jobType: 'dubbing',
+            assetName: `Dubbing - ${targetLanguage.toUpperCase()}`,
+          }
+        }));
+      }
+      toast.success(`Dubbing started${data?.jobId ? ` (Job ${String(data.jobId).slice(-8)})` : ''}`);
+      setDubDialogOpen(false);
+      setDubDialogEntry(null);
+    } catch (err: any) {
+      toast.error(err?.message || 'Failed to start dubbing');
+    } finally {
+      setDubbing(false);
+    }
+  }, [dubDialogEntry, screenplayId, sourceLanguage, targetLanguage, getToken]);
+
   if (!screenplayId || isLoading) {
     return (
       <div className={cn('flex items-center justify-center h-full', className)}>
@@ -532,6 +674,11 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
                         Video
                       </span>
                     )}
+                    {entry.isDubbed && entry.dubbedLanguage && (
+                      <span className="text-[10px] font-medium text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded" title={`Dubbed: ${entry.dubbedLanguage}`}>
+                        {entry.dubbedLanguage}
+                      </span>
+                    )}
                   </span>
                   <span
                     className="text-xs text-[#808080] w-24 sm:w-32 flex-shrink-0 whitespace-normal break-words sm:whitespace-nowrap sm:overflow-hidden sm:text-ellipsis"
@@ -556,29 +703,40 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
                       <Play className="w-3.5 h-3.5" fill="currentColor" />
                       Play
                     </button>
+                    {(entry.providerDisplayLabel === 'Dialogue' || entry.providerDisplayLabel === 'Premium Dialogue') && (
+                      <button
+                        type="button"
+                        onClick={() => handleOpenDubDialog(entry)}
+                        className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-white bg-[#1F1F1F] border border-[#3F3F46] hover:border-[#DC143C] hover:text-[#DC143C] rounded transition-colors"
+                        aria-label="Dub video"
+                      >
+                        <Globe className="w-3.5 h-3.5" />
+                        Dub to...
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => handleDownload(entry)}
                       disabled={!entry.videoS3Key}
-                      className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-[#808080] hover:text-white hover:bg-[#262626] rounded transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                      className="p-1.5 text-[#808080] hover:text-white hover:bg-[#262626] rounded transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                       aria-label="Download video"
+                      title="Download"
                     >
                       <Download className="w-3.5 h-3.5" />
-                      Download
                     </button>
                     <button
                       type="button"
                       onClick={() => handleDeleteVideo(entry)}
                       disabled={deletingKey === entry.entryKey}
-                      className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-[#DC143C]/90 hover:text-[#DC143C] hover:bg-[#DC143C]/10 rounded transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                      className="p-1.5 text-[#DC143C]/90 hover:text-[#DC143C] hover:bg-[#DC143C]/10 rounded transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                       aria-label="Delete video"
+                      title="Delete"
                     >
                       {deletingKey === entry.entryKey ? (
                         <Loader2 className="w-3.5 h-3.5 animate-spin" />
                       ) : (
                         <Trash2 className="w-3.5 h-3.5" />
                       )}
-                      Delete
                     </button>
                   </div>
                 </li>
@@ -616,6 +774,67 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
               />
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Dubbing modal */}
+      <Dialog open={dubDialogOpen} onOpenChange={(open) => { if (!dubbing) setDubDialogOpen(open); }}>
+        <DialogContent className="max-w-md bg-[#141414] border-[#3F3F46]">
+          <DialogHeader>
+            <DialogTitle>Dub Video</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3">
+            <div className="text-xs text-[#B3B3B3]">
+              {dubDialogEntry?.videoFileName || 'Selected video'}
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-[#B3B3B3]">Source Language</label>
+              <Select value={sourceLanguage} onValueChange={setSourceLanguage} disabled={dubbing}>
+                <SelectTrigger className="bg-[#1A1A1A] border-[#3F3F46]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(languageOptions.length ? languageOptions : [{ code: 'en', name: 'English' }]).map((l) => (
+                    <SelectItem key={`src-${l.code}`} value={l.code}>{l.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1">
+              <label className="text-xs text-[#B3B3B3]">Target Language</label>
+              <Select value={targetLanguage} onValueChange={setTargetLanguage} disabled={dubbing}>
+                <SelectTrigger className="bg-[#1A1A1A] border-[#3F3F46]">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {(languageOptions.length ? languageOptions : [{ code: 'es', name: 'Spanish' }]).map((l) => (
+                    <SelectItem key={`tgt-${l.code}`} value={l.code}>{l.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="text-xs text-[#808080]">
+              {estimating ? 'Estimating cost...' : `Estimated cost: ${estimatedCredits ?? '—'} credits`}
+            </div>
+            <div className="flex justify-end gap-2 pt-2">
+              <button
+                type="button"
+                onClick={() => setDubDialogOpen(false)}
+                disabled={dubbing}
+                className="px-3 py-1.5 text-xs rounded border border-[#3F3F46] text-[#B3B3B3] hover:bg-[#1A1A1A]"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handleConfirmDub}
+                disabled={dubbing || estimating || !estimatedCredits}
+                className="px-3 py-1.5 text-xs rounded bg-[#DC143C] text-white hover:bg-[#B0111E] disabled:opacity-50"
+              >
+                {dubbing ? 'Starting...' : `Charge ${estimatedCredits ?? 0} & Start`}
+              </button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

@@ -73,7 +73,7 @@ interface WorkflowJob {
   jobId: string;
   workflowId: string;
   workflowName: string;
-  jobType?: 'complete-scene' | 'pose-generation' | 'image-generation' | 'audio-generation' | 'workflow-execution' | 'playground-experiment' | 'screenplay-reading' | 'video-soundscape';
+  jobType?: 'complete-scene' | 'pose-generation' | 'image-generation' | 'audio-generation' | 'dubbing' | 'workflow-execution' | 'playground-experiment' | 'screenplay-reading' | 'video-soundscape';
   status: 'queued' | 'running' | 'completed' | 'failed';
   progress: number;
   results?: {
@@ -1347,9 +1347,15 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
       job.jobType === 'screenplay-reading' &&
       job.results?.screenplayReading
     );
+    const completedDubbingJobs = jobs.filter(job =>
+      job.status === 'completed' &&
+      job.jobType === 'dubbing' &&
+      job.results?.audio &&
+      job.results.audio.length > 0
+    );
 
     // workflow-execution: handled by WorkflowCompletionPoller (runs when drawer closed)
-    if (completedScreenplayReadingJobs.length > 0) {
+    if (completedScreenplayReadingJobs.length > 0 || completedDubbingJobs.length > 0) {
       queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] });
     }
   }, [jobs, screenplayId, queryClient, isOpen]);
@@ -1700,7 +1706,7 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
                           )}
                         </>
                       )}
-                      {job.jobType === 'audio-generation' && job.results.audio && (
+                      {(job.jobType === 'audio-generation' || job.jobType === 'dubbing') && job.results.audio && (
                         <span className="flex items-center gap-0.5">
                           <Play className="w-2.5 h-2.5" />
                           {job.results.audio.length} audio

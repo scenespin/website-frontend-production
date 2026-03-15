@@ -34,7 +34,7 @@ interface WorkflowJob {
   jobId: string;
   workflowId: string;
   workflowName: string;
-  jobType?: 'complete-scene' | 'pose-generation' | 'image-generation' | 'audio-generation' | 'workflow-execution' | 'playground-experiment' | 'screenplay-reading' | 'video-soundscape';
+  jobType?: 'complete-scene' | 'pose-generation' | 'image-generation' | 'audio-generation' | 'dubbing' | 'workflow-execution' | 'playground-experiment' | 'screenplay-reading' | 'video-soundscape';
   status: 'queued' | 'running' | 'completed' | 'failed' | 'awaiting_input';
   progress: number;
   requiresAction?: {
@@ -898,13 +898,22 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
       job.jobType === 'screenplay-reading' &&
       job.results?.screenplayReading
     );
+    const completedDubbingJobs = jobs.filter(job =>
+      job.status === 'completed' &&
+      job.jobType === 'dubbing' &&
+      job.results?.audio &&
+      job.results.audio.length > 0
+    );
     
-    if (completedScreenplayReadingJobs.length > 0) {
-      console.log('[ProductionJobsPanel] Screenplay reading completed, refreshing Media Library...', completedScreenplayReadingJobs.length);
+    if (completedScreenplayReadingJobs.length > 0 || completedDubbingJobs.length > 0) {
+      console.log('[ProductionJobsPanel] Reading/dubbing completed, refreshing Media Library...', {
+        screenplayReadings: completedScreenplayReadingJobs.length,
+        dubbing: completedDubbingJobs.length
+      });
       // 🔥 FIX: Invalidate AND refetch Media Library to show newly registered files
       queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
       queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] })
-        .catch(err => console.error('[ProductionJobsPanel] Error refetching Media Library after screenplay reading:', err));
+        .catch(err => console.error('[ProductionJobsPanel] Error refetching Media Library after reading/dubbing:', err));
       
       // 🔥 Refresh credits immediately after job completion
       if (typeof window !== 'undefined' && (window as any).refreshCredits) {
@@ -1408,7 +1417,7 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
                         )}
                       </>
                     )}
-                    {job.jobType === 'audio-generation' && job.results.audio && (
+                    {(job.jobType === 'audio-generation' || job.jobType === 'dubbing') && job.results.audio && (
                       <span className="flex items-center gap-1">
                         <Play className="w-3 h-3" />
                         {job.results.audio.length} audio file(s)
