@@ -52,6 +52,17 @@ interface VoiceSearchResponse {
   };
 }
 
+const dedupeVoicesById = (input: Voice[]): Voice[] => {
+  const seen = new Set<string>();
+  const result: Voice[] = [];
+  for (const voice of input) {
+    if (!voice.voiceId || seen.has(voice.voiceId)) continue;
+    seen.add(voice.voiceId);
+    result.push(voice);
+  }
+  return result;
+};
+
 const FULL_LIBRARY_MISSING_TOAST_SESSION_KEY = 'voiceBrowser.fullLibraryMissing.toastShown';
 const FULL_LIBRARY_MISSING_METRIC_SESSION_KEY = 'voiceBrowser.fullLibraryMissing.metricLogged';
 
@@ -269,8 +280,8 @@ export function VoiceBrowserModal({
         const mappedVoices = (fullData.voices || [])
           .map(mapFullLibraryVoice)
           .filter((v) => !!v.voiceId);
-        setVoices((prev) => (reset ? mappedVoices : [...prev, ...mappedVoices]));
-        setFilteredVoices((prev) => (reset ? mappedVoices : [...prev, ...mappedVoices]));
+        setVoices((prev) => dedupeVoicesById(reset ? mappedVoices : [...prev, ...mappedVoices]));
+        setFilteredVoices((prev) => dedupeVoicesById(reset ? mappedVoices : [...prev, ...mappedVoices]));
         setHasMoreFullLibrary(Boolean(fullData.pagination?.hasMore));
         setNextPageToken(fullData.pagination?.nextPageToken || null);
         return;
