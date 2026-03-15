@@ -29,13 +29,8 @@ const ALL_ANGLES = [
   { id: 'corner', name: 'Corner View', description: '45° corner view showing depth and two sides' },
   { id: 'wide', name: 'Wide Shot', description: 'Wide-angle establishing shot from distance' },
   { id: 'low-angle', name: 'Low Angle', description: 'Dramatic low angle shot looking up' },
-  { id: 'entrance', name: 'Entrance', description: 'View from doorway or entry point' },
-  { id: 'foreground-framing', name: 'Foreground Framing', description: 'Location framed by foreground elements' },
   { id: 'aerial', name: 'Aerial', description: 'Bird\'s eye view from above' },
-  { id: 'pov', name: 'POV', description: 'First-person point of view at eye level' },
-  { id: 'detail', name: 'Detail', description: 'Close-up of architectural features' },
-  { id: 'atmospheric', name: 'Atmospheric', description: 'Moody shot with fog, mist, or haze' },
-  { id: 'golden-hour', name: 'Golden Hour', description: 'Warm golden lighting at sunrise/sunset' }
+  { id: 'detail', name: 'Detail', description: 'Close-up of architectural features' }
 ];
 
 interface LocationAnglePackageSelectorProps {
@@ -106,20 +101,20 @@ export default function LocationAnglePackageSelector({
     {
       id: 'standard',
       name: 'Standard Package',
-      angles: ['front', 'corner', 'wide', 'low-angle', 'entrance', 'foreground-framing'],
-      credits: calculatePackageCredits(6), // 🔥 DYNAMIC: 6 angles × creditsPerImage
+      angles: ['front', 'corner', 'wide', 'low-angle'],
+      credits: calculatePackageCredits(4), // 🔥 DYNAMIC: 4 angles × creditsPerImage
       consistencyRating: 85,
-      description: '6 cinematic angles for multi-scene films',
+      description: '4 cinematic angles for multi-scene films',
       bestFor: ['Multiple scenes', 'Dialogue', 'Standard coverage'],
       discount: 0
     },
     {
       id: 'premium',
       name: 'Premium Package',
-      angles: ['front', 'corner', 'wide', 'low-angle', 'entrance', 'foreground-framing', 'aerial', 'pov', 'detail', 'atmospheric', 'golden-hour'],
-      credits: calculatePackageCredits(11), // 🔥 DYNAMIC: 11 angles × creditsPerImage
+      angles: ['front', 'corner', 'wide', 'low-angle', 'aerial', 'detail'],
+      credits: calculatePackageCredits(6), // 🔥 DYNAMIC: 6 angles × creditsPerImage
       consistencyRating: 92,
-      description: '11 cinematic angles for professional productions',
+      description: '6 cinematic angles for professional productions',
       bestFor: ['Professional films', 'Complex scenes', 'Action sequences'],
       discount: 0
     }

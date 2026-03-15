@@ -181,7 +181,7 @@ export default function AssetAngleGenerationModal({
   const [step, setStep] = useState<GenerationStep>('package');
   const [packageCategoryTab, setPackageCategoryTab] = useState<'standard' | 'ground' | 'aircraft'>('standard'); // Feature 0226: tabs
   const [selectedPackageId, setSelectedPackageId] = useState<string>('standard');
-  const [selectedAngle, setSelectedAngle] = useState<string>('front'); // 🔥 Feature 0190: Single angle selection
+  const [selectedAngle, setSelectedAngle] = useState<string>('back'); // 🔥 Feature 0190: Single angle selection
   const [selectedInteriorPackageId, setSelectedInteriorPackageId] = useState<string>('car'); // Feature 0226: which vehicle/aircraft when single angle on Ground/Aircraft
   const [providerId, setProviderId] = useState<string>('');
   const [additionalPrompt, setAdditionalPrompt] = useState<string>(''); // 🔥 NEW: Additional prompt for grounding search, color codes, etc.
@@ -350,7 +350,7 @@ export default function AssetAngleGenerationModal({
   const handleReset = () => {
     setStep('package');
     setSelectedPackageId('standard');
-    setSelectedAngle('front'); // 🔥 Feature 0190: Reset single angle selection
+    setSelectedAngle('back'); // 🔥 Feature 0190: Reset single angle selection
     setSelectedInteriorPackageId('car');
     setAdditionalPrompt('');
     setGenerationResult(null);
@@ -371,9 +371,7 @@ export default function AssetAngleGenerationModal({
   // Calculate angle count for selected package (Feature 0226: vehicle interior counts)
   const packageAngleCounts: Record<string, number> = {
     single: 1,
-    basic: 3,
-    standard: 6,
-    premium: 10,
+    standard: 3,
     car: 7,
     truck: 7,
     suv: 7,

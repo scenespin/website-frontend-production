@@ -108,22 +108,15 @@ export default function LocationAngleGenerationModal({
       { angle: 'front' },
       { angle: 'corner' },
       { angle: 'wide' },
-      { angle: 'low-angle' },
-      { angle: 'entrance' },
-      { angle: 'foreground-framing' }
+      { angle: 'low-angle' }
     ],
     premium: [
       { angle: 'front' },
       { angle: 'corner' },
       { angle: 'wide' },
       { angle: 'low-angle' },
-      { angle: 'entrance' },
-      { angle: 'foreground-framing' },
       { angle: 'aerial' },
-      { angle: 'pov' },
-      { angle: 'detail' },
-      { angle: 'atmospheric' },
-      { angle: 'golden-hour' }
+      { angle: 'detail' }
     ]
   };
   

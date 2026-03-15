@@ -24,18 +24,12 @@ interface AssetAnglePackage {
   discount: number;
 }
 
-// All available asset angle types for single selection
+// Phase 0 cleanup: keep only core asset angles for standard props.
+// Vehicle/aircraft interior packages are configured elsewhere and remain unchanged.
 const ALL_ANGLES = [
-  { id: 'front', name: 'Front View', description: 'Direct front-facing view of the asset' },
-  { id: 'side', name: 'Side View', description: 'Profile view from the side' },
-  { id: 'top', name: 'Top View', description: 'Bird\'s eye view from above' },
   { id: 'back', name: 'Back View', description: 'View from behind the asset' },
-  { id: 'detail', name: 'Detail', description: 'Close-up of specific features' },
-  { id: 'context', name: 'Context', description: 'Asset in typical usage context' },
-  { id: 'close-up', name: 'Close-up', description: 'Extreme close-up shot' },
-  { id: 'lighting-variation', name: 'Lighting Variation', description: 'Same angle with different lighting' },
-  { id: 'context-variation', name: 'Context Variation', description: 'Different usage context' },
-  { id: 'aerial', name: 'Aerial', description: 'Elevated angle from above' }
+  { id: 'side', name: 'Side View', description: 'Profile view from the side' },
+  { id: 'top', name: 'Top View', description: 'Bird\'s eye view from above' }
 ];
 
 interface AssetAnglePackageSelectorProps {
@@ -97,36 +91,14 @@ export default function AssetAnglePackageSelector({
       discount: 0
     },
     {
-      id: 'basic',
-      name: 'Basic Package',
-      angles: ['front', 'side', 'top'],
-      credits: calculatePackageCredits(3), // 🔥 DYNAMIC: 3 angles × creditsPerImage
-      credits4K: calculatePackageCredits(3), // Will be updated dynamically
-      consistencyRating: 85,
-      description: 'Essential 3 angles for quick tests',
-      bestFor: ['Quick tests', 'Simple props', 'Single scenes'],
-      discount: 0
-    },
-    {
       id: 'standard',
-      name: 'Standard Package',
-      angles: ['front', 'side', 'top', 'back', 'detail', 'context'],
-      credits: calculatePackageCredits(6), // 🔥 DYNAMIC: 6 angles × creditsPerImage
-      credits4K: calculatePackageCredits(6), // Will be updated dynamically
+      name: 'Standard Props Package',
+      angles: ['back', 'side', 'top'],
+      credits: calculatePackageCredits(3), // Phase 0: trimmed to 3 core angles
+      credits4K: calculatePackageCredits(3), // Will be updated dynamically
       consistencyRating: 88,
-      description: '6 essential angles for multi-scene films',
+      description: '3 core angles for multi-scene films',
       bestFor: ['Multiple scenes', 'Dialogue', 'Standard coverage'],
-      discount: 0
-    },
-    {
-      id: 'premium',
-      name: 'Premium Package',
-      angles: ['front', 'side', 'top', 'back', 'detail', 'context', 'close-up', 'lighting-variation', 'context-variation', 'aerial'],
-      credits: calculatePackageCredits(10), // 🔥 DYNAMIC: 10 angles × creditsPerImage
-      credits4K: calculatePackageCredits(10), // Will be updated dynamically
-      consistencyRating: 90,
-      description: '10 angles for professional productions',
-      bestFor: ['Professional films', 'Complex scenes', 'Action sequences'],
       discount: 0
     }
   ]);
@@ -144,7 +116,7 @@ export default function AssetAnglePackageSelector({
   }, [creditsPerImage]);
   
   // 🔥 FIX: Normalize selectedAngle to always be a string (never undefined)
-  const normalizedSelectedAngle = selectedAngle || 'front';
+  const normalizedSelectedAngle = selectedAngle || 'back';
   
   // 🔥 FIX: Only auto-select when package FIRST becomes 'single', not on every render
   const hasInitializedRef = useRef<string>('');
@@ -155,7 +127,7 @@ export default function AssetAnglePackageSelector({
         hasInitializedRef.current !== selectedPackageId && 
         !selectedAngle && 
         onSelectedAngleChange) {
-      onSelectedAngleChange('front'); // Default to front view
+      onSelectedAngleChange('back'); // Phase 0 default
       hasInitializedRef.current = selectedPackageId;
     } else if (selectedPackageId !== 'single') {
       hasInitializedRef.current = '';

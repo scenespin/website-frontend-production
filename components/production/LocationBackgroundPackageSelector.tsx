@@ -23,16 +23,13 @@ interface LocationBackgroundPackage {
   discount: number;
 }
 
-// All available background types for single selection. ECU-style is via "For extreme close-up" checkbox only; ecu-soft remains in Premium package.
+// Phase 0 cleanup: keep only core background types for single/package selection.
+// ECU-style remains controlled by Extreme Close-up options (ecu-soft in premium).
 const ALL_BACKGROUND_TYPES = [
   { id: 'window', name: 'Window', description: 'View through or near a window' },
   { id: 'wall', name: 'Wall', description: 'Plain or decorated wall surface' },
-  { id: 'doorway', name: 'Doorway', description: 'Door or entrance frame' },
   { id: 'texture', name: 'Texture', description: 'Detailed surface texture close-up' },
-  { id: 'corner-detail', name: 'Corner Detail', description: 'Architectural corner elements' },
-  { id: 'furniture', name: 'Furniture', description: 'Furniture or fixture background' },
-  { id: 'architectural-feature', name: 'Architectural Feature', description: 'Unique architectural elements' },
-  { id: 'custom', name: 'Custom', description: 'Custom background with description prompt' }
+  { id: 'furniture', name: 'Furniture', description: 'Furniture or fixture background' }
 ];
 
 interface LocationBackgroundPackageSelectorProps {
@@ -93,30 +90,30 @@ export default function LocationBackgroundPackageSelector({
     {
       id: 'basic',
       name: 'Basic Package',
-      backgroundTypes: ['window', 'wall', 'doorway'],
-      credits: calculatePackageCredits(3), // 3 backgrounds × creditsPerImage
+      backgroundTypes: ['window', 'wall'],
+      credits: calculatePackageCredits(2), // 2 backgrounds × creditsPerImage
       consistencyRating: 70,
-      description: 'Essential 3 backgrounds for close-up shots',
+      description: 'Essential 2 backgrounds for quick close-up coverage',
       bestFor: ['Quick dialogue', 'Simple close-ups', 'Basic coverage'],
       discount: 0
     },
     {
       id: 'standard',
       name: 'Standard Package',
-      backgroundTypes: ['window', 'wall', 'doorway', 'texture', 'corner-detail', 'furniture'],
-      credits: calculatePackageCredits(6), // 6 backgrounds × creditsPerImage
+      backgroundTypes: ['window', 'wall', 'texture', 'furniture'],
+      credits: calculatePackageCredits(4), // 4 backgrounds × creditsPerImage
       consistencyRating: 85,
-      description: '6 backgrounds for comprehensive dialogue coverage',
+      description: '4 core backgrounds for comprehensive dialogue coverage',
       bestFor: ['Multiple dialogue scenes', 'Varied close-ups', 'Standard coverage'],
       discount: 0
     },
     {
       id: 'premium',
       name: 'Premium Package',
-      backgroundTypes: ['window', 'wall', 'doorway', 'texture', 'corner-detail', 'furniture', 'architectural-feature', 'custom', 'custom', 'ecu-soft'], // Feature 0221: ecu-soft for extreme close-up
-      credits: calculatePackageCredits(10), // 10 backgrounds × creditsPerImage
+      backgroundTypes: ['window', 'wall', 'texture', 'furniture', 'ecu-soft'], // Keep ECU support for extreme close-up workflows
+      credits: calculatePackageCredits(5), // 5 backgrounds × creditsPerImage
       consistencyRating: 92,
-      description: '10 backgrounds including ECU soft and custom options for professional productions',
+      description: '5 backgrounds including ECU soft for extreme close-up workflows',
       bestFor: ['Professional films', 'Complex dialogue', 'Extreme close-ups', 'Detailed close-ups'],
       discount: 0
     }
@@ -458,7 +455,7 @@ export default function LocationBackgroundPackageSelector({
           <Image className="w-5 h-5 text-blue-400 mr-3 flex-shrink-0 mt-0.5" />
           <div className="text-sm text-base-content/70">
             <strong className="text-base-content">Pro Tip:</strong> Backgrounds are close-up views of specific areas 
-            (windows, walls, doorways, etc.) perfect for dialogue shots and close-ups. They're grouped with location 
+            (windows, walls, textures, furniture) perfect for dialogue shots and close-ups. They're grouped with location 
             angles by metadata (time of day, weather) for easy selection.
           </div>
         </div>

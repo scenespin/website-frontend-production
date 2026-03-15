@@ -127,11 +127,11 @@ export default function LocationBackgroundGenerationModal({
   // Calculate total credits
   const backgroundCounts: Record<string, number> = {
     single: 1, // 🔥 Feature 0190: Single background
-    basic: 3,
-    standard: 6,
-    premium: 9
+    basic: 2,
+    standard: 4,
+    premium: 5
   };
-  const backgroundCount = backgroundCounts[selectedPackageId] || 6;
+  const backgroundCount = backgroundCounts[selectedPackageId] || 4;
   const selectedModel = models.find(m => m.id === providerId);
   const creditsPerImage = selectedModel?.credits || 20;
   const totalCredits = backgroundCount * creditsPerImage;
