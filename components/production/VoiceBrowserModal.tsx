@@ -218,9 +218,11 @@ export function VoiceBrowserModal({
       });
 
       if (!response.ok) {
-        if (useFullLibrary && response.status === 404) {
+        if (useFullLibrary && (response.status === 404 || response.status >= 500)) {
           // Backend route not deployed yet; gracefully fall back to legacy browse endpoint.
-          console.warn('[VoiceBrowserModal] Full library search route unavailable (404). Falling back to browse endpoint.');
+          console.warn(
+            `[VoiceBrowserModal] Full library search unavailable (${response.status}). Falling back to browse endpoint.`
+          );
           logFullLibraryRouteMissingMetric();
           setUseFullLibrary(false);
           showFullLibraryUnavailableToastOncePerSession();
