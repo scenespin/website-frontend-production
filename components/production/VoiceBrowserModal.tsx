@@ -52,6 +52,9 @@ interface VoiceSearchResponse {
   };
 }
 
+const FULL_LIBRARY_MISSING_TOAST_SESSION_KEY = 'voiceBrowser.fullLibraryMissing.toastShown';
+const FULL_LIBRARY_MISSING_METRIC_SESSION_KEY = 'voiceBrowser.fullLibraryMissing.metricLogged';
+
 interface VoiceBrowserModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -87,6 +90,37 @@ export function VoiceBrowserModal({
   const [hasMoreFullLibrary, setHasMoreFullLibrary] = useState(false);
   const [nextPageToken, setNextPageToken] = useState<string | null>(null);
   const [loadingMore, setLoadingMore] = useState(false);
+
+  const logFullLibraryRouteMissingMetric = () => {
+    if (typeof window === 'undefined') return;
+    try {
+      const alreadyLogged = window.sessionStorage.getItem(FULL_LIBRARY_MISSING_METRIC_SESSION_KEY) === '1';
+      if (!alreadyLogged) {
+        window.sessionStorage.setItem(FULL_LIBRARY_MISSING_METRIC_SESSION_KEY, '1');
+        // Lightweight metric marker for observability in client logs.
+        console.warn('[metric] full_library_route_missing', {
+          component: 'VoiceBrowserModal',
+          endpoint: '/api/audio/voices/elevenlabs/search',
+        });
+      }
+    } catch {
+      // Ignore sessionStorage failures and keep UX resilient.
+    }
+  };
+
+  const showFullLibraryUnavailableToastOncePerSession = () => {
+    if (typeof window === 'undefined') return;
+    try {
+      const alreadyShown = window.sessionStorage.getItem(FULL_LIBRARY_MISSING_TOAST_SESSION_KEY) === '1';
+      if (!alreadyShown) {
+        window.sessionStorage.setItem(FULL_LIBRARY_MISSING_TOAST_SESSION_KEY, '1');
+        toast.warning('Full library search is not available yet. Showing current Browse Voices list.');
+      }
+    } catch {
+      // If session storage is unavailable, still show feedback once for this attempt.
+      toast.warning('Full library search is not available yet. Showing current Browse Voices list.');
+    }
+  };
 
   // Fetch voices on mount
   useEffect(() => {
@@ -184,6 +218,41 @@ export function VoiceBrowserModal({
       });
 
       if (!response.ok) {
+        if (useFullLibrary && response.status === 404) {
+          // Backend route not deployed yet; gracefully fall back to legacy browse endpoint.
+          console.warn('[VoiceBrowserModal] Full library search route unavailable (404). Falling back to browse endpoint.');
+          logFullLibraryRouteMissingMetric();
+          setUseFullLibrary(false);
+          showFullLibraryUnavailableToastOncePerSession();
+
+          const fallbackParams = new URLSearchParams();
+          if (filters.gender && filters.gender !== 'unknown') fallbackParams.append('gender', filters.gender);
+          if (filters.accent) fallbackParams.append('accent', filters.accent);
+          fallbackParams.append('limit', '100');
+
+          const fallbackResponse = await fetch(
+            `${baseUrl}/api/voice-profile/browse?${fallbackParams.toString()}`,
+            {
+              headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+            }
+          );
+
+          if (!fallbackResponse.ok) {
+            throw new Error('Failed to fetch voices');
+          }
+
+          const fallbackData = await fallbackResponse.json();
+          if (fallbackData.success && fallbackData.voices) {
+            setVoices(fallbackData.voices);
+            setFilteredVoices(fallbackData.voices);
+            setHasMoreFullLibrary(false);
+            setNextPageToken(null);
+            return;
+          }
+        }
         throw new Error('Failed to fetch voices');
       }
 
