@@ -461,10 +461,13 @@ function TextToSpeechTab({ isProcessing, setIsProcessing, setResult, setError }:
   const getCreditCost = () => {
     if (provider === 'runway') return 5;
     if (provider === 'elevenlabs') {
-      if (model === 'eleven_flash_v2.5') return 2;
-      if (model === 'eleven_turbo_v2.5') return 7;
-      if (model === 'eleven_multilingual_v2') return 10;
-      return 5;
+      const chars = Math.max(1, text.trim().length || 1);
+      const creditsPer1000 =
+        model === 'eleven_flash_v2.5' ? 2 :
+        model === 'eleven_turbo_v2.5' ? 7 :
+        model === 'eleven_multilingual_v2' ? 10 :
+        37; // screenplay/dialogue baseline
+      return Math.ceil((chars / 1000) * creditsPer1000);
     }
     return 5;
   };
@@ -904,7 +907,7 @@ function TextToSpeechTab({ isProcessing, setIsProcessing, setResult, setError }:
         </div>
         <p className="text-xs text-muted-foreground mt-1">
           {provider === 'elevenlabs' 
-            ? `⚡ Ultra-low latency • default voices + advanced full library browse • 29 languages`
+            ? `⚡ Per-1,000 character pricing by model • default voices + advanced full library browse • 29 languages`
             : `⏱️ Processing time: 10-20 seconds • 6 voices • 10 languages`
           }
         </p>

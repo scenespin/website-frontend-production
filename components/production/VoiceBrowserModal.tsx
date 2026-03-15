@@ -30,6 +30,28 @@ interface Voice {
   isCustom?: boolean; // True if this is a custom voice (cloned/generated)
 }
 
+interface VoiceSearchResponse {
+  provider: string;
+  voices: Array<{
+    voice_id?: string;
+    name?: string;
+    description?: string;
+    preview_url?: string;
+    category?: string;
+    labels?: {
+      gender?: string;
+      age?: string;
+      accent?: string;
+      use_case?: string;
+    };
+  }>;
+  pagination?: {
+    hasMore?: boolean;
+    nextPageToken?: string | null;
+    totalCount?: number;
+  };
+}
+
 interface VoiceBrowserModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -61,16 +83,25 @@ export function VoiceBrowserModal({
   const [previewingVoiceId, setPreviewingVoiceId] = useState<string | null>(null);
   const [previewText, setPreviewText] = useState('Hello, this is a preview of this voice. How does it sound?');
   const [removingVoiceId, setRemovingVoiceId] = useState<string | null>(null);
+  const [useFullLibrary, setUseFullLibrary] = useState(false);
+  const [hasMoreFullLibrary, setHasMoreFullLibrary] = useState(false);
+  const [nextPageToken, setNextPageToken] = useState<string | null>(null);
+  const [loadingMore, setLoadingMore] = useState(false);
 
   // Fetch voices on mount
   useEffect(() => {
-    if (isOpen) {
-      fetchVoices();
-    }
-  }, [isOpen]);
+    if (!isOpen) return;
+    void fetchVoices(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isOpen, useFullLibrary]);
 
   // Filter voices when search or filters change
   useEffect(() => {
+    if (useFullLibrary) {
+      setFilteredVoices(voices);
+      return;
+    }
+
     let filtered = [...voices];
 
     // Apply search filter
@@ -95,32 +126,81 @@ export function VoiceBrowserModal({
     }
 
     setFilteredVoices(filtered);
-  }, [voices, searchQuery, filters]);
+  }, [voices, searchQuery, filters, useFullLibrary]);
 
-  const fetchVoices = async () => {
-    setIsLoading(true);
+  useEffect(() => {
+    if (!isOpen || !useFullLibrary) return;
+    const timer = window.setTimeout(() => {
+      void fetchVoices(true);
+    }, 300);
+    return () => window.clearTimeout(timer);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchQuery, filters, isOpen, useFullLibrary]);
+
+  const mapFullLibraryVoice = (voice: VoiceSearchResponse['voices'][number]): Voice => ({
+    voiceId: voice.voice_id || '',
+    voiceName: voice.name || 'Unknown Voice',
+    description: voice.description || '',
+    gender: voice.labels?.gender,
+    age: voice.labels?.age,
+    accent: voice.labels?.accent,
+    useCase: voice.labels?.use_case,
+    previewUrl: voice.preview_url,
+    category: voice.category,
+    isCustom: false,
+  });
+
+  const fetchVoices = async (reset: boolean = true) => {
+    if (reset) {
+      setIsLoading(true);
+      setNextPageToken(null);
+    } else {
+      setLoadingMore(true);
+    }
     try {
       const token = await getToken();
       const queryParams = new URLSearchParams();
       if (filters.gender && filters.gender !== 'unknown') queryParams.append('gender', filters.gender);
       if (filters.accent) queryParams.append('accent', filters.accent);
-      queryParams.append('limit', '100');
 
-      const response = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai'}/api/voice-profile/browse?${queryParams.toString()}`,
-        {
-          headers: {
-            'Authorization': `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-        }
-      );
+      if (useFullLibrary) {
+        queryParams.append('pageSize', '30');
+        if (searchQuery.trim()) queryParams.append('query', searchQuery.trim());
+        if (!reset && nextPageToken) queryParams.append('pageToken', nextPageToken);
+      } else {
+        queryParams.append('limit', '100');
+      }
+
+      const baseUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+      const endpoint = useFullLibrary
+        ? `/api/audio/voices/elevenlabs/search?${queryParams.toString()}`
+        : `/api/voice-profile/browse?${queryParams.toString()}`;
+
+      const response = await fetch(`${baseUrl}${endpoint}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      });
 
       if (!response.ok) {
         throw new Error('Failed to fetch voices');
       }
 
       const data = await response.json();
+
+      if (useFullLibrary) {
+        const fullData = data as VoiceSearchResponse;
+        const mappedVoices = (fullData.voices || [])
+          .map(mapFullLibraryVoice)
+          .filter((v) => !!v.voiceId);
+        setVoices((prev) => (reset ? mappedVoices : [...prev, ...mappedVoices]));
+        setFilteredVoices((prev) => (reset ? mappedVoices : [...prev, ...mappedVoices]));
+        setHasMoreFullLibrary(Boolean(fullData.pagination?.hasMore));
+        setNextPageToken(fullData.pagination?.nextPageToken || null);
+        return;
+      }
+
       if (data.success && data.voices) {
         // Debug: Log voices to check isCustom flag (expanded for visibility)
         const voiceDebug = data.voices.map((v: any) => ({
@@ -136,6 +216,8 @@ export function VoiceBrowserModal({
           console.log('[VoiceBrowserModal] 🔍 Jeffrey voice in Browse:', jeffreyVoice);
         }
         setVoices(data.voices);
+        setHasMoreFullLibrary(false);
+        setNextPageToken(null);
       } else {
         throw new Error('Invalid response format');
       }
@@ -143,7 +225,11 @@ export function VoiceBrowserModal({
       console.error('Error fetching voices:', error);
       toast.error(error.message || 'Failed to load voices');
     } finally {
-      setIsLoading(false);
+      if (reset) {
+        setIsLoading(false);
+      } else {
+        setLoadingMore(false);
+      }
     }
   };
 
@@ -346,10 +432,25 @@ export function VoiceBrowserModal({
                   <option value="scottish">Scottish</option>
                 </select>
                 <button
-                  onClick={fetchVoices}
+                  onClick={() => void fetchVoices(true)}
                   className="px-4 py-2 bg-[#1F1F1F] hover:bg-[#2A2A2A] text-[#FFFFFF] rounded-lg text-sm font-medium transition-colors"
                 >
                   Refresh
+                </button>
+                <button
+                  onClick={() => {
+                    setSearchQuery('');
+                    setVoices([]);
+                    setFilteredVoices([]);
+                    setUseFullLibrary((prev) => !prev);
+                  }}
+                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    useFullLibrary
+                      ? 'bg-[#DC143C] hover:bg-[#B91C1C] text-white'
+                      : 'bg-[#1F1F1F] hover:bg-[#2A2A2A] text-[#FFFFFF]'
+                  }`}
+                >
+                  {useFullLibrary ? 'Full Library On' : 'Browse Full Library'}
                 </button>
               </div>
             </div>
@@ -472,13 +573,25 @@ export function VoiceBrowserModal({
             <div className="flex-shrink-0 px-6 py-4 border-t border-[#3F3F46] bg-[#141414] flex items-center justify-between">
               <p className="text-sm text-[#808080]">
                 {filteredVoices.length} voice{filteredVoices.length !== 1 ? 's' : ''} found
+                {useFullLibrary ? ' (full library)' : ''}
               </p>
-              <button
-                onClick={onClose}
-                className="px-4 py-2 bg-[#1F1F1F] hover:bg-[#2A2A2A] text-[#FFFFFF] rounded-lg text-sm font-medium transition-colors"
-              >
-                Close
-              </button>
+              <div className="flex items-center gap-2">
+                {useFullLibrary && hasMoreFullLibrary && (
+                  <button
+                    onClick={() => void fetchVoices(false)}
+                    disabled={loadingMore}
+                    className="px-4 py-2 bg-[#1F1F1F] hover:bg-[#2A2A2A] disabled:bg-[#3F3F46] text-[#FFFFFF] rounded-lg text-sm font-medium transition-colors"
+                  >
+                    {loadingMore ? 'Loading...' : 'Load More'}
+                  </button>
+                )}
+                <button
+                  onClick={onClose}
+                  className="px-4 py-2 bg-[#1F1F1F] hover:bg-[#2A2A2A] text-[#FFFFFF] rounded-lg text-sm font-medium transition-colors"
+                >
+                  Close
+                </button>
+              </div>
             </div>
           </motion.div>
         </>
