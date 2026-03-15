@@ -45,6 +45,7 @@ interface WorkflowJob {
   };
   establishingShotFirstFrameUrl?: string; // For resume workflow
   results?: {
+    cameraRigUsed?: boolean;
     videos?: Array<{
       url: string;
       description: string;
@@ -150,6 +151,7 @@ interface WorkflowJob {
     locationName?: string;
     characterName?: string;
     packageId?: string;
+    cameraRigEnabled?: boolean;
     [key: string]: any;
   };
 }
@@ -159,6 +161,7 @@ interface ProductionJobsPanelProps {
 }
 
 type StatusFilter = 'all' | 'running' | 'completed' | 'failed' | 'awaiting_input';
+type CameraRigFilter = 'all' | 'camera-rig' | 'legacy';
 
 /**
  * Driving Video Upload Component
@@ -487,6 +490,7 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
   const [jobs, setJobs] = useState<WorkflowJob[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [cameraRigFilter, setCameraRigFilter] = useState<CameraRigFilter>('all');
   const [isPolling, setIsPolling] = useState(false);
   const [hasLoadedOnce, setHasLoadedOnce] = useState(false); // Track if we've successfully loaded jobs at least once
   
@@ -823,7 +827,10 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
         const updated = await fetchJobDirectly(job.jobId, { silent: true });
         if (!updated || cancelled) continue;
         const isTerminal = updated.status === 'completed' || updated.status === 'failed';
-        const changed = updated.status !== job.status || (updated.results != null && !job.results);
+        const changed =
+          updated.status !== job.status ||
+          updated.progress !== job.progress ||
+          (updated.results != null && !job.results);
         if (isTerminal || changed) updates.push(updated);
       }
 
@@ -1253,6 +1260,21 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
     return date.toLocaleDateString();
   };
 
+  const isCameraRigJob = (job: WorkflowJob): boolean => {
+    return !!(
+      job.results?.cameraRigUsed ||
+      job.metadata?.cameraRigUsed ||
+      job.inputs?.cameraRigEnabled ||
+      job.metadata?.inputs?.cameraRigEnabled
+    );
+  };
+
+  const displayedJobs = jobs.filter((job) => {
+    if (cameraRigFilter === 'camera-rig') return isCameraRigJob(job);
+    if (cameraRigFilter === 'legacy') return !isCameraRigJob(job);
+    return true;
+  });
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center py-12">
@@ -1265,20 +1287,54 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
     <div className="h-full bg-[#0A0A0A] overflow-auto">
       {/* Jobs List */}
       <div className="p-4 md:p-5">
-        {jobs.length === 0 ? (
+        <div className="mb-4 flex flex-wrap items-center gap-2">
+          <div className="inline-flex items-center gap-1 px-2 py-1 rounded-md border border-slate-700 bg-slate-900/60 text-slate-300 text-xs">
+            <Filter className="w-3 h-3" />
+            Status
+          </div>
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value as StatusFilter)}
+            className="px-2 py-1 rounded-md border border-slate-700 bg-slate-900 text-slate-200 text-xs"
+          >
+            <option value="all">All</option>
+            <option value="running">Running</option>
+            <option value="completed">Completed</option>
+            <option value="failed">Failed</option>
+            <option value="awaiting_input">Awaiting Input</option>
+          </select>
+
+          <div className="inline-flex items-center gap-1 px-2 py-1 rounded-md border border-slate-700 bg-slate-900/60 text-slate-300 text-xs ml-2">
+            <Sparkles className="w-3 h-3" />
+            Prompt Path
+          </div>
+          <select
+            value={cameraRigFilter}
+            onChange={(e) => setCameraRigFilter(e.target.value as CameraRigFilter)}
+            className="px-2 py-1 rounded-md border border-slate-700 bg-slate-900 text-slate-200 text-xs"
+          >
+            <option value="all">All Jobs</option>
+            <option value="camera-rig">Camera Rig</option>
+            <option value="legacy">Legacy</option>
+          </select>
+        </div>
+
+        {displayedJobs.length === 0 ? (
           <div className="text-center py-12 text-slate-400 relative z-10">
             <div className="flex flex-col items-center justify-center">
               <p className="font-medium">No jobs found</p>
               <p className="text-sm mt-1">
                 {statusFilter === 'all' 
-                  ? 'Generate a workflow to see it here'
+                  ? (cameraRigFilter === 'all'
+                    ? 'Generate a workflow to see it here'
+                    : `No ${cameraRigFilter} jobs`)
                   : `No ${statusFilter} jobs`}
               </p>
             </div>
           </div>
         ) : (
           <div className="space-y-3">
-            {jobs.map((job) => (
+            {displayedJobs.map((job) => (
               <div
                 key={job.jobId}
                 className="p-4 rounded-lg border border-slate-700/50
@@ -1296,6 +1352,12 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
                         : job.workflowName}
                     </h4>
                     {getStatusBadge(job.status)}
+                    {isCameraRigJob(job) && (
+                      <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300">
+                        <Sparkles className="w-3 h-3" />
+                        Camera Rig
+                      </span>
+                    )}
                   </div>
                   <p className="text-xs text-slate-400">
                     {formatTime(job.createdAt)} · {job.creditsUsed} credits

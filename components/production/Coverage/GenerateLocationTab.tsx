@@ -757,8 +757,17 @@ export function GenerateLocationTab({
   };
   
   const selectedPackageId = packageType === 'angles' ? selectedAnglePackageId : selectedBackgroundPackageId;
+  const ecuRenderCountPerSource = ecuPackageId === 'single'
+    ? 1
+    : (ECU_PACKAGES[ecuPackageId]?.variationCount || 0);
+  const ecuStyleFamilyCount = Object.keys(
+    (ECU_PACKAGES[ecuPackageId]?.variationTypes || []).reduce<Record<string, number>>((acc, variationType) => {
+      acc[variationType] = (acc[variationType] || 0) + 1;
+      return acc;
+    }, {})
+  ).length;
   const itemCount = packageType === 'extreme-closeups'
-    ? selectedECUSourceIds.length * (ECU_PACKAGES[ecuPackageId]?.variationCount || 0)
+    ? selectedECUSourceIds.length * ecuRenderCountPerSource
     : packageType === 'angles'
       ? angleCounts[selectedPackageId] || 6
       : backgroundCounts[selectedPackageId] || 6;
@@ -1210,6 +1219,11 @@ export function GenerateLocationTab({
                 const Icon = PACKAGE_ICONS[pkg.id] || ImageIcon;
                 const isSelected = ecuPackageId === pkg.id;
                 const isRecommended = pkg.id === 'standard';
+                const variationFamilyCounts = pkg.variationTypes.reduce<Record<string, number>>((acc, variationType) => {
+                  acc[variationType] = (acc[variationType] || 0) + 1;
+                  return acc;
+                }, {});
+                const styleFamilyCount = Object.keys(variationFamilyCounts).length;
                 const ecuCredits = selectedECUSourceIds.length > 0 
                   ? selectedECUSourceIds.length * pkg.variationCount * creditsPerImage 
                   : 0;
@@ -1257,15 +1271,19 @@ export function GenerateLocationTab({
                     {/* Variation Count & Types */}
                     <div className="space-y-1 mb-2">
                       <div className="flex items-center justify-between text-[10px]">
-                        <span className="text-[#808080]">Variations</span>
+                        <span className="text-[#808080]">Renders</span>
                         <span className="text-white font-semibold">{pkg.variationCount}</span>
+                      </div>
+                      <div className="flex items-center justify-between text-[10px]">
+                        <span className="text-[#808080]">Style families</span>
+                        <span className="text-white font-semibold">{styleFamilyCount}</span>
                       </div>
                       {/* Variation Preview - Show unique variation types */}
                       <div className="text-[9px] text-[#808080] mt-1">
                         <div className="flex flex-wrap gap-1">
-                          {[...new Set(pkg.variationTypes)].map((variationType, idx) => (
+                          {Object.entries(variationFamilyCounts).map(([variationType, count], idx) => (
                             <span key={idx} className="px-1.5 py-0.5 bg-cyan-500/20 text-cyan-300 rounded border border-cyan-500/30">
-                              {ECU_VARIATION_LABELS[variationType] || variationType}
+                              {(ECU_VARIATION_LABELS[variationType] || variationType) + ` ×${count}`}
                             </span>
                           ))}
                         </div>
@@ -1298,7 +1316,7 @@ export function GenerateLocationTab({
             )}
             {selectedECUSourceIds.length > 0 && (
               <p className="mt-3 text-xs text-[#808080]">
-                {selectedECUSourceIds.length} source{selectedECUSourceIds.length !== 1 ? 's' : ''} selected × {ecuPackageId === 'single' ? 1 : (ECU_PACKAGES[ecuPackageId]?.variationCount || 0)} variation{(ecuPackageId === 'single' ? 1 : ECU_PACKAGES[ecuPackageId]?.variationCount || 0) !== 1 ? 's' : ''} = {selectedECUSourceIds.length * (ecuPackageId === 'single' ? 1 : (ECU_PACKAGES[ecuPackageId]?.variationCount || 0))} total ECU image{selectedECUSourceIds.length * (ecuPackageId === 'single' ? 1 : (ECU_PACKAGES[ecuPackageId]?.variationCount || 0)) !== 1 ? 's' : ''}
+                {selectedECUSourceIds.length} source{selectedECUSourceIds.length !== 1 ? 's' : ''} selected × {ecuRenderCountPerSource} render{ecuRenderCountPerSource !== 1 ? 's' : ''} = {selectedECUSourceIds.length * ecuRenderCountPerSource} total ECU image{selectedECUSourceIds.length * ecuRenderCountPerSource !== 1 ? 's' : ''} across {ecuStyleFamilyCount} style famil{ecuStyleFamilyCount === 1 ? 'y' : 'ies'}
               </p>
             )}
           </div>
