@@ -6,6 +6,7 @@ import {
   Music, 
   UserCircle, 
   Globe, 
+  Search,
   Upload, 
   X, 
   Play,
@@ -70,6 +71,21 @@ interface AudioResult {
   provider: string;
   type: string;
   duration?: number;
+}
+
+interface AudioVoice {
+  voice_id?: string;
+  id?: string;
+  name: string;
+  category?: string;
+  description?: string;
+  preview_url?: string;
+  labels?: {
+    gender?: string;
+    age?: string;
+    accent?: string;
+    use_case?: string;
+  };
 }
 
 interface AudioWorkspaceProps {
@@ -323,9 +339,20 @@ function TextToSpeechTab({ isProcessing, setIsProcessing, setResult, setError }:
   const [speed, setSpeed] = useState(1.0);
   const [provider, setProvider] = useState<'runway' | 'elevenlabs'>('runway');
   const [model, setModel] = useState('eleven_flash_v2.5');
-  const [voices, setVoices] = useState<any[]>([]);
+  const [voices, setVoices] = useState<AudioVoice[]>([]);
   const [loadingVoices, setLoadingVoices] = useState(false);
   const [showConnectionModal, setShowConnectionModal] = useState(false);
+  const [showAdvancedVoiceBrowser, setShowAdvancedVoiceBrowser] = useState(false);
+  const [advancedQuery, setAdvancedQuery] = useState('');
+  const [advancedGender, setAdvancedGender] = useState('all');
+  const [advancedAge, setAdvancedAge] = useState('all');
+  const [advancedAccent, setAdvancedAccent] = useState('');
+  const [advancedUseCase, setAdvancedUseCase] = useState('');
+  const [advancedVoices, setAdvancedVoices] = useState<AudioVoice[]>([]);
+  const [advancedPageToken, setAdvancedPageToken] = useState<string | null>(null);
+  const [advancedHasMore, setAdvancedHasMore] = useState(false);
+  const [advancedLoading, setAdvancedLoading] = useState(false);
+  const [advancedError, setAdvancedError] = useState<string | null>(null);
   
   // ElevenLabs connection hook
   const elevenLabs = useElevenLabs();
@@ -379,6 +406,56 @@ function TextToSpeechTab({ isProcessing, setIsProcessing, setResult, setError }:
 
     fetchVoices();
   }, [provider, elevenLabs.voices]);
+
+  const fetchAdvancedVoices = async (reset: boolean) => {
+    setAdvancedLoading(true);
+    setAdvancedError(null);
+    try {
+      const token = localStorage.getItem('jwt_token');
+      const apiUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+      const params = new URLSearchParams();
+      params.set('pageSize', '25');
+      if (advancedQuery.trim()) params.set('query', advancedQuery.trim());
+      if (advancedGender !== 'all') params.set('gender', advancedGender);
+      if (advancedAge !== 'all') params.set('age', advancedAge);
+      if (advancedAccent.trim()) params.set('accent', advancedAccent.trim());
+      if (advancedUseCase.trim()) params.set('useCase', advancedUseCase.trim());
+      if (!reset && advancedPageToken) params.set('pageToken', advancedPageToken);
+
+      const response = await fetch(`${apiUrl}/api/audio/voices/elevenlabs/search?${params.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error(`Failed to search voice library: ${response.statusText}`);
+      }
+
+      const data = await response.json();
+      const nextVoices = (data.voices || []) as AudioVoice[];
+      setAdvancedVoices((prev) => (reset ? nextVoices : [...prev, ...nextVoices]));
+      setAdvancedPageToken(data.pagination?.nextPageToken || null);
+      setAdvancedHasMore(Boolean(data.pagination?.hasMore));
+    } catch (error: any) {
+      setAdvancedError(error?.message || 'Failed to fetch full voice library');
+    } finally {
+      setAdvancedLoading(false);
+    }
+  };
+
+  const selectAdvancedVoice = (candidate: AudioVoice) => {
+    const selectedId = candidate.voice_id || candidate.id;
+    if (!selectedId) return;
+
+    setVoice(selectedId);
+    setVoices((prev) => {
+      const exists = prev.some((v) => (v.voice_id || v.id) === selectedId);
+      if (exists) return prev;
+      return [candidate, ...prev];
+    });
+    setShowAdvancedVoiceBrowser(false);
+  };
 
   // Calculate credit cost based on provider and model
   const getCreditCost = () => {
@@ -482,7 +559,7 @@ function TextToSpeechTab({ isProcessing, setIsProcessing, setResult, setError }:
             }`}
           >
             <div className="text-sm font-medium">ElevenLabs</div>
-            <div className="text-xs opacity-75">Premium • 100+ voices • 2-10 credits</div>
+            <div className="text-xs opacity-75">Premium • Fast defaults + full library • 2-10 credits</div>
           </button>
         </div>
       </div>
@@ -590,7 +667,7 @@ function TextToSpeechTab({ isProcessing, setIsProcessing, setResult, setError }:
             ) : (
               <>
                 {voices.map((v) => (
-                  <SelectItem key={v.voice_id || v.id} value={v.voice_id || v.id}>
+                  <SelectItem key={v.voice_id || v.id || v.name} value={v.voice_id || v.id || v.name}>
                     {v.name} {v.labels?.gender && `(${v.labels.gender})`}
                   </SelectItem>
                 ))}
@@ -598,7 +675,154 @@ function TextToSpeechTab({ isProcessing, setIsProcessing, setResult, setError }:
             )}
           </SelectContent>
         </Select>
+        {provider === 'elevenlabs' && (
+          <div className="mt-2 flex items-center justify-between gap-2">
+            <p className="text-xs text-muted-foreground">
+              Default list is optimized for speed. Use advanced search to browse the full library.
+            </p>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={isProcessing || advancedLoading}
+              onClick={() => {
+                const nextOpen = !showAdvancedVoiceBrowser;
+                setShowAdvancedVoiceBrowser(nextOpen);
+                if (nextOpen && advancedVoices.length === 0) {
+                  void fetchAdvancedVoices(true);
+                }
+              }}
+              className="gap-1"
+            >
+              <Search className="w-3.5 h-3.5" />
+              Browse Full Library
+            </Button>
+          </div>
+        )}
       </div>
+
+      {provider === 'elevenlabs' && showAdvancedVoiceBrowser && (
+        <div className="p-3 rounded-lg border border-purple-500/30 bg-purple-500/5 space-y-3">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+            <input
+              value={advancedQuery}
+              onChange={(e) => setAdvancedQuery(e.target.value)}
+              placeholder="Search by voice name"
+              className="w-full px-3 py-2 rounded-md border border-border bg-background text-sm"
+              disabled={advancedLoading}
+            />
+            <input
+              value={advancedAccent}
+              onChange={(e) => setAdvancedAccent(e.target.value)}
+              placeholder="Accent filter (optional)"
+              className="w-full px-3 py-2 rounded-md border border-border bg-background text-sm"
+              disabled={advancedLoading}
+            />
+            <Select value={advancedGender} onValueChange={setAdvancedGender} disabled={advancedLoading}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Genders</SelectItem>
+                <SelectItem value="female">Female</SelectItem>
+                <SelectItem value="male">Male</SelectItem>
+                <SelectItem value="neutral">Neutral</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={advancedAge} onValueChange={setAdvancedAge} disabled={advancedLoading}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Ages</SelectItem>
+                <SelectItem value="young">Young</SelectItem>
+                <SelectItem value="middle_aged">Middle Aged</SelectItem>
+                <SelectItem value="old">Old</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          <input
+            value={advancedUseCase}
+            onChange={(e) => setAdvancedUseCase(e.target.value)}
+            placeholder="Use case filter (e.g. narration, conversational)"
+            className="w-full px-3 py-2 rounded-md border border-border bg-background text-sm"
+            disabled={advancedLoading}
+          />
+
+          <div className="flex items-center gap-2">
+            <Button type="button" size="sm" onClick={() => void fetchAdvancedVoices(true)} disabled={advancedLoading}>
+              {advancedLoading ? 'Searching...' : 'Search'}
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setAdvancedQuery('');
+                setAdvancedGender('all');
+                setAdvancedAge('all');
+                setAdvancedAccent('');
+                setAdvancedUseCase('');
+                setAdvancedVoices([]);
+                setAdvancedPageToken(null);
+                setAdvancedHasMore(false);
+                setAdvancedError(null);
+              }}
+              disabled={advancedLoading}
+            >
+              Reset Filters
+            </Button>
+          </div>
+
+          {advancedError && <p className="text-xs text-red-500">{advancedError}</p>}
+
+          <div className="max-h-56 overflow-y-auto space-y-2 pr-1">
+            {advancedVoices.map((candidate) => {
+              const id = candidate.voice_id || candidate.id;
+              if (!id) return null;
+              return (
+                <div key={id} className="rounded-md border border-border p-2 bg-background/60">
+                  <div className="flex items-start justify-between gap-2">
+                    <div>
+                      <p className="text-sm font-medium">{candidate.name}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {candidate.category || 'voice'} {candidate.labels?.gender ? `· ${candidate.labels.gender}` : ''}
+                        {candidate.labels?.accent ? ` · ${candidate.labels.accent}` : ''}
+                      </p>
+                    </div>
+                    <Button type="button" size="sm" onClick={() => selectAdvancedVoice(candidate)}>
+                      Use Voice
+                    </Button>
+                  </div>
+                  {candidate.description && (
+                    <p className="text-xs text-muted-foreground mt-1">{candidate.description}</p>
+                  )}
+                  {candidate.preview_url && (
+                    <audio className="w-full mt-2" controls preload="none" src={candidate.preview_url} />
+                  )}
+                </div>
+              );
+            })}
+            {!advancedLoading && advancedVoices.length === 0 && (
+              <p className="text-xs text-muted-foreground">No voices found for current filters.</p>
+            )}
+          </div>
+
+          {advancedHasMore && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => void fetchAdvancedVoices(false)}
+              disabled={advancedLoading}
+              className="w-full"
+            >
+              {advancedLoading ? 'Loading...' : 'Load More'}
+            </Button>
+          )}
+        </div>
+      )}
 
       {/* Language Selection (hide for ElevenLabs - auto-detect) */}
       {provider === 'runway' && (
@@ -680,7 +904,7 @@ function TextToSpeechTab({ isProcessing, setIsProcessing, setResult, setError }:
         </div>
         <p className="text-xs text-muted-foreground mt-1">
           {provider === 'elevenlabs' 
-            ? `⚡ Ultra-low latency • 100+ premium voices • 29 languages`
+            ? `⚡ Ultra-low latency • default voices + advanced full library browse • 29 languages`
             : `⏱️ Processing time: 10-20 seconds • 6 voices • 10 languages`
           }
         </p>
