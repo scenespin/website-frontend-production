@@ -1121,19 +1121,19 @@ export function LocationDetailModal({
                 </DropdownMenu>
               ) : (
                 // Desktop: Horizontal button tabs
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-4 border-b border-[#2C2C2E]">
                   <button
                     onClick={() => {
                       setCoverageTab(null);
                       setActiveTab('info');
                     }}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    className={`px-1 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
                       !coverageTab && activeTab === 'info'
-                        ? 'bg-[#DC143C] text-white'
-                        : 'bg-[#1F1F1F] text-[#808080] hover:bg-[#2A2A2A] hover:text-[#FFFFFF]'
+                        ? 'text-white border-[#DC143C]'
+                        : 'text-[#808080] border-transparent hover:text-[#FFFFFF] hover:border-[#52525B]'
                     }`}
                   >
-                    <FileText className="w-4 h-4 inline mr-2" />
+                    <FileText className="w-4 h-4 inline mr-1.5" />
                     Info
                   </button>
                   <button
@@ -1141,18 +1141,18 @@ export function LocationDetailModal({
                       setCoverageTab(null);
                       setActiveTab('references');
                     }}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    className={`px-1 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
                       !coverageTab && activeTab === 'references'
-                        ? 'bg-[#DC143C] text-white'
-                        : 'bg-[#1F1F1F] text-[#808080] hover:bg-[#2A2A2A] hover:text-[#FFFFFF]'
+                        ? 'text-white border-[#DC143C]'
+                        : 'text-[#808080] border-transparent hover:text-[#FFFFFF] hover:border-[#52525B]'
                     }`}
                   >
-                    <Box className="w-4 h-4 inline mr-2" />
+                    <Box className="w-4 h-4 inline mr-1.5" />
                     References ({allImages.length})
                   </button>
                   
                   {/* Right side: Coverage tabs (underline style to avoid CTA confusion) */}
-                  <div className="ml-auto flex items-center gap-4 border-b border-[#2C2C2E]">
+                  <div className="ml-auto flex items-center gap-4">
                     <button
                       onClick={() => {
                         setCoverageTab('upload');

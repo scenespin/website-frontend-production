@@ -1281,20 +1281,20 @@ export function CharacterDetailModal({
                 </DropdownMenu>
               ) : (
                 // Desktop: Horizontal tabs
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-4 border-b border-[#2C2C2E]">
               {/* Left side: Standard tabs */}
               <button
                 onClick={() => {
                   setActiveTab('info');
                   setCoverageTab(null);
                 }}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`px-1 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
                   activeTab === 'info' && !coverageTab
-                    ? 'bg-[#DC143C] text-white'
-                    : 'bg-[#1F1F1F] text-[#808080] hover:bg-[#2A2A2A] hover:text-[#FFFFFF]'
+                    ? 'text-white border-[#DC143C]'
+                    : 'text-[#808080] border-transparent hover:text-[#FFFFFF] hover:border-[#52525B]'
                 }`}
               >
-                <FileText className="w-4 h-4 inline mr-2" />
+                <FileText className="w-4 h-4 inline mr-1.5" />
                 Info
               </button>
               <button
@@ -1302,13 +1302,13 @@ export function CharacterDetailModal({
                   setActiveTab('references');
                   setCoverageTab(null);
                 }}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`px-1 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
                   activeTab === 'references' && !coverageTab
-                    ? 'bg-[#DC143C] text-white'
-                    : 'bg-[#1F1F1F] text-[#808080] hover:bg-[#2A2A2A] hover:text-[#FFFFFF]'
+                    ? 'text-white border-[#DC143C]'
+                    : 'text-[#808080] border-transparent hover:text-[#FFFFFF] hover:border-[#52525B]'
                 }`}
               >
-                <Box className="w-4 h-4 inline mr-2" />
+                <Box className="w-4 h-4 inline mr-1.5" />
                 References ({allImages.length})
               </button>
               <button
@@ -1319,33 +1319,33 @@ export function CharacterDetailModal({
                     fetchVoiceProfile();
                   }
                 }}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                className={`px-1 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
                   activeTab === 'voice' && !coverageTab
-                    ? 'bg-[#DC143C] text-white'
-                    : 'bg-[#1F1F1F] text-[#808080] hover:bg-[#2A2A2A] hover:text-[#FFFFFF]'
+                    ? 'text-white border-[#DC143C]'
+                    : 'text-[#808080] border-transparent hover:text-[#FFFFFF] hover:border-[#52525B]'
                 }`}
               >
-                <Volume2 className="w-4 h-4 inline mr-2" />
+                <Volume2 className="w-4 h-4 inline mr-1.5" />
                 Voice
                 {voiceProfile && (
                   <span className={`ml-2 text-xs ${activeTab === 'voice' && !coverageTab ? 'opacity-75' : 'text-green-400'}`}>●</span>
                 )}
               </button>
               
-              {/* Right side: Coverage buttons */}
-              <div className="ml-auto flex items-center gap-2">
+              {/* Right side: Coverage tabs (underline style to avoid CTA confusion) */}
+              <div className="ml-auto flex items-center gap-4">
                 <button
                   onClick={() => {
                     setCoverageTab('upload');
                     setActiveTab('references'); // Keep references as active tab for context
                   }}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  className={`px-1 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
                     coverageTab === 'upload'
-                      ? 'bg-[#DC143C] text-white'
-                      : 'bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C] text-[#FFFFFF]'
+                      ? 'text-white border-[#DC143C]'
+                      : 'text-[#808080] border-transparent hover:text-[#FFFFFF] hover:border-[#52525B]'
                   }`}
                 >
-                  <Upload className="w-4 h-4 inline mr-2" />
+                  <Upload className="w-4 h-4 inline mr-1.5" />
                   Upload Images
                 </button>
                 {onGeneratePosePackage && (
@@ -1354,10 +1354,10 @@ export function CharacterDetailModal({
                       setCoverageTab('generate');
                       setActiveTab('references'); // Keep references as active tab for context
                     }}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    className={`px-1 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
                       coverageTab === 'generate'
-                        ? 'bg-[#DC143C] text-white'
-                        : 'bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C] text-[#FFFFFF]'
+                        ? 'text-white border-[#DC143C]'
+                        : 'text-[#808080] border-transparent hover:text-[#FFFFFF] hover:border-[#52525B]'
                     }`}
                     >
                       Generate Images

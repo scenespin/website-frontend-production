@@ -949,19 +949,19 @@ export default function AssetDetailModal({
                 </DropdownMenu>
               ) : (
                 // Desktop: Horizontal button tabs
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-4 border-b border-[#2C2C2E]">
                   <button
                     onClick={() => {
                       setCoverageTab(null);
                       setActiveTab('info');
                     }}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    className={`px-1 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
                       !coverageTab && activeTab === 'info'
-                        ? 'bg-[#DC143C] text-white'
-                        : 'bg-[#1F1F1F] text-[#808080] hover:bg-[#2A2A2A] hover:text-[#FFFFFF]'
+                        ? 'text-white border-[#DC143C]'
+                        : 'text-[#808080] border-transparent hover:text-[#FFFFFF] hover:border-[#52525B]'
                     }`}
                   >
-                    <FileText className="w-4 h-4 inline mr-2" />
+                    <FileText className="w-4 h-4 inline mr-1.5" />
                     Info
                   </button>
                   <button
@@ -969,30 +969,30 @@ export default function AssetDetailModal({
                       setCoverageTab(null);
                       setActiveTab('references');
                     }}
-                    className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                    className={`px-1 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
                       !coverageTab && activeTab === 'references'
-                        ? 'bg-[#DC143C] text-white'
-                        : 'bg-[#1F1F1F] text-[#808080] hover:bg-[#2A2A2A] hover:text-[#FFFFFF]'
+                        ? 'text-white border-[#DC143C]'
+                        : 'text-[#808080] border-transparent hover:text-[#FFFFFF] hover:border-[#52525B]'
                     }`}
                   >
-                    <Box className="w-4 h-4 inline mr-2" />
+                    <Box className="w-4 h-4 inline mr-1.5" />
                     References ({angleImageObjects.length})
                   </button>
                   
-                  {/* Right side: Coverage buttons */}
-                  <div className="ml-auto flex items-center gap-2">
+                  {/* Right side: Coverage tabs (underline style to avoid CTA confusion) */}
+                  <div className="ml-auto flex items-center gap-4">
                     <button
                       onClick={() => {
                         setCoverageTab('upload');
                         setActiveTab('references');
                       }}
-                      className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                      className={`px-1 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${
                         coverageTab === 'upload'
-                          ? 'bg-[#DC143C] text-white'
-                          : 'bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C] text-[#FFFFFF]'
+                          ? 'text-white border-[#DC143C]'
+                          : 'text-[#808080] border-transparent hover:text-[#FFFFFF] hover:border-[#52525B]'
                       }`}
                     >
-                      <Upload className="w-4 h-4 inline mr-2" />
+                      <Upload className="w-4 h-4 inline mr-1.5" />
                       Upload Images
                     </button>
                     <button
@@ -1000,10 +1000,10 @@ export default function AssetDetailModal({
                         setCoverageTab('generate');
                         setActiveTab('references');
                       }}
-                      className={`px-4 py-2 rounded-lg transition-colors inline-flex items-center gap-2 text-sm font-medium ${
+                      className={`px-1 py-2 transition-colors inline-flex items-center gap-1.5 text-sm font-medium border-b-2 -mb-px ${
                         coverageTab === 'generate'
-                          ? 'bg-[#DC143C] text-white'
-                          : 'bg-[#141414] border border-[#3F3F46] hover:bg-[#1F1F1F] hover:border-[#DC143C] text-[#FFFFFF]'
+                          ? 'text-white border-[#DC143C]'
+                          : 'text-[#808080] border-transparent hover:text-[#FFFFFF] hover:border-[#52525B]'
                       }`}
                     >
                       Generate Images
