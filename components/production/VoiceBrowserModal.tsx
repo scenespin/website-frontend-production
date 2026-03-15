@@ -185,6 +185,10 @@ export function VoiceBrowserModal({
   });
 
   const fetchVoices = async (reset: boolean = true) => {
+    if (!reset && (!hasMoreFullLibrary || !nextPageToken)) {
+      return;
+    }
+
     if (reset) {
       setIsLoading(true);
       setNextPageToken(null);
@@ -647,13 +651,13 @@ export function VoiceBrowserModal({
                 {useFullLibrary ? ' (full library)' : ''}
               </p>
               <div className="flex items-center gap-2">
-                {useFullLibrary && hasMoreFullLibrary && (
+                {useFullLibrary && (
                   <button
                     onClick={() => void fetchVoices(false)}
-                    disabled={loadingMore}
+                    disabled={loadingMore || !hasMoreFullLibrary || !nextPageToken}
                     className="px-4 py-2 bg-[#1F1F1F] hover:bg-[#2A2A2A] disabled:bg-[#3F3F46] text-[#FFFFFF] rounded-lg text-sm font-medium transition-colors"
                   >
-                    {loadingMore ? 'Loading...' : 'Load More'}
+                    {loadingMore ? 'Loading...' : hasMoreFullLibrary && nextPageToken ? 'Load More' : 'No More Voices'}
                   </button>
                 )}
                 <button
