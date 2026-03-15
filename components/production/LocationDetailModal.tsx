@@ -116,6 +116,31 @@ interface LocationDetailModalProps {
   onGenerateAngles?: (locationId: string) => Promise<void>;
 }
 
+const ANGLE_LABELS: Record<string, string> = {
+  front: 'Front',
+  side: 'Side',
+  corner: 'Corner',
+  wide: 'Wide',
+  'low-angle': 'Low Angle',
+  aerial: 'Aerial',
+  detail: 'Detail',
+  entrance: 'Entrance',
+  'foreground-framing': 'Foreground',
+  pov: 'POV',
+  atmospheric: 'Atmospheric',
+  'golden-hour': 'Golden Hour',
+  interior: 'Interior',
+  exterior: 'Exterior',
+  'back-view': 'Back View',
+  'close-up': 'Close-Up',
+  establishing: 'Establishing',
+};
+
+function toAngleLabel(angle?: string): string {
+  if (!angle) return 'Angle';
+  return ANGLE_LABELS[angle] || angle.split('-').map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(' ');
+}
+
 export function LocationDetailModal({
   location,
   isOpen,
@@ -1457,7 +1482,9 @@ export function LocationDetailModal({
                               <div className={`absolute top-1 left-1 px-1.5 py-0.5 text-white text-[10px] rounded ${
                                 (img as any).isRegenerated || variation.metadata?.isRegenerated ? 'bg-[#DC143C]' : 'bg-[#8B5CF6]'
                               }`}>
-                                {(img as any).isRegenerated || variation.metadata?.isRegenerated ? 'Regenerated' : 'Angle'}
+                                {(img as any).isRegenerated || variation.metadata?.isRegenerated
+                                  ? `Regenerated${variation.angle ? ` • ${toAngleLabel(variation.angle)}` : ''}`
+                                  : toAngleLabel(variation.angle)}
                               </div>
                               {/* Bottom-right label: Model name / 2K or 4K */}
                               {(() => {
