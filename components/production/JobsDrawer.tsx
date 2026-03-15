@@ -1573,6 +1573,10 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
     if (job.jobType === 'screenplay-reading' && job.metadata?.inputs?.screenplayTitle) {
       return `Screenplay Reading - ${job.metadata.inputs.screenplayTitle}`;
     }
+    if (job.jobType === 'dubbing') {
+      const target = job.metadata?.inputs?.targetLanguageName || String(job.metadata?.inputs?.targetLanguage || '').toUpperCase();
+      return `Dubbing${target ? ` - ${target}` : ''}`;
+    }
     if (isDirectImageGenJob(job)) {
       return 'Image Generation';
     }
@@ -1993,6 +1997,32 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
 
                     {/* Download buttons - compact */}
                     <div className="flex flex-wrap gap-1">
+                      {(job.jobType === 'audio-generation' || job.jobType === 'dubbing') && job.results.audio && job.results.audio.length > 0 && (
+                        <>
+                          {job.results.audio.slice(0, 4).map((audio, index) => (
+                            <button
+                              key={`${audio.s3Key || audio.audioUrl}-${index}`}
+                              type="button"
+                              onClick={() => {
+                                const filenameBase =
+                                  audio.label ||
+                                  (job.jobType === 'dubbing'
+                                    ? `Dubbed-${job.metadata?.inputs?.targetLanguageName || job.metadata?.inputs?.targetLanguage || index + 1}`
+                                    : `Audio-${index + 1}`);
+                                const filename = `${String(filenameBase).replace(/[^a-zA-Z0-9-_. ]/g, '-').trim() || `audio-${index + 1}`}`;
+                                void downloadAudioAsBlob(audio.audioUrl, filename, audio.s3Key).catch(() => {
+                                  toast.error('Failed to download audio');
+                                });
+                              }}
+                              className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium bg-[#DC143C] text-white hover:bg-[#B91C1C] transition-colors"
+                            >
+                              <Download className="w-2.5 h-2.5" />
+                              {audio.label ? String(audio.label).slice(0, 14) : `Audio ${index + 1}`}
+                            </button>
+                          ))}
+                        </>
+                      )}
+
                       {job.jobType === 'complete-scene' && job.results.videos && (
                         <>
                           {job.results.videos.map((video, index) => (

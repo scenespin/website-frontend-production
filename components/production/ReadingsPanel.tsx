@@ -616,7 +616,9 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
             sourceS3Key: file.s3Key,
             sourceFileId: file.id,
             sourceFileName: file.fileName,
+            sourceProviderDisplayLabel: 'Screenplay Reading',
             sceneId: file.metadata?.sceneId,
+            sceneHeading: file.metadata?.heading,
             sceneNumber: file.metadata?.sceneNumber,
           }),
         });

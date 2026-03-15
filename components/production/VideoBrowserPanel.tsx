@@ -166,10 +166,10 @@ function buildStandaloneEntries(
       const timestamp = metadata.timestamp || (file as any).uploadedAt || (file as any).createdAt || '';
       const aspectRatio = getVideoAspectRatio(metadata);
       return {
-        sceneNumber: null,
-        sceneHeading: null,
-        sceneId: null,
-        shotNumber: null,
+        sceneNumber: metadata.sceneNumber != null ? Number(metadata.sceneNumber) : null,
+        sceneHeading: metadata.heading || null,
+        sceneId: metadata.sceneId || null,
+        shotNumber: metadata.shotNumber != null ? Number(metadata.shotNumber) : null,
         timestamp: typeof timestamp === 'string' ? timestamp : new Date(timestamp).toISOString(),
         videoFileName: file.fileName || 'video.mp4',
         videoS3Key: file.s3Key || '',
@@ -184,6 +184,11 @@ function buildStandaloneEntries(
         entryKey: (file as any).id || file.s3Key || `standalone-${index}`,
       };
     });
+}
+
+function isDubbedSceneLinkedVideo(file: MediaFile): boolean {
+  const metadata = (file as any).metadata || {};
+  return metadata.isDubbed === true && !!metadata.sceneId;
 }
 
 function getVideoAspectRatio(metadata: Record<string, any>): string | null {
@@ -246,18 +251,49 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
     () => ((standalonePages?.pages ?? []) as StandaloneVideosPage[]).flatMap((p) => p.files),
     [standalonePages]
   );
+  const { data: allMediaFiles = [] } = useMediaFiles(
+    screenplayId,
+    undefined,
+    !!screenplayId,
+    true
+  );
+  const dubbedSceneFiles = useMemo(
+    () =>
+      allMediaFiles.filter((file) => {
+        const metadata = (file as any).metadata || {};
+        const isVideo =
+          (file as any).mediaFileType === 'video' ||
+          (typeof file.fileType === 'string' && file.fileType.startsWith('video/'));
+        return isVideo && metadata.isDubbed === true && !!metadata.sceneId;
+      }),
+    [allMediaFiles]
+  );
   const standaloneS3Keys = useMemo(
     () => standaloneFiles.map((f) => f.s3Key).filter((k): k is string => !!k),
     [standaloneFiles]
+  );
+  const dubbedSceneS3Keys = useMemo(
+    () => dubbedSceneFiles.map((f) => f.s3Key).filter((k): k is string => !!k),
+    [dubbedSceneFiles]
   );
   const { data: standalonePresignedUrls = new Map<string, string>(), isLoading: standaloneUrlsLoading } = useBulkPresignedUrls(
     standaloneS3Keys,
     currentSection === 'standalone' && standaloneS3Keys.length > 0
   );
+  const { data: dubbedScenePresignedUrls = new Map<string, string>() } = useBulkPresignedUrls(
+    dubbedSceneS3Keys,
+    currentSection === 'scene' && dubbedSceneS3Keys.length > 0
+  );
 
-  const sceneEntries = useMemo(() => buildVideoEntries(scenes, presignedUrls), [scenes, presignedUrls]);
+  const sceneEntries = useMemo(() => {
+    const baseSceneEntries = buildVideoEntries(scenes, presignedUrls);
+    const dubbedEntries = buildStandaloneEntries(dubbedSceneFiles, dubbedScenePresignedUrls);
+    const existingKeys = new Set(baseSceneEntries.map((e) => e.videoS3Key));
+    const dedupedDubbed = dubbedEntries.filter((e) => !existingKeys.has(e.videoS3Key));
+    return [...baseSceneEntries, ...dedupedDubbed];
+  }, [scenes, presignedUrls, dubbedSceneFiles, dubbedScenePresignedUrls]);
   const standaloneEntries = useMemo(
-    () => buildStandaloneEntries(standaloneFiles, standalonePresignedUrls),
+    () => buildStandaloneEntries(standaloneFiles.filter((file) => !isDubbedSceneLinkedVideo(file)), standalonePresignedUrls),
     [standaloneFiles, standalonePresignedUrls]
   );
 
@@ -489,7 +525,9 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
           audioUrl: sourceUrl,
           sourceS3Key: dubDialogEntry.videoS3Key,
           sourceFileName: dubDialogEntry.videoFileName,
+          sourceProviderDisplayLabel: dubDialogEntry.providerDisplayLabel,
           sceneId: dubDialogEntry.sceneId,
+          sceneHeading: dubDialogEntry.sceneHeading,
           sceneNumber: dubDialogEntry.sceneNumber,
           shotNumber: dubDialogEntry.shotNumber,
         }),

@@ -1291,6 +1291,8 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
                     <h4 className="font-semibold text-slate-200">
                       {job.jobType === 'screenplay-reading' && job.metadata?.inputs?.screenplayTitle
                         ? `Screenplay Reading - ${job.metadata.inputs.screenplayTitle}`
+                        : job.jobType === 'dubbing'
+                        ? `Dubbing - ${job.metadata?.inputs?.targetLanguageName || String(job.metadata?.inputs?.targetLanguage || '').toUpperCase() || 'Language'}`
                         : job.workflowName}
                     </h4>
                     {getStatusBadge(job.status)}
@@ -1628,6 +1630,33 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
                             <Download className="w-3 h-3" />
                             Video {index + 1}
                           </a>
+                        ))}
+                      </>
+                    )}
+
+                    {/* Audio + Dubbing: Download buttons */}
+                    {(job.jobType === 'audio-generation' || job.jobType === 'dubbing') && job.results.audio && job.results.audio.length > 0 && (
+                      <>
+                        {job.results.audio.map((audio, index) => (
+                          <button
+                            key={`${audio.s3Key || audio.audioUrl}-${index}`}
+                            type="button"
+                            onClick={async () => {
+                              const filenameBase =
+                                audio.label ||
+                                (job.jobType === 'dubbing'
+                                  ? `Dubbed-${job.metadata?.inputs?.targetLanguageName || job.metadata?.inputs?.targetLanguage || index + 1}`
+                                  : `Audio-${index + 1}`);
+                              const filename = `${String(filenameBase).replace(/[^a-zA-Z0-9-_. ]/g, '-').trim() || `audio-${index + 1}`}`;
+                              await downloadAudioAsBlob(audio.audioUrl, filename, audio.s3Key);
+                            }}
+                            className="inline-flex items-center gap-1 px-3 py-1.5 rounded-lg
+                                     bg-[#DC143C] text-white text-xs font-medium
+                                     hover:bg-[#B91238] transition-colors"
+                          >
+                            <Download className="w-3 h-3" />
+                            {audio.label || `Audio ${index + 1}`}
+                          </button>
                         ))}
                       </>
                     )}
