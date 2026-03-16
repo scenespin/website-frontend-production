@@ -17,8 +17,6 @@ import { CinemaCard, type CinemaCardImage } from './CinemaCard';
 import { LocationDetailModal } from './LocationDetailModal';
 import LocationAngleGenerationModal from './LocationAngleGenerationModal';
 import { useLocations, type LocationProfile } from '@/hooks/useLocationBank';
-import { useMediaFiles, useBulkPresignedUrls, useDropboxPreviewUrls } from '@/hooks/useMediaLibrary';
-import { getMediaFileDisplayUrl } from './utils/imageUrlResolver';
 
 interface LocationBankPanelProps {
   className?: string;
@@ -56,59 +54,6 @@ export function LocationBankPanel({
     'production-hub', // 🔥 FIX: Use production-hub context to separate from Creation section
     !!screenplayId
   );
-
-  // Feature 0256: Payload-first. Query Media Library only for URL enrichment (presigned, Dropbox).
-  const { data: allLocationMediaFiles = [] } = useMediaFiles(
-    screenplayId || '',
-    undefined,
-    !!screenplayId,
-    true,
-    'location'
-  );
-
-  // Feature 0256: Build list of s3Keys from location payload (source of truth for what to show).
-  const allLocationS3Keys = useMemo(() => {
-    const keys: string[] = [];
-    locations.forEach((loc) => {
-      if (loc.baseReference?.s3Key && !loc.baseReference.s3Key.startsWith('thumbnails/')) keys.push(loc.baseReference.s3Key);
-      (loc.angleVariations || []).forEach((v: any) => { if (v.s3Key && !v.s3Key.startsWith('thumbnails/')) keys.push(v.s3Key); });
-      (loc.backgrounds || []).forEach((b: any) => { if (b.s3Key && !b.s3Key.startsWith('thumbnails/')) keys.push(b.s3Key); });
-      (loc.images || []).forEach((img: any) => {
-        const s3 = img.s3Key || img.metadata?.s3Key;
-        if (s3 && !s3.startsWith('thumbnails/')) keys.push(s3);
-      });
-    });
-    return [...new Set(keys)];
-  }, [locations]);
-
-  // 🔥 Feature 0200: Generate presigned URLs for all location images
-  const { data: locationPresignedUrls = new Map() } = useBulkPresignedUrls(
-    allLocationS3Keys,
-    !!screenplayId && allLocationS3Keys.length > 0
-  );
-  const dropboxUrlMap = useDropboxPreviewUrls(allLocationMediaFiles, !!screenplayId && allLocationMediaFiles.length > 0);
-  const locationMediaFileMap = useMemo(() => {
-    const map = new Map<string, any>();
-    allLocationMediaFiles.forEach((file: any) => {
-      if (file.s3Key && !file.s3Key.startsWith('thumbnails/')) map.set(file.s3Key, file);
-    });
-    return map;
-  }, [allLocationMediaFiles]);
-  const presignedMapsForDisplay = useMemo(() => ({
-    fullImageUrlsMap: locationPresignedUrls,
-    thumbnailS3KeyMap: null as Map<string, string> | null,
-    thumbnailUrlsMap: null as Map<string, string> | null,
-  }), [locationPresignedUrls]);
-
-  const getLocationImageDisplayUrl = useCallback((s3Key: string) => {
-    const file = locationMediaFileMap.get(s3Key);
-    if (!file) return null;
-    return getMediaFileDisplayUrl(
-      file,
-      presignedMapsForDisplay,
-      dropboxUrlMap
-    );
-  }, [locationMediaFileMap, presignedMapsForDisplay, dropboxUrlMap]);
 
   const isLoading = queryLoading || propsIsLoading;
 
@@ -242,8 +187,9 @@ export function LocationBankPanel({
                 const addedS3Keys = new Set<string>();
 
                 const urlFor = (s3Key: string, payloadUrl?: string) => {
-                  // Prefer stable proxy/display URL; payload imageUrl may be an expired presigned URL.
-                  return getLocationImageDisplayUrl(s3Key) || payloadUrl;
+                  // Performance-first on bank grid: render immediately from payload URL.
+                  // Detail modal handles richer URL resolution/presigned refresh.
+                  return payloadUrl;
                 };
 
                 // 1) Creation: baseReference then creation images from location.images
