@@ -133,7 +133,7 @@ export default function LocationBackgroundPackageSelector({
       backgroundTypes: scenePackageTypes.basic,
       credits: calculatePackageCredits(2), // 2 backgrounds × creditsPerImage
       consistencyRating: 70,
-      description: 'Essential 2 backgrounds for quick close-up coverage',
+      description: 'Essential 2 backgrounds for quick close-up coverage (auto scene-aware)',
       bestFor: ['Quick dialogue', 'Simple close-ups', 'Basic coverage'],
       discount: 0
     },
@@ -143,7 +143,7 @@ export default function LocationBackgroundPackageSelector({
       backgroundTypes: scenePackageTypes.standard,
       credits: calculatePackageCredits(4), // 4 backgrounds × creditsPerImage
       consistencyRating: 85,
-      description: '4 core backgrounds for comprehensive dialogue coverage',
+      description: '4 core backgrounds for comprehensive dialogue coverage (auto scene-aware)',
       bestFor: ['Multiple dialogue scenes', 'Varied close-ups', 'Standard coverage'],
       discount: 0
     },
@@ -153,7 +153,7 @@ export default function LocationBackgroundPackageSelector({
       backgroundTypes: scenePackageTypes.premium,
       credits: calculatePackageCredits(5), // 5 backgrounds × creditsPerImage
       consistencyRating: 92,
-      description: '5 backgrounds including threshold framing for depth continuity',
+      description: '5 backgrounds including threshold framing for depth continuity (auto scene-aware)',
       bestFor: ['Professional films', 'Complex dialogue', 'Depth-rich close-ups', 'Detailed close-ups'],
       discount: 0
     }
