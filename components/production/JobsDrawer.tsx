@@ -46,6 +46,8 @@ import {
 /** SessionStorage key for recent job IDs we care about (fetch-by-IDs on drawer open) */
 const RECENT_JOB_IDS_KEY = (screenplayId: string) => `wryda:recent-job-ids:${screenplayId}`;
 const MAX_RECENT_JOB_IDS = 20;
+const JOBS_LIST_LIMIT = 20;
+const missingThumbnailS3Keys = new Set<string>();
 
 function addRecentJobId(screenplayId: string, jobId: string): void {
   if (typeof window === 'undefined' || !screenplayId?.trim() || !jobId?.trim()) return;
@@ -208,12 +210,28 @@ interface JobsDrawerProps {
  */
 function ImageThumbnailFromS3Key({ s3Key, alt, fallbackUrl }: { s3Key: string; alt: string; fallbackUrl?: string }) {
   const { getToken } = useAuth();
-  const [imageUrl, setImageUrl] = useState<string | null>(fallbackUrl || null);
-  const [isLoading, setIsLoading] = useState(!fallbackUrl);
+  const isRenderableUrl = (value?: string | null) => {
+    if (!value) return false;
+    return (
+      value.startsWith('http://') ||
+      value.startsWith('https://') ||
+      value.startsWith('data:') ||
+      value.startsWith('blob:') ||
+      value.startsWith('/')
+    );
+  };
+  const initialFallback = isRenderableUrl(fallbackUrl) ? fallbackUrl! : null;
+  const [imageUrl, setImageUrl] = useState<string | null>(initialFallback);
+  const [isLoading, setIsLoading] = useState(!initialFallback);
 
   useEffect(() => {
     if (!s3Key) {
       setIsLoading(false);
+      return;
+    }
+    if (missingThumbnailS3Keys.has(s3Key)) {
+      setIsLoading(false);
+      if (isRenderableUrl(fallbackUrl)) setImageUrl(fallbackUrl!);
       return;
     }
 
@@ -223,8 +241,8 @@ function ImageThumbnailFromS3Key({ s3Key, alt, fallbackUrl }: { s3Key: string; a
         if (!token) {
           setIsLoading(false);
           // Use fallback if available and no token
-          if (fallbackUrl && !imageUrl) {
-            setImageUrl(fallbackUrl);
+          if (isRenderableUrl(fallbackUrl) && !imageUrl) {
+            setImageUrl(fallbackUrl!);
           }
           return;
         }
@@ -244,8 +262,9 @@ function ImageThumbnailFromS3Key({ s3Key, alt, fallbackUrl }: { s3Key: string; a
         if (!response.ok) {
           if (response.status === 404) {
             console.warn('[JobsDrawer] Thumbnail not found (404), using fallback:', s3Key);
+            missingThumbnailS3Keys.add(s3Key);
             setIsLoading(false);
-            if (fallbackUrl) setImageUrl(fallbackUrl);
+            if (isRenderableUrl(fallbackUrl)) setImageUrl(fallbackUrl!);
             return;
           }
           throw new Error(`Failed to get presigned URL: ${response.status}`);
@@ -260,8 +279,8 @@ function ImageThumbnailFromS3Key({ s3Key, alt, fallbackUrl }: { s3Key: string; a
         console.error('[JobsDrawer] Failed to get presigned URL:', error);
         setIsLoading(false);
         // Use fallback if available and we failed to get presigned URL
-        if (fallbackUrl && !imageUrl) {
-          setImageUrl(fallbackUrl);
+        if (isRenderableUrl(fallbackUrl) && !imageUrl) {
+          setImageUrl(fallbackUrl!);
         }
       }
     }
@@ -272,6 +291,7 @@ function ImageThumbnailFromS3Key({ s3Key, alt, fallbackUrl }: { s3Key: string; a
     // Refresh presigned URL every 45 minutes (before 1 hour expiration)
     // This ensures images stay active for the entire session
     const refreshInterval = setInterval(() => {
+      if (missingThumbnailS3Keys.has(s3Key)) return;
       fetchPresignedUrl();
       console.log('[JobsDrawer] Refreshing presigned URL for', s3Key);
     }, 45 * 60 * 1000); // 45 minutes - refresh before expiration
@@ -297,6 +317,7 @@ function ImageThumbnailFromS3Key({ s3Key, alt, fallbackUrl }: { s3Key: string; a
         if (img.src && !img.src.startsWith('data:')) {
           console.warn('[JobsDrawer] Thumbnail failed to load (e.g. 404), using placeholder:', s3Key);
         }
+        missingThumbnailS3Keys.add(s3Key);
         img.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="100" height="100"%3E%3Crect fill="%23334155" width="100" height="100"/%3E%3Ctext x="50" y="50" text-anchor="middle" dy=".3em" fill="%2394a3b8" font-size="12"%3EImage%3C/text%3E%3C/svg%3E';
       }}
     />
@@ -896,8 +917,8 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
         return;
       }
 
-      // Load all jobs for this session (no filtering). Limit 50 so newest jobs aren't cut off.
-      const url = `/api/workflows/executions?screenplayId=${screenplayId}&limit=50`;
+      // Load recent jobs for this session (no filtering). Keep this bounded for UI performance.
+      const url = `/api/workflows/executions?screenplayId=${screenplayId}&limit=${JOBS_LIST_LIMIT}`;
       
       const response = await fetch(url, {
         headers: {
