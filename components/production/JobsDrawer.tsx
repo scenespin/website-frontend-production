@@ -1659,6 +1659,12 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
     return 'Some generation attempts failed. Please retry. Failed attempts are refunded automatically.';
   };
 
+  const getTechnicalFailureDetail = (job: WorkflowJob): string | null => {
+    const raw = job.metadata?.rawError;
+    if (!raw || typeof raw !== 'string') return null;
+    return raw.length > 220 ? `${raw.slice(0, 220)}...` : raw;
+  };
+
   const getEffectiveStatus = (job: WorkflowJob): 'queued' | 'running' | 'completed' | 'failed' | 'partial' => {
     if (job.status !== 'completed') return job.status;
     const { failedCount, successCount } = getFailureSummary(job);
@@ -1839,7 +1845,14 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
                   <div className="p-2 rounded bg-red-900/20 border border-red-800 mb-2">
                     <div className="flex items-start gap-1.5">
                       <AlertCircle className="w-3 h-3 text-red-400 flex-shrink-0 mt-0.5" />
-                      <p className="text-[10px] text-red-300">{getUserFacingFailureMessage(job)}</p>
+                      <div className="text-[10px] text-red-300 space-y-0.5">
+                        <p>{getUserFacingFailureMessage(job)}</p>
+                        {getTechnicalFailureDetail(job) && (
+                          <p className="text-red-200/80 break-words">
+                            Details: {getTechnicalFailureDetail(job)}
+                          </p>
+                        )}
+                      </div>
                     </div>
                   </div>
                 )}
