@@ -27,6 +27,7 @@ interface AssetAnglePackage {
 // Phase 0 cleanup: keep only core asset angles for standard props.
 // Vehicle/aircraft interior packages are configured elsewhere and remain unchanged.
 const ALL_ANGLES = [
+  { id: 'front', name: 'Front View', description: 'View from directly in front of the asset' },
   { id: 'back', name: 'Back View', description: 'View from behind the asset' },
   { id: 'side', name: 'Side View', description: 'Profile view from the side' },
   { id: 'top', name: 'Top View', description: 'Bird\'s eye view from above' }
@@ -93,11 +94,11 @@ export default function AssetAnglePackageSelector({
     {
       id: 'standard',
       name: 'Standard Props Package',
-      angles: ['back', 'side', 'top'],
-      credits: calculatePackageCredits(3), // Phase 0: trimmed to 3 core angles
-      credits4K: calculatePackageCredits(3), // Will be updated dynamically
+      angles: ['front', 'back', 'side', 'top'],
+      credits: calculatePackageCredits(4), // Full exterior coverage
+      credits4K: calculatePackageCredits(4), // Will be updated dynamically
       consistencyRating: 88,
-      description: '3 core angles for multi-scene films',
+      description: '4 core angles for full exterior coverage',
       bestFor: ['Multiple scenes', 'Dialogue', 'Standard coverage'],
       discount: 0
     }
