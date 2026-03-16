@@ -8,7 +8,7 @@
  */
 
 import React, { useMemo, useState, useCallback, useEffect } from 'react';
-import { RefreshCw, Loader2, Play, Video, Download, Trash2, ArrowUpDown, ArrowUp, ArrowDown, Globe } from 'lucide-react';
+import { RefreshCw, Loader2, Play, Video, Download, Trash2, ArrowUpDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { toast } from 'sonner';
 import { useAuth } from '@clerk/nextjs';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
@@ -731,6 +731,16 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
                     {formatTimestamp(entry.timestamp)}
                   </span>
                   <div className="flex items-center gap-2 flex-shrink-0 ml-auto">
+                    {(entry.providerDisplayLabel === 'Dialogue' || entry.providerDisplayLabel === 'Premium Dialogue') && (
+                      <button
+                        type="button"
+                        onClick={() => handleOpenDubDialog(entry)}
+                        className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-white bg-[#1F1F1F] border border-[#3F3F46] hover:border-[#DC143C] hover:text-[#DC143C] rounded transition-colors"
+                        aria-label="Dub video"
+                      >
+                        Dub
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => handlePlay(entry.videoUrl)}
@@ -741,17 +751,6 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
                       <Play className="w-3.5 h-3.5" fill="currentColor" />
                       Play
                     </button>
-                    {(entry.providerDisplayLabel === 'Dialogue' || entry.providerDisplayLabel === 'Premium Dialogue') && (
-                      <button
-                        type="button"
-                        onClick={() => handleOpenDubDialog(entry)}
-                        className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-white bg-[#1F1F1F] border border-[#3F3F46] hover:border-[#DC143C] hover:text-[#DC143C] rounded transition-colors"
-                        aria-label="Dub video"
-                      >
-                        <Globe className="w-3.5 h-3.5" />
-                        Dub to...
-                      </button>
-                    )}
                     <button
                       type="button"
                       onClick={() => handleDownload(entry)}
