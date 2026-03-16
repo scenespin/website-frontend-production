@@ -31,6 +31,7 @@ const SINGLE_BACKGROUND_TYPES_BY_SCENE: Record<LocationSceneType, Array<{ id: st
     { id: 'wall', name: 'Wall', description: 'Plain or decorated wall surface' },
     { id: 'texture', name: 'Texture', description: 'Detailed surface texture close-up' },
     { id: 'furniture', name: 'Furniture', description: 'Furniture or fixture background' },
+    { id: 'threshold', name: 'Threshold', description: 'Doorway/transition framing with depth' },
   ],
   exterior: [
     { id: 'ground-plane', name: 'Ground Plane', description: 'Ground-level surface and paving close-up' },
@@ -44,6 +45,7 @@ const SINGLE_BACKGROUND_TYPES_BY_SCENE: Record<LocationSceneType, Array<{ id: st
     { id: 'wall', name: 'Wall', description: 'Interior wall or partition background' },
     { id: 'ground-plane', name: 'Ground Plane', description: 'Ground-level continuity in mixed space' },
     { id: 'street-edge', name: 'Street Edge', description: 'Interior/exterior threshold edge context' },
+    { id: 'threshold', name: 'Threshold', description: 'Transition-zone framing with depth' },
   ],
 };
 
@@ -92,7 +94,7 @@ export default function LocationBackgroundPackageSelector({
     interior: {
       basic: ['window', 'wall'],
       standard: ['window', 'wall', 'texture', 'furniture'],
-      premium: ['window', 'wall', 'texture', 'furniture', 'ecu-soft'],
+      premium: ['window', 'wall', 'texture', 'furniture', 'threshold'],
     },
     exterior: {
       basic: ['ground-plane', 'facade'],
@@ -102,7 +104,7 @@ export default function LocationBackgroundPackageSelector({
     mixed: {
       basic: ['window', 'ground-plane'],
       standard: ['window', 'wall', 'ground-plane', 'street-edge'],
-      premium: ['window', 'wall', 'ground-plane', 'street-edge', 'ecu-soft'],
+      premium: ['window', 'wall', 'ground-plane', 'street-edge', 'threshold'],
     },
   };
   const scenePackageTypes = packageBackgroundTypesByScene[normalizedLocationType] || packageBackgroundTypesByScene.interior;
@@ -151,8 +153,8 @@ export default function LocationBackgroundPackageSelector({
       backgroundTypes: scenePackageTypes.premium,
       credits: calculatePackageCredits(5), // 5 backgrounds × creditsPerImage
       consistencyRating: 92,
-      description: '5 backgrounds including ECU soft for extreme close-up workflows',
-      bestFor: ['Professional films', 'Complex dialogue', 'Extreme close-ups', 'Detailed close-ups'],
+      description: '5 backgrounds including threshold framing for depth continuity',
+      bestFor: ['Professional films', 'Complex dialogue', 'Depth-rich close-ups', 'Detailed close-ups'],
       discount: 0
     }
   ]);
@@ -168,14 +170,14 @@ export default function LocationBackgroundPackageSelector({
     })));
   }, [creditsPerImage, normalizedLocationType]);
   
-  // 🔥 FIX: Normalize selectedBackgroundType to always be a string (never undefined). ECU for single is checkbox only—ecu-soft removed from dropdown.
+  // Normalize selectedBackgroundType to always be a valid single-select option.
   const singleTypeIds = useMemo(() => singleTypeOptions.map((t) => t.id), [singleTypeOptions]);
   const normalizedSelectedBackgroundType =
     selectedBackgroundType && singleTypeIds.includes(selectedBackgroundType) ? selectedBackgroundType : singleTypeIds[0];
 
   // 🔥 FIX: Only auto-select when package FIRST becomes 'single', not on every render
   const hasInitializedRef = useRef<string>('');
-  // When single is selected and stored type was ecu-soft (no longer in dropdown), sync parent to window
+  // If stored single background type is no longer valid for the scene, reset to first available option.
   useEffect(() => {
     if (selectedPackageId === 'single' && selectedBackgroundType && !singleTypeIds.includes(selectedBackgroundType) && onSelectedBackgroundTypeChange) {
       onSelectedBackgroundTypeChange(singleTypeIds[0]);

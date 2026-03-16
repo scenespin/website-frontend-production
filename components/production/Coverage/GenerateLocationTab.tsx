@@ -40,6 +40,7 @@ const BACKGROUND_TYPE_LABELS: Record<string, string> = {
   'foliage': 'Foliage',
   'skyline': 'Skyline',
   'street-edge': 'Street Edge',
+  'threshold': 'Threshold',
   'custom': 'Custom',
   'ecu-soft': 'ECU Soft'
 };
@@ -750,7 +751,7 @@ export function GenerateLocationTab({
     single: 1,
     basic: 2,
     standard: 4,
-    premium: 5 // Includes ecu-soft
+    premium: 5
   };
   
   const selectedPackageId = packageType === 'angles' ? selectedAnglePackageId : selectedBackgroundPackageId;

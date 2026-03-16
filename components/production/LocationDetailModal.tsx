@@ -85,7 +85,8 @@ interface LocationBackground {
     | 'facade'
     | 'foliage'
     | 'skyline'
-    | 'street-edge';
+    | 'street-edge'
+    | 'threshold';
   description?: string;
   sourceType?: 'reference-images' | 'angle-variations';
   sourceAngleId?: string;
@@ -614,6 +615,7 @@ export function LocationDetailModal({
           'foliage': 'Foliage',
           'skyline': 'Skyline',
           'street-edge': 'Street Edge',
+          'threshold': 'Threshold',
           'ecu-soft': 'ECU Soft',
           'custom': background.description || 'Custom Background'
         };
@@ -1724,6 +1726,7 @@ export function LocationDetailModal({
                                         'foliage': 'Foliage',
                                         'skyline': 'Skyline',
                                         'street-edge': 'Street Edge',
+                                        'threshold': 'Threshold',
                                         'ecu-soft': 'ECU Soft',
                                         'custom': (background as LocationBackground).description || 'Custom Background'
                                       };
@@ -2067,7 +2070,7 @@ export function LocationDetailModal({
                           const backgroundTypeLabels: Record<string, string> = {
                             'window': 'Window', 'wall': 'Wall', 'doorway': 'Doorway', 'texture': 'Texture',
                             'corner-detail': 'Corner Detail', 'furniture': 'Furniture', 'architectural-feature': 'Architectural Feature',
-                            'ground-plane': 'Ground Plane', 'facade': 'Facade', 'foliage': 'Foliage', 'skyline': 'Skyline', 'street-edge': 'Street Edge',
+                            'ground-plane': 'Ground Plane', 'facade': 'Facade', 'foliage': 'Foliage', 'skyline': 'Skyline', 'street-edge': 'Street Edge', 'threshold': 'Threshold',
                             'custom': (background as LocationBackground).description || 'Custom Background', 'ecu-soft': 'ECU Soft'
                           };
                           const typeLabel = backgroundTypeLabels[background.backgroundType] || background.backgroundType;
