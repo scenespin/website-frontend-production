@@ -37,6 +37,14 @@ export function LocationBankPanel({
   entityToOpen,
   onEntityOpened
 }: LocationBankPanelProps) {
+  const normalizeLocationType = (rawType: unknown): 'interior' | 'exterior' | 'mixed' => {
+    const normalized = String(rawType || '').toLowerCase().replace(/\./g, '').trim();
+    if (normalized === 'interior' || normalized === 'int') return 'interior';
+    if (normalized === 'exterior' || normalized === 'ext') return 'exterior';
+    if (normalized === 'mixed' || normalized === 'int/ext' || normalized === 'int-ext' || normalized.includes('/')) return 'mixed';
+    return 'mixed';
+  };
+
   const screenplay = useScreenplay();
   const screenplayId = (screenplay.screenplayId || '').trim() || '';
   const { getToken } = useAuth();
@@ -295,9 +303,9 @@ export function LocationBankPanel({
                   }
                 });
 
-                const locationType = location.type;
-                const typeLabel = location.type === 'interior' ? 'INT.' : 
-                                 location.type === 'exterior' ? 'EXT.' : 'INT./EXT.';
+                const locationType = normalizeLocationType(location.type);
+                const typeLabel = locationType === 'interior' ? 'INT.' :
+                                 locationType === 'exterior' ? 'EXT.' : 'INT./EXT.';
 
                 // Feature 0256: Counts from payload
                 const angleCount = location.angleVariations?.length ?? 0;

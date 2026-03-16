@@ -926,9 +926,14 @@ export function LocationDetailModal({
     return map;
   }, [referenceGalleryImages]);
   
-  // Convert type for display
-  const typeLabel = location.type === 'interior' ? 'INT.' : 
-                   location.type === 'exterior' ? 'EXT.' : 'INT./EXT.';
+  // Convert type for display (supports legacy INT/EXT notation from stored metadata).
+  const normalizedLocationType = String(location.type || '').toLowerCase().replace(/\./g, '').trim();
+  const typeLabel =
+    normalizedLocationType === 'interior' || normalizedLocationType === 'int'
+      ? 'INT.'
+      : normalizedLocationType === 'exterior' || normalizedLocationType === 'ext'
+        ? 'EXT.'
+        : 'INT./EXT.';
 
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

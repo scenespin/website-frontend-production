@@ -36,6 +36,14 @@ const formatBackgroundType = (value: string): string =>
     .map(word => word.charAt(0).toUpperCase() + word.slice(1))
     .join(' ');
 
+const normalizeSceneType = (rawType: string | undefined): LocationSceneType => {
+  const normalized = String(rawType || '').toLowerCase().replace(/\./g, '').trim();
+  if (normalized === 'interior' || normalized === 'int') return 'interior';
+  if (normalized === 'exterior' || normalized === 'ext') return 'exterior';
+  if (normalized === 'mixed' || normalized === 'int/ext' || normalized === 'int-ext' || normalized.includes('/')) return 'mixed';
+  return 'interior';
+};
+
 const SINGLE_BACKGROUND_TYPES_BY_SCENE: Record<LocationSceneType, Array<{ id: string; name: string; description: string }>> = {
   interior: [
     { id: 'window', name: 'Window', description: 'View through or near a window' },
@@ -99,7 +107,7 @@ export default function LocationBackgroundPackageSelector({
   selectedBackgroundType,
   onSelectedBackgroundTypeChange
 }: LocationBackgroundPackageSelectorProps) {
-  const normalizedLocationType: LocationSceneType = locationType || 'interior';
+  const normalizedLocationType: LocationSceneType = normalizeSceneType(locationType);
   const singleTypeOptions = SINGLE_BACKGROUND_TYPES_BY_SCENE[normalizedLocationType] || SINGLE_BACKGROUND_TYPES_BY_SCENE.interior;
   const packageBackgroundTypesByScene: Record<LocationSceneType, Record<'basic' | 'standard' | 'premium', string[]>> = {
     interior: {
