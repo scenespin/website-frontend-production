@@ -790,6 +790,7 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
         creditsUsed: exec.totalCreditsUsed || 0,
         results: exec.finalOutputs,
         metadata: exec.metadata,
+        inputs: exec.inputs || exec.metadata?.inputs,
       };
       
       if (!options?.silent) {
@@ -1255,11 +1256,7 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
           (updated.results && !job.results);
         const progressAdvanced = updated.progress !== job.progress;
         const isRunningOrQueued = updated.status === 'running' || updated.status === 'queued';
-        const hasEntityTarget =
-          !!updated.metadata?.inputs?.locationId ||
-          !!updated.metadata?.inputs?.characterId ||
-          !!updated.metadata?.inputs?.assetId;
-        if (progressAdvanced && isRunningOrQueued && hasEntityTarget) {
+        if (progressAdvanced && isRunningOrQueued && (updated.jobType === 'image-generation' || updated.jobType === 'pose-generation')) {
           // Mid-run refresh so partial checkpointed images can appear in open modals
           // before the whole job reaches terminal state.
           queryClient.refetchQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });

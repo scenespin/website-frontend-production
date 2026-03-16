@@ -102,13 +102,22 @@ export function GenerateWardrobeTab({
       .sort((a, b) => a.label.localeCompare(b.label));
   }, [existingReferences]);
 
-  // Get final outfit name (no auto-generated name; require user input or selection)
-  const finalOutfitName = useMemo(() => {
+  // Step 1 is truly required: do not allow implicit "default" from empty input.
+  const isOutfitSelectionValid = useMemo(() => {
     if (outfitMode === 'create') {
-      return canonicalOutfitName(newOutfitName.trim() || '');
+      return newOutfitName.trim().length > 0;
     }
-    return canonicalOutfitName(selectedExistingOutfit || '');
+    return selectedExistingOutfit.trim().length > 0;
   }, [outfitMode, newOutfitName, selectedExistingOutfit]);
+
+  // Get final canonical outfit name once the required selection is valid.
+  const finalOutfitName = useMemo(() => {
+    if (!isOutfitSelectionValid) return '';
+    if (outfitMode === 'create') {
+      return canonicalOutfitName(newOutfitName.trim());
+    }
+    return canonicalOutfitName(selectedExistingOutfit);
+  }, [isOutfitSelectionValid, outfitMode, newOutfitName, selectedExistingOutfit]);
 
   // Get selected model
   const selectedModel = useMemo(() => {
@@ -256,7 +265,7 @@ export function GenerateWardrobeTab({
 
   // Handle generation
   const handleGenerate = async () => {
-    if (!finalOutfitName || finalOutfitName.trim() === '') {
+    if (!isOutfitSelectionValid || !finalOutfitName || finalOutfitName === 'default') {
       toast.error('Please enter an outfit name or select an existing outfit.');
       return;
     }
@@ -612,7 +621,7 @@ export function GenerateWardrobeTab({
         </button>
         <button
           onClick={handleGenerate}
-          disabled={isGenerating || !finalOutfitName || isLoadingModels || !providerId || !selectedPackageId || (selectedPackageId === 'single' && !selectedPoseId)}
+          disabled={isGenerating || !isOutfitSelectionValid || !finalOutfitName || finalOutfitName === 'default' || isLoadingModels || !providerId || !selectedPackageId || (selectedPackageId === 'single' && !selectedPoseId)}
           className="flex-1 px-4 py-3 bg-[#DC143C] hover:bg-[#B91C1C] disabled:bg-[#3F3F46] disabled:text-[#808080] text-white rounded-lg transition-colors font-medium flex items-center justify-center gap-2"
         >
           {isGenerating ? (

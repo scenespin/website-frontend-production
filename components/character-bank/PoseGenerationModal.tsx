@@ -150,6 +150,9 @@ export default function PoseGenerationModal({
   const [generationResult, setGenerationResult] = useState<any>(null);
   const [error, setError] = useState<string>('');
   const [jobId, setJobId] = useState<string | null>(null);
+  const isOutfitSelected = useMemo(() => {
+    return !!typicalClothing && typicalClothing.trim().length > 0 && typicalClothing.trim().toLowerCase() !== 'default';
+  }, [typicalClothing]);
   
   const handleHeadshotUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -336,6 +339,10 @@ export default function PoseGenerationModal({
   };
   
   const handleGenerateWithPackage = async (packageId: string) => {
+    if (!isOutfitSelected) {
+      toast.error('Please create/select an outfit before generating poses.');
+      return;
+    }
     if (!hasCharacterReference({ baseReferenceS3Key, headshotFile, headshotPreview })) {
       showReferenceRequired(toast, setError);
       return;
@@ -396,7 +403,7 @@ export default function PoseGenerationModal({
         headshotUrl: headshotFile ? headshotPreview : undefined,
         screenplayContent: screenplayContent || undefined,
         manualDescription: manualDescription || undefined,
-        typicalClothing: typicalClothing,
+        typicalClothing: typicalClothing?.trim(),
         clothingReferences: clothingReferences.length > 0 ? clothingReferences : undefined, // 🔥 NEW: Clothing references
         additionalPrompt: additionalPrompt.trim() || undefined, // 🔥 NEW: Additional prompt for grounding search, color codes, etc.
       };
@@ -577,7 +584,7 @@ export default function PoseGenerationModal({
                       defaultValue={characterDefaultOutfit}
                       onChange={(outfit) => setTypicalClothing(outfit)}
                       label="Character Outfit"
-                      showDefaultOption={true}
+                      showDefaultOption={false}
                     />
                     <p className="text-xs text-base-content/50 mt-2">
                       All poses in the package will be generated wearing the selected outfit.
@@ -712,7 +719,7 @@ export default function PoseGenerationModal({
                   <div className="flex justify-end gap-3">
                     <button
                       onClick={handleGenerate}
-                      disabled={isGenerating || !selectedPackageId || !canGenerateAssets || (selectedPackageId === 'single' && !selectedPoseId)}
+                      disabled={isGenerating || !isOutfitSelected || !selectedPackageId || !canGenerateAssets || (selectedPackageId === 'single' && !selectedPoseId)}
                       className="px-6 py-3 bg-primary text-primary-content rounded-lg font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                       title={!canGenerateAssets ? 'Only Directors and Producers can generate poses. Writers can upload reference images in the Creation section.' : undefined}
                     >
