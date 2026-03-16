@@ -1226,6 +1226,16 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
           updated.status !== job.status ||
           updated.progress !== job.progress ||
           (updated.results && !job.results);
+        const progressAdvanced = updated.progress !== job.progress;
+        const isRunningOrQueued = updated.status === 'running' || updated.status === 'queued';
+        const isLocationJob = !!updated.metadata?.inputs?.locationId;
+        if (progressAdvanced && isRunningOrQueued && isLocationJob) {
+          // Mid-run refresh so partial checkpointed images appear in location modals
+          // before the whole job reaches terminal state.
+          queryClient.refetchQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
+          queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] });
+          queryClient.refetchQueries({ queryKey: ['media', 'presigned-urls'], exact: false });
+        }
         if (isTerminal && !processedTerminalRefreshJobIds.current.has(updated.jobId)) {
           processedTerminalRefreshJobIds.current.add(updated.jobId);
           // Immediate refresh path so open detail modals update without waiting for downstream effects.
