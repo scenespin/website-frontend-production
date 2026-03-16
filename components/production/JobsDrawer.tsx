@@ -530,6 +530,8 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   const processedJobIdsForCredits = useRef<Set<string>>(new Set());
   // Track jobs already processed for entity data refresh to avoid duplicate invalidations.
   const processedJobIdsForEntityRefresh = useRef<Set<string>>(new Set());
+  // Track terminal jobs already used for immediate refetch.
+  const processedTerminalRefreshJobIds = useRef<Set<string>>(new Set());
   // Track previous jobs state to prevent infinite loops
   const previousJobsHash = useRef<string>('');
   // GSI eventual consistency: retry counter when initial load returns 0 jobs (max 3 retries with exponential backoff)
@@ -1224,6 +1226,15 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
           updated.status !== job.status ||
           updated.progress !== job.progress ||
           (updated.results && !job.results);
+        if (isTerminal && !processedTerminalRefreshJobIds.current.has(updated.jobId)) {
+          processedTerminalRefreshJobIds.current.add(updated.jobId);
+          // Immediate refresh path so open detail modals update without waiting for downstream effects.
+          queryClient.refetchQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
+          queryClient.refetchQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
+          queryClient.refetchQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
+          queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] });
+          queryClient.refetchQueries({ queryKey: ['media', 'presigned-urls'], exact: false });
+        }
         if (isTerminal || changed) updates.push(updated);
       }
 
@@ -1549,6 +1560,58 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
     }
   };
 
+  const getFailureSummary = (job: WorkflowJob) => {
+    const failedAngles = job.results?.failedAngles?.length || 0;
+    const failedBackgrounds = job.results?.failedBackgrounds?.length || 0;
+    const failedPoses = job.results?.failedPoses?.length || 0;
+    const failedCount = failedAngles + failedBackgrounds + failedPoses;
+
+    const successCount =
+      (job.results?.angleReferences?.length || 0) +
+      (job.results?.backgroundReferences?.length || 0) +
+      (job.results?.images?.length || 0) +
+      (job.results?.poses?.length || 0);
+
+    return { failedCount, successCount };
+  };
+
+  const hasRateLimit429 = (job: WorkflowJob) => {
+    const errors = [
+      ...(job.results?.failedAngles?.map((f) => f.error || '') || []),
+      ...(job.results?.failedBackgrounds?.map((f) => f.error || '') || []),
+      ...(job.results?.failedPoses?.map((f) => f.error || '') || []),
+      job.error || '',
+    ].join(' ').toLowerCase();
+
+    return (
+      errors.includes('429') ||
+      errors.includes('resource_exhausted') ||
+      errors.includes('quota') ||
+      errors.includes('rate limit')
+    );
+  };
+
+  const getEffectiveStatus = (job: WorkflowJob): 'queued' | 'running' | 'completed' | 'failed' | 'partial' => {
+    if (job.status !== 'completed') return job.status;
+    const { failedCount, successCount } = getFailureSummary(job);
+    if (failedCount > 0 && successCount === 0) return 'failed';
+    if (failedCount > 0 && successCount > 0) return 'partial';
+    return 'completed';
+  };
+
+  const getStatusBadgeForJob = (job: WorkflowJob) => {
+    const effectiveStatus = getEffectiveStatus(job);
+    if (effectiveStatus === 'partial') {
+      return (
+        <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-medium bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300">
+          <AlertCircle className="w-2.5 h-2.5" />
+          Partial
+        </span>
+      );
+    }
+    return getStatusBadge(effectiveStatus as WorkflowJob['status']);
+  };
+
 
   /**
    * Calculate estimated remaining time for a running job
@@ -1664,7 +1727,7 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
                       <h4 className="text-xs font-semibold text-[#E5E7EB] truncate">
                         {getJobDisplayName(job)}
                       </h4>
-                      {getStatusBadge(job.status)}
+                      {getStatusBadgeForJob(job)}
                     </div>
                     <p className="text-[10px] text-[#808080]">
                       {formatTime(job.createdAt)} · {job.creditsUsed} credits
@@ -1712,6 +1775,27 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
                     </div>
                   </div>
                 )}
+
+                {job.status === 'completed' && job.results && (() => {
+                  const { failedCount } = getFailureSummary(job);
+                  if (failedCount === 0) return null;
+                  const is429 = hasRateLimit429(job);
+                  return (
+                    <div className="p-2 rounded bg-amber-900/20 border border-amber-800 mb-2">
+                      <div className="flex items-start gap-1.5">
+                        <AlertCircle className="w-3 h-3 text-amber-400 flex-shrink-0 mt-0.5" />
+                        <div className="text-[10px] text-amber-200 space-y-0.5">
+                          <p>{failedCount} generation attempt{failedCount !== 1 ? 's' : ''} failed.</p>
+                          {is429 ? (
+                            <p>Provider rate-limited (429). Please retry shortly; failed attempts are refunded.</p>
+                          ) : (
+                            <p>Some items failed. Failed attempts are refunded automatically.</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* Results (for completed jobs) - Compact view */}
                 {job.status === 'completed' && job.results && (
