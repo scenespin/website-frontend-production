@@ -148,6 +148,11 @@ export function LocationBankPanel({
       const token = await getToken({ template: 'wryda-backend' });
       if (!token) throw new Error('Not authenticated');
 
+      const isMetadataEdit =
+        updates.name !== undefined ||
+        updates.description !== undefined ||
+        updates.type !== undefined;
+
       const apiUpdates: any = {};
       
       if (updates.angleVariations !== undefined) {
@@ -174,7 +179,11 @@ export function LocationBankPanel({
         throw new Error(errorData.error || `Failed to update location: ${response.status}`);
       }
 
-      toast.success('Location updated successfully');
+      // Avoid double toasts for media operations (delete/regenerate/bulk updates),
+      // where child components already show specific success messages.
+      if (isMetadataEdit) {
+        toast.success('Location updated successfully');
+      }
       
       // Same pattern as angle delete: invalidate + delayed refetch (angles, backgrounds, ECU all use this path)
       queryClient.removeQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
