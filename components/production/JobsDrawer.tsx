@@ -1591,6 +1591,14 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
     );
   };
 
+  const getUserFacingFailureMessage = (job: WorkflowJob) => {
+    const is429 = hasRateLimit429(job);
+    if (is429) {
+      return 'The selected model is currently busy. Please retry shortly or switch models. Failed attempts are refunded.';
+    }
+    return 'Some generation attempts failed. Please retry. Failed attempts are refunded automatically.';
+  };
+
   const getEffectiveStatus = (job: WorkflowJob): 'queued' | 'running' | 'completed' | 'failed' | 'partial' => {
     if (job.status !== 'completed') return job.status;
     const { failedCount, successCount } = getFailureSummary(job);
@@ -1771,7 +1779,7 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
                   <div className="p-2 rounded bg-red-900/20 border border-red-800 mb-2">
                     <div className="flex items-start gap-1.5">
                       <AlertCircle className="w-3 h-3 text-red-400 flex-shrink-0 mt-0.5" />
-                      <p className="text-[10px] text-red-300">{job.error}</p>
+                      <p className="text-[10px] text-red-300">{getUserFacingFailureMessage(job)}</p>
                     </div>
                   </div>
                 )}
@@ -1779,18 +1787,13 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
                 {job.status === 'completed' && job.results && (() => {
                   const { failedCount } = getFailureSummary(job);
                   if (failedCount === 0) return null;
-                  const is429 = hasRateLimit429(job);
                   return (
                     <div className="p-2 rounded bg-amber-900/20 border border-amber-800 mb-2">
                       <div className="flex items-start gap-1.5">
                         <AlertCircle className="w-3 h-3 text-amber-400 flex-shrink-0 mt-0.5" />
                         <div className="text-[10px] text-amber-200 space-y-0.5">
                           <p>{failedCount} generation attempt{failedCount !== 1 ? 's' : ''} failed.</p>
-                          {is429 ? (
-                            <p>Provider rate-limited (429). Please retry shortly; failed attempts are refunded.</p>
-                          ) : (
-                            <p>Some items failed. Failed attempts are refunded automatically.</p>
-                          )}
+                          <p>{getUserFacingFailureMessage(job)}</p>
                         </div>
                       </div>
                     </div>
