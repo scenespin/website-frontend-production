@@ -756,11 +756,8 @@ export function LocationDetailModal({
 
   const getDisplayUrl = useCallback((img: { s3Key: string; imageUrl?: string }) => {
     const file = mediaFileMap.get(img.s3Key);
-    if (!file) {
-      return appendFlipCacheBust(img.imageUrl || '', img.s3Key);
-    }
     const resolved = getMediaFileDisplayUrl(
-      file,
+      file ?? { ...img, storageType: 'local' as const, s3Key: img.s3Key },
       presignedMapsForDisplay,
       dropboxUrlMap
     ) || img.imageUrl || '';
@@ -772,7 +769,7 @@ export function LocationDetailModal({
     const enriched = payloadImages.map(img => ({
       ...img,
       imageUrl: getDisplayUrl(img) || img.imageUrl || ''
-    })).filter(img => !!img.imageUrl);
+    }));
     const typeOrder = (i: typeof enriched[0]) => {
       if (i.isBase || (!i.isAngle && !i.isBackground)) return 0;
       if (i.isAngle) return 1;
