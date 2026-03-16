@@ -341,6 +341,7 @@ export function ImageViewer({
 
   // Get current image with resolved URL
   const [currentImageUrl, setCurrentImageUrl] = useState<string>('');
+  const lastResolvedMediaKeyRef = useRef<string>('');
 
   // Memoize current image and media type for performance (must be before useEffects that use them)
   const currentImage = useMemo(() => displayImages[currentIndex], [displayImages, currentIndex]);
@@ -365,6 +366,18 @@ export function ImageViewer({
     if (!isOpen || !currentImage) {
       setCurrentImageUrl('');
       setIsLoading(false);
+      lastResolvedMediaKeyRef.current = '';
+      return;
+    }
+
+    // Avoid spinner loops when polling refreshes the same image object.
+    // Use a stable media key (prefer s3Key) so presigned URL token churn does not retrigger loading.
+    const currentMediaKey = currentImage.s3Key
+      ? `${currentImage.id}|${currentImage.s3Key}|${currentMediaType}`
+      : `${currentImage.id}|${currentImage.url || ''}|${currentMediaType}`;
+    const isSameResolvedMedia =
+      lastResolvedMediaKeyRef.current === currentMediaKey && !!currentImageUrl;
+    if (isSameResolvedMedia) {
       return;
     }
 
@@ -382,21 +395,24 @@ export function ImageViewer({
             setCurrentImageUrl(currentImage.url || '');
           }
           // Videos handle their own loading state
+          lastResolvedMediaKeyRef.current = currentMediaKey;
           setIsLoading(false);
         } else {
           const url = await getImageUrl(currentImage);
           setCurrentImageUrl(url);
+          lastResolvedMediaKeyRef.current = currentMediaKey;
           // Image onLoad will set isLoading to false
         }
       } catch (error) {
         console.error('[ImageViewer] Failed to load media URL:', error);
         setCurrentImageUrl(currentImage.url || '');
+        lastResolvedMediaKeyRef.current = currentMediaKey;
         setIsLoading(false);
       }
     };
 
     loadMediaUrl();
-  }, [isOpen, currentIndex, currentImage, currentMediaType, getImageUrl]);
+  }, [isOpen, currentIndex, currentImage, currentMediaType, currentImageUrl, getImageUrl]);
 
   // Handler functions (must be defined before useEffects that use them)
   const enterFullscreen = useCallback(async () => {
