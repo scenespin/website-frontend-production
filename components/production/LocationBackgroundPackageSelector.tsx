@@ -24,6 +24,17 @@ interface LocationBackgroundPackage {
 }
 
 type LocationSceneType = 'interior' | 'exterior' | 'mixed';
+const SCENE_LABELS: Record<LocationSceneType, string> = {
+  interior: 'Interior',
+  exterior: 'Exterior',
+  mixed: 'Mixed (INT/EXT)'
+};
+
+const formatBackgroundType = (value: string): string =>
+  value
+    .split('-')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ');
 
 const SINGLE_BACKGROUND_TYPES_BY_SCENE: Record<LocationSceneType, Array<{ id: string; name: string; description: string }>> = {
   interior: [
@@ -203,6 +214,9 @@ export default function LocationBackgroundPackageSelector({
       <div className="space-y-3">
         <div className="flex items-center gap-2 text-xs text-[#808080] mb-2">
           <span>More backgrounds = better variety for close-up shots</span>
+          <span className="px-2 py-0.5 rounded-full border border-cyan-500/40 text-cyan-300 bg-cyan-500/10">
+            Scene: {SCENE_LABELS[normalizedLocationType]}
+          </span>
         </div>
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2">
         {packages.map((pkg) => {
@@ -269,10 +283,7 @@ export default function LocationBackgroundPackageSelector({
                   <div className="text-[9px] text-[#808080] mt-1">
                     <div className="flex flex-wrap gap-1">
                       {pkg.backgroundTypes.map((bgType, idx) => {
-                        const formatted = bgType
-                          .split('-')
-                          .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                          .join(' ');
+                        const formatted = formatBackgroundType(bgType);
                         return (
                           <span key={idx} className="px-1.5 py-0.5 bg-cyan-500/20 text-cyan-300 rounded border border-cyan-500/30">
                             {formatted}
@@ -333,9 +344,12 @@ export default function LocationBackgroundPackageSelector({
         <h2 className="text-2xl font-bold text-gray-100 mb-2">
           Choose Background Package for {locationName}
         </h2>
-        <p className="text-base-content/60">
+        <p className="text-base-content/60 mb-2">
           More backgrounds = better variety for close-up shots and dialogue scenes
         </p>
+        <div className="inline-flex px-3 py-1 rounded-full border border-cyan-500/40 text-cyan-300 bg-cyan-500/10 text-xs font-medium">
+          Scene: {SCENE_LABELS[normalizedLocationType]} (from location type metadata)
+        </div>
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
@@ -419,10 +433,7 @@ export default function LocationBackgroundPackageSelector({
               <div className="mb-4 space-y-2 max-h-48 overflow-y-auto">
                 <div className="flex flex-wrap gap-1.5">
                   {pkg.backgroundTypes.map((bgType, idx) => {
-                    const formatted = bgType
-                      .split('-')
-                      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
-                      .join(' ');
+                    const formatted = formatBackgroundType(bgType);
                     return (
                       <span
                         key={idx}
@@ -494,9 +505,9 @@ export default function LocationBackgroundPackageSelector({
         <div className="flex items-start">
           <Image className="w-5 h-5 text-blue-400 mr-3 flex-shrink-0 mt-0.5" />
           <div className="text-sm text-base-content/70">
-            <strong className="text-base-content">Pro Tip:</strong> Backgrounds are close-up views of specific areas 
-            (windows, walls, textures, furniture) perfect for dialogue shots and close-ups. They're grouped with location 
-            angles by metadata (time of day, weather) for easy selection.
+            <strong className="text-base-content">Pro Tip:</strong> Background package contents are scene-aware and adapt from
+            location metadata ({SCENE_LABELS[normalizedLocationType]}). Labels shown on each card are the exact background
+            types that will be generated for that scene.
           </div>
         </div>
       </div>
