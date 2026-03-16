@@ -528,6 +528,8 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   
   // Track which jobs we've already processed for credit refresh (avoid duplicates)
   const processedJobIdsForCredits = useRef<Set<string>>(new Set());
+  // Track jobs already processed for entity data refresh to avoid duplicate invalidations.
+  const processedJobIdsForEntityRefresh = useRef<Set<string>>(new Set());
   // Track previous jobs state to prevent infinite loops
   const previousJobsHash = useRef<string>('');
   // GSI eventual consistency: retry counter when initial load returns 0 jobs (max 3 retries with exponential backoff)
@@ -1218,7 +1220,10 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
         optimisticPlaceholdersRef.current.delete(updated.jobId);
         trackedJobIdsRef.current.add(updated.jobId);
         const isTerminal = updated.status === 'completed' || updated.status === 'failed';
-        const changed = updated.status !== job.status || (updated.results && !job.results);
+        const changed =
+          updated.status !== job.status ||
+          updated.progress !== job.progress ||
+          (updated.results && !job.results);
         if (isTerminal || changed) updates.push(updated);
       }
 
@@ -1408,6 +1413,31 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
       }
     }
   }, [jobs, isOpen]);
+
+  /**
+   * Refresh entity/media queries when generation jobs complete so open detail modals update immediately.
+   * This handles the "jobs drawer open but location modal stale" case even if in-flight poller tracking misses a job ID.
+   */
+  useEffect(() => {
+    const newlyCompletedEntityJobs = jobs.filter((job) => {
+      if (job.status !== 'completed') return false;
+      if (processedJobIdsForEntityRefresh.current.has(job.jobId)) return false;
+      return job.jobType === 'image-generation' || job.jobType === 'pose-generation';
+    });
+
+    if (newlyCompletedEntityJobs.length === 0) return;
+
+    newlyCompletedEntityJobs.forEach((job) => {
+      processedJobIdsForEntityRefresh.current.add(job.jobId);
+    });
+
+    // Refresh bank data + media so cards and open detail modals receive latest generated angles/backgrounds.
+    queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
+    queryClient.invalidateQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
+    queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
+    queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
+    queryClient.invalidateQueries({ queryKey: ['media', 'presigned-urls'], exact: false });
+  }, [jobs, screenplayId, queryClient]);
 
   /**
    * Check for safety errors in completed jobs
