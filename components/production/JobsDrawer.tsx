@@ -671,37 +671,41 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   /**
    * Helper function for downloading audio files via blob
    */
+  const resolveAuthorizedDownloadUrl = async (fallbackUrl: string, s3Key?: string): Promise<string> => {
+    if (!s3Key) return fallbackUrl;
+    const token = await getToken({ template: 'wryda-backend' });
+    if (!token) return fallbackUrl;
+    const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+    const presignedResponse = await fetch(`${BACKEND_API_URL}/api/s3/download-url`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${token}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        s3Key: s3Key,
+        expiresIn: 3600,
+      }),
+    });
+    if (!presignedResponse.ok) {
+      throw new Error(`Failed to generate presigned URL: ${presignedResponse.status}`);
+    }
+    const presignedData = await presignedResponse.json();
+    return presignedData.downloadUrl || fallbackUrl;
+  };
+
+  const isLikelyVideoOutput = (s3Key?: string, url?: string, label?: string): boolean => {
+    const haystack = `${s3Key || ''} ${url || ''} ${label || ''}`.toLowerCase();
+    return haystack.includes('.mp4') || haystack.includes('video');
+  };
+
   const downloadAudioAsBlob = async (audioUrl: string, filename: string, s3Key?: string) => {
     try {
       let downloadUrl = audioUrl;
-      
-      if (s3Key) {
-        try {
-          const token = await getToken({ template: 'wryda-backend' });
-          if (!token) throw new Error('Not authenticated');
-          
-          const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
-          const presignedResponse = await fetch(`${BACKEND_API_URL}/api/s3/download-url`, {
-            method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`,
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
-              s3Key: s3Key,
-              expiresIn: 3600,
-            }),
-          });
-          
-          if (!presignedResponse.ok) {
-            throw new Error(`Failed to generate presigned URL: ${presignedResponse.status}`);
-          }
-          
-          const presignedData = await presignedResponse.json();
-          downloadUrl = presignedData.downloadUrl;
-        } catch (error) {
-          console.error('[JobsDrawer] Failed to get presigned URL, using original URL:', error);
-        }
+      try {
+        downloadUrl = await resolveAuthorizedDownloadUrl(audioUrl, s3Key);
+      } catch (error) {
+        console.error('[JobsDrawer] Failed to get presigned URL, using original URL:', error);
       }
       
       const response = await fetch(downloadUrl);
@@ -723,6 +727,29 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
       console.error('[JobsDrawer] Failed to download audio:', error);
       toast.error('Failed to download audio', { description: error.message });
       throw error;
+    }
+  };
+
+  const playMediaFromBlob = async (mediaUrl: string, s3Key?: string) => {
+    try {
+      const downloadUrl = await resolveAuthorizedDownloadUrl(mediaUrl, s3Key);
+      const response = await fetch(downloadUrl);
+      if (!response.ok) throw new Error(`Failed to fetch media: ${response.statusText}`);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const opened = window.open(blobUrl, '_blank', 'noopener,noreferrer');
+      if (!opened) {
+        const link = document.createElement('a');
+        link.href = blobUrl;
+        link.target = '_blank';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+      }
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
+    } catch (error: any) {
+      console.error('[JobsDrawer] Failed to play media:', error);
+      toast.error('Failed to open media preview', { description: error.message });
     }
   };
 
@@ -1845,7 +1872,15 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
                       {(job.jobType === 'audio-generation' || job.jobType === 'dubbing') && job.results.audio && (
                         <span className="flex items-center gap-0.5">
                           <Play className="w-2.5 h-2.5" />
-                          {job.results.audio.length} audio
+                          {(() => {
+                            const videoCount = (job.results.audio || []).filter((a: any) =>
+                              isLikelyVideoOutput(a?.s3Key, a?.audioUrl, a?.label)
+                            ).length;
+                            if (job.jobType === 'dubbing' && videoCount > 0) {
+                              return `${videoCount} video${videoCount > 1 ? 's' : ''}`;
+                            }
+                            return `${job.results.audio.length} audio`;
+                          })()}
                         </span>
                       )}
                       {job.jobType === 'complete-scene' && job.results.videos && (
@@ -2132,25 +2167,36 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
                       {(job.jobType === 'audio-generation' || job.jobType === 'dubbing') && job.results.audio && job.results.audio.length > 0 && (
                         <>
                           {job.results.audio.slice(0, 4).map((audio, index) => (
-                            <button
-                              key={`${audio.s3Key || audio.audioUrl}-${index}`}
-                              type="button"
-                              onClick={() => {
-                                const filenameBase =
-                                  audio.label ||
-                                  (job.jobType === 'dubbing'
-                                    ? `Dubbed-${job.metadata?.inputs?.targetLanguageName || job.metadata?.inputs?.targetLanguage || index + 1}`
-                                    : `Audio-${index + 1}`);
-                                const filename = `${String(filenameBase).replace(/[^a-zA-Z0-9-_. ]/g, '-').trim() || `audio-${index + 1}`}`;
-                                void downloadAudioAsBlob(audio.audioUrl, filename, audio.s3Key).catch(() => {
-                                  toast.error('Failed to download audio');
-                                });
-                              }}
-                              className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium bg-[#DC143C] text-white hover:bg-[#B91C1C] transition-colors"
-                            >
-                              <Download className="w-2.5 h-2.5" />
-                              {audio.label ? String(audio.label).slice(0, 14) : `Audio ${index + 1}`}
-                            </button>
+                            <div key={`${audio.s3Key || audio.audioUrl}-${index}`} className="inline-flex items-center gap-1">
+                              {job.jobType === 'dubbing' && isLikelyVideoOutput(audio.s3Key, audio.audioUrl, audio.label) && (
+                                <button
+                                  type="button"
+                                  onClick={() => void playMediaFromBlob(audio.audioUrl, audio.s3Key)}
+                                  className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium bg-[#1F8A45] text-white hover:bg-[#17753A] transition-colors"
+                                >
+                                  <Play className="w-2.5 h-2.5" />
+                                  Play
+                                </button>
+                              )}
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  const filenameBase =
+                                    audio.label ||
+                                    (job.jobType === 'dubbing'
+                                      ? `Dubbed-${job.metadata?.inputs?.targetLanguageName || job.metadata?.inputs?.targetLanguage || index + 1}`
+                                      : `Audio-${index + 1}`);
+                                  const filename = `${String(filenameBase).replace(/[^a-zA-Z0-9-_. ]/g, '-').trim() || `audio-${index + 1}`}`;
+                                  void downloadAudioAsBlob(audio.audioUrl, filename, audio.s3Key).catch(() => {
+                                    toast.error('Failed to download audio');
+                                  });
+                                }}
+                                className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium bg-[#DC143C] text-white hover:bg-[#B91C1C] transition-colors"
+                              >
+                                <Download className="w-2.5 h-2.5" />
+                                {audio.label ? String(audio.label).slice(0, 14) : `Audio ${index + 1}`}
+                              </button>
+                            </div>
                           ))}
                         </>
                       )}
