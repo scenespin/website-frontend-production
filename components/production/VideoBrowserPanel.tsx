@@ -47,6 +47,10 @@ export interface VideoBrowserEntry {
   aspectRatio?: string | null;
   /** Stable key for list (fileId or scene-shot-timestamp) */
   entryKey: string;
+  /** Media folder context for re-registered outputs (e.g., dubbing) */
+  folderId?: string | null;
+  /** Source media row id for backend lookup fallback */
+  sourceFileId?: string | null;
   /** Dubbing metadata */
   isDubbed?: boolean;
   dubbedLanguage?: string | null;
@@ -120,7 +124,8 @@ function formatTimestamp(ts: string): string {
 
 function buildVideoEntries(
   scenes: ShotBoardScene[],
-  presignedUrls: Map<string, string>
+  presignedUrls: Map<string, string>,
+  mediaContextByS3Key: Map<string, { folderId?: string | null; sourceFileId?: string | null }>
 ): VideoBrowserEntry[] {
   const entries: VideoBrowserEntry[] = [];
   for (const scene of scenes) {
@@ -131,6 +136,7 @@ function buildVideoEntries(
         const metadata = (variation.video as any).metadata || {};
         const videoTimestamp = metadata.timestamp || variation.timestamp;
         const aspectRatio = getVideoAspectRatio(metadata);
+        const mediaContext = mediaContextByS3Key.get(variation.video.s3Key);
         entries.push({
           sceneNumber: scene.sceneNumber,
           sceneHeading: scene.sceneHeading,
@@ -145,6 +151,8 @@ function buildVideoEntries(
           videoProvider: metadata.videoProvider ?? metadata.videoModel ?? null,
           providerDisplayLabel: metadata.providerDisplayLabel ?? null,
           aspectRatio,
+          folderId: mediaContext?.folderId ?? null,
+          sourceFileId: mediaContext?.sourceFileId ?? null,
           isDubbed: metadata.isDubbed === true,
           dubbedLanguage: metadata.targetLanguageName || metadata.targetLanguageCode || null,
           entryKey: `${scene.sceneId}-${shot.shotNumber}-${videoTimestamp}`,
@@ -179,6 +187,8 @@ function buildStandaloneEntries(
         videoProvider: metadata.videoProvider ?? metadata.videoModel ?? null,
         providerDisplayLabel: metadata.providerDisplayLabel ?? null,
         aspectRatio,
+        folderId: (file as any).folderId || null,
+        sourceFileId: (file as any).fileId || (file as any).id || null,
         isDubbed: metadata.isDubbed === true,
         dubbedLanguage: metadata.targetLanguageName || metadata.targetLanguageCode || null,
         entryKey: (file as any).id || file.s3Key || `standalone-${index}`,
@@ -292,13 +302,25 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
     currentSection === 'scene' && dubbedSceneS3Keys.length > 0
   );
 
+  const mediaContextByS3Key = useMemo(() => {
+    const map = new Map<string, { folderId?: string | null; sourceFileId?: string | null }>();
+    for (const file of allMediaFiles) {
+      if (!file?.s3Key) continue;
+      map.set(file.s3Key, {
+        folderId: (file as any).folderId || null,
+        sourceFileId: (file as any).fileId || (file as any).id || null,
+      });
+    }
+    return map;
+  }, [allMediaFiles]);
+
   const sceneEntries = useMemo(() => {
-    const baseSceneEntries = buildVideoEntries(scenes, presignedUrls);
+    const baseSceneEntries = buildVideoEntries(scenes, presignedUrls, mediaContextByS3Key);
     const dubbedEntries = buildStandaloneEntries(dubbedSceneFiles, dubbedScenePresignedUrls);
     const existingKeys = new Set(baseSceneEntries.map((e) => e.videoS3Key));
     const dedupedDubbed = dubbedEntries.filter((e) => !existingKeys.has(e.videoS3Key));
     return [...baseSceneEntries, ...dedupedDubbed];
-  }, [scenes, presignedUrls, dubbedSceneFiles, dubbedScenePresignedUrls]);
+  }, [scenes, presignedUrls, mediaContextByS3Key, dubbedSceneFiles, dubbedScenePresignedUrls]);
   const standaloneEntries = useMemo(
     () => buildStandaloneEntries(standaloneFiles.filter((file) => !isDubbedSceneLinkedVideo(file)), standalonePresignedUrls),
     [standaloneFiles, standalonePresignedUrls]
@@ -531,8 +553,10 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
           targetLanguage,
           audioUrl: sourceUrl,
           sourceS3Key: dubDialogEntry.videoS3Key,
+          sourceFileId: dubDialogEntry.sourceFileId,
           sourceFileName: dubDialogEntry.videoFileName,
           sourceProviderDisplayLabel: dubDialogEntry.providerDisplayLabel,
+          folderId: dubDialogEntry.folderId,
           sceneId: dubDialogEntry.sceneId,
           sceneHeading: dubDialogEntry.sceneHeading,
           sceneNumber: dubDialogEntry.sceneNumber,
