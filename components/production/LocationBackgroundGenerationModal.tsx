@@ -432,6 +432,7 @@ export default function LocationBackgroundGenerationModal({
                       }}
                       selectedPackageId={selectedPackageId}
                       creditsPerImage={creditsPerImage}
+                      locationType={locationProfile?.type || location?.type || 'interior'}
                       // 🔥 Feature 0190: Single background type selection
                       selectedBackgroundType={selectedBackgroundType}
                       onSelectedBackgroundTypeChange={setSelectedBackgroundType}

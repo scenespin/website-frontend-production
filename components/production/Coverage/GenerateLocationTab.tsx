@@ -35,6 +35,11 @@ const BACKGROUND_TYPE_LABELS: Record<string, string> = {
   'corner-detail': 'Corner Detail',
   'furniture': 'Furniture',
   'architectural-feature': 'Architectural Feature',
+  'ground-plane': 'Ground Plane',
+  'facade': 'Facade',
+  'foliage': 'Foliage',
+  'skyline': 'Skyline',
+  'street-edge': 'Street Edge',
   'custom': 'Custom',
   'ecu-soft': 'ECU Soft'
 };
@@ -1087,6 +1092,7 @@ export function GenerateLocationTab({
               selectedPackageId={selectedBackgroundPackageId}
               creditsPerImage={creditsPerImage}
               compact={true}
+              locationType={locationProfile?.type || location?.type || 'interior'}
               selectedBackgroundType={selectedBackgroundType}
               onSelectedBackgroundTypeChange={setSelectedBackgroundType}
             />

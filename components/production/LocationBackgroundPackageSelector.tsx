@@ -8,7 +8,7 @@
  * 🔥 Feature 0190: Added 'single' package option for single image generation
  */
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Check, Sparkles, Zap, Star, Image, ImageIcon } from 'lucide-react';
 
@@ -23,14 +23,29 @@ interface LocationBackgroundPackage {
   discount: number;
 }
 
-// Phase 0 cleanup: keep only core background types for single/package selection.
-// ECU-style remains controlled by Extreme Close-up options (ecu-soft in premium).
-const ALL_BACKGROUND_TYPES = [
-  { id: 'window', name: 'Window', description: 'View through or near a window' },
-  { id: 'wall', name: 'Wall', description: 'Plain or decorated wall surface' },
-  { id: 'texture', name: 'Texture', description: 'Detailed surface texture close-up' },
-  { id: 'furniture', name: 'Furniture', description: 'Furniture or fixture background' }
-];
+type LocationSceneType = 'interior' | 'exterior' | 'mixed';
+
+const SINGLE_BACKGROUND_TYPES_BY_SCENE: Record<LocationSceneType, Array<{ id: string; name: string; description: string }>> = {
+  interior: [
+    { id: 'window', name: 'Window', description: 'View through or near a window' },
+    { id: 'wall', name: 'Wall', description: 'Plain or decorated wall surface' },
+    { id: 'texture', name: 'Texture', description: 'Detailed surface texture close-up' },
+    { id: 'furniture', name: 'Furniture', description: 'Furniture or fixture background' },
+  ],
+  exterior: [
+    { id: 'ground-plane', name: 'Ground Plane', description: 'Ground-level surface and paving close-up' },
+    { id: 'facade', name: 'Facade', description: 'Exterior facade, wall, or frontage detail' },
+    { id: 'foliage', name: 'Foliage', description: 'Vegetation and landscaping background' },
+    { id: 'skyline', name: 'Skyline', description: 'Open sky and distant horizon context' },
+    { id: 'street-edge', name: 'Street Edge', description: 'Street-side edge, curb, or boundary context' },
+  ],
+  mixed: [
+    { id: 'window', name: 'Window', description: 'Interior framing with visible exterior context' },
+    { id: 'wall', name: 'Wall', description: 'Interior wall or partition background' },
+    { id: 'ground-plane', name: 'Ground Plane', description: 'Ground-level continuity in mixed space' },
+    { id: 'street-edge', name: 'Street Edge', description: 'Interior/exterior threshold edge context' },
+  ],
+};
 
 interface LocationBackgroundPackageSelectorProps {
   locationName: string;
@@ -39,6 +54,7 @@ interface LocationBackgroundPackageSelectorProps {
   disabled?: boolean;
   creditsPerImage?: number; // Credits per image from selected model
   compact?: boolean; // 🔥 NEW: Compact mode for smaller display
+  locationType?: LocationSceneType;
   // 🔥 Feature 0190: Single background type selection
   selectedBackgroundType?: string;
   onSelectedBackgroundTypeChange?: (backgroundTypeId: string) => void;
@@ -65,10 +81,32 @@ export default function LocationBackgroundPackageSelector({
   disabled = false,
   creditsPerImage = 20, // Default to 20 credits if not provided
   compact = false, // 🔥 NEW: Compact mode
+  locationType = 'interior',
   // 🔥 Feature 0190: Single background type selection
   selectedBackgroundType,
   onSelectedBackgroundTypeChange
 }: LocationBackgroundPackageSelectorProps) {
+  const normalizedLocationType: LocationSceneType = locationType || 'interior';
+  const singleTypeOptions = SINGLE_BACKGROUND_TYPES_BY_SCENE[normalizedLocationType] || SINGLE_BACKGROUND_TYPES_BY_SCENE.interior;
+  const packageBackgroundTypesByScene: Record<LocationSceneType, Record<'basic' | 'standard' | 'premium', string[]>> = {
+    interior: {
+      basic: ['window', 'wall'],
+      standard: ['window', 'wall', 'texture', 'furniture'],
+      premium: ['window', 'wall', 'texture', 'furniture', 'ecu-soft'],
+    },
+    exterior: {
+      basic: ['ground-plane', 'facade'],
+      standard: ['ground-plane', 'facade', 'foliage', 'skyline'],
+      premium: ['ground-plane', 'facade', 'foliage', 'skyline', 'street-edge'],
+    },
+    mixed: {
+      basic: ['window', 'ground-plane'],
+      standard: ['window', 'wall', 'ground-plane', 'street-edge'],
+      premium: ['window', 'wall', 'ground-plane', 'street-edge', 'ecu-soft'],
+    },
+  };
+  const scenePackageTypes = packageBackgroundTypesByScene[normalizedLocationType] || packageBackgroundTypesByScene.interior;
+
   
   // Calculate credits dynamically based on selected model
   const calculatePackageCredits = (backgroundCount: number): number => {
@@ -90,7 +128,7 @@ export default function LocationBackgroundPackageSelector({
     {
       id: 'basic',
       name: 'Basic Package',
-      backgroundTypes: ['window', 'wall'],
+      backgroundTypes: scenePackageTypes.basic,
       credits: calculatePackageCredits(2), // 2 backgrounds × creditsPerImage
       consistencyRating: 70,
       description: 'Essential 2 backgrounds for quick close-up coverage',
@@ -100,7 +138,7 @@ export default function LocationBackgroundPackageSelector({
     {
       id: 'standard',
       name: 'Standard Package',
-      backgroundTypes: ['window', 'wall', 'texture', 'furniture'],
+      backgroundTypes: scenePackageTypes.standard,
       credits: calculatePackageCredits(4), // 4 backgrounds × creditsPerImage
       consistencyRating: 85,
       description: '4 core backgrounds for comprehensive dialogue coverage',
@@ -110,7 +148,7 @@ export default function LocationBackgroundPackageSelector({
     {
       id: 'premium',
       name: 'Premium Package',
-      backgroundTypes: ['window', 'wall', 'texture', 'furniture', 'ecu-soft'], // Keep ECU support for extreme close-up workflows
+      backgroundTypes: scenePackageTypes.premium,
       credits: calculatePackageCredits(5), // 5 backgrounds × creditsPerImage
       consistencyRating: 92,
       description: '5 backgrounds including ECU soft for extreme close-up workflows',
@@ -128,21 +166,21 @@ export default function LocationBackgroundPackageSelector({
       ...pkg,
       credits: pkg.id === 'single' ? creditsPerImage : calculateCredits(pkg.backgroundTypes.length)
     })));
-  }, [creditsPerImage]);
+  }, [creditsPerImage, normalizedLocationType]);
   
   // 🔥 FIX: Normalize selectedBackgroundType to always be a string (never undefined). ECU for single is checkbox only—ecu-soft removed from dropdown.
-  const singleTypeIds = ALL_BACKGROUND_TYPES.map((t) => t.id);
+  const singleTypeIds = useMemo(() => singleTypeOptions.map((t) => t.id), [singleTypeOptions]);
   const normalizedSelectedBackgroundType =
-    selectedBackgroundType && singleTypeIds.includes(selectedBackgroundType) ? selectedBackgroundType : 'window';
+    selectedBackgroundType && singleTypeIds.includes(selectedBackgroundType) ? selectedBackgroundType : singleTypeIds[0];
 
   // 🔥 FIX: Only auto-select when package FIRST becomes 'single', not on every render
   const hasInitializedRef = useRef<string>('');
   // When single is selected and stored type was ecu-soft (no longer in dropdown), sync parent to window
   useEffect(() => {
-    if (selectedPackageId === 'single' && selectedBackgroundType === 'ecu-soft' && onSelectedBackgroundTypeChange) {
-      onSelectedBackgroundTypeChange('window');
+    if (selectedPackageId === 'single' && selectedBackgroundType && !singleTypeIds.includes(selectedBackgroundType) && onSelectedBackgroundTypeChange) {
+      onSelectedBackgroundTypeChange(singleTypeIds[0]);
     }
-  }, [selectedPackageId, selectedBackgroundType, onSelectedBackgroundTypeChange]);
+  }, [selectedPackageId, selectedBackgroundType, onSelectedBackgroundTypeChange, singleTypeIds]);
 
   // 🔥 Feature 0190: Auto-select first background type when single package is selected
   useEffect(() => {
@@ -150,12 +188,12 @@ export default function LocationBackgroundPackageSelector({
         hasInitializedRef.current !== selectedPackageId &&
         !selectedBackgroundType &&
         onSelectedBackgroundTypeChange) {
-      onSelectedBackgroundTypeChange('window'); // Default to window
+      onSelectedBackgroundTypeChange(singleTypeIds[0]);
       hasInitializedRef.current = selectedPackageId;
     } else if (selectedPackageId !== 'single') {
       hasInitializedRef.current = '';
     }
-  }, [selectedPackageId, selectedBackgroundType, onSelectedBackgroundTypeChange]);
+  }, [selectedPackageId, selectedBackgroundType, onSelectedBackgroundTypeChange, singleTypeIds]);
   
   if (compact) {
     // Compact horizontal layout
@@ -274,7 +312,7 @@ export default function LocationBackgroundPackageSelector({
               disabled={disabled}
               className="w-full px-3 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded-lg text-white text-sm focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-transparent"
             >
-              {ALL_BACKGROUND_TYPES.map((bgType) => (
+              {singleTypeOptions.map((bgType) => (
                 <option key={bgType.id} value={bgType.id}>
                   {bgType.name} - {bgType.description}
                 </option>
@@ -437,7 +475,7 @@ export default function LocationBackgroundPackageSelector({
             disabled={disabled}
             className="w-full px-4 py-2.5 bg-base-200 border border-base-content/20 rounded-lg text-base-content text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
           >
-            {ALL_BACKGROUND_TYPES.map((bgType) => (
+            {singleTypeOptions.map((bgType) => (
               <option key={bgType.id} value={bgType.id}>
                 {bgType.name} - {bgType.description}
               </option>

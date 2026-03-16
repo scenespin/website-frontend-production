@@ -71,7 +71,21 @@ interface LocationBackground {
   id: string;
   imageUrl?: string;
   s3Key: string;
-  backgroundType: 'window' | 'wall' | 'doorway' | 'texture' | 'corner-detail' | 'furniture' | 'architectural-feature' | 'custom';
+  backgroundType:
+    | 'window'
+    | 'wall'
+    | 'doorway'
+    | 'texture'
+    | 'corner-detail'
+    | 'furniture'
+    | 'architectural-feature'
+    | 'custom'
+    | 'ecu-soft'
+    | 'ground-plane'
+    | 'facade'
+    | 'foliage'
+    | 'skyline'
+    | 'street-edge';
   description?: string;
   sourceType?: 'reference-images' | 'angle-variations';
   sourceAngleId?: string;
@@ -595,6 +609,12 @@ export function LocationDetailModal({
           'corner-detail': 'Corner Detail',
           'furniture': 'Furniture',
           'architectural-feature': 'Architectural Feature',
+          'ground-plane': 'Ground Plane',
+          'facade': 'Facade',
+          'foliage': 'Foliage',
+          'skyline': 'Skyline',
+          'street-edge': 'Street Edge',
+          'ecu-soft': 'ECU Soft',
           'custom': background.description || 'Custom Background'
         };
         const typeLabel = backgroundTypeLabels[background.backgroundType] || background.backgroundType;
@@ -1699,6 +1719,12 @@ export function LocationDetailModal({
                                         'corner-detail': 'Corner Detail',
                                         'furniture': 'Furniture',
                                         'architectural-feature': 'Architectural Feature',
+                                        'ground-plane': 'Ground Plane',
+                                        'facade': 'Facade',
+                                        'foliage': 'Foliage',
+                                        'skyline': 'Skyline',
+                                        'street-edge': 'Street Edge',
+                                        'ecu-soft': 'ECU Soft',
                                         'custom': (background as LocationBackground).description || 'Custom Background'
                                       };
                                       const typeLabel = backgroundTypeLabels[background.backgroundType] || background.backgroundType;
@@ -2041,6 +2067,7 @@ export function LocationDetailModal({
                           const backgroundTypeLabels: Record<string, string> = {
                             'window': 'Window', 'wall': 'Wall', 'doorway': 'Doorway', 'texture': 'Texture',
                             'corner-detail': 'Corner Detail', 'furniture': 'Furniture', 'architectural-feature': 'Architectural Feature',
+                            'ground-plane': 'Ground Plane', 'facade': 'Facade', 'foliage': 'Foliage', 'skyline': 'Skyline', 'street-edge': 'Street Edge',
                             'custom': (background as LocationBackground).description || 'Custom Background', 'ecu-soft': 'ECU Soft'
                           };
                           const typeLabel = backgroundTypeLabels[background.backgroundType] || background.backgroundType;
