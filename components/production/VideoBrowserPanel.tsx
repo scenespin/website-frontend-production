@@ -194,6 +194,13 @@ function isDubbedSceneLinkedVideo(file: MediaFile): boolean {
 function getVideoAspectRatio(metadata: Record<string, any>): string | null {
   const direct = metadata?.aspectRatio ?? metadata?.aspect_ratio;
   if (typeof direct === 'string' && direct.trim().length > 0) return direct.trim();
+  const width = Number(metadata?.width ?? metadata?.videoWidth ?? metadata?.resolutionWidth);
+  const height = Number(metadata?.height ?? metadata?.videoHeight ?? metadata?.resolutionHeight);
+  if (Number.isFinite(width) && Number.isFinite(height) && width > 0 && height > 0) {
+    const gcd = (a: number, b: number): number => (b ? gcd(b, a % b) : a);
+    const d = gcd(Math.round(width), Math.round(height));
+    return `${Math.round(width / d)}:${Math.round(height / d)}`;
+  }
   return null;
 }
 
@@ -712,11 +719,6 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
                         Video
                       </span>
                     )}
-                    {entry.isDubbed && entry.dubbedLanguage && (
-                      <span className="text-[10px] font-medium text-sky-400 bg-sky-500/10 px-2 py-0.5 rounded" title={`Dubbed: ${entry.dubbedLanguage}`}>
-                        {entry.dubbedLanguage}
-                      </span>
-                    )}
                   </span>
                   <span
                     className="text-xs text-[#808080] w-24 sm:w-32 flex-shrink-0 whitespace-normal break-words sm:whitespace-nowrap sm:overflow-hidden sm:text-ellipsis"
@@ -731,7 +733,14 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
                     {formatTimestamp(entry.timestamp)}
                   </span>
                   <div className="flex items-center gap-2 flex-shrink-0 ml-auto">
-                    {(entry.providerDisplayLabel === 'Dialogue' || entry.providerDisplayLabel === 'Premium Dialogue') && (
+                    {entry.isDubbed ? (
+                      <span
+                        className="px-2.5 py-1.5 text-xs font-medium text-sky-400 bg-sky-500/10 border border-sky-500/20 rounded"
+                        title={entry.dubbedLanguage ? `Dubbed: ${entry.dubbedLanguage}` : 'Already dubbed'}
+                      >
+                        {entry.dubbedLanguage || 'Dubbed'}
+                      </span>
+                    ) : (entry.providerDisplayLabel === 'Dialogue' || entry.providerDisplayLabel === 'Premium Dialogue') && (
                       <button
                         type="button"
                         onClick={() => handleOpenDubDialog(entry)}
