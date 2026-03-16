@@ -1228,11 +1228,16 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
           (updated.results && !job.results);
         const progressAdvanced = updated.progress !== job.progress;
         const isRunningOrQueued = updated.status === 'running' || updated.status === 'queued';
-        const isLocationJob = !!updated.metadata?.inputs?.locationId;
-        if (progressAdvanced && isRunningOrQueued && isLocationJob) {
-          // Mid-run refresh so partial checkpointed images appear in location modals
+        const hasEntityTarget =
+          !!updated.metadata?.inputs?.locationId ||
+          !!updated.metadata?.inputs?.characterId ||
+          !!updated.metadata?.inputs?.assetId;
+        if (progressAdvanced && isRunningOrQueued && hasEntityTarget) {
+          // Mid-run refresh so partial checkpointed images can appear in open modals
           // before the whole job reaches terminal state.
           queryClient.refetchQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
+          queryClient.refetchQueries({ queryKey: ['characters', screenplayId, 'production-hub'] });
+          queryClient.refetchQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
           queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] });
           queryClient.refetchQueries({ queryKey: ['media', 'presigned-urls'], exact: false });
         }
