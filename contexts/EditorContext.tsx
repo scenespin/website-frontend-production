@@ -1538,7 +1538,9 @@ function EditorProviderInner({ children, projectId }: { children: ReactNode; pro
     useEffect(() => {
         const currentSessionId = typeof session?.id === 'string' ? session.id : null;
         const previousSessionId = previousSessionIdRef.current;
-        const hasNewSession = currentSessionId && currentSessionId !== previousSessionId;
+        // Only treat as a "new session" after we've already observed one.
+        // This avoids an unnecessary reset during initial hydration/mount.
+        const hasNewSession = previousSessionId !== null && !!currentSessionId && currentSessionId !== previousSessionId;
         if (hasNewSession) {
             console.log('[EditorContext] 🔄 New session - resetting load guard for fresh refetch');
             hasInitializedRef.current = false;
