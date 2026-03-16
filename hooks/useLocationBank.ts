@@ -143,8 +143,6 @@ export function useLocations(screenplayId: string, context: 'creation' | 'produc
   return useQuery<LocationProfile[], Error>({
     queryKey: ['locations', screenplayId, context],
     queryFn: async () => {
-      console.log('[useLocations] Fetching locations:', { screenplayId, context, enabled });
-      
       const token = await getAuthToken(getToken);
       if (!token) {
         console.error('[useLocations] ❌ Not authenticated');
@@ -152,7 +150,6 @@ export function useLocations(screenplayId: string, context: 'creation' | 'produc
       }
 
       const url = `/api/location-bank/list?screenplayId=${encodeURIComponent(screenplayId)}`;
-      console.log('[useLocations] Fetching from:', url);
 
       const response = await fetch(url, {
         headers: {
@@ -160,11 +157,8 @@ export function useLocations(screenplayId: string, context: 'creation' | 'produc
         },
       });
 
-      console.log('[useLocations] Response status:', response.status, response.ok);
-
       if (!response.ok) {
         if (response.status === 404) {
-          console.log('[useLocations] 404 - returning empty array');
           return [];
         }
         const errorText = await response.text().catch(() => 'Unknown error');
@@ -174,8 +168,6 @@ export function useLocations(screenplayId: string, context: 'creation' | 'produc
 
       const data = await response.json();
       const locations = data.locations || data.data?.locations || [];
-      
-      console.log('[useLocations] ✅ Fetched', locations.length, 'locations');
       return locations;
     },
     enabled: enabled && !!screenplayId,

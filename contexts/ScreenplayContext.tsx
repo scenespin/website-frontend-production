@@ -297,25 +297,31 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     // Keep refs in sync with state
     useEffect(() => { beatsRef.current = beats; }, [beats]);
     useEffect(() => { scenesRef.current = scenes; }, [scenes]);
-    useEffect(() => { 
-        charactersRef.current = characters; 
-        console.log('[ScreenplayContext] 🔄 Characters state updated:', characters.length);
-        if (typeof window !== 'undefined') {
-            (window as any).__debug_characters = characters;
+    useEffect(() => {
+        charactersRef.current = characters;
+        if (process.env.NODE_ENV !== 'production') {
+            console.log('[ScreenplayContext] 🔄 Characters state updated:', characters.length);
+            if (typeof window !== 'undefined') {
+                (window as any).__debug_characters = characters;
+            }
         }
     }, [characters]);
-    useEffect(() => { 
-        locationsRef.current = locations; 
-        console.log('[ScreenplayContext] 🔄 Locations state updated:', locations.length);
-        if (typeof window !== 'undefined') {
-            (window as any).__debug_locations = locations;
+    useEffect(() => {
+        locationsRef.current = locations;
+        if (process.env.NODE_ENV !== 'production') {
+            console.log('[ScreenplayContext] 🔄 Locations state updated:', locations.length);
+            if (typeof window !== 'undefined') {
+                (window as any).__debug_locations = locations;
+            }
         }
     }, [locations]);
-    useEffect(() => { 
-        assetsRef.current = assets; 
-        console.log('[ScreenplayContext] 🔄 Assets state updated:', assets.length);
-        if (typeof window !== 'undefined') {
-            (window as any).__debug_assets = assets;
+    useEffect(() => {
+        assetsRef.current = assets;
+        if (process.env.NODE_ENV !== 'production') {
+            console.log('[ScreenplayContext] 🔄 Assets state updated:', assets.length);
+            if (typeof window !== 'undefined') {
+                (window as any).__debug_assets = assets;
+            }
         }
     }, [assets]);
     
@@ -1321,7 +1327,9 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
 
     // Load structure data from DynamoDB when screenplay_id is available
     useEffect(() => {
-        console.log('[ScreenplayContext] 🔍 INIT EFFECT RUNNING - screenplayId:', screenplayId, 'hasInitializedRef:', hasInitializedRef.current, 'isInitializing:', isInitializingRef.current);
+        if (process.env.NODE_ENV !== 'production') {
+            console.log('[ScreenplayContext] 🔍 INIT EFFECT RUNNING - screenplayId:', screenplayId, 'hasInitializedRef:', hasInitializedRef.current, 'isInitializing:', isInitializingRef.current);
+        }
         
         // 🔥 CRITICAL: Guard against duplicate initialization runs
         // This prevents the 26-beat bug caused by multiple effect executions
