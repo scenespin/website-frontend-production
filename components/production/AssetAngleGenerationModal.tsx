@@ -507,32 +507,28 @@ export default function AssetAngleGenerationModal({
                       ))}
                     </div>
                     {viewMode === 'interior' && (
-                      <div className="flex gap-1 p-1 bg-base-300 rounded-lg mb-4 border border-base-content/10">
-                        {(['ground', 'aircraft'] as const).map((category) => (
-                          <button
-                            key={category}
-                            type="button"
-                            onClick={() => {
-                              setInteriorCategory(category);
-                              if (category === 'ground') {
-                                setSelectedPackageId('car');
-                                setSelectedInteriorPackageId('car');
-                                setSelectedAngle('driver');
-                              } else {
-                                setSelectedPackageId('helicopter');
-                                setSelectedInteriorPackageId('helicopter');
-                                setSelectedAngle('pilot');
-                              }
-                            }}
-                            className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors ${
-                              interiorCategory === category
-                                ? 'bg-primary text-primary-content'
-                                : 'text-base-content/70 hover:bg-base-content/10'
-                            }`}
-                          >
-                            {category === 'ground' ? 'Ground Vehicles' : 'Aircraft'}
-                          </button>
-                        ))}
+                      <div className="mb-4">
+                        <label className="block text-xs text-base-content/60 mb-2">Interior Type</label>
+                        <select
+                          value={interiorCategory}
+                          onChange={(e) => {
+                            const category = e.target.value as 'ground' | 'aircraft';
+                            setInteriorCategory(category);
+                            if (category === 'ground') {
+                              setSelectedPackageId('car');
+                              setSelectedInteriorPackageId('car');
+                              setSelectedAngle('driver');
+                            } else {
+                              setSelectedPackageId('helicopter');
+                              setSelectedInteriorPackageId('helicopter');
+                              setSelectedAngle('pilot');
+                            }
+                          }}
+                          className="w-full px-3 py-2 bg-base-200 border border-base-content/20 rounded-lg text-base-content text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+                        >
+                          <option value="ground">Ground Vehicles</option>
+                          <option value="aircraft">Aircraft</option>
+                        </select>
                       </div>
                     )}
                     {viewMode === 'exterior' && (

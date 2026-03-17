@@ -527,30 +527,28 @@ export function GenerateAssetTab({
           ))}
         </div>
         {viewMode === 'interior' && (
-          <div className="flex gap-1 p-1 bg-[#0A0A0A] rounded-lg mb-4 border border-[#3F3F46]">
-            {(['ground', 'aircraft'] as const).map((category) => (
-              <button
-                key={category}
-                type="button"
-                onClick={() => {
-                  setInteriorCategory(category);
-                  if (category === 'ground') {
-                    setSelectedPackageId('car');
-                    setSelectedInteriorPackageId('car');
-                    setSelectedAngle('driver');
-                  } else {
-                    setSelectedPackageId('helicopter');
-                    setSelectedInteriorPackageId('helicopter');
-                    setSelectedAngle('pilot');
-                  }
-                }}
-                className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors ${
-                  interiorCategory === category ? 'bg-[#DC143C] text-white' : 'text-[#808080] hover:bg-[#2A2A2A] hover:text-white'
-                }`}
-              >
-                {category === 'ground' ? 'Ground Vehicles' : 'Aircraft'}
-              </button>
-            ))}
+          <div className="mb-4">
+            <label className="block text-xs text-[#808080] mb-2">Interior Type</label>
+            <select
+              value={interiorCategory}
+              onChange={(e) => {
+                const category = e.target.value as 'ground' | 'aircraft';
+                setInteriorCategory(category);
+                if (category === 'ground') {
+                  setSelectedPackageId('car');
+                  setSelectedInteriorPackageId('car');
+                  setSelectedAngle('driver');
+                } else {
+                  setSelectedPackageId('helicopter');
+                  setSelectedInteriorPackageId('helicopter');
+                  setSelectedAngle('pilot');
+                }
+              }}
+              className="select select-bordered w-full h-9 text-sm bg-[#0A0A0A] border-[#3F3F46] text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-[#DC143C]"
+            >
+              <option value="ground" className="bg-[#1A1A1A] text-[#FFFFFF]">Ground Vehicles</option>
+              <option value="aircraft" className="bg-[#1A1A1A] text-[#FFFFFF]">Aircraft</option>
+            </select>
           </div>
         )}
         {viewMode === 'exterior' && (
