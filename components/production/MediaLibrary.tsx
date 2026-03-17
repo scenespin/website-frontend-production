@@ -514,8 +514,10 @@ export default function MediaLibrary({
   // 🔥 OPTIMIZATION: Returns thumbnail URL in grid view if available, full image otherwise
   const getFileUrl = (file: MediaFile, useThumbnail: boolean = false): string | undefined => {
     if (file.storageType === 'local' || file.storageType === 'wryda-temp') {
+      const shouldBypassThumbnail =
+        !!(file as any)?.metadata?.cropped || !!(file as any)?.metadata?.croppedAt;
       // In grid view, prefer thumbnail if available
-      if (useThumbnail && file.thumbnailS3Key && bulkPresignedUrls) {
+      if (useThumbnail && !shouldBypassThumbnail && file.thumbnailS3Key && bulkPresignedUrls) {
         const thumbnailUrl = (bulkPresignedUrls as Map<string, string>).get(file.thumbnailS3Key);
         if (thumbnailUrl) return thumbnailUrl;
       }

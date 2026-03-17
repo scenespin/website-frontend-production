@@ -860,7 +860,10 @@ export function LocationDetailModal({
       id: item.id || `ref_${item.s3Key}`,
       s3Key: item.s3Key,
       imageUrl: item.imageUrl,
-      label: item.angle || item.backgroundType || 'Location image'
+      label: item.angle || item.backgroundType || 'Location image',
+      // Preserve crop metadata so reopened modal keeps full-image priority
+      // for references that were edited in-place.
+      metadata: item.metadata || {}
     }));
   }, [angleVariations, backgrounds]);
   

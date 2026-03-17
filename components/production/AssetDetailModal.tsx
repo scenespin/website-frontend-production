@@ -597,7 +597,8 @@ export default function AssetDetailModal({
     referenceGalleryImages.forEach((galleryImg) => {
       const resolvedS3Key = (galleryImg as any).s3Key || (galleryImg as any).metadata?.s3Key;
       const hasRecentFlip = !!(resolvedS3Key && flipCacheBustByS3Key[resolvedS3Key]);
-      const baseUrl = hasRecentFlip
+      const isCropped = !!(galleryImg as any).metadata?.cropped;
+      const baseUrl = (hasRecentFlip || isCropped)
         ? (galleryImg.imageUrl || galleryImg.thumbnailUrl)
         : (galleryImg.thumbnailUrl || galleryImg.imageUrl);
       map.set(galleryImg.id, appendFlipCacheBust(baseUrl || '', resolvedS3Key));
