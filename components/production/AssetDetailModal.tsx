@@ -1652,6 +1652,12 @@ export default function AssetDetailModal({
         payload={{ angleId: cropAngle.angleId, angleS3Key: cropAngle.angleS3Key }}
         title="Crop Asset Angle"
         onCropComplete={async () => {
+          const croppedS3Key = cropAngle.angleS3Key;
+          setFlipCacheBustByS3Key((current) => ({
+            ...current,
+            [croppedS3Key]: Date.now(),
+          }));
+          await queryClient.invalidateQueries({ queryKey: ['media', 'presigned-urls'], exact: false });
           await queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
           await queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId], exact: false });
           await queryClient.refetchQueries({ queryKey: ['assets', screenplayId, 'production-hub'], type: 'active' });

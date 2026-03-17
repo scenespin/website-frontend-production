@@ -2385,6 +2385,12 @@ export function LocationDetailModal({
         }}
         title="Crop Location Image"
         onCropComplete={async () => {
+          const croppedS3Key = cropTarget.imageS3Key;
+          setFlipCacheBustByS3Key((current) => ({
+            ...current,
+            [croppedS3Key]: Date.now(),
+          }));
+          await queryClient.invalidateQueries({ queryKey: ['media', 'presigned-urls'], exact: false });
           await queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
           await queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId], exact: false });
           await queryClient.refetchQueries({ queryKey: ['locations', screenplayId, 'production-hub'], type: 'active' });
