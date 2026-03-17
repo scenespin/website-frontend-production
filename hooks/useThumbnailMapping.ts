@@ -131,7 +131,8 @@ export function useThumbnailMapping(options: ThumbnailMappingOptions) {
       // 🔥 CRITICAL: Only use thumbnail if we can definitively match it to this image's s3Key
       // This prevents mismatched thumbnails from appearing on wrong images
       let thumbnailUrl = img.imageUrl;
-      if (thumbnailS3Key && thumbnailUrls.has(thumbnailS3Key)) {
+      const isCropped = !!(img as any).metadata?.cropped;
+      if (!isCropped && thumbnailS3Key && thumbnailUrls.has(thumbnailS3Key)) {
         thumbnailUrl = thumbnailUrls.get(thumbnailS3Key)!;
       }
       // No fallback - if we can't match the thumbnail, use the full image
