@@ -705,13 +705,16 @@ export function LocationDetailModal({
 
   const getDisplayUrl = useCallback((img: { s3Key: string; imageUrl?: string }) => {
     const file = mediaFileMap.get(img.s3Key);
-    const resolved = getMediaFileDisplayUrl(
-      file ?? { ...img, storageType: 'local' as const, s3Key: img.s3Key },
-      presignedMapsForDisplay,
-      dropboxUrlMap
-    ) || img.imageUrl || '';
+    const hasRecentEdit = !!flipCacheBustByS3Key[img.s3Key];
+    const resolved = hasRecentEdit
+      ? (presignedMapsForDisplay.fullImageUrlsMap.get(img.s3Key) || img.imageUrl || '')
+      : (getMediaFileDisplayUrl(
+          file ?? { ...img, storageType: 'local' as const, s3Key: img.s3Key },
+          presignedMapsForDisplay,
+          dropboxUrlMap
+        ) || img.imageUrl || '');
     return appendFlipCacheBust(resolved, img.s3Key);
-  }, [appendFlipCacheBust, mediaFileMap, presignedMapsForDisplay, dropboxUrlMap]);
+  }, [appendFlipCacheBust, mediaFileMap, presignedMapsForDisplay, dropboxUrlMap, flipCacheBustByS3Key]);
   
   // Feature 0256: allImages = payload list enriched with display URLs (payload URL or presigned/ML).
   const allImages = useMemo(() => {
@@ -867,10 +870,15 @@ export function LocationDetailModal({
   const referenceThumbnailMap = useMemo(() => {
     const map = new Map<string, string>();
     referenceGalleryImages.forEach((galleryImg) => {
-      map.set(galleryImg.id, galleryImg.thumbnailUrl || galleryImg.imageUrl);
+      const resolvedS3Key = (galleryImg as any).s3Key || (galleryImg as any).metadata?.s3Key;
+      const hasRecentEdit = !!(resolvedS3Key && flipCacheBustByS3Key[resolvedS3Key]);
+      const baseUrl = hasRecentEdit
+        ? (galleryImg.imageUrl || galleryImg.thumbnailUrl)
+        : (galleryImg.thumbnailUrl || galleryImg.imageUrl);
+      map.set(galleryImg.id, appendFlipCacheBust(baseUrl, resolvedS3Key));
     });
     return map;
-  }, [referenceGalleryImages]);
+  }, [referenceGalleryImages, flipCacheBustByS3Key, appendFlipCacheBust]);
   
   // Convert type for display (supports legacy INT/EXT notation from stored metadata).
   const normalizedLocationType = String(location.type || '').toLowerCase().replace(/\./g, '').trim();
