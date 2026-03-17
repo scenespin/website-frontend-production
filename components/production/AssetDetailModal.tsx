@@ -16,7 +16,7 @@
 import { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import React from 'react';
 import { useAuth } from '@clerk/nextjs';
-import { X, Trash2, Image as ImageIcon, Package, Car, Armchair, Box, Upload, FileText, MoreVertical, Info, Eye, Download, CheckSquare, Square, FlipHorizontal } from 'lucide-react';
+import { X, Trash2, Image as ImageIcon, Package, Car, Armchair, Box, Upload, FileText, MoreVertical, Info, Eye, Download, CheckSquare, Square, FlipHorizontal, Crop } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Asset, AssetCategory, AssetImage, ASSET_CATEGORY_METADATA } from '@/types/asset';
 import { toast } from 'sonner';
@@ -41,6 +41,7 @@ import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { formatProviderTag } from '@/utils/providerLabels';
 import { uploadToObjectStorage } from '@/lib/objectStorageUpload';
 import { useLiveEntityRefresh } from './hooks/useLiveEntityRefresh';
+import { EntityImageCropModal } from './EntityImageCropModal';
 
 /**
  * Returns only Creation-section images (excludes Production Hub / angle-generated).
@@ -129,6 +130,7 @@ export default function AssetDetailModal({
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [regeneratingS3Key, setRegeneratingS3Key] = useState<string | null>(null); // Track which specific image is regenerating
   const [flippingAngleId, setFlippingAngleId] = useState<string | null>(null);
+  const [cropAngle, setCropAngle] = useState<{ angleId: string; angleS3Key: string } | null>(null);
   // Track which dropdown is open (only one at a time)
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const suppressPreviewClickUntilRef = useRef(0);
@@ -1379,6 +1381,24 @@ export default function AssetDetailModal({
                                       <Download className="w-4 h-4 mr-2 text-[#808080]" />
                                       Download
                                     </DropdownMenuItem>
+                                    {img.s3Key && (
+                                      <DropdownMenuItem
+                                        className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]"
+                                        onSelect={(e) => {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                          suppressPreviewClickUntilRef.current = Date.now() + 1000;
+                                          setOpenDropdownId(null);
+                                          setCropAngle({
+                                            angleId: img.id || img.s3Key,
+                                            angleS3Key: img.s3Key,
+                                          });
+                                        }}
+                                      >
+                                        <Crop className="w-4 h-4 mr-2 text-[#808080]" />
+                                        Crop
+                                      </DropdownMenuItem>
+                                    )}
                                     {/* 🔥 NEW: Flip option (all angles can be flipped) */}
                                     {img.s3Key && (
                                       <DropdownMenuItem
@@ -1622,6 +1642,24 @@ export default function AssetDetailModal({
       }}
       imageType="angle"
     />
+
+    {cropAngle && screenplayId && (
+      <EntityImageCropModal
+        isOpen={cropAngle !== null}
+        onClose={() => setCropAngle(null)}
+        imageS3Key={cropAngle.angleS3Key}
+        endpointUrl={`${process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai'}/api/asset-bank/${latestAsset.id}/crop-angle?screenplayId=${encodeURIComponent(screenplayId)}`}
+        payload={{ angleId: cropAngle.angleId, angleS3Key: cropAngle.angleS3Key }}
+        title="Crop Asset Angle"
+        onCropComplete={async () => {
+          await queryClient.invalidateQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
+          await queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId], exact: false });
+          await queryClient.refetchQueries({ queryKey: ['assets', screenplayId, 'production-hub'], type: 'active' });
+          onUpdate();
+          setCropAngle(null);
+        }}
+      />
+    )}
     
     {/* Image Viewer */}
     {previewImageIndex !== null && (() => {
