@@ -38,6 +38,7 @@ import { getMediaFileDisplayUrl } from './utils/imageUrlResolver';
 import { useThumbnailMapping } from '@/hooks/useThumbnailMapping';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { formatProviderTag } from '@/utils/providerLabels';
+import { useLiveEntityRefresh } from './hooks/useLiveEntityRefresh';
 
 // Location Profile from Location Bank API (Feature 0142: Unified storage)
 interface LocationReference {
@@ -248,16 +249,11 @@ export function LocationDetailModal({
   }, [isOpen, latestLocation?.locationId, screenplayId, getToken, queryClient]);
 
   // Keep open modal fresh while jobs are running, even when Jobs drawer is closed.
-  // This mirrors user expectation that new location images appear without manual page refresh.
-  useEffect(() => {
-    if (!isOpen || !screenplayId) return;
-    const interval = setInterval(() => {
-      queryClient.refetchQueries({ queryKey: ['locations', screenplayId, 'production-hub'], type: 'active' });
-      queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId], exact: false });
-      queryClient.refetchQueries({ queryKey: ['media', 'presigned-urls'], exact: false });
-    }, 4000);
-    return () => clearInterval(interval);
-  }, [isOpen, screenplayId, queryClient]);
+  useLiveEntityRefresh({
+    isOpen,
+    screenplayId,
+    entityQueryKey: ['locations', screenplayId, 'production-hub'],
+  });
 
   // Helper function for downloading images via blob (more reliable than download attribute)
   // Follows MediaLibrary pattern: fetches fresh presigned URL if s3Key available

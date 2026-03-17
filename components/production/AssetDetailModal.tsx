@@ -40,6 +40,7 @@ import { useAssets } from '@/hooks/useAssetBank';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { formatProviderTag } from '@/utils/providerLabels';
 import { uploadToObjectStorage } from '@/lib/objectStorageUpload';
+import { useLiveEntityRefresh } from './hooks/useLiveEntityRefresh';
 
 /**
  * Returns only Creation-section images (excludes Production Hub / angle-generated).
@@ -609,15 +610,11 @@ export default function AssetDetailModal({
   }, [isOpen, latestAsset.id, latestAsset.name, mediaFiles.length, payloadImages.length, allImages.length, userImages.length, angleImageObjects.length, canGenerateAngles]);
 
   // Keep open modal fresh while jobs are running, even when Jobs drawer is closed.
-  useEffect(() => {
-    if (!isOpen || !screenplayId) return;
-    const interval = setInterval(() => {
-      queryClient.refetchQueries({ queryKey: ['assets', screenplayId, 'production-hub'], type: 'active' });
-      queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId], exact: false });
-      queryClient.refetchQueries({ queryKey: ['media', 'presigned-urls'], exact: false });
-    }, 4000);
-    return () => clearInterval(interval);
-  }, [isOpen, screenplayId, queryClient]);
+  useLiveEntityRefresh({
+    isOpen,
+    screenplayId,
+    entityQueryKey: ['assets', screenplayId, 'production-hub'],
+  });
 
   const handleGeneratePackages = () => {
     // Switch to Generate tab
