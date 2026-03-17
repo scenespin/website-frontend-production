@@ -202,11 +202,9 @@ export function CharacterDetailModal({
     // 🔥 CRITICAL: Set regenerating state IMMEDIATELY before any async operations
     // This ensures the UI updates synchronously before the fetch starts
     const s3KeyToTrack = existingPoseS3Key.trim();
-    console.log('[CharacterDetailModal] Starting regeneration for s3Key:', s3KeyToTrack, 'metadata:', metadata);
     setIsRegenerating(true);
     setRegeneratingS3Key(s3KeyToTrack); // Track which image is regenerating - set BEFORE closing modal
     setRegeneratePose(null); // Close modal AFTER state is set
-    console.log('[CharacterDetailModal] Set regeneratingS3Key to:', s3KeyToTrack);
     
     // 🔥 FIX: Use metadata from the clicked image (passed in)
     // The backend will also look up from DynamoDB as a fallback, but passing it ensures accuracy

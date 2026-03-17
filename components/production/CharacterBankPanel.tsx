@@ -162,37 +162,16 @@ export function CharacterBankPanel({
       // Backend expects full objects with metadata (outfitName, poseId, etc.)
       if (updates.poseReferences !== undefined) {
         apiUpdates.poseReferences = updates.poseReferences;
-        console.log('[CharacterBankPanel] 🔍 Updating poseReferences:', {
-          characterId,
-          count: updates.poseReferences.length,
-          poseRefs: updates.poseReferences.map((r: any) => ({
-            s3Key: typeof r === 'string' ? r : r.s3Key,
-            id: typeof r === 'string' ? undefined : r.id
-          }))
-        });
       }
       
       // 🔥 FIX: Also handle angleReferences (backend may use either name)
       if ((updates as any).angleReferences !== undefined) {
         apiUpdates.poseReferences = (updates as any).angleReferences;
-        console.log('[CharacterBankPanel] 🔍 Updating angleReferences (as poseReferences):', {
-          characterId,
-          count: (updates as any).angleReferences.length
-        });
       }
       
       if (updates.name !== undefined) apiUpdates.name = updates.name;
       if (updates.description !== undefined) apiUpdates.description = updates.description;
       if (updates.type !== undefined) apiUpdates.type = updates.type;
-
-      console.log('[CharacterBankPanel] 🚀 Sending PUT request:', {
-        characterId,
-        screenplayId,
-        apiUpdates: {
-          ...apiUpdates,
-          poseReferences: apiUpdates.poseReferences ? `${apiUpdates.poseReferences.length} items` : undefined
-        }
-      });
 
       const response = await fetch(`/api/character-bank/${characterId}?screenplayId=${encodeURIComponent(screenplayId)}`, {
         method: 'PUT',
@@ -204,39 +183,17 @@ export function CharacterBankPanel({
         body: JSON.stringify(apiUpdates),
       });
 
-      console.log('[CharacterBankPanel] 📡 Response status:', response.status);
-
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        console.error('[CharacterBankPanel] ❌ Update failed:', errorData);
         throw new Error(errorData.error || `Failed to update character: ${response.status}`);
       }
 
       const responseData = await response.json().catch(() => ({}));
-      console.log('[CharacterBankPanel] ✅ Update successful:', {
-        characterId,
-        responseDataKeys: Object.keys(responseData),
-        responseDataStructure: JSON.stringify(responseData).substring(0, 200),
-        // Backend might return { success: true, data: { character: {...} } } or { character: {...} }
-        character: responseData.character || responseData.data?.character,
-        characterKeys: (responseData.character || responseData.data?.character) ? Object.keys(responseData.character || responseData.data?.character) : 'no character',
-        poseReferencesCount: (responseData.character || responseData.data?.character)?.poseReferences?.length,
-        angleReferencesCount: (responseData.character || responseData.data?.character)?.angleReferences?.length
-      });
       
       // 🔥 FIX: Handle different response structures
       const updatedCharacter = responseData.character || responseData.data?.character;
 
       toast.success('Character updated successfully');
-      
-      // Check cache before refetch
-      const cacheBeforeRefetch = queryClient.getQueryData<CharacterProfile[]>(['characters', screenplayId, 'production-hub']);
-      console.log('[CharacterBankPanel] 📊 Cache before refetch:', {
-        hasData: !!cacheBeforeRefetch,
-        characterCount: cacheBeforeRefetch?.length,
-        updatedChar: cacheBeforeRefetch?.find(c => c.id === characterId),
-        poseRefsCount: cacheBeforeRefetch?.find(c => c.id === characterId)?.poseReferences?.length
-      });
       
       // 🔥 FIX: Use same aggressive pattern as CharacterDetailModal (works!)
       // removeQueries + invalidateQueries + setTimeout refetchQueries with type: 'active'
@@ -257,15 +214,6 @@ export function CharacterBankPanel({
           exact: false
         });
       }, 2000);
-      
-      // Check cache after refetch
-      const cacheAfterRefetch = queryClient.getQueryData<CharacterProfile[]>(['characters', screenplayId, 'production-hub']);
-      console.log('[CharacterBankPanel] 📊 Cache after refetch:', {
-        hasData: !!cacheAfterRefetch,
-        characterCount: cacheAfterRefetch?.length,
-        updatedChar: cacheAfterRefetch?.find(c => c.id === characterId),
-        poseRefsCount: cacheAfterRefetch?.find(c => c.id === characterId)?.poseReferences?.length
-      });
       
       if (onCharactersUpdate) onCharactersUpdate();
       
