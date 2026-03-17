@@ -6,7 +6,7 @@
  * Converted from PoseGenerationModal - reorganized steps:
  * Step 1: Create/Select Outfit (REQUIRED)
  * Step 2: Model Selection (unified dropdown from API)
- * Step 3: Clothing Images (Virtual Try-On)
+ * Step 3: Outfit/Prop Reference Images
  * Step 4: Style Template + Custom Prompt (Optional)
  * Step 5: Pose Package Selection
  * 
@@ -67,7 +67,7 @@ export function GenerateWardrobeTab({
   const [defaultModelId, setDefaultModelId] = useState<string>('');
   const [isLoadingModels, setIsLoadingModels] = useState(false);
   
-  // Step 3: Clothing Images (Virtual Try-On)
+  // Step 3: Outfit/Prop Reference Images
   const [clothingImages, setClothingImages] = useState<Array<{ file: File; preview: string; s3Key?: string; presignedUrl?: string }>>([]);
 
   // Step 4: Style Template + Custom Prompt
@@ -186,7 +186,7 @@ export function GenerateWardrobeTab({
     }
   }, [models, providerId, isLoadingModels, defaultModelId]);
 
-  // Handle clothing image upload (Virtual Try-On)
+  // Handle outfit/prop reference image upload
   const handleClothingImageSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
@@ -497,11 +497,11 @@ export function GenerateWardrobeTab({
         </div>
       </div>
 
-      {/* Step 3: Clothing Images (Virtual Try-On) */}
+      {/* Step 3: Outfit/Prop Reference Images */}
       {supportsClothing && selectedModel && (
         <div className={`bg-[#1F1F1F] border border-[#3F3F46] rounded-lg ${isMobile ? 'p-3' : 'p-4'}`}>
           <h3 className={`${isMobile ? 'text-xs' : 'text-sm'} font-semibold text-white mb-3`}>
-            Step 3: Clothing Images (Virtual Try-On)
+            Step 3: Outfit/Prop Reference Images (Optional)
             <span className={`ml-2 ${isMobile ? 'text-xs' : 'text-xs'} font-normal text-[#808080]`}>
               ({clothingImages.length}/{Math.min((selectedModel?.referenceLimit || 3) - 1, 3)})
             </span>
@@ -514,7 +514,7 @@ export function GenerateWardrobeTab({
               className={`w-full ${isMobile ? 'px-4 py-3 text-base min-h-[48px]' : 'px-4 py-2 text-sm'} bg-[#0A0A0A] border border-[#3F3F46] rounded text-white hover:border-[#DC143C]/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2`}
             >
               <Upload className={isMobile ? 'w-5 h-5' : 'w-4 h-4'} />
-              {isUploadingClothing ? 'Uploading...' : clothingImages.length >= Math.min((selectedModel?.referenceLimit || 3) - 1, 3) ? `Max Images` : `Upload Clothing/Outfit Images`}
+              {isUploadingClothing ? 'Uploading...' : clothingImages.length >= Math.min((selectedModel?.referenceLimit || 3) - 1, 3) ? `Max Images` : `Upload Reference Images (Outfit/Props)`}
             </button>
             <input
               ref={clothingFileInputRef}

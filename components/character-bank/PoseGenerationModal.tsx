@@ -625,11 +625,11 @@ export default function PoseGenerationModal({
                     )}
                   </div>
 
-                  {/* Clothing/Outfit Image Upload (only for models that support it) */}
+                  {/* Outfit/prop reference image upload (only for models that support it) */}
                   {supportsClothing && selectedModel && (
                     <div className="bg-base-300 rounded-lg p-4 border border-base-content/10">
                       <h3 className="text-sm font-semibold text-base-content mb-4">
-                        Step 4: Clothing/Outfit Images (Optional)
+                        Step 4: Outfit/Prop Reference Images (Optional)
                         <span className="ml-2 text-xs font-normal text-base-content/50">
                           ({clothingImages.length}/{Math.min((selectedModel?.referenceLimit || 3) - 1, 3)} - for hats, canes, accessories, etc.)
                         </span>
@@ -642,7 +642,7 @@ export default function PoseGenerationModal({
                           className="w-full px-4 py-2.5 bg-base-200 border border-base-content/20 rounded-lg text-base-content text-sm hover:border-[#8B5CF6]/50 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
                         >
                           <Upload className="w-4 h-4" />
-                          {isUploadingClothing ? 'Uploading...' : clothingImages.length >= Math.min((selectedModel?.referenceLimit || 3) - 1, 3) ? `Max Images` : `Upload Clothing/Outfit Images`}
+                          {isUploadingClothing ? 'Uploading...' : clothingImages.length >= Math.min((selectedModel?.referenceLimit || 3) - 1, 3) ? `Max Images` : `Upload Reference Images (Outfit/Props)`}
                         </button>
                         <input
                           ref={clothingFileInputRef}
@@ -675,7 +675,7 @@ export default function PoseGenerationModal({
                         )}
                       </div>
                       <p className="mt-2 text-xs text-base-content/50">
-                        Upload images of clothing, accessories, or props to maintain consistency across poses
+                        Upload outfit, accessory, and prop references to keep generated poses consistent.
                       </p>
                     </div>
                   )}
