@@ -59,6 +59,18 @@ interface CharacterDetailModalProps {
   onPerformanceSettingsChange?: (settings: PerformanceSettings) => void;
 }
 
+function toPoseBadgeText(img: any): string {
+  const raw =
+    img?.metadata?.poseName ||
+    img?.metadata?.poseId ||
+    img?.poseId ||
+    img?.label ||
+    'Pose';
+  const normalized = String(raw).trim();
+  if (!normalized) return 'Pose';
+  return normalized.length > 20 ? `${normalized.slice(0, 20)}...` : normalized;
+}
+
 export function CharacterDetailModal({
   character,
   isOpen,
@@ -1906,6 +1918,10 @@ export function CharacterDetailModal({
                                   }
                                 }}
                               />
+                              {/* Top-left label: pose name/id */}
+                              <div className="absolute top-1 left-1 px-1.5 py-0.5 text-white text-[10px] rounded bg-[#8B5CF6]">
+                                {toPoseBadgeText(img)}
+                              </div>
                               {/* Bottom-right label: Model name / 2K or 4K */}
                               {img.metadata?.providerId && (() => {
                                 const tagText = formatProviderTag(img.metadata.providerId);

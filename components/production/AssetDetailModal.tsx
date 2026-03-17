@@ -70,6 +70,14 @@ interface AssetDetailModalProps {
   screenplayIdForJobs?: string;
 }
 
+function toAssetAngleBadgeText(angle?: string): string {
+  if (!angle) return 'Angle';
+  return angle
+    .split('-')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ');
+}
+
 export default function AssetDetailModal({ 
   isOpen, 
   onClose, 
@@ -1287,11 +1295,11 @@ export default function AssetDetailModal({
                               {regeneratingS3Key && regeneratingS3Key.trim() === (img.s3Key || '').trim() && (
                                 <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent animate-shimmer" />
                               )}
-                              {/* Top-left label: Angle/Regenerated */}
+                              {/* Top-left label: specific angle */}
                               <div className={`absolute top-1 left-1 px-1.5 py-0.5 text-white text-[10px] rounded ${
                                 img.isRegenerated ? 'bg-[#DC143C]' : 'bg-[#8B5CF6]'
                               }`}>
-                                {img.isRegenerated ? 'Regenerated' : 'Angle'}
+                                {toAssetAngleBadgeText(((img as any).metadata?.angle || (img as any).angle || 'angle').toString())}
                               </div>
                               {/* Bottom-right label: Model name / 2K or 4K */}
                               {(() => {
