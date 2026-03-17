@@ -721,7 +721,9 @@ export function LocationDetailModal({
   const allImages = useMemo(() => {
     const enriched = payloadImages.map(img => ({
       ...img,
-      imageUrl: getDisplayUrl(img) || img.imageUrl || ''
+      imageUrl: (img.imageUrl && img.imageUrl.length > 0)
+        ? appendFlipCacheBust(img.imageUrl, img.s3Key)
+        : (getDisplayUrl(img) || '')
     }));
     const typeOrder = (i: typeof enriched[0]) => {
       if (i.isBase || (!i.isAngle && !i.isBackground)) return 0;
