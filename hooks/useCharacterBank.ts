@@ -41,8 +41,6 @@ export function useCharacters(screenplayId: string, context: 'creation' | 'produ
   return useQuery<CharacterProfile[], Error>({
     queryKey: ['characters', screenplayId, context],
     queryFn: async () => {
-      console.log('[useCharacters] Fetching characters:', { screenplayId, context, enabled });
-      
       const token = await getAuthToken(getToken);
       if (!token) {
         console.error('[useCharacters] ❌ Not authenticated');
@@ -50,7 +48,6 @@ export function useCharacters(screenplayId: string, context: 'creation' | 'produ
       }
 
       const url = `/api/character-bank/list?screenplayId=${encodeURIComponent(screenplayId)}`;
-      console.log('[useCharacters] Fetching from:', url);
 
       const response = await fetch(url, {
         headers: {
@@ -58,11 +55,8 @@ export function useCharacters(screenplayId: string, context: 'creation' | 'produ
         },
       });
 
-      console.log('[useCharacters] Response status:', response.status, response.ok);
-
       if (!response.ok) {
         if (response.status === 404) {
-          console.log('[useCharacters] 404 - returning empty array');
           return [];
         }
         if (response.status === 503) {
@@ -76,8 +70,6 @@ export function useCharacters(screenplayId: string, context: 'creation' | 'produ
 
       const data = await response.json();
       const characters = data.characters || data.data?.characters || [];
-      
-      console.log('[useCharacters] ✅ Fetched', characters.length, 'characters');
       return characters;
     },
     enabled: enabled && !!screenplayId,
