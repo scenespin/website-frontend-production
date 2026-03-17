@@ -706,7 +706,8 @@ export function LocationDetailModal({
   const getDisplayUrl = useCallback((img: { s3Key: string; imageUrl?: string }) => {
     const file = mediaFileMap.get(img.s3Key);
     const hasRecentEdit = !!flipCacheBustByS3Key[img.s3Key];
-    const resolved = hasRecentEdit
+    const isCropped = !!(file?.metadata?.cropped || (img as any)?.metadata?.cropped);
+    const resolved = (hasRecentEdit || isCropped)
       ? (presignedMapsForDisplay.fullImageUrlsMap.get(img.s3Key) || img.imageUrl || '')
       : (getMediaFileDisplayUrl(
           file ?? { ...img, storageType: 'local' as const, s3Key: img.s3Key },
@@ -872,7 +873,8 @@ export function LocationDetailModal({
     referenceGalleryImages.forEach((galleryImg) => {
       const resolvedS3Key = (galleryImg as any).s3Key || (galleryImg as any).metadata?.s3Key;
       const hasRecentEdit = !!(resolvedS3Key && flipCacheBustByS3Key[resolvedS3Key]);
-      const baseUrl = hasRecentEdit
+      const isCropped = !!(galleryImg as any).metadata?.cropped;
+      const baseUrl = (hasRecentEdit || isCropped)
         ? (galleryImg.imageUrl || galleryImg.thumbnailUrl)
         : (galleryImg.thumbnailUrl || galleryImg.imageUrl);
       map.set(galleryImg.id, appendFlipCacheBust(baseUrl, resolvedS3Key));
