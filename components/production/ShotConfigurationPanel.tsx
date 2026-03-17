@@ -38,6 +38,72 @@ import {
 } from '@/lib/elementsWorkflowUtils';
 import type { DialogueCompositionType } from '@/contexts/SceneBuilderContext';
 
+const INTERIOR_PROP_PROMPT_HELPERS: Array<{ id: string; label: string; template: string }> = [
+  {
+    id: 'driver-pov',
+    label: 'Driver POV',
+    template:
+      'Frame from driver-seat POV. Keep interior geometry coherent (dashboard, steering wheel, windshield), with natural seated posture and believable cabin depth.',
+  },
+  {
+    id: 'driver-passenger',
+    label: 'Driver + Front Passenger',
+    template:
+      'Compose a two-person front-seat setup: one subject in driver seat and one in front passenger seat, with realistic seat spacing, eyelines, and console alignment.',
+  },
+  {
+    id: 'aisle-shot',
+    label: 'Aircraft Aisle',
+    template:
+      'Use an aircraft cabin aisle perspective with clean aisle lines, seat-row continuity, and realistic depth from foreground to background.',
+  },
+];
+
+function shouldShowInteriorPropHelpers(
+  propName: string,
+  selectedImageLabel?: string,
+  selectedImageId?: string
+): boolean {
+  const combined = `${propName} ${selectedImageLabel || ''} ${selectedImageId || ''}`.toLowerCase();
+  const strongInteriorTokens = [
+    'driver',
+    'passenger',
+    'back_seat',
+    'front_looking_back',
+    'rear_cargo',
+    'aisle',
+    'window_seat',
+    'galley',
+    'cabin_wide',
+    'pilot',
+    'co_pilot',
+    'cockpit',
+    'sleeper',
+    'dashboard',
+  ];
+  if (strongInteriorTokens.some((token) => combined.includes(token))) {
+    return true;
+  }
+
+  const vehicleAircraftKeywords = [
+    'car',
+    'truck',
+    'suv',
+    'van',
+    'semi',
+    'bus',
+    'taxi',
+    'aircraft',
+    'airplane',
+    'plane',
+    'jet',
+    'helicopter',
+    'cockpit',
+    'cabin',
+  ];
+  return vehicleAircraftKeywords.some((token) => combined.includes(token));
+}
+
 export type Resolution = '1080p' | '4k';
 export type ShotDuration = 'quick-cut' | 'extended-take'; // 'quick-cut' = ~5s, 'extended-take' = ~10s
 
@@ -1175,6 +1241,15 @@ export function ShotConfigurationPanel({
                         images?: Array<{ url: string; s3Key?: string }>;
                         baseReference?: { s3Key?: string; imageUrl?: string };
                       };
+                      const availableImagesForInteriorHint = getAvailablePropImages(fullProp);
+                      const selectedImageForInteriorHint = propConfig.selectedImageId
+                        ? availableImagesForInteriorHint.find((img) => img.id === propConfig.selectedImageId)
+                        : undefined;
+                      const showInteriorPromptHelpers = shouldShowInteriorPropHelpers(
+                        prop.name,
+                        selectedImageForInteriorHint?.label,
+                        selectedImageForInteriorHint?.id
+                      );
                       
                       return (
                         <div key={prop.id} className="space-y-2 p-3 bg-[#0A0A0A] rounded border border-[#3F3F46]">
@@ -1292,6 +1367,29 @@ export function ShotConfigurationPanel({
                               <label className="block text-[10px] text-[#808080] mb-1.5">
                                 Describe how "{prop.name}" is used in this shot:
                               </label>
+                              {showInteriorPromptHelpers && (
+                                <div className="mb-2">
+                                  <div className="text-[10px] text-[#808080] mb-1">Interior prompt helpers</div>
+                                  <div className="flex flex-wrap gap-1.5">
+                                    {INTERIOR_PROP_PROMPT_HELPERS.map((helper) => (
+                                      <button
+                                        key={helper.id}
+                                        type="button"
+                                        onClick={() => {
+                                          const currentText = (propConfig.usageDescription || '').trim();
+                                          const nextText = currentText.includes(helper.template)
+                                            ? currentText
+                                            : (currentText ? `${currentText}\n\n${helper.template}` : helper.template);
+                                          onPropDescriptionChange(shot.slot, prop.id, nextText);
+                                        }}
+                                        className="px-2 py-1 text-[10px] rounded border border-[#3F3F46] bg-[#111111] text-[#D4D4D8] hover:border-[#DC143C]/60 hover:text-white transition-colors"
+                                      >
+                                        {helper.label}
+                                      </button>
+                                    ))}
+                                  </div>
+                                </div>
+                              )}
                               <textarea
                                 value={propConfig.usageDescription || ''}
                                 onChange={(e) => {
@@ -1819,6 +1917,15 @@ export function ShotConfigurationPanel({
                   images?: Array<{ url: string; s3Key?: string }>;
                   baseReference?: { s3Key?: string; imageUrl?: string };
                 };
+                const availableImagesForInteriorHint = getAvailablePropImages(fullProp);
+                const selectedImageForInteriorHint = propConfig.selectedImageId
+                  ? availableImagesForInteriorHint.find((img) => img.id === propConfig.selectedImageId)
+                  : undefined;
+                const showInteriorPromptHelpers = shouldShowInteriorPropHelpers(
+                  prop.name,
+                  selectedImageForInteriorHint?.label,
+                  selectedImageForInteriorHint?.id
+                );
                 
                 return (
                   <div key={prop.id} className="space-y-2 p-3 bg-[#0A0A0A] rounded border border-[#3F3F46]">
@@ -1970,6 +2077,29 @@ export function ShotConfigurationPanel({
                         <label className="block text-[10px] text-[#808080] mb-1.5">
                           Describe how "{prop.name}" is used in this shot:
                         </label>
+                        {showInteriorPromptHelpers && (
+                          <div className="mb-2">
+                            <div className="text-[10px] text-[#808080] mb-1">Interior prompt helpers</div>
+                            <div className="flex flex-wrap gap-1.5">
+                              {INTERIOR_PROP_PROMPT_HELPERS.map((helper) => (
+                                <button
+                                  key={helper.id}
+                                  type="button"
+                                  onClick={() => {
+                                    const currentText = (propConfig.usageDescription || '').trim();
+                                    const nextText = currentText.includes(helper.template)
+                                      ? currentText
+                                      : (currentText ? `${currentText}\n\n${helper.template}` : helper.template);
+                                    onPropDescriptionChange(shot.slot, prop.id, nextText);
+                                  }}
+                                  className="px-2 py-1 text-[10px] rounded border border-[#3F3F46] bg-[#111111] text-[#D4D4D8] hover:border-[#DC143C]/60 hover:text-white transition-colors"
+                                >
+                                  {helper.label}
+                                </button>
+                              ))}
+                            </div>
+                          </div>
+                        )}
                         <textarea
                           value={propConfig.usageDescription || ''}
                           onChange={(e) => {
