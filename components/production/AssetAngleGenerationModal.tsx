@@ -30,27 +30,6 @@ const VEHICLE_INTERIOR_PACKAGES_UI: Record<string, { id: string; name: string; a
 const GROUND_PACKAGE_IDS = ['car', 'truck', 'suv', 'van', 'semi'];
 const AIRCRAFT_PACKAGE_IDS = ['helicopter', 'small_plane', 'passenger_cabin'];
 
-const INTERIOR_PROMPT_HELPERS: Array<{ id: string; label: string; template: string }> = [
-  {
-    id: 'driver-pov',
-    label: 'Insert Driver POV',
-    template:
-      'Interior of the selected vehicle asset from driver-seat POV. Character seated in driver seat, hands near wheel, realistic seat posture. Preserve dashboard, windshield, and cabin geometry. Outside seen through windows should match selected location mood.',
-  },
-  {
-    id: 'driver-passenger-dialogue',
-    label: 'Insert Driver + Passenger Dialogue',
-    template:
-      'Inside the selected vehicle asset, two-character dialogue composition. Character A in driver seat and Character B in front passenger seat, both naturally seated and facing each other in conversation. Preserve console depth, seat spacing, and window framing consistency.',
-  },
-  {
-    id: 'aisle-shot',
-    label: 'Insert Aisle Shot',
-    template:
-      'Interior aisle perspective for aircraft cabin. Character positioned with natural seated/travel posture, maintain straight aisle lines, seat-row continuity, and realistic cabin depth. Keep overhead bins, windows, and lighting consistent with the selected interior reference.',
-  },
-];
-
 function VehicleInteriorPackageCards({
   category,
   selectedPackageId,
@@ -215,15 +194,6 @@ export default function AssetAngleGenerationModal({
   const [generationResult, setGenerationResult] = useState<any>(null);
   const [error, setError] = useState<string>('');
   const [jobId, setJobId] = useState<string | null>(null);
-
-  const applyInteriorPromptHelper = (template: string) => {
-    setAdditionalPrompt((prev) => {
-      const trimmed = (prev || '').trim();
-      if (!trimmed) return template;
-      if (trimmed.includes(template)) return trimmed;
-      return `${trimmed}\n\n${template}`;
-    });
-  };
   
   // Note: Safety errors are now handled in job results (async pattern)
   // Frontend will check job status and show dialog when job completes with safety errors
@@ -617,23 +587,6 @@ export default function AssetAngleGenerationModal({
                     <h3 className="text-sm font-semibold text-base-content mb-4">
                       Step 4: Additional Prompt (Optional)
                     </h3>
-                    {viewMode === 'interior' && (
-                      <div className="mb-3">
-                        <div className="text-xs text-base-content/60 mb-2">Interior Prompt Helpers</div>
-                        <div className="flex flex-wrap gap-2">
-                          {INTERIOR_PROMPT_HELPERS.map((helper) => (
-                            <button
-                              key={helper.id}
-                              type="button"
-                              onClick={() => applyInteriorPromptHelper(helper.template)}
-                              className="px-2.5 py-1.5 text-xs rounded border border-base-content/20 bg-base-200 text-base-content/80 hover:border-primary/60 hover:text-base-content transition-colors"
-                            >
-                              {helper.label}
-                            </button>
-                          ))}
-                        </div>
-                      </div>
-                    )}
                     <textarea
                       value={additionalPrompt}
                       onChange={(e) => setAdditionalPrompt(e.target.value)}

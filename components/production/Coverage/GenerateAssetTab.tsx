@@ -34,27 +34,6 @@ const VEHICLE_INTERIOR_PACKAGES_UI: Record<string, { id: string; name: string; a
 const GROUND_PACKAGE_IDS = ['car', 'truck', 'suv', 'van', 'semi'];
 const AIRCRAFT_PACKAGE_IDS = ['helicopter', 'small_plane', 'passenger_cabin'];
 
-const INTERIOR_PROMPT_HELPERS: Array<{ id: string; label: string; template: string }> = [
-  {
-    id: 'driver-pov',
-    label: 'Insert Driver POV',
-    template:
-      'Interior of the selected vehicle asset from driver-seat POV. Character seated in driver seat, hands near wheel, realistic seat posture. Preserve dashboard, windshield, and cabin geometry. Outside seen through windows should match selected location mood.',
-  },
-  {
-    id: 'driver-passenger-dialogue',
-    label: 'Insert Driver + Passenger Dialogue',
-    template:
-      'Inside the selected vehicle asset, two-character dialogue composition. Character A in driver seat and Character B in front passenger seat, both naturally seated and facing each other in conversation. Preserve console depth, seat spacing, and window framing consistency.',
-  },
-  {
-    id: 'aisle-shot',
-    label: 'Insert Aisle Shot',
-    template:
-      'Interior aisle perspective for aircraft cabin. Character positioned with natural seated/travel posture, maintain straight aisle lines, seat-row continuity, and realistic cabin depth. Keep overhead bins, windows, and lighting consistent with the selected interior reference.',
-  },
-];
-
 // Match Standard Props compact card: consistency rating for interior packages (3-angle ≈ 85%, 4-angle ≈ 88%)
 const INTERIOR_CONSISTENCY: Record<string, number> = {
   single: 50,
@@ -274,15 +253,6 @@ export function GenerateAssetTab({
   // Generation state
   const [isGenerating, setIsGenerating] = useState(false);
   const [error, setError] = useState<string>('');
-
-  const applyInteriorPromptHelper = (template: string) => {
-    setAdditionalPrompt((prev) => {
-      const trimmed = (prev || '').trim();
-      if (!trimmed) return template;
-      if (trimmed.includes(template)) return trimmed;
-      return `${trimmed}\n\n${template}`;
-    });
-  };
   
   // Get selected model
   const selectedModel = useMemo(() => {
@@ -622,23 +592,6 @@ export function GenerateAssetTab({
       {/* Step 3: Optional - Additional Prompt */}
       <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-4">
         <h3 className="text-sm font-semibold text-white mb-3">Step 3: Additional Prompt (Optional)</h3>
-        {viewMode === 'interior' && (
-          <div className="mb-3">
-            <div className="text-xs text-[#808080] mb-2">Interior Prompt Helpers</div>
-            <div className="flex flex-wrap gap-2">
-              {INTERIOR_PROMPT_HELPERS.map((helper) => (
-                <button
-                  key={helper.id}
-                  type="button"
-                  onClick={() => applyInteriorPromptHelper(helper.template)}
-                  className="px-2.5 py-1.5 text-xs rounded border border-[#3F3F46] bg-[#0A0A0A] text-[#D4D4D8] hover:border-[#DC143C]/60 hover:text-white transition-colors"
-                >
-                  {helper.label}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
         <textarea
           value={additionalPrompt}
           onChange={(e) => setAdditionalPrompt(e.target.value)}
