@@ -665,6 +665,10 @@ export function CharacterDetailModal({
     if (!s3Key) return url;
     const nonce = flipCacheBustByS3Key[s3Key];
     if (!nonce) return url;
+    // Do not mutate presigned URLs; appending query params invalidates signatures.
+    if (/[?&](X-Amz-Signature|X-Amz-Credential|x-amz-signature)=/i.test(url)) {
+      return url;
+    }
     const separator = url.includes('?') ? '&' : '?';
     return `${url}${separator}flipv=${nonce}`;
   }, [flipCacheBustByS3Key]);
