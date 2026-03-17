@@ -14,7 +14,7 @@
  */
 
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { X, Upload, Sparkles, Image as ImageIcon, MapPin, FileText, Box, Download, Trash2, Plus, Camera, MoreVertical, Info, Eye, CheckSquare, Square, FlipHorizontal, Crop } from 'lucide-react';
+import { X, Upload, Image as ImageIcon, MapPin, FileText, Box, Download, Trash2, Plus, Camera, MoreVertical, Info, Eye, CheckSquare, Square, FlipHorizontal, Crop } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
@@ -209,7 +209,6 @@ export function LocationDetailModal({
   const [showBulkDeleteConfirm, setShowBulkDeleteConfirm] = useState(false);
   // 🔥 NEW: Regeneration state
   const [regenerateAngle, setRegenerateAngle] = useState<{ angleId: string; s3Key: string; angle: string; variation?: LocationReference } | null>(null);
-  const [regenerateBackground, setRegenerateBackground] = useState<{ backgroundId: string; s3Key: string; backgroundType: string; background?: LocationBackground } | null>(null);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [regeneratingS3Key, setRegeneratingS3Key] = useState<string | null>(null); // Track which specific image is regenerating
   const [flippingAngleId, setFlippingAngleId] = useState<string | null>(null);
@@ -437,66 +436,6 @@ export function LocationDetailModal({
       toast.error(`Failed to flip angle: ${error.message || 'Unknown error'}`);
     } finally {
       setFlippingAngleId(null);
-    }
-  };
-
-  // 🔥 NEW: Handle background regeneration
-  const handleRegenerateBackground = async (backgroundId: string, existingBackgroundS3Key: string, backgroundType: string, background?: LocationBackground) => {
-    if (!backgroundId || !existingBackgroundS3Key || !backgroundType) {
-      toast.error('Missing background information for regeneration');
-      return;
-    }
-
-    // 🔥 CRITICAL: Set regenerating state IMMEDIATELY before any async operations
-    const s3KeyToTrack = existingBackgroundS3Key.trim();
-    setIsRegenerating(true);
-    setRegeneratingS3Key(s3KeyToTrack); // Track which image is regenerating - set BEFORE closing modal
-    setRegenerateBackground(null); // Close modal AFTER state is set
-    try {
-      const token = await getToken({ template: 'wryda-backend' });
-      if (!token) throw new Error('Not authenticated');
-
-      const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
-      const response = await fetch(`${BACKEND_API_URL}/api/location-bank/${location.locationId}/regenerate-background?screenplayId=${screenplayId}`, {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          backgroundId,
-          existingBackgroundS3Key,
-          backgroundType,
-          timeOfDay: background?.timeOfDay,
-          weather: background?.weather,
-          // 🔥 FIX: Send providerId and quality from stored metadata if available, otherwise use defaults
-          providerId: background?.metadata?.providerId || undefined,
-          quality: background?.metadata?.quality || 'standard',
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        throw new Error(errorData.error || `Failed to regenerate background: ${response.statusText}`);
-      }
-
-      const result = await response.json();
-      
-      // Immediately refetch to update UI (like angles do)
-      queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
-      queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
-      await Promise.all([
-        queryClient.refetchQueries({ queryKey: ['locations', screenplayId, 'production-hub'] }),
-        queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] })
-      ]);
-      
-      // No toast notification - silent update like angles
-    } catch (error: any) {
-      console.error('[LocationDetailModal] Failed to regenerate background:', error);
-      toast.error(`Failed to regenerate background: ${error.message || 'Unknown error'}`);
-    } finally {
-      setIsRegenerating(false);
-      setRegeneratingS3Key(null); // Clear regenerating state
     }
   };
 
@@ -1962,34 +1901,6 @@ export function LocationDetailModal({
                                                         Crop
                                                       </DropdownMenuItem>
                                                     )}
-                                                    {/* 🔥 NEW: Regenerate option (only for AI-generated backgrounds with id) */}
-                                                    {background.id && background.s3Key && background.generationMethod === 'ai-generated' && (() => {
-                                                      const currentS3Key = (background.s3Key || '').trim();
-                                                      const isThisImageRegenerating = regeneratingS3Key !== null && regeneratingS3Key.trim() === currentS3Key;
-                                                      return (
-                                                        <DropdownMenuItem
-                                                          className="text-[#8B5CF6] hover:bg-[#8B5CF6]/10 hover:text-[#8B5CF6] cursor-pointer focus:bg-[#8B5CF6]/10 focus:text-[#8B5CF6] disabled:opacity-50 disabled:cursor-not-allowed"
-                                                          onClick={(e) => {
-                                                            e.stopPropagation();
-                                                            // Don't allow if ANY regeneration is in progress
-                                                            if (isRegenerating) {
-                                                              return;
-                                                            }
-                                                            // Show warning modal before regenerating
-                                                            setRegenerateBackground({
-                                                              backgroundId: background.id,
-                                                              s3Key: currentS3Key,
-                                                              backgroundType: background.backgroundType,
-                                                              background: background as LocationBackground,
-                                                            });
-                                                          }}
-                                                          disabled={isRegenerating}
-                                                        >
-                                                          <Sparkles className="w-4 h-4 mr-2" />
-                                                          {isThisImageRegenerating ? 'Regenerating...' : 'Regenerate'}
-                                                        </DropdownMenuItem>
-                                                      );
-                                                    })()}
                                                     <DropdownMenuItem
                                                       className="text-[#DC143C] hover:bg-[#DC143C]/10 hover:text-[#DC143C] cursor-pointer focus:bg-[#DC143C]/10 focus:text-[#DC143C]"
                                                       onClick={async (e) => {
@@ -2360,18 +2271,6 @@ export function LocationDetailModal({
       imageType="angle"
     />
     
-    {/* 🔥 NEW: Regenerate Confirmation Modal for Backgrounds */}
-    <RegenerateConfirmModal
-      isOpen={regenerateBackground !== null && regeneratingS3Key === null}
-      onClose={() => setRegenerateBackground(null)}
-      onConfirm={() => {
-        if (regenerateBackground && regeneratingS3Key === null) {
-          handleRegenerateBackground(regenerateBackground.backgroundId, regenerateBackground.s3Key, regenerateBackground.backgroundType, regenerateBackground.background);
-        }
-      }}
-      imageType="background"
-    />
-
     {cropTarget && screenplayId && (
       <EntityImageCropModal
         isOpen={cropTarget !== null}
