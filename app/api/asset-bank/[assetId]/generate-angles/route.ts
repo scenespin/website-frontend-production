@@ -44,9 +44,9 @@ export async function POST(
       );
     }
 
-    // Get request body (Feature 0226: include packageType, projectId, screenplayId for vehicle-interior)
+    // Get request body (include conceptual viewMode + legacy packageType routing hints)
     const body = await request.json();
-    const { packageId, packageType, selectedAngle, quality, providerId, additionalPrompt, projectId, screenplayId } = body;
+    const { packageId, packageType, viewMode, selectedAngle, quality, providerId, additionalPrompt, projectId, screenplayId } = body;
 
     if (!packageId) {
       return NextResponse.json(
@@ -55,7 +55,7 @@ export async function POST(
       );
     }
 
-    const isVehicleInterior = packageType === 'vehicle-interior';
+    const isVehicleInterior = packageType === 'vehicle-interior' || viewMode === 'interior';
 
     if (isVehicleInterior) {
       // Backend is source of truth for valid vehicle-interior packageIds; only require non-empty string here
@@ -66,9 +66,9 @@ export async function POST(
         );
       }
     } else {
-      if (!['single', 'basic', 'standard', 'premium'].includes(packageId)) {
+      if (!['single', 'standard'].includes(packageId)) {
         return NextResponse.json(
-          { error: 'packageId must be one of: single, basic, standard, premium' },
+          { error: 'packageId must be one of: single, standard' },
           { status: 400 }
         );
       }
@@ -92,6 +92,7 @@ export async function POST(
       assetId,
       packageId,
       packageType: packageType || 'standard',
+      viewMode: viewMode || (isVehicleInterior ? 'interior' : 'exterior'),
       selectedAngle,
       quality,
       providerId,
@@ -118,6 +119,7 @@ export async function POST(
       additionalPrompt,
       projectId: projectId || screenplayId,
       screenplayId: screenplayId || projectId,
+      viewMode: viewMode || (isVehicleInterior ? 'interior' : 'exterior'),
     };
     if (isVehicleInterior) {
       requestBody.packageType = 'vehicle-interior';

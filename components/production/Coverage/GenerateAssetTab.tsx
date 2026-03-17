@@ -6,7 +6,7 @@
  * Converted from AssetAngleGenerationModal to tab format
  * Steps:
  * Step 1: Model Selection (unified dropdown from API)
- * Step 2: Package Selection (Standard Props | Ground Vehicles | Aircraft)
+ * Step 2: View + Package Selection (Exterior | Interior)
  * Step 3: Additional Prompt (Optional)
  */
 
@@ -240,8 +240,9 @@ export function GenerateAssetTab({
   const [models, setModels] = useState<Array<{ id: string; name: string; referenceLimit: number; quality: '1080p' | '4K'; credits: number; enabled: boolean }>>([]);
   const [isLoadingModels, setIsLoadingModels] = useState(false);
   
-  // Step 2: Package Selection (Feature 0226: Standard | Ground | Aircraft tabs)
-  const [packageCategoryTab, setPackageCategoryTab] = useState<'standard' | 'ground' | 'aircraft'>('standard');
+  // Step 2: View + Package Selection (Feature phase: Exterior | Interior)
+  const [viewMode, setViewMode] = useState<'exterior' | 'interior'>('exterior');
+  const [interiorCategory, setInteriorCategory] = useState<'ground' | 'aircraft'>('ground');
   const [selectedPackageId, setSelectedPackageId] = useState<string>('standard');
   const [selectedAngle, setSelectedAngle] = useState<string>('front'); // Feature 0190: Single angle selection
   const [selectedInteriorPackageId, setSelectedInteriorPackageId] = useState<string>('car'); // Feature 0226: vehicle/aircraft when single angle
@@ -337,7 +338,8 @@ export function GenerateAssetTab({
       const apiUrl = `/api/asset-bank/${assetId}/generate-angles`;
       
       const derivedQuality = selectedModel?.quality === '4K' ? 'high-quality' : 'standard';
-      const isInteriorSingle = (packageCategoryTab === 'ground' || packageCategoryTab === 'aircraft') && selectedPackageId === 'single';
+      const isInteriorMode = viewMode === 'interior';
+      const isInteriorSingle = isInteriorMode && selectedPackageId === 'single';
       // Jobs Panel lists by screenplayId; use context screenplay, fallback to asset's so job is queryable
       const projectIdForJob = screenplayId?.trim() || asset?.screenplayId || asset?.projectId || '';
       if (!projectIdForJob) {
@@ -353,8 +355,9 @@ export function GenerateAssetTab({
         additionalPrompt: additionalPrompt.trim() || undefined,
         projectId: projectIdForJob,
         screenplayId: projectIdForJob,
+        viewMode,
       };
-      if (packageCategoryTab === 'ground' || packageCategoryTab === 'aircraft') {
+      if (isInteriorMode) {
         requestBody.packageType = 'vehicle-interior';
       }
       if (selectedPackageId === 'single' || isInteriorSingle) {
@@ -431,12 +434,13 @@ export function GenerateAssetTab({
     }
   };
   
-  // Calculate total credits (Feature 0226: vehicle interior counts)
-  const packageAngleCounts: Record<string, number> = {
+  // Calculate total credits by current view mode (kept additive over existing package internals)
+  const exteriorPackageAngleCounts: Record<string, number> = {
     single: 1,
-    basic: 3,
-    standard: 6,
-    premium: 10,
+    standard: 4,
+  };
+  const interiorPackageAngleCounts: Record<string, number> = {
+    single: 1,
     car: 7,
     truck: 7,
     suv: 7,
@@ -446,7 +450,12 @@ export function GenerateAssetTab({
     small_plane: 3,
     passenger_cabin: 4,
   };
-  const angleCount = selectedPackageId === 'single' ? 1 : (packageAngleCounts[selectedPackageId] ?? 6);
+  const angleCount =
+    selectedPackageId === 'single'
+      ? 1
+      : viewMode === 'interior'
+      ? (interiorPackageAngleCounts[selectedPackageId] ?? 3)
+      : (exteriorPackageAngleCounts[selectedPackageId] ?? 4);
   const totalCredits = angleCount * creditsPerImage;
   
   return (
@@ -488,37 +497,63 @@ export function GenerateAssetTab({
         </div>
       </div>
 
-      {/* Step 2: Package Selection (Standard Props | Ground Vehicles | Aircraft) */}
+      {/* Step 2: View + Package Selection */}
       <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-4">
-        <h3 className="text-sm font-semibold text-white mb-3">Step 2: Package Selection</h3>
+        <h3 className="text-sm font-semibold text-white mb-3">Step 2: View + Package Selection</h3>
         <p className="text-xs text-[#808080] mb-3">More angles = better consistency</p>
         <div className="flex gap-1 p-1 bg-[#0A0A0A] rounded-lg mb-4 border border-[#3F3F46]">
-          {(['standard', 'ground', 'aircraft'] as const).map((tab) => (
+          {(['exterior', 'interior'] as const).map((mode) => (
             <button
-              key={tab}
+              key={mode}
               type="button"
               onClick={() => {
-                setPackageCategoryTab(tab);
-                if (tab === 'standard') setSelectedPackageId('standard');
-                else if (tab === 'ground') {
+                setViewMode(mode);
+                if (mode === 'exterior') {
+                  setSelectedPackageId('standard');
+                  setSelectedAngle('front');
+                } else {
+                  setInteriorCategory('ground');
                   setSelectedPackageId('car');
                   setSelectedInteriorPackageId('car');
                   setSelectedAngle('driver');
-                } else {
-                  setSelectedPackageId('helicopter');
-                  setSelectedInteriorPackageId('helicopter');
-                  setSelectedAngle('pilot');
                 }
               }}
               className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors ${
-                packageCategoryTab === tab ? 'bg-[#DC143C] text-white' : 'text-[#808080] hover:bg-[#2A2A2A] hover:text-white'
+                viewMode === mode ? 'bg-[#DC143C] text-white' : 'text-[#808080] hover:bg-[#2A2A2A] hover:text-white'
               }`}
             >
-              {tab === 'standard' ? 'Standard Props' : tab === 'ground' ? 'Ground Vehicles' : 'Aircraft'}
+              {mode === 'exterior' ? 'Exterior View' : 'Interior View'}
             </button>
           ))}
         </div>
-        {packageCategoryTab === 'standard' && (
+        {viewMode === 'interior' && (
+          <div className="flex gap-1 p-1 bg-[#0A0A0A] rounded-lg mb-4 border border-[#3F3F46]">
+            {(['ground', 'aircraft'] as const).map((category) => (
+              <button
+                key={category}
+                type="button"
+                onClick={() => {
+                  setInteriorCategory(category);
+                  if (category === 'ground') {
+                    setSelectedPackageId('car');
+                    setSelectedInteriorPackageId('car');
+                    setSelectedAngle('driver');
+                  } else {
+                    setSelectedPackageId('helicopter');
+                    setSelectedInteriorPackageId('helicopter');
+                    setSelectedAngle('pilot');
+                  }
+                }}
+                className={`flex-1 py-2 px-3 rounded-md text-sm font-medium transition-colors ${
+                  interiorCategory === category ? 'bg-[#DC143C] text-white' : 'text-[#808080] hover:bg-[#2A2A2A] hover:text-white'
+                }`}
+              >
+                {category === 'ground' ? 'Ground Vehicles' : 'Aircraft'}
+              </button>
+            ))}
+          </div>
+        )}
+        {viewMode === 'exterior' && (
           <AssetAnglePackageSelector
             assetName={assetName}
             onSelectPackage={setSelectedPackageId}
@@ -530,7 +565,7 @@ export function GenerateAssetTab({
             onSelectedAngleChange={setSelectedAngle}
           />
         )}
-        {packageCategoryTab === 'ground' && (
+        {viewMode === 'interior' && interiorCategory === 'ground' && (
           <VehicleInteriorPackageCards
             category="ground"
             selectedPackageId={selectedPackageId}
@@ -542,7 +577,7 @@ export function GenerateAssetTab({
             onSelectedInteriorPackageIdChange={setSelectedInteriorPackageId}
           />
         )}
-        {packageCategoryTab === 'aircraft' && (
+        {viewMode === 'interior' && interiorCategory === 'aircraft' && (
           <VehicleInteriorPackageCards
             category="aircraft"
             selectedPackageId={selectedPackageId}
@@ -601,7 +636,7 @@ export function GenerateAssetTab({
         </button>
         <button
           onClick={handleGenerate}
-          disabled={isGenerating || isLoadingModels || !providerId || !selectedPackageId || (selectedPackageId === 'single' && !selectedAngle) || (packageCategoryTab !== 'standard' && selectedPackageId === 'single' && (!selectedInteriorPackageId || !selectedAngle))}
+          disabled={isGenerating || isLoadingModels || !providerId || !selectedPackageId || (selectedPackageId === 'single' && !selectedAngle) || (viewMode === 'interior' && selectedPackageId === 'single' && (!selectedInteriorPackageId || !selectedAngle))}
           className="flex-1 px-4 py-3 bg-[#DC143C] hover:bg-[#B91C1C] disabled:bg-[#3F3F46] disabled:text-[#808080] text-white rounded-lg transition-colors font-medium flex items-center justify-center gap-2"
         >
           {isGenerating ? (
