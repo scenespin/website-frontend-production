@@ -117,25 +117,9 @@ export default function LocationBoard({ showHeader = true, triggerAdd, initialDa
         console.log('[LocationBoard] 🔍 Location names:', locations.map(l => l.name));
         console.log('[LocationBoard] 📊 Loading state:', { isLoading, hasInitializedFromDynamoDB });
         
-        const normalizeType = (rawType: string | undefined): 'INT' | 'EXT' | 'INT/EXT' => {
-            const normalized = (rawType || '').toLowerCase().replace(/\./g, '').trim();
-            if (normalized === 'int' || normalized === 'interior') return 'INT';
-            if (normalized === 'ext' || normalized === 'exterior') return 'EXT';
-            if (
-                normalized === 'int/ext' ||
-                normalized === 'int-ext' ||
-                normalized === 'mixed' ||
-                normalized === 'interior/exterior' ||
-                (normalized.includes('int') && normalized.includes('ext'))
-            ) {
-                return 'INT/EXT';
-            }
-            return 'INT';
-        };
-
-        const interiors = locations.filter(l => normalizeType(l.type) === 'INT');
-        const exteriors = locations.filter(l => normalizeType(l.type) === 'EXT');
-        const both = locations.filter(l => normalizeType(l.type) === 'INT/EXT');
+        const interiors = locations.filter(l => (l.type || 'INT') === 'INT');
+        const exteriors = locations.filter(l => l.type === 'EXT');
+        const both = locations.filter(l => l.type === 'INT/EXT');
 
         // Sort each column independently
         const sortedInteriors = sortLocations(interiors, sortBy, relationships, scenes);

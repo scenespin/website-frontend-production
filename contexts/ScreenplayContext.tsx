@@ -562,35 +562,15 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         }));
     }, []);
     
-    const normalizeLocationType = useCallback((rawType: unknown): 'INT' | 'EXT' | 'INT/EXT' => {
-        if (typeof rawType !== 'string') return 'INT';
-        const normalized = rawType.toLowerCase().replace(/\./g, '').trim();
-        if (!normalized) return 'INT';
-
-        if (normalized === 'int' || normalized === 'interior') return 'INT';
-        if (normalized === 'ext' || normalized === 'exterior') return 'EXT';
-        if (
-            normalized === 'int/ext' ||
-            normalized === 'int-ext' ||
-            normalized === 'mixed' ||
-            normalized === 'interior/exterior'
-        ) {
-            return 'INT/EXT';
-        }
-
-        if (normalized.includes('int') && normalized.includes('ext')) {
-            return 'INT/EXT';
-        }
-
-        return 'INT';
-    }, []);
-
     const transformLocationsFromAPI = useCallback((apiLocations: any[]): Location[] => {
         return apiLocations.map(loc => ({
             id: loc.id || loc.location_id,
             name: loc.name || '',
             description: loc.description || '',
-            type: normalizeLocationType(loc.type), // Normalize production-hub values (interior/exterior/mixed) for Creation board columns
+            type:
+                loc.type === 'INT' || loc.type === 'EXT' || loc.type === 'INT/EXT'
+                    ? loc.type
+                    : 'INT',
             // 🔥 FIX: Use images array from backend (with presigned URLs and s3Keys) instead of referenceImages
             // 🔥 CRITICAL FIX: Preserve ALL metadata from API (including source, angle, etc.) for proper image filtering
             images: (loc.images || []).map((img: any) => ({
@@ -610,7 +590,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             createdAt: loc.created_at || new Date().toISOString(),
             updatedAt: loc.updated_at || new Date().toISOString()
         }));
-    }, [normalizeLocationType]);
+    }, []);
     
     // Helper to create default 8-sequence beats (frontend-only UI template)
     const createDefaultBeats = useCallback((): StoryBeat[] => {
