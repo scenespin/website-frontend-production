@@ -13,7 +13,7 @@
  * Feature 0232: Three tabs; ECU tab has source (reference / angles / backgrounds), image selector, ECU package (Essentials, Standard, Premium).
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { Loader2, Zap, Check, Star, ImageIcon } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { toast } from 'sonner';
@@ -25,6 +25,7 @@ import LocationBackgroundPackageSelector from '../LocationBackgroundPackageSelec
 import { THUMBNAIL_ASPECT_RATIO } from '../utils/imageConstants';
 import { extractCreditError, getCreditErrorDisplayMessage, syncCreditsFromError } from '@/utils/creditGuard';
 import { useInFlightWorkflowJobsStore } from '@/lib/inFlightWorkflowJobsStore';
+import { PromptHelperChips } from './PromptHelperChips';
 
 /** Human-readable labels for background types (shared with LocationDetailModal pattern) */
 const BACKGROUND_TYPE_LABELS: Record<string, string> = {
@@ -144,6 +145,7 @@ export function GenerateLocationTab({
   
   // Step 5: Optional - Additional Prompt
   const [additionalPrompt, setAdditionalPrompt] = useState<string>('');
+  const additionalPromptRef = useRef<HTMLTextAreaElement | null>(null);
 
   // Extreme Close-ups tab (Feature 0232): source type, selected source ids, ECU package
   const [ecuSourceType, setEcuSourceType] = useState<'reference-images' | 'angle-variations' | 'backgrounds'>('reference-images');
@@ -1374,6 +1376,7 @@ export function GenerateLocationTab({
           Step 5: Additional Prompt (Optional)
         </label>
         <textarea
+          ref={additionalPromptRef}
           id="generate-location-additional-prompt"
           name="additionalPrompt"
           value={additionalPrompt}
@@ -1382,6 +1385,13 @@ export function GenerateLocationTab({
           rows={3}
           className="w-full px-3 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded text-sm text-white placeholder-[#808080] focus:outline-none focus:ring-1 focus:ring-[#DC143C] resize-none"
           aria-label="Additional prompt for generation"
+        />
+        <PromptHelperChips
+          entity="location"
+          context="generate"
+          promptValue={additionalPrompt}
+          onPromptChange={setAdditionalPrompt}
+          textareaRef={additionalPromptRef}
         />
         <p className="mt-2 text-xs text-[#808080]">
           Supports color hex codes (e.g., #FF0000) and grounding search keywords

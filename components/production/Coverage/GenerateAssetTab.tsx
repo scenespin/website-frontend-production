@@ -10,7 +10,7 @@
  * Step 3: Additional Prompt (Optional)
  */
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { Loader2, Package, Car, Plane } from 'lucide-react';
 import { toast } from 'sonner';
@@ -19,6 +19,7 @@ import { hasAssetReference, showReferenceRequired } from '@/utils/referenceImage
 import AssetAnglePackageSelector from '../AssetAnglePackageSelector';
 import { extractCreditError, getCreditErrorDisplayMessage, syncCreditsFromError } from '@/utils/creditGuard';
 import { useInFlightWorkflowJobsStore } from '@/lib/inFlightWorkflowJobsStore';
+import { PromptHelperChips } from './PromptHelperChips';
 
 // Feature 0226: Vehicle/aircraft interior package definitions (match backend angleIds)
 const VEHICLE_INTERIOR_PACKAGES_UI: Record<string, { id: string; name: string; angleIds: string[]; angleLabels: string[] }> = {
@@ -249,6 +250,7 @@ export function GenerateAssetTab({
   
   // Step 3: Optional - Additional Prompt
   const [additionalPrompt, setAdditionalPrompt] = useState<string>('');
+  const additionalPromptRef = useRef<HTMLTextAreaElement | null>(null);
   
   // Generation state
   const [isGenerating, setIsGenerating] = useState(false);
@@ -593,11 +595,19 @@ export function GenerateAssetTab({
       <div className="bg-[#1F1F1F] border border-[#3F3F46] rounded-lg p-4">
         <h3 className="text-sm font-semibold text-white mb-3">Step 3: Additional Prompt (Optional)</h3>
         <textarea
+          ref={additionalPromptRef}
           value={additionalPrompt}
           onChange={(e) => setAdditionalPrompt(e.target.value)}
           placeholder="Add any specific details, color codes, or grounding search keywords..."
           rows={3}
           className="w-full px-3 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded text-sm text-white placeholder-[#808080] focus:outline-none focus:ring-1 focus:ring-[#DC143C] resize-none"
+        />
+        <PromptHelperChips
+          entity="asset"
+          context="generate"
+          promptValue={additionalPrompt}
+          onPromptChange={setAdditionalPrompt}
+          textareaRef={additionalPromptRef}
         />
         <p className="mt-2 text-xs text-[#808080]">
           Supports color hex codes (e.g., #FF0000) and grounding search keywords

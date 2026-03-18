@@ -24,6 +24,7 @@ import { extractCreditError, getCreditErrorDisplayMessage, syncCreditsFromError 
 import { useInFlightWorkflowJobsStore } from '@/lib/inFlightWorkflowJobsStore';
 import { uploadToObjectStorage } from '@/lib/objectStorageUpload';
 import { canonicalOutfitName, canonicalToDisplay } from '@/utils/outfitUtils';
+import { PromptHelperChips } from './PromptHelperChips';
 
 interface GenerateWardrobeTabProps {
   characterId: string;
@@ -73,6 +74,7 @@ export function GenerateWardrobeTab({
   // Step 4: Style Template + Custom Prompt
   const [selectedStyleTemplate, setSelectedStyleTemplate] = useState<string>('');
   const [customPrompt, setCustomPrompt] = useState<string>('');
+  const customPromptRef = useRef<HTMLTextAreaElement | null>(null);
 
   // Step 5: Pose Package
   const [selectedPackageId, setSelectedPackageId] = useState<string>('standard');
@@ -573,10 +575,18 @@ export function GenerateWardrobeTab({
               Custom Prompt (Optional)
             </label>
             <textarea
+              ref={customPromptRef}
               value={customPrompt}
               onChange={(e) => setCustomPrompt(e.target.value)}
               placeholder="Add specific styling details, color codes (#FF0000)..."
               className={`w-full ${isMobile ? 'h-24 p-3 text-base' : 'h-20 p-2 text-sm'} bg-[#0A0A0A] border border-[#3F3F46] rounded text-white placeholder-[#808080] focus:outline-none focus:ring-1 focus:ring-[#DC143C]`}
+            />
+            <PromptHelperChips
+              entity="character"
+              context="generate"
+              promptValue={customPrompt}
+              onPromptChange={setCustomPrompt}
+              textareaRef={customPromptRef}
             />
           </div>
         </div>
