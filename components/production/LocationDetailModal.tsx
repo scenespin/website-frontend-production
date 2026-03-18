@@ -1741,8 +1741,12 @@ export function LocationDetailModal({
                                       if (!img) return null;
                                       const imgId = img.id || `bg_${background.s3Key}`;
                                       const isSelected = selectedImageIds.has(imgId);
-                                      // 🔥 NEW: Use thumbnail URL from mapping, fallback to full image
-                                      const displayUrl = appendFlipCacheBust(referenceThumbnailMap.get(imgId) || img.imageUrl, background.s3Key || img.s3Key);
+                                      // Background cards are the most cache-sensitive path in Location modal.
+                                      // Prefer full image URL here to avoid stale thumbnail fallbacks after in-place crop.
+                                      const displayUrl = appendFlipCacheBust(
+                                        presignedMapsForDisplay.fullImageUrlsMap.get(background.s3Key || img.s3Key) || img.imageUrl,
+                                        background.s3Key || img.s3Key
+                                      );
                                       
                                       // Get display label for background type
                                       const backgroundTypeLabels: Record<string, string> = {
