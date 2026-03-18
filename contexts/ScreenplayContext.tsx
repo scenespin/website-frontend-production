@@ -562,12 +562,35 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         }));
     }, []);
     
+    const normalizeLocationType = useCallback((rawType: unknown): 'INT' | 'EXT' | 'INT/EXT' => {
+        if (typeof rawType !== 'string') return 'INT';
+        const normalized = rawType.toLowerCase().replace(/\./g, '').trim();
+        if (!normalized) return 'INT';
+
+        if (normalized === 'int' || normalized === 'interior') return 'INT';
+        if (normalized === 'ext' || normalized === 'exterior') return 'EXT';
+        if (
+            normalized === 'int/ext' ||
+            normalized === 'int-ext' ||
+            normalized === 'mixed' ||
+            normalized === 'interior/exterior'
+        ) {
+            return 'INT/EXT';
+        }
+
+        if (normalized.includes('int') && normalized.includes('ext')) {
+            return 'INT/EXT';
+        }
+
+        return 'INT';
+    }, []);
+
     const transformLocationsFromAPI = useCallback((apiLocations: any[]): Location[] => {
         return apiLocations.map(loc => ({
             id: loc.id || loc.location_id,
             name: loc.name || '',
             description: loc.description || '',
-            type: (loc.type as 'INT' | 'EXT' | 'INT/EXT') || 'INT', // 🔥 FIXED: Preserve type from DynamoDB, default to 'INT'
+            type: normalizeLocationType(loc.type), // Normalize production-hub values (interior/exterior/mixed) for Creation board columns
             // 🔥 FIX: Use images array from backend (with presigned URLs and s3Keys) instead of referenceImages
             // 🔥 CRITICAL FIX: Preserve ALL metadata from API (including source, angle, etc.) for proper image filtering
             images: (loc.images || []).map((img: any) => ({
@@ -587,7 +610,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             createdAt: loc.created_at || new Date().toISOString(),
             updatedAt: loc.updated_at || new Date().toISOString()
         }));
-    }, []);
+    }, [normalizeLocationType]);
     
     // Helper to create default 8-sequence beats (frontend-only UI template)
     const createDefaultBeats = useCallback((): StoryBeat[] => {
@@ -1597,17 +1620,46 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
 
                             if (reChars.status === 'fulfilled') {
                                 const reconciledCharacters = transformCharactersFromAPI(reChars.value, charactersRef.current);
-                                if (reconciledCharacters.length > charactersRef.current.length) {
-                                    charactersRef.current = reconciledCharacters;
-                                    setCharacters(reconciledCharacters);
+                                const currentCharacterById = new Map<string, Character>();
+                                charactersRef.current.forEach((character) => currentCharacterById.set(character.id, character));
+                                const mergedCharactersById = new Map<string, Character>();
+                                charactersRef.current.forEach((character) => mergedCharactersById.set(character.id, character));
+                                reconciledCharacters.forEach((character) => mergedCharactersById.set(character.id, character));
+                                const mergedCharacters = Array.from(mergedCharactersById.values());
+                                const shouldUpdateCharacters =
+                                    mergedCharacters.length !== charactersRef.current.length ||
+                                    reconciledCharacters.some((character) => {
+                                        const currentCharacter = currentCharacterById.get(character.id);
+                                        if (!currentCharacter) return true;
+                                        return currentCharacter.updatedAt !== character.updatedAt;
+                                    });
+                                if (shouldUpdateCharacters) {
+                                    charactersRef.current = mergedCharacters;
+                                    setCharacters(mergedCharacters);
                                 }
                             }
 
                             if (reLocs.status === 'fulfilled') {
                                 const reconciledLocations = transformLocationsFromAPI(reLocs.value);
-                                if (reconciledLocations.length > locationsRef.current.length) {
-                                    locationsRef.current = reconciledLocations;
-                                    setLocations(reconciledLocations);
+                                const currentLocationById = new Map<string, Location>();
+                                locationsRef.current.forEach((location) => currentLocationById.set(location.id, location));
+                                const mergedLocationsById = new Map<string, Location>();
+                                locationsRef.current.forEach((location) => mergedLocationsById.set(location.id, location));
+                                reconciledLocations.forEach((location) => mergedLocationsById.set(location.id, location));
+                                const mergedLocations = Array.from(mergedLocationsById.values());
+                                const shouldUpdateLocations =
+                                    mergedLocations.length !== locationsRef.current.length ||
+                                    reconciledLocations.some((location) => {
+                                        const currentLocation = currentLocationById.get(location.id);
+                                        if (!currentLocation) return true;
+                                        return (
+                                            currentLocation.updatedAt !== location.updatedAt ||
+                                            currentLocation.type !== location.type
+                                        );
+                                    });
+                                if (shouldUpdateLocations) {
+                                    locationsRef.current = mergedLocations;
+                                    setLocations(mergedLocations);
                                 }
                             }
 
@@ -1619,9 +1671,26 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                                     ...asset,
                                     images: asset.images || []
                                 }));
-                                if (normalizedAssets2.length > assetsRef.current.length) {
-                                    assetsRef.current = normalizedAssets2;
-                                    setAssets(normalizedAssets2);
+                                const currentAssetById = new Map<string, Asset>();
+                                assetsRef.current.forEach((asset) => currentAssetById.set(asset.id, asset));
+                                const mergedAssetsById = new Map<string, Asset>();
+                                assetsRef.current.forEach((asset) => mergedAssetsById.set(asset.id, asset));
+                                normalizedAssets2.forEach((asset) => mergedAssetsById.set(asset.id, asset));
+                                const mergedAssets = Array.from(mergedAssetsById.values());
+                                const shouldUpdateAssets =
+                                    mergedAssets.length !== assetsRef.current.length ||
+                                    normalizedAssets2.some((asset) => {
+                                        const currentAsset = currentAssetById.get(asset.id);
+                                        if (!currentAsset) return true;
+                                        const currentUpdatedAt = currentAsset.updatedAt || '';
+                                        const incomingUpdatedAt = asset.updatedAt || '';
+                                        const currentImageCount = Array.isArray(currentAsset.images) ? currentAsset.images.length : 0;
+                                        const incomingImageCount = Array.isArray(asset.images) ? asset.images.length : 0;
+                                        return currentUpdatedAt !== incomingUpdatedAt || currentImageCount !== incomingImageCount;
+                                    });
+                                if (shouldUpdateAssets) {
+                                    assetsRef.current = mergedAssets;
+                                    setAssets(mergedAssets);
                                 }
                             }
                         } catch (reconcileError) {

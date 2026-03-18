@@ -93,10 +93,19 @@ export default function AssetBoard({ showHeader = true, triggerAdd, initialData,
         console.log('[AssetBoard] 🔍 Asset names:', assets.map(a => a.name));
         console.log('[AssetBoard] 📊 Loading state:', { isLoading, hasInitializedFromDynamoDB });
         
-        const props = assets.filter(a => a.category === 'prop');
-        const vehicles = assets.filter(a => a.category === 'vehicle');
-        const furniture = assets.filter(a => a.category === 'furniture');
-        const other = assets.filter(a => a.category === 'other');
+        const normalizeCategory = (rawCategory: string | undefined): 'prop' | 'vehicle' | 'furniture' | 'other' => {
+            const normalized = (rawCategory || '').toLowerCase().trim();
+            if (!normalized) return 'other';
+            if (normalized === 'prop' || normalized === 'props' || normalized.includes('prop')) return 'prop';
+            if (normalized === 'vehicle' || normalized === 'vehicles' || normalized.includes('vehicle')) return 'vehicle';
+            if (normalized === 'furniture' || normalized.includes('furniture')) return 'furniture';
+            return 'other';
+        };
+
+        const props = assets.filter(a => normalizeCategory(a.category) === 'prop');
+        const vehicles = assets.filter(a => normalizeCategory(a.category) === 'vehicle');
+        const furniture = assets.filter(a => normalizeCategory(a.category) === 'furniture');
+        const other = assets.filter(a => normalizeCategory(a.category) === 'other');
 
         const newColumns: AssetColumn[] = [
             {
