@@ -1479,6 +1479,14 @@ export default function MediaLibrary({
     }
   };
 
+  const getDubbedLanguageLabel = (file: MediaFile): string | null => {
+    const metadata = (file as any)?.metadata || {};
+    if (metadata?.isDubbed !== true) return null;
+    const raw = String(metadata?.targetLanguageName || metadata?.targetLanguageCode || '').trim();
+    if (!raw) return 'Dubbed';
+    return raw;
+  };
+
   const getStorageIcon = (storageType: string) => {
     switch (storageType) {
       case 'google-drive':
@@ -2047,6 +2055,15 @@ export default function MediaLibrary({
                             Video
                           </div>
                         )}
+                        {(() => {
+                          const dubbedLanguage = getDubbedLanguageLabel(file);
+                          if (!dubbedLanguage) return null;
+                          return (
+                            <div className="absolute top-1 left-1 px-2 py-0.5 bg-[#1F8A45]/90 rounded text-[10px] font-medium text-white max-w-[85%] truncate">
+                              {dubbedLanguage}
+                            </div>
+                          );
+                        })()}
                       </div>
 
                       {/* File Info - Simplified on mobile */}

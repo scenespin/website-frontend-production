@@ -24,20 +24,12 @@ export function VideoThumbnail({ videoUrl, thumbnailUrl, fileName = 'video', cla
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  // When thumbnailUrl is provided, use it directly (avoids CORS/video-load issues)
-  if (thumbnailUrl) {
-    return (
-      <div className={`${className} relative bg-[#1F1F1F] rounded overflow-hidden w-full h-full`}>
-        <img
-          src={thumbnailUrl}
-          alt={fileName}
-          className="w-full h-full object-cover"
-        />
-      </div>
-    );
-  }
-
   useEffect(() => {
+    // If thumbnail is provided, we don't need video extraction.
+    if (thumbnailUrl) {
+      setExtractedThumbnail(null);
+      return;
+    }
     const video = videoRef.current;
     const canvas = canvasRef.current;
     
@@ -110,10 +102,23 @@ export function VideoThumbnail({ videoUrl, thumbnailUrl, fileName = 'video', cla
       video.removeEventListener('seeked', handleSeeked);
       video.removeEventListener('loadeddata', handleLoadedData);
     };
-  }, [videoUrl]);
+  }, [videoUrl, thumbnailUrl]);
+
+  // When thumbnailUrl is provided, use it directly (avoids CORS/video-load issues)
+  if (thumbnailUrl) {
+    return (
+      <div className={`${className} relative bg-[#1F1F1F] rounded overflow-hidden`}>
+        <img
+          src={thumbnailUrl}
+          alt={fileName}
+          className="w-full h-full object-cover"
+        />
+      </div>
+    );
+  }
 
   return (
-    <div className={`${className} relative bg-[#1F1F1F] rounded overflow-hidden w-full h-full`}>
+    <div className={`${className} relative bg-[#1F1F1F] rounded overflow-hidden`}>
       {extractedThumbnail ? (
         <img 
           src={extractedThumbnail} 
