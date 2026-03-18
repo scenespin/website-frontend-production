@@ -1401,14 +1401,42 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                             }
                         }
                     };
+
+                    const retryWithBackoff = async <T,>(label: string, operation: () => Promise<T>): Promise<T> => {
+                        const maxRetries = 2;
+                        let attempt = 0;
+                        while (true) {
+                            try {
+                                return await operation();
+                            } catch (error: any) {
+                                const statusCode = error?.statusCode || error?.response?.status;
+                                const shouldRetry =
+                                    statusCode !== 403 &&
+                                    statusCode !== 404 &&
+                                    attempt < maxRetries;
+                                if (!shouldRetry) {
+                                    throw error;
+                                }
+                                const delayMs = 250 * Math.pow(2, attempt) + Math.floor(Math.random() * 120);
+                                console.warn(`[ScreenplayContext] ${label} retry scheduled`, {
+                                    screenplayId,
+                                    attempt: attempt + 1,
+                                    delayMs,
+                                    statusCode
+                                });
+                                await new Promise((resolve) => setTimeout(resolve, delayMs));
+                                attempt += 1;
+                            }
+                        }
+                    };
                     
                     // Load scenes, characters, locations, and assets in parallel.
                     // Use allSettled so a transient failure in one endpoint doesn't blank everything.
                     const [scenesResult, charactersResult, locationsResult, assetsResult] = await Promise.allSettled([
                         listScenesWithRetry(),
-                        listCharacters(screenplayId, getToken, 'creation'), // Creation section should only see creation images
-                        listLocations(screenplayId, getToken, 'creation'), // Creation section should only see creation images
-                        api.assetBank.list(screenplayId, 'creation') // Creation section should only see creation images
+                        retryWithBackoff('listCharacters', () => listCharacters(screenplayId, getToken, 'creation')), // Creation section should only see creation images
+                        retryWithBackoff('listLocations', () => listLocations(screenplayId, getToken, 'creation')), // Creation section should only see creation images
+                        retryWithBackoff('listAssets', () => api.assetBank.list(screenplayId, 'creation')) // Creation section should only see creation images
                     ]);
 
                     if (scenesResult.status !== 'fulfilled') {
@@ -1553,6 +1581,53 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     setHasInitializedFromDynamoDB(true);
                     setIsLoading(false);
                     setLoadPhase('ready');
+
+                    // Secondary reconcile pass: screenplay switches can briefly surface partial entity reads.
+                    // Re-check entities shortly after initial hydration and patch gaps automatically.
+                    const reconcileSessionId = initSessionId;
+                    setTimeout(async () => {
+                        if (reconcileSessionId !== loadSessionRef.current) return;
+                        try {
+                            const [reChars, reLocs, reAssets] = await Promise.allSettled([
+                                retryWithBackoff('reconcileCharacters', () => listCharacters(screenplayId, getToken, 'creation')),
+                                retryWithBackoff('reconcileLocations', () => listLocations(screenplayId, getToken, 'creation')),
+                                retryWithBackoff('reconcileAssets', () => api.assetBank.list(screenplayId, 'creation'))
+                            ]);
+                            if (reconcileSessionId !== loadSessionRef.current) return;
+
+                            if (reChars.status === 'fulfilled') {
+                                const reconciledCharacters = transformCharactersFromAPI(reChars.value, charactersRef.current);
+                                if (reconciledCharacters.length > charactersRef.current.length) {
+                                    charactersRef.current = reconciledCharacters;
+                                    setCharacters(reconciledCharacters);
+                                }
+                            }
+
+                            if (reLocs.status === 'fulfilled') {
+                                const reconciledLocations = transformLocationsFromAPI(reLocs.value);
+                                if (reconciledLocations.length > locationsRef.current.length) {
+                                    locationsRef.current = reconciledLocations;
+                                    setLocations(reconciledLocations);
+                                }
+                            }
+
+                            if (reAssets.status === 'fulfilled') {
+                                const assetsResponse2 = reAssets.value.assets || reAssets.value.data?.assets || [];
+                                const assetsList2 = Array.isArray(assetsResponse2) ? assetsResponse2 : [];
+                                const activeAssets2 = assetsList2.filter((asset: any) => !asset.deleted_at);
+                                const normalizedAssets2 = activeAssets2.map((asset: any) => ({
+                                    ...asset,
+                                    images: asset.images || []
+                                }));
+                                if (normalizedAssets2.length > assetsRef.current.length) {
+                                    assetsRef.current = normalizedAssets2;
+                                    setAssets(normalizedAssets2);
+                                }
+                            }
+                        } catch (reconcileError) {
+                            console.warn('[ScreenplayContext] Entity reconcile pass skipped:', reconcileError);
+                        }
+                    }, 1200);
                     
                     // Mark that we loaded scenes from DB to prevent auto-creation
                     if (transformedScenes.length > 0) {
