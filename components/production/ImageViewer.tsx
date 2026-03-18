@@ -65,6 +65,9 @@ export function ImageViewer({
   enableFullscreen = true,
   enableZoom = true,
 }: ImageViewerProps) {
+  const hasRenderableUrl = (url?: string): boolean =>
+    !!url && (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('/') || url.startsWith('data:'));
+
   const [viewAll, setViewAll] = useState(false);
   const [currentIndex, setCurrentIndex] = useState(initialIndex);
   const [showThumbnails, setShowThumbnails] = useState(initialShowThumbnails);
@@ -350,11 +353,13 @@ export function ImageViewer({
     const shouldResetSelection = justOpened || initialIndexChanged;
     if (!shouldResetSelection) return;
 
+    const nextImage = displayImages[initialIndex];
+    const hasImmediateUrl = hasRenderableUrl(nextImage?.url);
     setCurrentIndex(initialIndex);
     lastAppliedInitialIndexRef.current = initialIndex;
     setZoom(1); // Always reset zoom when opening or explicit index change
     setPosition({ x: 0, y: 0 });
-    setIsLoading(true);
+    setIsLoading(!hasImmediateUrl);
   }, [isOpen, initialIndex, displayImages.length]);
 
   // Get current image with resolved URL
@@ -400,6 +405,15 @@ export function ImageViewer({
     }
 
     const loadMediaUrl = async () => {
+      const directUrl = currentImage.url || '';
+      const canUseDirectUrl = hasRenderableUrl(directUrl);
+      if (currentMediaType === 'image' && canUseDirectUrl) {
+        setCurrentImageUrl(directUrl);
+        lastResolvedMediaKeyRef.current = currentMediaKey;
+        setIsLoading(false);
+        return;
+      }
+
       setIsLoading(true);
       try {
         // For videos, use URL directly or generate presigned URL
