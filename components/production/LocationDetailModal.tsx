@@ -14,7 +14,7 @@
  */
 
 import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
-import { X, Upload, Image as ImageIcon, MapPin, FileText, Box, Download, Trash2, Plus, Camera, MoreVertical, Info, Eye, CheckSquare, Square, FlipHorizontal, Crop } from 'lucide-react';
+import { X, Upload, Image as ImageIcon, MapPin, FileText, Box, Download, Trash2, Plus, Camera, MoreVertical, Info, Eye, CheckSquare, Square, FlipHorizontal } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { toast } from 'sonner';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
@@ -39,7 +39,6 @@ import { useThumbnailMapping } from '@/hooks/useThumbnailMapping';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { formatProviderTag } from '@/utils/providerLabels';
 import { useLiveEntityRefresh } from './hooks/useLiveEntityRefresh';
-import { EntityImageCropModal } from './EntityImageCropModal';
 
 // Location Profile from Location Bank API (Feature 0142: Unified storage)
 interface LocationReference {
@@ -212,7 +211,6 @@ export function LocationDetailModal({
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [regeneratingS3Key, setRegeneratingS3Key] = useState<string | null>(null); // Track which specific image is regenerating
   const [flippingAngleId, setFlippingAngleId] = useState<string | null>(null);
-  const [cropTarget, setCropTarget] = useState<{ imageId: string; imageS3Key: string; imageType: 'angle' | 'background' | 'ecu' } | null>(null);
   // Track which dropdown is open (only one at a time)
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const suppressPreviewClickUntilRef = useRef(0);
@@ -1602,25 +1600,6 @@ export function LocationDetailModal({
                                         <Download className="w-4 h-4 mr-2 text-[#808080]" />
                                         Download
                                       </DropdownMenuItem>
-                                      {variation.s3Key && (
-                                        <DropdownMenuItem
-                                          className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]"
-                                          onSelect={(e) => {
-                                            e.preventDefault();
-                                            e.stopPropagation();
-                                            suppressPreviewClickUntilRef.current = Date.now() + 1000;
-                                            setOpenDropdownId(null);
-                                            setCropTarget({
-                                              imageId: variation.id || variation.s3Key,
-                                              imageS3Key: variation.s3Key,
-                                              imageType: 'angle',
-                                            });
-                                          }}
-                                        >
-                                          <Crop className="w-4 h-4 mr-2 text-[#808080]" />
-                                          Crop
-                                        </DropdownMenuItem>
-                                      )}
                                       {/* 🔥 NEW: Flip option (all angles can be flipped) */}
                                       {variation.s3Key && (
                                         <DropdownMenuItem
@@ -1948,25 +1927,6 @@ export function LocationDetailModal({
                                                       <Download className="w-4 h-4 mr-2 text-[#808080]" />
                                                       Download
                                                     </DropdownMenuItem>
-                                                    {background.s3Key && (
-                                                      <DropdownMenuItem
-                                                        className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]"
-                                                        onSelect={(e) => {
-                                                          e.preventDefault();
-                                                          e.stopPropagation();
-                                                          suppressPreviewClickUntilRef.current = Date.now() + 1000;
-                                                          setOpenDropdownId(null);
-                                                          setCropTarget({
-                                                            imageId: background.id || background.s3Key,
-                                                            imageS3Key: background.s3Key,
-                                                            imageType: 'background',
-                                                          });
-                                                        }}
-                                                      >
-                                                        <Crop className="w-4 h-4 mr-2 text-[#808080]" />
-                                                        Crop
-                                                      </DropdownMenuItem>
-                                                    )}
                                                     <DropdownMenuItem
                                                       className="text-[#DC143C] hover:bg-[#DC143C]/10 hover:text-[#DC143C] cursor-pointer focus:bg-[#DC143C]/10 focus:text-[#DC143C]"
                                                       onClick={async (e) => {
@@ -2166,9 +2126,6 @@ export function LocationDetailModal({
                                       <DropdownMenuItem className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]" onClick={async (e) => { e.stopPropagation(); try { await downloadImageAsBlob(img.imageUrl, `${location.name}_ECU_${Date.now()}.jpg`, img.s3Key); } catch (_) { toast.error('Failed to download image'); } }}>
                                         <Download className="w-4 h-4 mr-2 text-[#808080]" /> Download
                                       </DropdownMenuItem>
-                                      <DropdownMenuItem className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]" onSelect={(e) => { e.preventDefault(); e.stopPropagation(); suppressPreviewClickUntilRef.current = Date.now() + 1000; setOpenDropdownId(null); setCropTarget({ imageId: background.id || background.s3Key, imageS3Key: background.s3Key, imageType: 'ecu' }); }}>
-                                        <Crop className="w-4 h-4 mr-2 text-[#808080]" /> Crop
-                                      </DropdownMenuItem>
                                       <DropdownMenuItem className="text-[#DC143C] hover:bg-[#DC143C]/10 hover:text-[#DC143C] cursor-pointer focus:bg-[#DC143C]/10 focus:text-[#DC143C]" onClick={(e) => { e.stopPropagation(); handleDeleteBackground(background as LocationBackground); }}>
                                         <Trash2 className="w-4 h-4 mr-2" /> Delete
                                       </DropdownMenuItem>
@@ -2337,33 +2294,6 @@ export function LocationDetailModal({
       imageType="angle"
     />
     
-    {cropTarget && screenplayId && (
-      <EntityImageCropModal
-        isOpen={cropTarget !== null}
-        onClose={() => setCropTarget(null)}
-        imageS3Key={cropTarget.imageS3Key}
-        endpointUrl={`${process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai'}/api/location-bank/${location.locationId}/crop-image?screenplayId=${encodeURIComponent(screenplayId)}`}
-        payload={{
-          imageId: cropTarget.imageId,
-          imageS3Key: cropTarget.imageS3Key,
-          imageType: cropTarget.imageType,
-        }}
-        title="Crop Location Image"
-        onCropComplete={async () => {
-          const croppedS3Key = cropTarget.imageS3Key;
-          setFlipCacheBustByS3Key((current) => ({
-            ...current,
-            [croppedS3Key]: Date.now(),
-          }));
-          await queryClient.invalidateQueries({ queryKey: ['media', 'presigned-urls'], exact: false });
-          await queryClient.invalidateQueries({ queryKey: ['locations', screenplayId, 'production-hub'] });
-          await queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId], exact: false });
-          await queryClient.refetchQueries({ queryKey: ['locations', screenplayId, 'production-hub'], type: 'active' });
-          setCropTarget(null);
-        }}
-      />
-    )}
-
     
     {/* Image Viewer */}
     {previewImageIndex !== null && (
