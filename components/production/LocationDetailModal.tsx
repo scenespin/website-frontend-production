@@ -210,7 +210,7 @@ export function LocationDetailModal({
   const [regenerateAngle, setRegenerateAngle] = useState<{ angleId: string; s3Key: string; angle: string; variation?: LocationReference } | null>(null);
   const [isRegenerating, setIsRegenerating] = useState(false);
   const [regeneratingS3Key, setRegeneratingS3Key] = useState<string | null>(null); // Track which specific image is regenerating
-  const [flippingAngleId, setFlippingAngleId] = useState<string | null>(null);
+  const [flippingImageS3Key, setFlippingImageS3Key] = useState<string | null>(null);
   // Track which dropdown is open (only one at a time)
   const [openDropdownId, setOpenDropdownId] = useState<string | null>(null);
   const suppressPreviewClickUntilRef = useRef(0);
@@ -375,13 +375,17 @@ export function LocationDetailModal({
     }
   };
 
-  const handleFlipAngle = async (angleId: string, angleS3Key: string) => {
-    if (!angleS3Key || !screenplayId) {
-      toast.error('Missing angle information for flipping');
+  const handleFlipLocationImage = async (
+    imageId: string,
+    imageS3Key: string,
+    imageType: 'angle' | 'background' | 'ecu'
+  ) => {
+    if (!imageS3Key || !screenplayId) {
+      toast.error('Missing image information for flipping');
       return;
     }
 
-    setFlippingAngleId(angleId);
+    setFlippingImageS3Key(imageS3Key);
     
     try {
       const token = await getToken({ template: 'wryda-backend' });
@@ -395,14 +399,15 @@ export function LocationDetailModal({
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          angleId,
-          angleS3Key
+          imageId,
+          imageS3Key,
+          imageType
         }),
       });
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: 'Unknown error' }));
-        throw new Error(errorData.error || `Failed to flip angle: ${response.statusText}`);
+        throw new Error(errorData.error || `Failed to flip image: ${response.statusText}`);
       }
 
       const result = await response.json();
@@ -425,15 +430,15 @@ export function LocationDetailModal({
       ]);
       setFlipCacheBustByS3Key((current) => ({
         ...current,
-        [angleS3Key]: Date.now(),
+        [imageS3Key]: Date.now(),
       }));
       
-      toast.success('Angle flipped successfully');
+      toast.success('Image flipped successfully');
     } catch (error: any) {
-      console.error('[LocationDetailModal] Failed to flip angle:', error);
-      toast.error(`Failed to flip angle: ${error.message || 'Unknown error'}`);
+      console.error('[LocationDetailModal] Failed to flip image:', error);
+      toast.error(`Failed to flip image: ${error.message || 'Unknown error'}`);
     } finally {
-      setFlippingAngleId(null);
+      setFlippingImageS3Key(null);
     }
   };
 
@@ -1604,18 +1609,18 @@ export function LocationDetailModal({
                                       {variation.s3Key && (
                                         <DropdownMenuItem
                                           className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF] disabled:opacity-50 disabled:cursor-not-allowed"
-                                          disabled={flippingAngleId === variation.id}
+                                          disabled={flippingImageS3Key === variation.s3Key}
                                           onSelect={(e) => {
                                             e.preventDefault();
                                             e.stopPropagation();
                                             suppressPreviewClickUntilRef.current = Date.now() + 1000;
                                             setOpenDropdownId(null);
                                             const angleIdentifier = variation.id || variation.s3Key;
-                                            void handleFlipAngle(angleIdentifier, variation.s3Key);
+                                            void handleFlipLocationImage(angleIdentifier, variation.s3Key, 'angle');
                                           }}
                                         >
                                           <FlipHorizontal className="w-4 h-4 mr-2 text-[#808080]" />
-                                          {flippingAngleId === variation.id ? 'Flipping...' : 'Flip Horizontal'}
+                                          {flippingImageS3Key === variation.s3Key ? 'Flipping...' : 'Flip Horizontal'}
                                         </DropdownMenuItem>
                                       )}
                                       {/* ✅ Images are now generated directly at 16:9 - no cropping needed */}
@@ -1928,6 +1933,20 @@ export function LocationDetailModal({
                                                       Download
                                                     </DropdownMenuItem>
                                                     <DropdownMenuItem
+                                                      className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF] disabled:opacity-50 disabled:cursor-not-allowed"
+                                                      disabled={flippingImageS3Key === background.s3Key}
+                                                      onSelect={(e) => {
+                                                        e.preventDefault();
+                                                        e.stopPropagation();
+                                                        suppressPreviewClickUntilRef.current = Date.now() + 1000;
+                                                        setOpenDropdownId(null);
+                                                        void handleFlipLocationImage(background.id || background.s3Key, background.s3Key, 'background');
+                                                      }}
+                                                    >
+                                                      <FlipHorizontal className="w-4 h-4 mr-2 text-[#808080]" />
+                                                      {flippingImageS3Key === background.s3Key ? 'Flipping...' : 'Flip Horizontal'}
+                                                    </DropdownMenuItem>
+                                                    <DropdownMenuItem
                                                       className="text-[#DC143C] hover:bg-[#DC143C]/10 hover:text-[#DC143C] cursor-pointer focus:bg-[#DC143C]/10 focus:text-[#DC143C]"
                                                       onClick={async (e) => {
                                                         e.stopPropagation();
@@ -2125,6 +2144,20 @@ export function LocationDetailModal({
                                       </DropdownMenuItem>
                                       <DropdownMenuItem className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]" onClick={async (e) => { e.stopPropagation(); try { await downloadImageAsBlob(img.imageUrl, `${location.name}_ECU_${Date.now()}.jpg`, img.s3Key); } catch (_) { toast.error('Failed to download image'); } }}>
                                         <Download className="w-4 h-4 mr-2 text-[#808080]" /> Download
+                                      </DropdownMenuItem>
+                                      <DropdownMenuItem
+                                        className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF] disabled:opacity-50 disabled:cursor-not-allowed"
+                                        disabled={flippingImageS3Key === background.s3Key}
+                                        onSelect={(e) => {
+                                          e.preventDefault();
+                                          e.stopPropagation();
+                                          suppressPreviewClickUntilRef.current = Date.now() + 1000;
+                                          setOpenDropdownId(null);
+                                          void handleFlipLocationImage(background.id || background.s3Key, background.s3Key, 'ecu');
+                                        }}
+                                      >
+                                        <FlipHorizontal className="w-4 h-4 mr-2 text-[#808080]" />
+                                        {flippingImageS3Key === background.s3Key ? 'Flipping...' : 'Flip Horizontal'}
                                       </DropdownMenuItem>
                                       <DropdownMenuItem className="text-[#DC143C] hover:bg-[#DC143C]/10 hover:text-[#DC143C] cursor-pointer focus:bg-[#DC143C]/10 focus:text-[#DC143C]" onClick={(e) => { e.stopPropagation(); handleDeleteBackground(background as LocationBackground); }}>
                                         <Trash2 className="w-4 h-4 mr-2" /> Delete
