@@ -11,6 +11,15 @@ import type { Asset, AssetCategory } from '@/types/asset';
 import AssetDetailSidebar from './AssetDetailSidebar';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
+import {
+    AlertDialog,
+    AlertDialogCancel,
+    AlertDialogContent,
+    AlertDialogDescription,
+    AlertDialogFooter,
+    AlertDialogHeader,
+    AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 interface AssetColumn {
     id: string;
@@ -540,11 +549,16 @@ export default function AssetBoard({ showHeader = true, triggerAdd, initialData,
                     deleteConfirmInput.trim() === assetToDelete.name.trim() &&
                     !isDeletingAsset;
                 return (
-                <div className="fixed inset-0 bg-black/50 z-[10000] flex items-center justify-center p-4">
-                    <div className="bg-[#1C1C1E] rounded-xl p-6 max-w-2xl w-full border border-[#3F3F46] shadow-2xl">
-                        <h3 className="text-lg font-bold mb-2" style={{ color: '#E5E7EB' }}>
-                            Delete Asset: {assetToDelete.name}
-                        </h3>
+                <AlertDialog open={!!assetToDelete} onOpenChange={(open) => {
+                    if (!open) cancelDelete();
+                }}>
+                    <AlertDialogContent className="max-w-2xl bg-[#1C1C1E] border-[#3F3F46]">
+                        <AlertDialogHeader>
+                            <AlertDialogTitle className="text-lg font-bold mb-2 text-[#E5E7EB]">
+                                Delete Asset: {assetToDelete.name}
+                            </AlertDialogTitle>
+                            <AlertDialogDescription asChild>
+                                <div>
                         <p className="text-sm mb-4" style={{ color: '#9CA3AF' }}>
                             This action cannot be undone.
                         </p>
@@ -607,15 +621,18 @@ export default function AssetBoard({ showHeader = true, triggerAdd, initialData,
                                 }}
                             />
                         </div>
+                                </div>
+                            </AlertDialogDescription>
+                        </AlertDialogHeader>
 
-                        <div className="flex items-center gap-3 justify-end">
-                            <button
+                        <AlertDialogFooter>
+                            <AlertDialogCancel
                                 onClick={cancelDelete}
                                 disabled={isDeletingAsset}
-                                className="px-4 py-2 rounded-lg text-sm font-medium transition-colors bg-[#2C2C2E] hover:bg-[#3A3A3E] text-[#E5E7EB] disabled:opacity-50 disabled:cursor-not-allowed"
+                                className="bg-[#2C2C2E] hover:bg-[#3A3A3E] text-[#E5E7EB] border-none disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 Cancel
-                            </button>
+                            </AlertDialogCancel>
                             <button
                                 onClick={confirmDelete}
                                 disabled={!canDelete}
@@ -623,9 +640,9 @@ export default function AssetBoard({ showHeader = true, triggerAdd, initialData,
                             >
                                 {isDeletingAsset ? 'Deleting...' : 'Delete Asset'}
                             </button>
-                        </div>
-                    </div>
-                </div>
+                        </AlertDialogFooter>
+                    </AlertDialogContent>
+                </AlertDialog>
                 );
             })()}
         </div>
