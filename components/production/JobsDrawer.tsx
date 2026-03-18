@@ -571,6 +571,7 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   const POLL_BY_ID_INTERVAL_MS = 4000;
   const MAX_POLL_PER_TICK = 20;
   const directFetchInProgressRef = useRef<Set<string>>(new Set());
+  const playOpenInFlightRef = useRef<Set<string>>(new Set());
   // Direct-fetched jobs: re-insert in merge if list didn't include them (stale state edge case)
   const directFetchedJobsRef = useRef<Map<string, WorkflowJob>>(new Map());
   const resultsBackfillFetchedRef = useRef<Set<string>>(new Set());
@@ -754,25 +755,29 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   };
 
   const playMediaFromBlob = async (mediaUrl: string, s3Key?: string) => {
+    const playKey = `${s3Key || ''}|${mediaUrl || ''}`;
+    if (playOpenInFlightRef.current.has(playKey)) return;
+    playOpenInFlightRef.current.add(playKey);
     try {
       const downloadUrl = await resolveAuthorizedDownloadUrl(mediaUrl, s3Key);
       const response = await fetch(downloadUrl);
       if (!response.ok) throw new Error(`Failed to fetch media: ${response.statusText}`);
       const blob = await response.blob();
       const blobUrl = URL.createObjectURL(blob);
-      const opened = window.open(blobUrl, '_blank', 'noopener,noreferrer');
-      if (!opened) {
-        const link = document.createElement('a');
-        link.href = blobUrl;
-        link.target = '_blank';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      }
+      // Use anchor-click open to avoid duplicate window behaviors across browsers.
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.target = '_blank';
+      link.rel = 'noopener noreferrer';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
       setTimeout(() => URL.revokeObjectURL(blobUrl), 60_000);
     } catch (error: any) {
       console.error('[JobsDrawer] Failed to play media:', error);
       toast.error('Failed to open media preview', { description: error.message });
+    } finally {
+      setTimeout(() => playOpenInFlightRef.current.delete(playKey), 500);
     }
   };
 
@@ -2204,7 +2209,11 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
                               {job.jobType === 'dubbing' && isLikelyVideoOutput(audio.s3Key, audio.audioUrl, audio.label) && (
                                 <button
                                   type="button"
-                                  onClick={() => void playMediaFromBlob(audio.audioUrl, audio.s3Key)}
+                                  onClick={(e) => {
+                                    e.preventDefault();
+                                    e.stopPropagation();
+                                    void playMediaFromBlob(audio.audioUrl, audio.s3Key);
+                                  }}
                                   className="inline-flex items-center gap-1 px-2 py-1 rounded text-[10px] font-medium bg-[#1F8A45] text-white hover:bg-[#17753A] transition-colors"
                                 >
                                   <Play className="w-2.5 h-2.5" />
