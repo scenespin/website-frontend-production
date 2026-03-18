@@ -496,7 +496,13 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ sourceLanguage, targetLanguage }),
+          body: JSON.stringify({
+            sourceLanguage,
+            targetLanguage,
+            screenplayId,
+            sourceS3Key: dubDialogEntry.videoS3Key,
+            sourceFileId: dubDialogEntry.sourceFileId,
+          }),
         });
         if (!res.ok) throw new Error('Failed to estimate dubbing cost');
         const data = await res.json();
@@ -511,7 +517,7 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
       }
     })();
     return () => { cancelled = true; };
-  }, [dubDialogOpen, dubDialogEntry, sourceLanguage, targetLanguage, getToken]);
+  }, [dubDialogOpen, dubDialogEntry, sourceLanguage, targetLanguage, screenplayId, getToken]);
 
   const handleOpenDubDialog = useCallback((entry: VideoBrowserEntry) => {
     setDubDialogEntry(entry);

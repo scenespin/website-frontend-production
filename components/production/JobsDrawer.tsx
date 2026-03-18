@@ -46,7 +46,9 @@ import {
 /** SessionStorage key for recent job IDs we care about (fetch-by-IDs on drawer open) */
 const RECENT_JOB_IDS_KEY = (screenplayId: string) => `wryda:recent-job-ids:${screenplayId}`;
 const MAX_RECENT_JOB_IDS = 20;
-const JOBS_LIST_LIMIT = 20;
+// Keep enough history in a single fetch so jobs do not appear to "disappear"
+// after navigation when users run many generations in a short period.
+const JOBS_LIST_LIMIT = 100;
 const missingThumbnailS3Keys = new Set<string>();
 
 function addRecentJobId(screenplayId: string, jobId: string): void {
