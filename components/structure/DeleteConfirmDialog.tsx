@@ -1,11 +1,10 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { AlertTriangle, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
     AlertDialog,
-    AlertDialogAction,
     AlertDialogCancel,
     AlertDialogContent,
     AlertDialogDescription,
@@ -35,10 +34,18 @@ export function DeleteCharacterDialog({
     onCancel
 }: DeleteCharacterDialogProps) {
     const [isDeleting, setIsDeleting] = useState(false);
+    const [confirmName, setConfirmName] = useState('');
     
     if (!character) return null;
+
+    useEffect(() => {
+        setConfirmName('');
+    }, [character?.id]);
+
+    const isNameMatched = confirmName.trim() === character.name.trim();
     
     const handleConfirm = async () => {
+        if (!isNameMatched) return;
         setIsDeleting(true);
         try {
             await onConfirm();
@@ -69,31 +76,70 @@ export function DeleteCharacterDialog({
                             </div>
                             
                             {sceneCount > 0 && (
-                                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                                <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3">
                                     <div className="flex items-start space-x-3">
-                                        <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                                        <AlertTriangle className="h-5 w-5 text-amber-300 mt-0.5 flex-shrink-0" />
                                         <div className="flex-1">
-                                            <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">
+                                            <p className="text-sm font-semibold text-amber-300">
                                                 This action cannot be undone
                                             </p>
-                                            <p className="text-sm text-amber-800 dark:text-amber-200 mt-1">
+                                            <p className="text-sm text-amber-100/90 mt-1">
                                                 All references to this character will be removed from your screenplay structure and Fountain tags.
                                             </p>
                                         </div>
                                     </div>
                                 </div>
                             )}
+
+                            <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-3">
+                                <div className="flex items-start space-x-3">
+                                    <AlertTriangle className="h-5 w-5 text-red-300 mt-0.5 flex-shrink-0" />
+                                    <div className="flex-1">
+                                        <p className="text-sm font-semibold text-red-300">
+                                            Deleting also removes linked media files
+                                        </p>
+                                        <p className="text-sm text-red-100/90 mt-1">
+                                            Associated character images and production media will be removed from your media library and project storage. If you need to keep those files, keep this character and rename/update it instead.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="rounded-lg border border-[#3F3F46] bg-[#111827] p-3">
+                                <p className="text-sm font-semibold text-[#E5E7EB] mb-2">
+                                    To confirm deletion, type the character name:
+                                </p>
+                                <p className="text-xs font-mono text-[#E5E7EB] bg-[#0A0A0A] px-2 py-1 rounded border border-[#3F3F46] mb-3">
+                                    {character.name}
+                                </p>
+                                <input
+                                    type="text"
+                                    value={confirmName}
+                                    onChange={(e) => setConfirmName(e.target.value)}
+                                    placeholder="Type character name to confirm"
+                                    className="w-full px-3 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded-md text-[#E5E7EB] placeholder:text-[#71717A] focus:outline-none focus:ring-2 focus:ring-red-500/40 focus:border-red-500/40"
+                                    autoFocus
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && isNameMatched && !isDeleting) {
+                                            void handleConfirm();
+                                        }
+                                    }}
+                                />
+                            </div>
                         </div>
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                    <AlertDialogCancel onClick={onCancel} disabled={isDeleting}>
+                    <AlertDialogCancel onClick={() => {
+                        setConfirmName('');
+                        onCancel();
+                    }} disabled={isDeleting}>
                         Cancel
                     </AlertDialogCancel>
                     <Button
                         variant="destructive"
                         onClick={handleConfirm}
-                        disabled={isDeleting}
+                        disabled={isDeleting || !isNameMatched}
                         className="bg-red-600 hover:bg-red-700"
                     >
                         {isDeleting ? (
@@ -134,10 +180,18 @@ export function DeleteLocationDialog({
     onCancel
 }: DeleteLocationDialogProps) {
     const [isDeleting, setIsDeleting] = useState(false);
+    const [confirmName, setConfirmName] = useState('');
     
     if (!location) return null;
+
+    useEffect(() => {
+        setConfirmName('');
+    }, [location?.id]);
+
+    const isNameMatched = confirmName.trim() === location.name.trim();
     
     const handleConfirm = async () => {
+        if (!isNameMatched) return;
         setIsDeleting(true);
         try {
             await onConfirm();
@@ -168,31 +222,70 @@ export function DeleteLocationDialog({
                             </div>
                             
                             {sceneCount > 0 && (
-                                <div className="bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-lg p-4">
+                                <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 p-3">
                                     <div className="flex items-start space-x-3">
-                                        <AlertTriangle className="h-5 w-5 text-amber-600 dark:text-amber-400 mt-0.5 flex-shrink-0" />
+                                        <AlertTriangle className="h-5 w-5 text-amber-300 mt-0.5 flex-shrink-0" />
                                         <div className="flex-1">
-                                            <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">
+                                            <p className="text-sm font-semibold text-amber-300">
                                                 This action cannot be undone
                                             </p>
-                                            <p className="text-sm text-amber-800 dark:text-amber-200 mt-1">
+                                            <p className="text-sm text-amber-100/90 mt-1">
                                                 All references to this location will be cleared from your screenplay structure and Fountain tags.
                                             </p>
                                         </div>
                                     </div>
                                 </div>
                             )}
+
+                            <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-3">
+                                <div className="flex items-start space-x-3">
+                                    <AlertTriangle className="h-5 w-5 text-red-300 mt-0.5 flex-shrink-0" />
+                                    <div className="flex-1">
+                                        <p className="text-sm font-semibold text-red-300">
+                                            Deleting also removes linked media files
+                                        </p>
+                                        <p className="text-sm text-red-100/90 mt-1">
+                                            Associated location images and production media will be removed from your media library and project storage. If you need to keep those files, keep this location and rename/update it instead.
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="rounded-lg border border-[#3F3F46] bg-[#111827] p-3">
+                                <p className="text-sm font-semibold text-[#E5E7EB] mb-2">
+                                    To confirm deletion, type the location name:
+                                </p>
+                                <p className="text-xs font-mono text-[#E5E7EB] bg-[#0A0A0A] px-2 py-1 rounded border border-[#3F3F46] mb-3">
+                                    {location.name}
+                                </p>
+                                <input
+                                    type="text"
+                                    value={confirmName}
+                                    onChange={(e) => setConfirmName(e.target.value)}
+                                    placeholder="Type location name to confirm"
+                                    className="w-full px-3 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded-md text-[#E5E7EB] placeholder:text-[#71717A] focus:outline-none focus:ring-2 focus:ring-red-500/40 focus:border-red-500/40"
+                                    autoFocus
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' && isNameMatched && !isDeleting) {
+                                            void handleConfirm();
+                                        }
+                                    }}
+                                />
+                            </div>
                         </div>
                     </AlertDialogDescription>
                 </AlertDialogHeader>
                 <AlertDialogFooter>
-                    <AlertDialogCancel onClick={onCancel} disabled={isDeleting}>
+                    <AlertDialogCancel onClick={() => {
+                        setConfirmName('');
+                        onCancel();
+                    }} disabled={isDeleting}>
                         Cancel
                     </AlertDialogCancel>
                     <Button
                         variant="destructive"
                         onClick={handleConfirm}
-                        disabled={isDeleting}
+                        disabled={isDeleting || !isNameMatched}
                         className="bg-red-600 hover:bg-red-700"
                     >
                         {isDeleting ? (

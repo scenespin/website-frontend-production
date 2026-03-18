@@ -34,6 +34,7 @@ export default function AssetBoard({ showHeader = true, triggerAdd, initialData,
         createAsset, 
         deleteAsset, 
         getAssetScenes, 
+        scenes,
         isLoading, 
         hasInitializedFromDynamoDB, 
         isEntityInScript, 
@@ -67,6 +68,8 @@ export default function AssetBoard({ showHeader = true, triggerAdd, initialData,
     
     // Delete confirmation state
     const [assetToDelete, setAssetToDelete] = useState<Asset | null>(null);
+    const [deleteConfirmInput, setDeleteConfirmInput] = useState('');
+    const [isDeletingAsset, setIsDeletingAsset] = useState(false);
     
     // Memoize isInScript checks to prevent render loops
     const scriptContent = editorState.content;
@@ -144,36 +147,45 @@ export default function AssetBoard({ showHeader = true, triggerAdd, initialData,
     const handleDelete = async (assetId: string, assetName: string) => {
         const asset = assets.find(a => a.id === assetId);
         if (!asset) return;
-        
-        // Check if asset is used in scenes
-        const sceneIds = getAssetScenes(assetId);
-        
-        if (sceneIds.length > 0) {
-            const confirmMessage = `Asset "${assetName}" is used in ${sceneIds.length} scene(s). Are you sure you want to delete it?`;
-            if (!window.confirm(confirmMessage)) {
-                return;
-            }
-        }
-        
+
         // Show delete confirmation
         setAssetToDelete(asset);
+        setDeleteConfirmInput('');
     };
+
+    useEffect(() => {
+        if (!assetToDelete) {
+            setDeleteConfirmInput('');
+            setIsDeletingAsset(false);
+        }
+    }, [assetToDelete]);
     
     const confirmDelete = async () => {
         if (!assetToDelete) return;
+
+        if (deleteConfirmInput.trim() !== assetToDelete.name.trim()) {
+            toast.error('Asset name does not match. Please type the exact name to confirm deletion.');
+            return;
+        }
         
         try {
+            setIsDeletingAsset(true);
             await deleteAsset(assetToDelete.id);
             setAssetToDelete(null);
+            setDeleteConfirmInput('');
             setSelectedAsset(null);
             toast.success('Asset deleted successfully');
         } catch (err: any) {
             toast.error(`Error deleting asset: ${err.message}`);
+        } finally {
+            setIsDeletingAsset(false);
         }
     };
     
     const cancelDelete = () => {
         setAssetToDelete(null);
+        setDeleteConfirmInput('');
+        setIsDeletingAsset(false);
     };
 
     const openEditForm = (asset: Asset) => {
@@ -519,40 +531,103 @@ export default function AssetBoard({ showHeader = true, triggerAdd, initialData,
             )}
             
             {/* Delete Confirmation Dialog */}
-            {assetToDelete && (
-                <div className="fixed inset-0 bg-black/50 z-[10000] flex items-center justify-center">
-                    <div className="bg-[#0A0A0A] rounded-lg p-6 max-w-md w-full mx-4 border border-[#2C2C2E]">
+            {assetToDelete && (() => {
+                const affectedSceneIds = getAssetScenes(assetToDelete.id);
+                const affectedSceneHeadings = affectedSceneIds
+                    .map(sceneId => scenes.find(scene => scene.id === sceneId)?.heading)
+                    .filter((heading): heading is string => Boolean(heading));
+                const canDelete =
+                    deleteConfirmInput.trim() === assetToDelete.name.trim() &&
+                    !isDeletingAsset;
+                return (
+                <div className="fixed inset-0 bg-black/50 z-[10000] flex items-center justify-center p-4">
+                    <div className="bg-[#1C1C1E] rounded-xl p-6 max-w-2xl w-full border border-[#3F3F46] shadow-2xl">
                         <h3 className="text-lg font-bold mb-2" style={{ color: '#E5E7EB' }}>
-                            Delete Asset?
+                            Delete Asset: {assetToDelete.name}
                         </h3>
                         <p className="text-sm mb-4" style={{ color: '#9CA3AF' }}>
-                            Are you sure you want to delete "{assetToDelete.name}"? This action cannot be undone.
+                            This action cannot be undone.
                         </p>
-                        <div className="flex gap-3 justify-end">
+
+                        {affectedSceneIds.length > 0 && (
+                            <div className="mb-4 rounded-lg border border-amber-500/40 bg-amber-500/10 p-3">
+                                <p className="text-sm font-semibold text-amber-300">
+                                    {assetToDelete.name} is used in {affectedSceneIds.length} scene{affectedSceneIds.length === 1 ? '' : 's'}.
+                                </p>
+                                {affectedSceneHeadings.length > 0 && (
+                                    <div className="mt-2">
+                                        <p className="text-xs uppercase tracking-wide text-amber-200/80 mb-1">Affected Scenes:</p>
+                                        <ul className="list-disc ml-5 space-y-1">
+                                            {affectedSceneHeadings.slice(0, 4).map((heading, index) => (
+                                                <li key={`${heading}-${index}`} className="text-xs text-amber-100/90">
+                                                    {heading}
+                                                </li>
+                                            ))}
+                                            {affectedSceneHeadings.length > 4 && (
+                                                <li className="text-xs text-amber-100/80">
+                                                    +{affectedSceneHeadings.length - 4} more scene{affectedSceneHeadings.length - 4 === 1 ? '' : 's'}
+                                                </li>
+                                            )}
+                                        </ul>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        <div className="mb-4 rounded-lg border border-red-500/40 bg-red-500/10 p-3">
+                            <p className="text-sm font-semibold text-red-300 mb-1">
+                                Deleting also removes linked media files
+                            </p>
+                            <p className="text-sm text-red-100/90">
+                                Associated asset images and production media will be removed from your media library and project storage. If you need to keep those files, keep this asset and rename/update it instead.
+                            </p>
+                        </div>
+
+                        <div className="mb-4 rounded-lg border border-[#3F3F46] bg-[#111827] p-3">
+                            <p className="text-sm font-semibold mb-2" style={{ color: '#E5E7EB' }}>
+                                To confirm deletion, type the asset name:
+                            </p>
+                            <p className="text-xs font-mono bg-[#0A0A0A] border border-[#3F3F46] rounded px-2 py-1 mb-3" style={{ color: '#E5E7EB' }}>
+                                {assetToDelete.name}
+                            </p>
+                            <input
+                                type="text"
+                                value={deleteConfirmInput}
+                                onChange={(e) => setDeleteConfirmInput(e.target.value)}
+                                placeholder="Type asset name to confirm"
+                                className="w-full px-3 py-2 bg-[#0A0A0A] border border-[#3F3F46] rounded-md text-[#E5E7EB] placeholder:text-[#71717A] focus:outline-none focus:ring-2 focus:ring-red-500/40 focus:border-red-500/40"
+                                autoFocus
+                                onKeyDown={(e) => {
+                                    if (e.key === 'Enter' && canDelete) {
+                                        void confirmDelete();
+                                    }
+                                    if (e.key === 'Escape') {
+                                        cancelDelete();
+                                    }
+                                }}
+                            />
+                        </div>
+
+                        <div className="flex items-center gap-3 justify-end">
                             <button
                                 onClick={cancelDelete}
-                                className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                                style={{
-                                    backgroundColor: '#2C2C2E',
-                                    color: '#E5E7EB'
-                                }}
+                                disabled={isDeletingAsset}
+                                className="px-4 py-2 rounded-lg text-sm font-medium transition-colors bg-[#2C2C2E] hover:bg-[#3A3A3E] text-[#E5E7EB] disabled:opacity-50 disabled:cursor-not-allowed"
                             >
                                 Cancel
                             </button>
                             <button
                                 onClick={confirmDelete}
-                                className="px-4 py-2 rounded-lg text-sm font-medium transition-colors"
-                                style={{
-                                    backgroundColor: '#DC143C',
-                                    color: 'white'
-                                }}
+                                disabled={!canDelete}
+                                className="px-4 py-2 rounded-lg text-sm font-medium transition-colors bg-red-600 hover:bg-red-700 text-white disabled:bg-red-700/50 disabled:cursor-not-allowed"
                             >
-                                Delete
+                                {isDeletingAsset ? 'Deleting...' : 'Delete Asset'}
                             </button>
                         </div>
                     </div>
                 </div>
-            )}
+                );
+            })()}
         </div>
     );
 }
