@@ -306,7 +306,20 @@ export default function AssetDetailSidebar({
       // Clear pending images after creation
       setPendingImages([])
     } else {
-      onUpdate(formData)
+      // Avoid duplicate success toasts when only images changed via direct upload.
+      // Image uploads are already persisted and acknowledged separately.
+      const normalizeDescription = (value: string | undefined) => (value || '').trim();
+      const currentTags = Array.isArray(asset?.tags) ? asset.tags : [];
+      const nextTags = Array.isArray(formData.tags) ? formData.tags : [];
+      const metadataChanged =
+        formData.name !== asset?.name ||
+        formData.category !== asset?.category ||
+        normalizeDescription(formData.description) !== normalizeDescription(asset?.description) ||
+        JSON.stringify(nextTags) !== JSON.stringify(currentTags);
+
+      if (metadataChanged) {
+        onUpdate(formData)
+      }
     }
     
     // Close the sidebar after successful save
