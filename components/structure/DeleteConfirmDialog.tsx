@@ -35,12 +35,12 @@ export function DeleteCharacterDialog({
 }: DeleteCharacterDialogProps) {
     const [isDeleting, setIsDeleting] = useState(false);
     const [confirmName, setConfirmName] = useState('');
-    
-    if (!character) return null;
 
     useEffect(() => {
         setConfirmName('');
     }, [character?.id]);
+
+    if (!character) return null;
 
     const isNameMatched = confirmName.trim() === character.name.trim();
     
@@ -181,12 +181,12 @@ export function DeleteLocationDialog({
 }: DeleteLocationDialogProps) {
     const [isDeleting, setIsDeleting] = useState(false);
     const [confirmName, setConfirmName] = useState('');
-    
-    if (!location) return null;
 
     useEffect(() => {
         setConfirmName('');
     }, [location?.id]);
+
+    if (!location) return null;
 
     const isNameMatched = confirmName.trim() === location.name.trim();
     
