@@ -608,15 +608,54 @@ export function LocationDetailModal({
       metadata?: any;
       index: number;
     }> = [];
-    const seenS3Keys = new Set<string>();
+    const imagesByS3Key = new Map<string, typeof images[0]>();
+    const orderedKeys: string[] = [];
     let index = 0;
-    const pushIfNew = (s3Key: string, entry: typeof images[0]) => {
-      if (!s3Key || s3Key.startsWith('thumbnails/') || seenS3Keys.has(s3Key)) return;
-      seenS3Keys.add(s3Key);
-      images.push({ ...entry, index: index++ });
+    const asEpoch = (value: unknown): number => {
+      if (typeof value === 'number' && Number.isFinite(value)) return value;
+      if (typeof value === 'string' && value.trim()) {
+        const n = Number(value);
+        if (Number.isFinite(n)) return n;
+        const t = Date.parse(value);
+        if (Number.isFinite(t)) return t;
+      }
+      return 0;
+    };
+    const getFreshnessScore = (entry: typeof images[0]): number => {
+      const meta = entry.metadata || {};
+      return Math.max(
+        asEpoch(meta.lastUpdated),
+        asEpoch(meta.croppedAt),
+        asEpoch(meta.generatedAt),
+        asEpoch((entry as any).createdAt),
+      );
+    };
+    const isCropped = (entry: typeof images[0]): boolean => !!entry.metadata?.cropped;
+    const upsertByS3Key = (s3Key: string, entry: typeof images[0]) => {
+      if (!s3Key || s3Key.startsWith('thumbnails/')) return;
+      const next = { ...entry, index: index++ };
+      const existing = imagesByS3Key.get(s3Key);
+      if (!existing) {
+        imagesByS3Key.set(s3Key, next);
+        orderedKeys.push(s3Key);
+        return;
+      }
+      const existingCropped = isCropped(existing);
+      const incomingCropped = isCropped(next);
+      if (incomingCropped && !existingCropped) {
+        imagesByS3Key.set(s3Key, next);
+        return;
+      }
+      if (incomingCropped === existingCropped) {
+        const existingFreshness = getFreshnessScore(existing);
+        const incomingFreshness = getFreshnessScore(next);
+        if (incomingFreshness >= existingFreshness) {
+          imagesByS3Key.set(s3Key, next);
+        }
+      }
     };
     if (latestLocation.baseReference?.s3Key) {
-      pushIfNew(latestLocation.baseReference.s3Key, {
+      upsertByS3Key(latestLocation.baseReference.s3Key, {
         id: latestLocation.baseReference.id,
         imageUrl: latestLocation.baseReference.imageUrl || '',
         s3Key: latestLocation.baseReference.s3Key,
@@ -628,7 +667,7 @@ export function LocationDetailModal({
       });
     }
     ((latestLocation as any).creationImages || []).forEach((img: LocationReference) => {
-      pushIfNew(img.s3Key, {
+      upsertByS3Key(img.s3Key, {
         id: img.id,
         imageUrl: img.imageUrl || '',
         s3Key: img.s3Key,
@@ -640,7 +679,7 @@ export function LocationDetailModal({
       });
     });
     (latestLocation.angleVariations || []).forEach((v: LocationReference) => {
-      pushIfNew(v.s3Key, {
+      upsertByS3Key(v.s3Key, {
         id: v.id || `ref_${v.s3Key}`,
         imageUrl: v.imageUrl || '',
         s3Key: v.s3Key,
@@ -656,7 +695,7 @@ export function LocationDetailModal({
       });
     });
     (latestLocation.backgrounds || []).forEach((bg: LocationBackground) => {
-      pushIfNew(bg.s3Key, {
+      upsertByS3Key(bg.s3Key, {
         id: bg.id || `bg_${bg.s3Key}`,
         imageUrl: bg.imageUrl || '',
         s3Key: bg.s3Key,
@@ -668,6 +707,10 @@ export function LocationDetailModal({
         metadata: (bg as any).metadata,
         index: 0
       });
+    });
+    orderedKeys.forEach((key) => {
+      const img = imagesByS3Key.get(key);
+      if (img) images.push(img);
     });
     return images;
   }, [latestLocation.baseReference, (latestLocation as any).creationImages, latestLocation.angleVariations, latestLocation.backgrounds, latestLocation.name]);
