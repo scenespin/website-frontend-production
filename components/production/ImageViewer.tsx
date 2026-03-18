@@ -329,15 +329,16 @@ export function ImageViewer({
   const containerRef = useRef<HTMLDivElement>(null);
   const fullscreenRef = useRef<HTMLDivElement>(null);
 
-  // Update current index when prop changes.
-  // Avoid re-triggering loading when only list length changes in background
-  // (common in Media Library refreshes) and the selected image is unchanged.
+  // Update current index when prop changes from parent/open state.
+  // Avoid re-triggering loading when only list length changes in background.
   const wasOpenRef = useRef(false);
+  const lastAppliedInitialIndexRef = useRef<number | null>(null);
   useEffect(() => {
     const justOpened = isOpen && !wasOpenRef.current;
     const justClosed = !isOpen && wasOpenRef.current;
     if (justClosed) {
       wasOpenRef.current = false;
+      lastAppliedInitialIndexRef.current = null;
       return;
     }
     if (!isOpen) return;
@@ -345,14 +346,16 @@ export function ImageViewer({
 
     if (initialIndex < 0 || initialIndex >= displayImages.length) return;
 
-    const shouldResetSelection = justOpened || currentIndex !== initialIndex;
+    const initialIndexChanged = lastAppliedInitialIndexRef.current !== initialIndex;
+    const shouldResetSelection = justOpened || initialIndexChanged;
     if (!shouldResetSelection) return;
 
     setCurrentIndex(initialIndex);
+    lastAppliedInitialIndexRef.current = initialIndex;
     setZoom(1); // Always reset zoom when opening or explicit index change
     setPosition({ x: 0, y: 0 });
     setIsLoading(true);
-  }, [isOpen, initialIndex, currentIndex, displayImages.length]);
+  }, [isOpen, initialIndex, displayImages.length]);
 
   // Get current image with resolved URL
   const [currentImageUrl, setCurrentImageUrl] = useState<string>('');
