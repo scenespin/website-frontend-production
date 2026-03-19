@@ -142,6 +142,22 @@ const isWorkflowExecutionId = (value: unknown): boolean => {
   if (jobId.startsWith('job_')) return false;
   return true;
 };
+const isTerminalImageJobStatus = (value: unknown): boolean => {
+  const status = String(value || '').toLowerCase().trim();
+  if (!status) return false;
+  return (
+    status === 'completed' ||
+    status === 'complete' ||
+    status === 'success' ||
+    status === 'succeeded' ||
+    status === 'failed' ||
+    status === 'error' ||
+    status === 'cancelled' ||
+    status === 'canceled' ||
+    status === 'timed_out' ||
+    status === 'timeout'
+  );
+};
 const resolveImageS3Key = (image: any): string | undefined => {
   const raw =
     image?.s3Key ||
@@ -649,18 +665,21 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
           return;
         }
         const status = String(execution.status || '').toLowerCase();
-        const terminal =
-          status === 'completed' ||
-          status === 'success' ||
-          status === 'succeeded' ||
-          status === 'failed';
+        const terminal = isTerminalImageJobStatus(status);
         if (!terminal) return;
 
         if (generationStartedAtMs) {
           setGenerationTime((Date.now() - generationStartedAtMs) / 1000);
         }
 
-        if (status === 'failed') {
+        if (
+          status === 'failed' ||
+          status === 'error' ||
+          status === 'timed_out' ||
+          status === 'timeout' ||
+          status === 'cancelled' ||
+          status === 'canceled'
+        ) {
           const failureMessage =
             execution.error?.userMessage || execution.error?.message || execution.error || 'Image generation failed';
           toast.error(String(failureMessage));
@@ -699,7 +718,8 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
   ]);
 
   useEffect(() => {
-    if (!isGenerating || pendingGenerationJobId || !pendingRequestCorrelationId || !screenplayId || !generationStartedAtMs) return;
+    const hasValidPendingJobId = !!pendingGenerationJobId && isWorkflowExecutionId(pendingGenerationJobId);
+    if (!isGenerating || hasValidPendingJobId || !pendingRequestCorrelationId || !screenplayId || !generationStartedAtMs) return;
 
     let cancelled = false;
     const correlationId = pendingRequestCorrelationId.trim();
@@ -744,17 +764,20 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
         if (!match || cancelled) return;
 
         const matchStatus = String(match.status || '').toLowerCase();
-        const terminalMatch =
-          matchStatus === 'completed' ||
-          matchStatus === 'success' ||
-          matchStatus === 'succeeded' ||
-          matchStatus === 'failed';
+        const terminalMatch = isTerminalImageJobStatus(matchStatus);
 
         if (terminalMatch) {
           if (generationStartedAtMs) {
             setGenerationTime((Date.now() - generationStartedAtMs) / 1000);
           }
-          if (matchStatus === 'failed') {
+          if (
+            matchStatus === 'failed' ||
+            matchStatus === 'error' ||
+            matchStatus === 'timed_out' ||
+            matchStatus === 'timeout' ||
+            matchStatus === 'cancelled' ||
+            matchStatus === 'canceled'
+          ) {
             toast.error('Image generation failed');
             setGeneratedImageUrl(null);
           } else {
@@ -1019,9 +1042,14 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
           ? returnedRequestCorrelationId.trim()
           : requestCorrelationId);
       const effectiveJobId = returnedJobId || null;
+      const effectiveWorkflowJobId = isWorkflowExecutionId(effectiveJobId) ? effectiveJobId : null;
       setPendingRequestCorrelationId(effectiveRequestCorrelationId);
-      if (effectiveJobId) {
-        setPendingGenerationJobId(effectiveJobId);
+      if (effectiveWorkflowJobId) {
+        setPendingGenerationJobId(effectiveWorkflowJobId);
+        keepGeneratingUntilAsyncTerminal = true;
+      } else {
+        // Keep correlation-based reconciliation path active when backend returns a non-workflow placeholder job id.
+        setPendingGenerationJobId(null);
         keepGeneratingUntilAsyncTerminal = true;
       }
       if (effectiveJobId && screenplayId) {
