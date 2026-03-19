@@ -945,6 +945,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
       typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
         ? crypto.randomUUID()
         : `corr_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+    const requestIdempotencyKey = `imggen:${screenplayId || 'default'}:${requestCorrelationId}`;
     setIsGenerating(true);
     setIsSubmittingGenerateRequest(true);
     // Keep last successful preview visible until a newer image is available.
@@ -996,6 +997,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
         entityType: 'playground',
         entityId: screenplayId, // Jobs Panel: backend requires entityId to create job
         requestCorrelationId,
+        idempotencyKey: requestIdempotencyKey,
       };
 
       // Add reference images if available
@@ -1005,7 +1007,9 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
           : referenceImageInputs;
       }
 
-      const response = await apiModule.image.generate(requestBody);
+      const response = await apiModule.image.generate(requestBody, {
+        headers: { 'x-idempotency-key': requestIdempotencyKey },
+      });
       const returnedJobId = response.data?.jobId || response.data?.data?.jobId;
       const returnedRequestCorrelationId =
         response.data?.requestCorrelationId ||
@@ -1344,7 +1348,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
           <div className="space-y-2">
             <button
               onClick={handleGenerate}
-              disabled={!prompt.trim() || !selectedModel || isSubmittingGenerateRequest}
+              disabled={!prompt.trim() || !selectedModel || isSubmittingGenerateRequest || isGenerating}
               className={cn(
                 "w-full px-6 py-3 rounded-lg font-medium text-white transition-colors",
                 "bg-cinema-red hover:bg-red-700 disabled:bg-[#3F3F46] disabled:text-[#808080] disabled:cursor-not-allowed",
@@ -1356,6 +1360,8 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
                   <Loader2 className="w-4 h-4 animate-spin" />
                   <span>Submitting...</span>
                 </>
+              ) : isGenerating ? (
+                <span>Queued in Jobs...</span>
               ) : (
                 <span>Generate Image</span>
               )}
