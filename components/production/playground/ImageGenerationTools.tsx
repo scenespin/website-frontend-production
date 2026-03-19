@@ -164,6 +164,39 @@ const resolveImageUrl = (image: any): string | undefined => {
   return trimmed.length > 0 ? trimmed : undefined;
 };
 
+const extractImageUrlFromExecutionLike = (execution: any): string | undefined => {
+  if (!execution || typeof execution !== 'object') return undefined;
+  const outputCandidates = [
+    execution.finalOutputs,
+    execution.results,
+    execution.output,
+    execution.outputs,
+    execution.finalOutput,
+  ];
+  for (const outputs of outputCandidates) {
+    if (!outputs || typeof outputs !== 'object') continue;
+
+    const images = Array.isArray((outputs as any).images) ? (outputs as any).images : [];
+    if (images.length > 0) {
+      const firstUrl = resolveImageUrl(images[0]);
+      if (firstUrl) return firstUrl;
+    }
+
+    const singleCandidates = [
+      (outputs as any).image,
+      (outputs as any).imageUrl,
+      (outputs as any).url,
+      (outputs as any).s3Url,
+    ];
+    for (const candidate of singleCandidates) {
+      const url = resolveImageUrl(candidate);
+      if (url) return url;
+      if (typeof candidate === 'string' && candidate.trim().length > 0) return candidate.trim();
+    }
+  }
+  return undefined;
+};
+
 export function ImageGenerationTools({ className = '' }: ImageGenerationToolsProps) {
   const screenplay = useScreenplay();
   const screenplayId = screenplay.screenplayId;
@@ -207,7 +240,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
     if (response.status === 404) return { __notFound: true } as any;
     if (!response.ok) return null;
     const payload = await response.json();
-    return payload?.data?.execution || null;
+    return payload?.data?.execution || payload?.data?.job || payload?.execution || payload?.job || null;
   };
 
   // Fetch available models
@@ -633,9 +666,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
           toast.error(String(failureMessage));
           setGeneratedImageUrl(null);
         } else {
-          const outputs = execution.finalOutputs || {};
-          const image = Array.isArray(outputs.images) && outputs.images.length > 0 ? outputs.images[0] : null;
-          const imageUrl = resolveImageUrl(image);
+          const imageUrl = extractImageUrlFromExecutionLike(execution);
           if (imageUrl) {
             setGeneratedImageUrl(imageUrl);
           }
@@ -690,7 +721,14 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
         const payload = await response.json();
         const jobs = Array.isArray(payload?.data?.jobs) ? payload.data.jobs : [];
         const match = jobs.find((job: any) => {
-          if (job?.jobType !== 'image-generation') return false;
+          const jobType = String(job?.jobType || '').toLowerCase();
+          const workflowId = String(job?.workflowId || '').toLowerCase();
+          const workflowType = String(job?.workflowType || '').toLowerCase();
+          const isImageJobType =
+            jobType === 'image-generation' ||
+            workflowId.includes('image') ||
+            workflowType.includes('image');
+          if (!isImageJobType) return false;
           const jobId = String(job?.jobId || '').trim();
           if (!isWorkflowExecutionId(jobId)) return false;
           const jobCorrelationId = String(
@@ -720,9 +758,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
             toast.error('Image generation failed');
             setGeneratedImageUrl(null);
           } else {
-            const outputs = match.finalOutputs || {};
-            const image = Array.isArray(outputs.images) && outputs.images.length > 0 ? outputs.images[0] : null;
-            const imageUrl = resolveImageUrl(image);
+            const imageUrl = extractImageUrlFromExecutionLike(match);
             if (imageUrl) {
               setGeneratedImageUrl(imageUrl);
             }
@@ -918,6 +954,9 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
     const startTime = Date.now();
     setGenerationStartedAtMs(startTime);
     let keepGeneratingUntilAsyncTerminal = false;
+    const submitReleaseTimer = typeof window !== 'undefined'
+      ? window.setTimeout(() => setIsSubmittingGenerateRequest(false), 5000)
+      : null;
 
     try {
       const { api: apiModule, setAuthTokenGetter } = await import('@/lib/api');
@@ -1061,6 +1100,9 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
       }
       setGeneratedImageUrl(null);
     } finally {
+      if (submitReleaseTimer) {
+        window.clearTimeout(submitReleaseTimer);
+      }
       setIsSubmittingGenerateRequest(false);
       if (!keepGeneratingUntilAsyncTerminal) {
         setIsGenerating(false);
