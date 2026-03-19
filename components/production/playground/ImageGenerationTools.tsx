@@ -799,6 +799,14 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
               .sort((a: any, b: any) => parseJobTimestamp(b) - parseJobTimestamp(a))[0]
           : null;
         const match = correlationMatch || fallbackMatch;
+        console.log('[ImageGenPanel][DEBUG] reconcile_scan', {
+          requestCorrelationId: correlationId,
+          jobsCount: jobs.length,
+          correlationMatchJobId: correlationMatch?.jobId || null,
+          fallbackMatchJobId: fallbackMatch?.jobId || null,
+          selectedMatchJobId: match?.jobId || null,
+          selectedMatchStatus: match?.status || null,
+        });
         if (!match || cancelled) return;
 
         const matchStatus = String(match.status || '').toLowerCase();
@@ -818,13 +826,31 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
           ) {
             toast.error('Image generation failed');
             setGeneratedImageUrl(null);
+            console.log('[ImageGenPanel][DEBUG] reconcile_terminal_failure', {
+              requestCorrelationId: correlationId,
+              matchJobId: match?.jobId || null,
+              matchStatus,
+            });
           } else {
             const imageUrl = extractImageUrlFromExecutionLike(match);
             if (imageUrl) {
               setGeneratedImageUrl(imageUrl);
               toast.success('Image generated!');
+              console.log('[ImageGenPanel][DEBUG] reconcile_terminal_success', {
+                requestCorrelationId: correlationId,
+                matchJobId: match?.jobId || null,
+                matchStatus,
+                resolvedImageUrl: imageUrl,
+              });
             } else {
               toast.info('Image completed in Jobs, but no preview URL was returned.');
+              console.log('[ImageGenPanel][DEBUG] reconcile_terminal_no_preview', {
+                requestCorrelationId: correlationId,
+                matchJobId: match?.jobId || null,
+                matchStatus,
+                finalOutputsKeys: match?.finalOutputs ? Object.keys(match.finalOutputs) : [],
+                resultsKeys: match?.results ? Object.keys(match.results) : [],
+              });
             }
           }
           setIsGenerating(false);
@@ -1008,6 +1034,13 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
       typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
         ? crypto.randomUUID()
         : `corr_${Date.now()}_${Math.random().toString(16).slice(2)}`;
+    console.log('[ImageGenPanel][DEBUG] submit_start', {
+      screenplayId,
+      requestCorrelationId,
+      selectedModel: requestModelId,
+      aspectRatio: requestAspectRatio,
+      referenceCount: referenceImages.length,
+    });
     const requestIdempotencyKey = `imggen:${screenplayId || 'default'}:${requestCorrelationId}`;
     setIsGenerating(true);
     setIsSubmittingGenerateRequest(true);
@@ -1083,6 +1116,12 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
           : requestCorrelationId);
       const effectiveJobId = returnedJobId || null;
       const effectiveWorkflowJobId = isWorkflowExecutionId(effectiveJobId) ? effectiveJobId : null;
+      console.log('[ImageGenPanel][DEBUG] submit_response', {
+        requestCorrelationId,
+        returnedJobId: effectiveJobId,
+        effectiveWorkflowJobId,
+        effectiveRequestCorrelationId,
+      });
       setPendingRequestCorrelationId(effectiveRequestCorrelationId);
       if (effectiveWorkflowJobId) {
         setPendingGenerationJobId(effectiveWorkflowJobId);
@@ -1110,6 +1149,10 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
         toast.info('Image generation started', {
           description: 'Track progress in Jobs tab.',
         });
+        console.log('[ImageGenPanel][DEBUG] submit_handoff_to_jobs', {
+          effectiveJobId,
+          effectiveRequestCorrelationId,
+        });
         setShowMediaLibraryBrowser(false);
         return;
       }
@@ -1120,6 +1163,11 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
       const resolvedImageUrl = responseS3Key
         ? `/api/media/file?key=${encodeURIComponent(responseS3Key)}`
         : (typeof imageUrl === 'string' && imageUrl.trim().length > 0 ? imageUrl.trim() : undefined);
+      console.log('[ImageGenPanel][DEBUG] submit_direct_result', {
+        requestCorrelationId: effectiveRequestCorrelationId,
+        responseS3Key: responseS3Key || null,
+        resolvedImageUrl: resolvedImageUrl || null,
+      });
       if (resolvedImageUrl) {
         const elapsed = (Date.now() - startTime) / 1000;
         setGenerationTime(elapsed);
@@ -1157,6 +1205,12 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
         console.error('Image generation failed:', error);
       }
       const errorMessage = error.response?.data?.message || error.message || 'Failed to generate image';
+      console.log('[ImageGenPanel][DEBUG] submit_error', {
+        requestCorrelationId,
+        statusCode,
+        isGatewayTimeout,
+        errorMessage,
+      });
       if (isGatewayTimeout) {
         toast.info('Generation request timed out, but may still be running', {
           description: 'Check Jobs tab for final status.',
