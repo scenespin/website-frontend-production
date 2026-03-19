@@ -7,7 +7,7 @@
  * Categories: Character, Location, Asset, First Frame
  */
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useCallback, useState, useEffect, useRef } from 'react';
 import { FolderOpen, Loader2, Upload, X } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
