@@ -1416,7 +1416,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
           <div className="space-y-2">
             <button
               onClick={handleGenerate}
-              disabled={!prompt.trim() || !selectedModel || isSubmittingGenerateRequest || isGenerating}
+              disabled={!prompt.trim() || !selectedModel || isSubmittingGenerateRequest}
               className={cn(
                 "w-full px-6 py-3 rounded-lg font-medium text-white transition-colors",
                 "bg-cinema-red hover:bg-red-700 disabled:bg-[#3F3F46] disabled:text-[#808080] disabled:cursor-not-allowed",
@@ -1428,8 +1428,6 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
                   <Loader2 className="w-4 h-4 animate-spin" />
                   <span>Submitting...</span>
                 </>
-              ) : isGenerating ? (
-                <span>Queued in Jobs...</span>
               ) : (
                 <span>Generate Image</span>
               )}
