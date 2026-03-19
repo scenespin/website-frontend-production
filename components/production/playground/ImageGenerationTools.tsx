@@ -173,6 +173,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
   const [prompt, setPrompt] = useState('');
   const [selectedModel, setSelectedModel] = useState<string>('');
   const [isGenerating, setIsGenerating] = useState(false);
+  const [isSubmittingGenerateRequest, setIsSubmittingGenerateRequest] = useState(false);
   const [isLoadingModels, setIsLoadingModels] = useState(true);
   const [models, setModels] = useState<ImageModel[]>([]);
   const [aspectRatio, setAspectRatio] = useState<string>('16:9');
@@ -909,6 +910,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
         ? crypto.randomUUID()
         : `corr_${Date.now()}_${Math.random().toString(16).slice(2)}`;
     setIsGenerating(true);
+    setIsSubmittingGenerateRequest(true);
     // Keep last successful preview visible until a newer image is available.
     setGenerationTime(undefined);
     setPendingGenerationJobId(null);
@@ -1048,10 +1050,10 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
         toast.info('Generation request timed out, but may still be running', {
           description: 'Check Jobs tab for final status.',
         });
-        keepGeneratingUntilAsyncTerminal = false;
+        // Preserve correlation reconciliation window so we can recover jobId/final output
+        // if backend accepted the request before the edge timed out.
+        keepGeneratingUntilAsyncTerminal = true;
         setPendingGenerationJobId(null);
-        setPendingRequestCorrelationId(null);
-        setGenerationStartedAtMs(null);
       } else {
         toast.error(errorMessage);
         keepGeneratingUntilAsyncTerminal = false;
@@ -1059,6 +1061,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
       }
       setGeneratedImageUrl(null);
     } finally {
+      setIsSubmittingGenerateRequest(false);
       if (!keepGeneratingUntilAsyncTerminal) {
         setIsGenerating(false);
         setPendingGenerationJobId(null);
@@ -1299,17 +1302,17 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
           <div className="space-y-2">
             <button
               onClick={handleGenerate}
-              disabled={!prompt.trim() || !selectedModel || isGenerating}
+              disabled={!prompt.trim() || !selectedModel || isSubmittingGenerateRequest}
               className={cn(
                 "w-full px-6 py-3 rounded-lg font-medium text-white transition-colors",
                 "bg-cinema-red hover:bg-red-700 disabled:bg-[#3F3F46] disabled:text-[#808080] disabled:cursor-not-allowed",
                 "flex items-center justify-center gap-2"
               )}
             >
-              {isGenerating ? (
+              {isSubmittingGenerateRequest ? (
                 <>
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  <span>Generating...</span>
+                  <span>Submitting...</span>
                 </>
               ) : (
                 <span>Generate Image</span>
