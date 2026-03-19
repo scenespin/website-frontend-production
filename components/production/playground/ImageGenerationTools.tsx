@@ -892,6 +892,8 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
                   screenplayId,
                   jobType: 'image-generation',
                   assetName: 'Direct Image Gen',
+                requestCorrelationId: correlationId,
+                localPending: false,
                 },
               })
             );
@@ -1071,6 +1073,20 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
     setPendingRequestCorrelationId(requestCorrelationId);
     const startTime = Date.now();
     setGenerationStartedAtMs(startTime);
+    if (screenplayId && typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('wryda:optimistic-job', {
+          detail: {
+            jobId: `pending:${requestCorrelationId}`,
+            screenplayId,
+            jobType: 'image-generation',
+            assetName: 'Direct Image Gen',
+            requestCorrelationId,
+            localPending: true,
+          },
+        })
+      );
+    }
     let keepGeneratingUntilAsyncTerminal = false;
     const submitReleaseTimer = typeof window !== 'undefined'
       ? window.setTimeout(() => setIsSubmittingGenerateRequest(false), 5000)
@@ -1087,6 +1103,16 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
 
       if (referenceImages.length > 0 && referenceImageInputs.length === 0) {
         toast.error('Reference images are visible but not valid for generation. Please re-add them.');
+        if (screenplayId && typeof window !== 'undefined') {
+          window.dispatchEvent(
+            new CustomEvent('wryda:optimistic-job-cancel', {
+              detail: {
+                screenplayId,
+                requestCorrelationId,
+              },
+            })
+          );
+        }
         setIsGenerating(false);
         setPendingGenerationJobId(null);
         setPendingRequestCorrelationId(null);
@@ -1162,6 +1188,8 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
                 screenplayId,
                 jobType: 'image-generation',
                 assetName: 'Direct Image Gen',
+                requestCorrelationId: effectiveRequestCorrelationId,
+                localPending: false,
               },
             })
           );
@@ -1241,6 +1269,16 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
         keepGeneratingUntilAsyncTerminal = true;
         setPendingGenerationJobId(null);
       } else {
+        if (screenplayId && typeof window !== 'undefined') {
+          window.dispatchEvent(
+            new CustomEvent('wryda:optimistic-job-cancel', {
+              detail: {
+                screenplayId,
+                requestCorrelationId,
+              },
+            })
+          );
+        }
         toast.error(errorMessage);
         keepGeneratingUntilAsyncTerminal = false;
         setPendingRequestCorrelationId(null);

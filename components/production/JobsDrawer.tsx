@@ -1114,8 +1114,22 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
    * Trigger an immediate direct fetch by ID so we get full job/results before list can overwrite with completed (no results).
    */
   useEffect(() => {
-    const handler = (e: CustomEvent<{ jobId: string; screenplayId: string; jobType?: string; assetName?: string }>) => {
-      const { jobId, screenplayId: eventScreenplayId, jobType = 'image-generation', assetName } = e.detail || {};
+    const handler = (e: CustomEvent<{
+      jobId: string;
+      screenplayId: string;
+      jobType?: string;
+      assetName?: string;
+      requestCorrelationId?: string;
+      localPending?: boolean;
+    }>) => {
+      const {
+        jobId,
+        screenplayId: eventScreenplayId,
+        jobType = 'image-generation',
+        assetName,
+        requestCorrelationId,
+        localPending = false,
+      } = e.detail || {};
       if (!jobId || !eventScreenplayId?.trim()) return;
       const mismatch = eventScreenplayId.trim() !== screenplayId?.trim();
       if (mismatch) {
@@ -1127,73 +1141,109 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
       }
       // Accept event even on mismatch so the job always shows; list may still filter by drawer's screenplayId later
       placeholderRetryCountRef.current = 0;
-      trackedJobIdsRef.current.add(jobId);
-      if (diagnosticJobIdsRef.current.size >= MAX_DIAGNOSTIC_JOBS) {
-        const first = diagnosticJobIdsRef.current.values().next().value;
-        if (first) diagnosticJobIdsRef.current.delete(first);
+      if (!localPending) {
+        trackedJobIdsRef.current.add(jobId);
+        if (diagnosticJobIdsRef.current.size >= MAX_DIAGNOSTIC_JOBS) {
+          const first = diagnosticJobIdsRef.current.values().next().value;
+          if (first) diagnosticJobIdsRef.current.delete(first);
+        }
+        diagnosticJobIdsRef.current.add(jobId);
       }
-      diagnosticJobIdsRef.current.add(jobId);
       console.log('[JobsDrawer] Optimistic job added', { jobId: jobId.slice(-12), jobType, assetName });
       const placeholder: WorkflowJob = {
         jobId,
-        workflowId: '',
-        workflowName: assetName ? `Image Generation - ${assetName}` : 'Image Generation',
+        workflowId: localPending ? 'local-pending' : '',
+        workflowName: localPending
+          ? (assetName ? `Image Generation - ${assetName} (Submitting...)` : 'Image Generation (Submitting...)')
+          : (assetName ? `Image Generation - ${assetName}` : 'Image Generation'),
         jobType: jobType as WorkflowJob['jobType'],
-        status: 'running',
+        status: localPending ? 'queued' : 'running',
         progress: 0,
         createdAt: new Date().toISOString(),
         creditsUsed: 0,
+        metadata: {
+          requestCorrelationId: requestCorrelationId || null,
+          localPending: !!localPending,
+        },
       };
-      optimisticPlaceholdersRef.current.set(jobId, placeholder);
-      try {
-        sessionStorage.setItem(`wryda:last-job:${eventScreenplayId}`, JSON.stringify({ jobId, ts: Date.now() }));
-        addRecentJobId(eventScreenplayId.trim(), jobId);
-      } catch (_) { /* ignore */ }
+      if (!localPending) {
+        optimisticPlaceholdersRef.current.set(jobId, placeholder);
+        try {
+          sessionStorage.setItem(`wryda:last-job:${eventScreenplayId}`, JSON.stringify({ jobId, ts: Date.now() }));
+          addRecentJobId(eventScreenplayId.trim(), jobId);
+        } catch (_) { /* ignore */ }
+      }
       setJobs(prev => {
-        if (prev.some(j => j.jobId === jobId)) return prev;
-        return [placeholder, ...prev];
+        const now = Date.now();
+        const compact = prev.filter((j) => {
+          const isLocalPending = j.workflowId === 'local-pending' || j.metadata?.localPending;
+          if (!isLocalPending) return true;
+          const ageMs = now - new Date(j.createdAt).getTime();
+          return Number.isFinite(ageMs) ? ageMs <= 120000 : true;
+        });
+        const withoutResolvedPending = (!localPending && requestCorrelationId)
+          ? compact.filter(
+              (j) => !(j.workflowId === 'local-pending' && String(j.metadata?.requestCorrelationId || '') === String(requestCorrelationId))
+            )
+          : compact;
+        if (withoutResolvedPending.some(j => j.jobId === jobId)) return withoutResolvedPending;
+        return [placeholder, ...withoutResolvedPending];
       });
       // Fetch by ID soon so we get full job (and results if already completed) before list/GSI overwrites with completed (no results)
-      if (optimisticFetchTimeoutRef.current) clearTimeout(optimisticFetchTimeoutRef.current);
-      optimisticFetchTimeoutRef.current = setTimeout(() => {
-        optimisticFetchTimeoutRef.current = null;
-        if (directFetchInProgressRef.current.has(jobId)) return;
-        directFetchInProgressRef.current.add(jobId);
-        fetchJobDirectly(jobId, { silent: true }).then((full) => {
-          try {
-            if (!full) {
-              if (diagnosticJobIdsRef.current.has(jobId)) {
-                console.log('[JobsDrawer] [DEBUG] optimistic_800ms', { jobId: jobId.slice(-12), result: 'null' });
+      if (!localPending) {
+        if (optimisticFetchTimeoutRef.current) clearTimeout(optimisticFetchTimeoutRef.current);
+        optimisticFetchTimeoutRef.current = setTimeout(() => {
+          optimisticFetchTimeoutRef.current = null;
+          if (directFetchInProgressRef.current.has(jobId)) return;
+          directFetchInProgressRef.current.add(jobId);
+          fetchJobDirectly(jobId, { silent: true }).then((full) => {
+            try {
+              if (!full) {
+                if (diagnosticJobIdsRef.current.has(jobId)) {
+                  console.log('[JobsDrawer] [DEBUG] optimistic_800ms', { jobId: jobId.slice(-12), result: 'null' });
+                }
+                return;
               }
-              return;
-            }
-            if (diagnosticJobIdsRef.current.has(full.jobId)) {
-              console.log('[JobsDrawer] [DEBUG] optimistic_800ms', {
-                jobId: full.jobId.slice(-12),
-                status: full.status,
-                hasResults: hasResultsForLog(full),
-                merged: true,
+              if (diagnosticJobIdsRef.current.has(full.jobId)) {
+                console.log('[JobsDrawer] [DEBUG] optimistic_800ms', {
+                  jobId: full.jobId.slice(-12),
+                  status: full.status,
+                  hasResults: hasResultsForLog(full),
+                  merged: true,
+                });
+              }
+              optimisticPlaceholdersRef.current.delete(full.jobId);
+              trackedJobIdsRef.current.add(full.jobId);
+              directFetchedJobsRef.current.set(full.jobId, full);
+              setJobs(prev => {
+                const map = new Map(prev.map((j) => [j.jobId, j]));
+                map.set(full.jobId, full);
+                const merged = Array.from(map.values());
+                merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+                return merged;
               });
+            } finally {
+              directFetchInProgressRef.current.delete(jobId);
             }
-            optimisticPlaceholdersRef.current.delete(full.jobId);
-            trackedJobIdsRef.current.add(full.jobId);
-            directFetchedJobsRef.current.set(full.jobId, full);
-            setJobs(prev => {
-              const map = new Map(prev.map((j) => [j.jobId, j]));
-              map.set(full.jobId, full);
-              const merged = Array.from(map.values());
-              merged.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-              return merged;
-            });
-          } finally {
-            directFetchInProgressRef.current.delete(jobId);
-          }
-        });
-      }, OPTIMISTIC_POLL_DELAY_MS);
+          });
+        }, OPTIMISTIC_POLL_DELAY_MS);
+      }
+    };
+    const cancelHandler = (e: CustomEvent<{ requestCorrelationId?: string; screenplayId?: string }>) => {
+      const requestCorrelationId = String(e.detail?.requestCorrelationId || '').trim();
+      const eventScreenplayId = String(e.detail?.screenplayId || '').trim();
+      if (!requestCorrelationId || !eventScreenplayId) return;
+      setJobs((prev) =>
+        prev.filter(
+          (j) => !(j.workflowId === 'local-pending' && String(j.metadata?.requestCorrelationId || '') === requestCorrelationId)
+        )
+      );
     };
     window.addEventListener('wryda:optimistic-job', handler as EventListener);
+    window.addEventListener('wryda:optimistic-job-cancel', cancelHandler as EventListener);
     return () => {
       window.removeEventListener('wryda:optimistic-job', handler as EventListener);
+      window.removeEventListener('wryda:optimistic-job-cancel', cancelHandler as EventListener);
       if (optimisticFetchTimeoutRef.current) {
         clearTimeout(optimisticFetchTimeoutRef.current);
         optimisticFetchTimeoutRef.current = null;
