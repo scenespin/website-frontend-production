@@ -122,9 +122,12 @@
     "typescript": "^5.9.3"
   },
   "overrides": {
-    "tar": ">=7.5.7",
-    "fast-xml-parser": "5.3.5",
-    "qs": "6.14.2",
-    "dompurify": "3.3.2"
+    "tar": "7.5.11",
+    "fast-xml-parser": "5.5.7",
+    "qs": "6.15.0",
+    "dompurify": "3.3.2",
+    "minimatch@3.1.2": "3.1.4",
+    "minimatch@9.0.1": "9.0.7",
+    "minimatch@9.0.5": "9.0.7"
   }
 }
