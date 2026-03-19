@@ -598,6 +598,26 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
     });
   };
 
+  const persistRecentJobIdForDrawer = useCallback((jobId: string) => {
+    const normalizedJobId = String(jobId || '').trim();
+    const normalizedScreenplayId = String(screenplayId || '').trim();
+    if (!normalizedJobId || !normalizedScreenplayId || typeof window === 'undefined') return;
+    try {
+      // Helps JobsDrawer recover immediately on open even if optimistic event was missed.
+      window.sessionStorage.setItem(
+        `wryda:last-job:${normalizedScreenplayId}`,
+        JSON.stringify({ jobId: normalizedJobId, ts: Date.now() })
+      );
+      const recentKey = `wryda:recent-job-ids:${normalizedScreenplayId}`;
+      const raw = window.sessionStorage.getItem(recentKey);
+      const existingIds: string[] = raw ? JSON.parse(raw) : [];
+      const next = [normalizedJobId, ...existingIds.filter((id) => id !== normalizedJobId)].slice(0, 20);
+      window.sessionStorage.setItem(recentKey, JSON.stringify(next));
+    } catch {
+      // Non-fatal: optimistic event still attempts immediate job visibility.
+    }
+  }, [screenplayId]);
+
   useEffect(() => {
     const storageKey = getActiveGenerationStorageKey();
     if (!storageKey || typeof window === 'undefined') return;
@@ -863,6 +883,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
           const jobId = String(match.jobId).trim();
           setPendingGenerationJobId(jobId);
           addInFlightJob(jobId);
+          persistRecentJobIdForDrawer(jobId);
           if (typeof window !== 'undefined') {
             window.dispatchEvent(
               new CustomEvent('wryda:optimistic-job', {
@@ -907,6 +928,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
     generationStartedAtMs,
     getToken,
     addInFlightJob,
+    persistRecentJobIdForDrawer,
   ]);
 
   useEffect(() => {
@@ -1131,6 +1153,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
       }
       if (effectiveJobId && screenplayId) {
         addInFlightJob(effectiveJobId);
+        persistRecentJobIdForDrawer(effectiveJobId);
         if (typeof window !== 'undefined') {
           window.dispatchEvent(
             new CustomEvent('wryda:optimistic-job', {
