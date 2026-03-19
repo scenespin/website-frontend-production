@@ -396,6 +396,16 @@ function getExportImageLimitForLayout(layout: PdfImageLayout): number {
   return 1;
 }
 
+function getLayoutImageTip(layout: PdfImageLayout): string {
+  if (layout === 'full_bleed') {
+    return 'Tip: Hero Full Bleed looks best with high-res images. For print-first exports, prefer near-page portrait ratios (2:3 or 4:5) and keep full-page images above ~2550x3300 when possible.';
+  }
+  if (layout === 'full_bleed_split2' || layout === 'full_bleed_vcols3' || layout === 'full_bleed_vcols4') {
+    return 'Tip: Full-bleed multi-image heroes crop best with portrait-ish assets (9:16, 9:21, 2:3) and similar framing across images.';
+  }
+  return 'Tip: Portrait-ish images (9:16, 9:21, 2:3) crop best in multi-column layouts.';
+}
+
 function getAspectRatiosForModel(modelId: string): PitchDeckAspectRatio[] {
   return MODEL_ASPECT_RATIO_SUPPORT[modelId] || PITCH_DECK_ASPECT_RATIOS;
 }
@@ -3520,9 +3530,7 @@ export default function PitchDeckEditorPage() {
                         </div>
                       ) : null}
                     </div>
-                    <p className="mt-2 text-[11px] text-gray-500">
-                      Tip: Portrait-ish images (9:16, 9:21, 2:3) crop best in multi-column layouts.
-                    </p>
+                    <p className="mt-2 text-[11px] text-gray-500">{getLayoutImageTip(selectedSlideLayout)}</p>
                     {!selectedSlideImageEnabled ? (
                       <p className="mt-2 rounded border border-amber-500/40 bg-amber-500/10 px-2 py-1 text-[11px] text-amber-200">
                         Slide image is off for this slide. Export renders this slide as text-only while preserving all canvas history.
