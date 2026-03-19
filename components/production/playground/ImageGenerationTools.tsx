@@ -752,7 +752,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
         if (!response.ok || cancelled) return;
         const payload = await response.json();
         const jobs = Array.isArray(payload?.data?.jobs) ? payload.data.jobs : [];
-        const match = jobs.find((job: any) => {
+        const correlationMatch = jobs.find((job: any) => {
           const jobType = String(job?.jobType || '').toLowerCase();
           const workflowId = String(job?.workflowId || '').toLowerCase();
           const workflowType = String(job?.workflowType || '').toLowerCase();
@@ -771,6 +771,34 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
           ).trim();
           return jobCorrelationId.length > 0 && jobCorrelationId === correlationId;
         });
+        const isImageJobCandidate = (job: any): boolean => {
+          const jobType = String(job?.jobType || '').toLowerCase();
+          const workflowId = String(job?.workflowId || '').toLowerCase();
+          const workflowType = String(job?.workflowType || '').toLowerCase();
+          return (
+            jobType === 'image-generation' ||
+            workflowId.includes('image') ||
+            workflowType.includes('image')
+          );
+        };
+        const parseJobTimestamp = (job: any): number => {
+          const raw = job?.completedAt || job?.updatedAt || job?.createdAt || '';
+          const ms = raw ? Date.parse(String(raw)) : NaN;
+          return Number.isFinite(ms) ? ms : 0;
+        };
+        const fallbackMatch = !correlationMatch
+          ? [...jobs]
+              .filter((job: any) => isImageJobCandidate(job))
+              .filter((job: any) => {
+                const status = String(job?.status || '').toLowerCase();
+                if (!isTerminalImageJobStatus(status)) return false;
+                const ts = parseJobTimestamp(job);
+                // Accept jobs completed after this request started (with small jitter tolerance).
+                return ts >= (generationStartedAtMs - 15000);
+              })
+              .sort((a: any, b: any) => parseJobTimestamp(b) - parseJobTimestamp(a))[0]
+          : null;
+        const match = correlationMatch || fallbackMatch;
         if (!match || cancelled) return;
 
         const matchStatus = String(match.status || '').toLowerCase();
