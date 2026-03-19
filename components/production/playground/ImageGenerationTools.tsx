@@ -170,6 +170,16 @@ const resolveImageS3Key = (image: any): string | undefined => {
   return trimmed.length > 0 ? trimmed : undefined;
 };
 const resolveImageUrl = (image: any): string | undefined => {
+  if (typeof image === 'string') {
+    const trimmed = image.trim();
+    if (!trimmed) return undefined;
+    if (trimmed.startsWith('/api/media/file?')) return trimmed;
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://')) return trimmed;
+    if (trimmed.startsWith('temp/') || trimmed.startsWith('permanent/') || trimmed.startsWith('media/')) {
+      return `/api/media/file?key=${encodeURIComponent(trimmed)}`;
+    }
+    return undefined;
+  }
   const imageS3Key = resolveImageS3Key(image);
   if (imageS3Key) {
     return `/api/media/file?key=${encodeURIComponent(imageS3Key)}`;
@@ -688,8 +698,10 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
           const imageUrl = extractImageUrlFromExecutionLike(execution);
           if (imageUrl) {
             setGeneratedImageUrl(imageUrl);
+            toast.success('Image generated!');
+          } else {
+            toast.info('Image completed in Jobs, but no preview URL was returned.');
           }
-          toast.success('Image generated!');
         }
 
         setIsGenerating(false);
@@ -749,8 +761,6 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
             workflowId.includes('image') ||
             workflowType.includes('image');
           if (!isImageJobType) return false;
-          const jobId = String(job?.jobId || '').trim();
-          if (!isWorkflowExecutionId(jobId)) return false;
           const jobCorrelationId = String(
             job?.requestCorrelationId ||
             job?.input?.requestCorrelationId ||
@@ -784,8 +794,10 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
             const imageUrl = extractImageUrlFromExecutionLike(match);
             if (imageUrl) {
               setGeneratedImageUrl(imageUrl);
+              toast.success('Image generated!');
+            } else {
+              toast.info('Image completed in Jobs, but no preview URL was returned.');
             }
-            toast.success('Image generated!');
           }
           setIsGenerating(false);
           setPendingGenerationJobId(null);
@@ -1129,8 +1141,8 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
         toast.error(errorMessage);
         keepGeneratingUntilAsyncTerminal = false;
         setPendingRequestCorrelationId(null);
+        setGeneratedImageUrl(null);
       }
-      setGeneratedImageUrl(null);
     } finally {
       if (submitReleaseTimer) {
         window.clearTimeout(submitReleaseTimer);
