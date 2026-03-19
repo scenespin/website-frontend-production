@@ -909,7 +909,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
         ? crypto.randomUUID()
         : `corr_${Date.now()}_${Math.random().toString(16).slice(2)}`;
     setIsGenerating(true);
-    setGeneratedImageUrl(null);
+    // Keep last successful preview visible until a newer image is available.
     setGenerationTime(undefined);
     setPendingGenerationJobId(null);
     setPendingRequestCorrelationId(requestCorrelationId);
@@ -977,7 +977,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
       setPendingRequestCorrelationId(effectiveRequestCorrelationId);
       if (effectiveJobId) {
         setPendingGenerationJobId(effectiveJobId);
-        keepGeneratingUntilAsyncTerminal = false;
+        keepGeneratingUntilAsyncTerminal = true;
       }
       if (effectiveJobId && screenplayId) {
         addInFlightJob(effectiveJobId);
@@ -997,9 +997,6 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
         toast.info('Image generation started', {
           description: 'Track progress in Jobs tab.',
         });
-        setPendingGenerationJobId(null);
-        setPendingRequestCorrelationId(null);
-        setGenerationStartedAtMs(null);
         setShowMediaLibraryBrowser(false);
         return;
       }
@@ -1328,7 +1325,9 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
       {/* Right Panel - Preview */}
       <div className="w-full md:w-1/2 flex flex-col">
         <GenerationPreview
-          isGenerating={isGenerating}
+          // Jobs panel is the single source of in-flight progress UI.
+          // Keep this preview non-blocking and only show latest completed output.
+          isGenerating={false}
           generatedImageUrl={generatedImageUrl}
           generationTime={generationTime}
           showTiming={false}

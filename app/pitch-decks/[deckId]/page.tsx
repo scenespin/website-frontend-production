@@ -156,6 +156,9 @@ const getMediaProxyS3KeyFromUrl = (imageUrl: string): string | undefined => {
   }
 };
 
+const isLegacyTempVideoImageKey = (s3Key?: string): boolean =>
+  typeof s3Key === 'string' && s3Key.trim().startsWith('temp/video-images/');
+
 const getExistingMediaIdentityKey = (item: Partial<ExistingMediaItem> | null | undefined): string => {
   if (!item) return '';
   if (typeof item.mediaFileId === 'string' && item.mediaFileId.trim()) return `file:${item.mediaFileId.trim()}`;
@@ -4196,6 +4199,10 @@ export default function PitchDeckEditorPage() {
                                             (typeof attempt.s3Key === 'string' && attempt.s3Key.trim().length > 0
                                               ? attempt.s3Key.trim()
                                               : getMediaProxyS3KeyFromUrl(attempt.imageUrl as string)) || undefined;
+                                          if (isLegacyTempVideoImageKey(attemptS3Key)) {
+                                            setImageActionError('This recovered item uses a legacy temp/video-images key and may be expired. Regenerate or use archived media.');
+                                            return;
+                                          }
                                           appendSlotImageOption({
                                             imageUrl: attempt.imageUrl as string,
                                             sourceType: 'existing_media',
