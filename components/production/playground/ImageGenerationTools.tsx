@@ -138,8 +138,7 @@ const MAX_RECONCILE_AWAIT_MS = 15 * 60 * 1000;
 const isWorkflowExecutionId = (value: unknown): boolean => {
   const jobId = String(value || '').trim();
   if (!jobId) return false;
-  // Legacy client-side placeholder IDs used `job_<uuid>` and are not valid for /api/workflows/:id.
-  if (jobId.startsWith('job_')) return false;
+  // /api/workflows/:id accepts both canonical execution IDs and job_* IDs used by image-gen.
   return true;
 };
 const isTerminalImageJobStatus = (value: unknown): boolean => {
@@ -1115,16 +1114,15 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
           ? returnedRequestCorrelationId.trim()
           : requestCorrelationId);
       const effectiveJobId = returnedJobId || null;
-      const effectiveWorkflowJobId = isWorkflowExecutionId(effectiveJobId) ? effectiveJobId : null;
       console.log('[ImageGenPanel][DEBUG] submit_response', {
         requestCorrelationId,
         returnedJobId: effectiveJobId,
-        effectiveWorkflowJobId,
+        effectiveWorkflowJobId: effectiveJobId,
         effectiveRequestCorrelationId,
       });
       setPendingRequestCorrelationId(effectiveRequestCorrelationId);
-      if (effectiveWorkflowJobId) {
-        setPendingGenerationJobId(effectiveWorkflowJobId);
+      if (effectiveJobId) {
+        setPendingGenerationJobId(effectiveJobId);
         keepGeneratingUntilAsyncTerminal = true;
       } else {
         // Keep correlation-based reconciliation path active when backend returns a non-workflow placeholder job id.
