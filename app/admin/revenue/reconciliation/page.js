@@ -83,7 +83,7 @@ export default function AdminRevenueReconciliationPage() {
           <div>
             <h1 className="text-3xl font-bold">Revenue Reconciliation Details</h1>
             <p className="text-base-content/40 mt-1">
-              Compare Stripe-native revenue, legacy purchase snapshots, and strict provider billing costs.
+              Compare Stripe-native revenue and strict provider billing costs.
             </p>
           </div>
           <div className="flex gap-2">
@@ -186,7 +186,7 @@ export default function AdminRevenueReconciliationPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
               <div className="card bg-base-200 shadow-lg">
                 <div className="card-body">
                   <h3 className="font-semibold">Stripe</h3>
@@ -197,20 +197,6 @@ export default function AdminRevenueReconciliationPage() {
                   <p className="text-sm">Net: <span className="font-semibold">{formatCurrency(report.stripe?.netCollected || 0)}</span></p>
                   <p className="text-sm">Charges: <span className="font-semibold">{report.stripe?.chargeCount || 0}</span></p>
                   <p className="text-sm">Paying Users: <span className="font-semibold">{report.stripe?.uniquePayingUsers || 0}</span></p>
-                </div>
-              </div>
-
-              <div className="card bg-base-200 shadow-lg">
-                <div className="card-body">
-                  <h3 className="font-semibold">Legacy Purchases</h3>
-                  <p className="text-sm mt-2">Revenue: <span className="font-semibold">{formatCurrency(report.legacy?.revenueUsd || 0)}</span></p>
-                  <p className="text-sm">Transactions: <span className="font-semibold">{report.legacy?.transactionCount || 0}</span></p>
-                  <p className="text-sm">Unique Users: <span className="font-semibold">{report.legacy?.uniqueUsers || 0}</span></p>
-                  <p className="text-sm">
-                    Missing Table: <span className={`font-semibold ${report.legacy?.missingPurchasesTable ? 'text-warning' : 'text-success'}`}>
-                      {report.legacy?.missingPurchasesTable ? 'Yes' : 'No'}
-                    </span>
-                  </p>
                 </div>
               </div>
 
