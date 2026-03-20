@@ -2,15 +2,11 @@
 
 import { useState, useEffect } from 'react';
 import { useUser, useAuth } from '@clerk/nextjs';
-import { 
-  Users, 
-  Search, 
-  Filter,
+import {
+  Users,
+  Search,
   Zap,
   CreditCard,
-  Ban,
-  Check,
-  X,
   ChevronLeft,
   ChevronRight,
   AlertTriangle,
@@ -43,6 +39,7 @@ export default function AdminUsersDashboard() {
 
   const getDisplayCredits = (u) => {
     if (!u) return 0;
+    if (typeof u.credits_remaining === 'number') return u.credits_remaining;
     if (typeof u.credit_balance === 'number') return u.credit_balance;
     if (typeof u.credits_balance === 'number') return u.credits_balance;
     return 0;
@@ -87,9 +84,24 @@ export default function AdminUsersDashboard() {
     }
   }
 
-  async function handleCreditAdjustment(userId, adjustment) {
-    const amount = prompt(`Enter credit adjustment amount (positive to add, negative to subtract):`);
-    if (!amount) return;
+  async function handleCreditAdjustment(userId) {
+    const amountInput = prompt('Enter credits to add (positive number):');
+    if (!amountInput) return;
+    const credits = parseInt(amountInput, 10);
+    if (!Number.isFinite(credits) || credits <= 0) {
+      alert('Enter a valid positive credit amount.');
+      return;
+    }
+    const reason = prompt('Enter reason for credit grant:');
+    if (!reason || !reason.trim()) {
+      alert('Reason is required.');
+      return;
+    }
+    const bucketInput = prompt('Bucket? Type "promo" or "core" (default: promo):', 'promo');
+    const bucket = String(bucketInput || 'promo').trim().toLowerCase() === 'core' ? 'core' : 'promo';
+    const idempotencyKey = bucket === 'promo'
+      ? `admin-ui-grant-${userId}-${Date.now()}`
+      : undefined;
 
     try {
       const token = await getToken({ template: 'wryda-backend' });
@@ -97,18 +109,27 @@ export default function AdminUsersDashboard() {
         alert('Authentication required');
         return;
       }
-      await fetch(`/api/admin/users/${userId}/credits`, {
-        method: 'PUT',
+      const response = await fetch(`/api/admin/users/${userId}/credits`, {
+        method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`,
         },
-        body: JSON.stringify({ adjustment: parseInt(amount) }),
+        body: JSON.stringify({
+          credits,
+          reason: reason.trim(),
+          bucket,
+          ...(idempotencyKey ? { idempotencyKey } : {}),
+        }),
       });
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'Failed to update credits');
+      }
       fetchUsers();
     } catch (error) {
       console.error('[Admin Users] Failed to adjust credits:', error);
-      alert('Failed to adjust credits');
+      alert(`Failed to adjust credits: ${error.message || 'Unknown error'}`);
     }
   }
 
@@ -131,30 +152,6 @@ export default function AdminUsersDashboard() {
     } catch (error) {
       console.error('[Admin Users] Failed to change tier:', error);
       alert('Failed to change tier');
-    }
-  }
-
-  async function handleDeleteUser(userId) {
-    if (!confirm('Are you sure you want to delete this user? This action cannot be undone.')) {
-      return;
-    }
-
-    try {
-      const token = await getToken({ template: 'wryda-backend' });
-      if (!token) {
-        alert('Authentication required');
-        return;
-      }
-      await fetch(`/api/admin/users/${userId}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      fetchUsers();
-    } catch (error) {
-      console.error('[Admin Users] Failed to delete user:', error);
-      alert('Failed to delete user');
     }
   }
 
@@ -326,9 +323,9 @@ export default function AdminUsersDashboard() {
                           <Edit className="w-3 h-3" />
                         </button>
                         <button
-                          onClick={() => handleDeleteUser(u.user_id)}
-                          className="btn btn-xs btn-error"
-                          title="Delete User"
+                          disabled
+                          className="btn btn-xs btn-disabled"
+                          title="Delete user (not enabled)"
                         >
                           <Trash2 className="w-3 h-3" />
                         </button>
