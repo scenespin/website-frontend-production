@@ -4,6 +4,22 @@ import { useMemo, useState } from 'react';
 import { useAuth } from '@clerk/nextjs';
 import { RefreshCw, Shield, Sparkles, ListChecks } from 'lucide-react';
 
+const PROMO_TAG_OPTIONS = [
+  { value: 'partner', label: 'partner' },
+  { value: 'internal', label: 'internal' },
+  { value: 'campaign', label: 'campaign' },
+  { value: 'smoke-test', label: 'smoke-test' },
+  { value: 'other', label: 'other' },
+];
+
+const PROMO_REASON_OPTIONS = [
+  { value: 'admin_promo_adjustment', label: 'admin_promo_adjustment' },
+  { value: 'partner_allocation', label: 'partner_allocation' },
+  { value: 'internal_allocation', label: 'internal_allocation' },
+  { value: 'campaign_allocation', label: 'campaign_allocation' },
+  { value: 'balance_correction', label: 'balance_correction' },
+];
+
 function toDateTimeLocal(ms) {
   if (!ms || !Number.isFinite(ms)) return '';
   const d = new Date(ms);
@@ -33,7 +49,7 @@ export default function AdminPromoDashboard() {
   const [creditAction, setCreditAction] = useState({
     mode: 'grant',
     credits: 100,
-    reason: 'admin_promo_adjustment',
+    reason: PROMO_REASON_OPTIONS[0].value,
   });
 
   function applyQuickAmount(amount) {
@@ -56,11 +72,11 @@ export default function AdminPromoDashboard() {
     });
   }
 
-  async function loadUser() {
+  async function loadUser(options = { clearStatus: true }) {
     if (!normalizedLookup && !normalizedUserId) return;
     setBusy(true);
     setError('');
-    setStatus('');
+    if (options.clearStatus) setStatus('');
     try {
       let targetUserId = normalizedUserId;
       if (!targetUserId) {
@@ -107,11 +123,17 @@ export default function AdminPromoDashboard() {
       setLedger(ledgerData.entries || []);
 
       const incomingPolicy = detailsData?.user?.promo_policy || {};
+      const incomingTag = typeof incomingPolicy.promo_tag === 'string'
+        ? incomingPolicy.promo_tag
+        : '';
+      const normalizedTag = PROMO_TAG_OPTIONS.some((opt) => opt.value === incomingTag)
+        ? incomingTag
+        : (incomingTag ? 'other' : '');
       setPolicy({
         protect_from_free_reset: incomingPolicy.protect_from_free_reset !== false,
         allow_self_serve_purchase: incomingPolicy.allow_self_serve_purchase !== false,
         spend_order: incomingPolicy.spend_order === 'core_first' ? 'core_first' : 'promo_first',
-        promo_tag: incomingPolicy.promo_tag || '',
+        promo_tag: normalizedTag,
         promo_expiry_at: toDateTimeLocal(incomingPolicy.promo_expiry_at),
       });
     } catch (e) {
@@ -133,8 +155,8 @@ export default function AdminPromoDashboard() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Failed updating promo mode');
-      setStatus(enabled ? 'Promo mode enabled' : 'Promo mode disabled');
-      await loadUser();
+      setStatus(data.message || (enabled ? 'Promo mode enabled' : 'Promo mode disabled'));
+      await loadUser({ clearStatus: false });
     } catch (e) {
       setError(e.message || 'Failed updating promo mode');
     } finally {
@@ -164,8 +186,8 @@ export default function AdminPromoDashboard() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Failed updating policy');
 
-      setStatus('Promo policy updated');
-      await loadUser();
+      setStatus(data.message || 'Promo policy updated');
+      await loadUser({ clearStatus: false });
     } catch (e) {
       setError(e.message || 'Failed updating policy');
     } finally {
@@ -204,8 +226,8 @@ export default function AdminPromoDashboard() {
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || `Failed to ${endpoint} credits`);
 
-      setStatus(`Promo credits ${endpoint === 'grant' ? 'granted' : 'revoked'} successfully`);
-      await loadUser();
+      setStatus(data.message || `Promo credits ${endpoint === 'grant' ? 'granted' : 'revoked'} successfully`);
+      await loadUser({ clearStatus: false });
     } catch (e) {
       setError(e.message || 'Failed updating promo credits');
     } finally {
@@ -290,8 +312,8 @@ export default function AdminPromoDashboard() {
               <h3 className="text-base font-semibold">Promo Mode</h3>
             </div>
             <div className="flex gap-2">
-              <button className="btn btn-sm border-zinc-700 bg-zinc-900 text-zinc-100 hover:bg-zinc-800" onClick={() => togglePromo(true)} disabled={busy}>Enable</button>
-              <button className="btn btn-sm border-zinc-700 bg-zinc-900 text-zinc-100 hover:bg-zinc-800" onClick={() => togglePromo(false)} disabled={busy}>Disable</button>
+              <button className="btn btn-sm border-zinc-700 bg-zinc-900 text-zinc-100 hover:bg-zinc-800" onClick={() => togglePromo(true)} disabled={busy || details.user?.promo_enabled}>Enable</button>
+              <button className="btn btn-sm border-zinc-700 bg-zinc-900 text-zinc-100 hover:bg-zinc-800" onClick={() => togglePromo(false)} disabled={busy || !details.user?.promo_enabled}>Disable</button>
             </div>
           </div>
 
@@ -324,18 +346,25 @@ export default function AdminPromoDashboard() {
                 <option value="promo_first">promo_first</option>
                 <option value="core_first">core_first</option>
               </select>
-              <input
-                className="input input-bordered border-zinc-700 bg-black text-zinc-100"
-                placeholder="promo_tag"
+              <select
+                className="select select-bordered border-zinc-700 bg-black text-zinc-100"
                 value={policy.promo_tag}
                 onChange={(e) => setPolicy((s) => ({ ...s, promo_tag: e.target.value }))}
-              />
+              >
+                <option value="">none</option>
+                {PROMO_TAG_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
               <input
                 type="datetime-local"
                 className="input input-bordered border-zinc-700 bg-black text-zinc-100 md:col-span-2"
                 value={policy.promo_expiry_at}
                 onChange={(e) => setPolicy((s) => ({ ...s, promo_expiry_at: e.target.value }))}
               />
+            </div>
+            <div className="mt-2 text-xs text-zinc-500">
+              `promo_tag` is an internal admin label only (not a coupon or link code).
             </div>
             <div className="mt-3">
               <button className="btn btn-sm border-zinc-700 bg-zinc-900 text-zinc-100 hover:bg-zinc-800" onClick={savePolicy} disabled={busy}>
@@ -362,12 +391,18 @@ export default function AdminPromoDashboard() {
                 value={creditAction.credits}
                 onChange={(e) => setCreditAction((s) => ({ ...s, credits: Number(e.target.value || 0) }))}
               />
-              <input
-                className="input input-bordered border-zinc-700 bg-black text-zinc-100 md:col-span-2"
+              <select
+                className="select select-bordered border-zinc-700 bg-black text-zinc-100 md:col-span-2"
                 value={creditAction.reason}
                 onChange={(e) => setCreditAction((s) => ({ ...s, reason: e.target.value }))}
-                placeholder="reason"
-              />
+              >
+                {PROMO_REASON_OPTIONS.map((opt) => (
+                  <option key={opt.value} value={opt.value}>{opt.label}</option>
+                ))}
+              </select>
+            </div>
+            <div className="mt-2 text-xs text-zinc-500">
+              Reason is a ledger audit code (internal), not a customer coupon.
             </div>
             <div className="mt-3 flex flex-wrap gap-2">
               <button type="button" className="btn btn-xs border-zinc-700 bg-zinc-900 text-zinc-100 hover:bg-zinc-800" onClick={() => applyQuickAmount(100)}>
