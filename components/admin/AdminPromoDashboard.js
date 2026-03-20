@@ -64,8 +64,11 @@ export default function AdminPromoDashboard() {
     if (!token) throw new Error('Authentication required');
     return fetch(url, {
       ...options,
+      cache: 'no-store',
       headers: {
         'Content-Type': 'application/json',
+        'Cache-Control': 'no-cache',
+        Pragma: 'no-cache',
         Authorization: `Bearer ${token}`,
         ...(options.headers || {}),
       },
@@ -102,8 +105,8 @@ export default function AdminPromoDashboard() {
       }
 
       const [detailsRes, ledgerRes] = await Promise.all([
-        authedFetch(`/api/admin/users/${targetUserId}`),
-        authedFetch(`/api/admin/users/${targetUserId}/promo/ledger?limit=100`),
+        authedFetch(`/api/admin/users/${targetUserId}?t=${Date.now()}`),
+        authedFetch(`/api/admin/users/${targetUserId}/promo/ledger?limit=100&t=${Date.now()}`),
       ]);
 
       if (!detailsRes.ok) {
@@ -155,6 +158,22 @@ export default function AdminPromoDashboard() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(data.error || 'Failed updating promo mode');
+      // Reflect server-confirmed promo state immediately while reloading fresh details.
+      if (typeof data.promo_enabled === 'boolean') {
+        setDetails((prev) => {
+          if (!prev?.user) return prev;
+          return {
+            ...prev,
+            user: {
+              ...prev.user,
+              promo_enabled: data.promo_enabled,
+              credit_balance: Number.isFinite(Number(data.core_balance)) ? Number(data.core_balance) : prev.user.credit_balance,
+              credit_balance_promo: Number.isFinite(Number(data.promo_balance)) ? Number(data.promo_balance) : prev.user.credit_balance_promo,
+            },
+            credit_balance: Number.isFinite(Number(data.core_balance)) ? Number(data.core_balance) : prev.credit_balance,
+          };
+        });
+      }
       setStatus(data.message || (enabled ? 'Promo mode enabled' : 'Promo mode disabled'));
       await loadUser({ clearStatus: false });
     } catch (e) {
