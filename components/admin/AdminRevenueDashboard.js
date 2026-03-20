@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
+import Link from 'next/link';
 import { useUser, useAuth } from '@clerk/nextjs';
 import { 
   TrendingUp, 
@@ -8,8 +9,6 @@ import {
   Users, 
   AlertTriangle,
   RefreshCw,
-  ArrowUp,
-  ArrowDown,
   TrendingDown,
   Zap,
   Activity,
@@ -26,19 +25,18 @@ export default function AdminRevenueDashboard() {
   const { user } = useUser();
   const { getToken } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [ingesting, setIngesting] = useState(false);
   const [metrics, setMetrics] = useState(null);
   const [funnel, setFunnel] = useState(null);
   const [burnRate, setBurnRate] = useState(null);
   const [upgradeStats, setUpgradeStats] = useState(null);
+  const [reconciliation, setReconciliation] = useState(null);
+  const [lastReconciliationRefreshAt, setLastReconciliationRefreshAt] = useState(null);
+  const [ingestMessage, setIngestMessage] = useState('');
+  const [ingestError, setIngestError] = useState('');
   const [error, setError] = useState(null);
 
-  useEffect(() => {
-    if (user) {
-      fetchDashboardData();
-    }
-  }, [user]);
-
-  async function fetchDashboardData() {
+  const fetchDashboardData = useCallback(async () => {
     setLoading(true);
     setError(null);
     
@@ -54,11 +52,12 @@ export default function AdminRevenueDashboard() {
       };
 
       // Fetch all revenue data in parallel
-      const [metricsRes, funnelRes, burnRateRes, upgradeStatsRes] = await Promise.all([
+      const [metricsRes, funnelRes, burnRateRes, upgradeStatsRes, reconciliationRes] = await Promise.all([
         fetch('/api/admin/revenue/metrics', { headers }),
         fetch('/api/admin/revenue/conversion-funnel', { headers }),
         fetch('/api/admin/revenue/free-tier-burn', { headers }),
         fetch('/api/admin/revenue/upgrade-stats', { headers }),
+        fetch('/api/admin/revenue/reconciliation', { headers }),
       ]);
 
       if (!metricsRes.ok) throw new Error('Failed to fetch metrics');
@@ -70,16 +69,57 @@ export default function AdminRevenueDashboard() {
       const funnelData = await funnelRes.json();
       const burnRateData = await burnRateRes.json();
       const upgradeStatsData = await upgradeStatsRes.json();
+      const reconciliationData = reconciliationRes.ok ? await reconciliationRes.json() : null;
 
       setMetrics(metricsData);
       setFunnel(funnelData);
       setBurnRate(burnRateData);
       setUpgradeStats(upgradeStatsData);
+      setReconciliation(reconciliationData);
+      setLastReconciliationRefreshAt(new Date());
     } catch (err) {
       console.error('[Admin Revenue] Failed to fetch data:', err);
       setError(err.message);
     } finally {
       setLoading(false);
+    }
+  }, [getToken]);
+
+  useEffect(() => {
+    if (user) {
+      fetchDashboardData();
+    }
+  }, [user, fetchDashboardData]);
+
+  async function runLiveProviderIngest() {
+    setIngesting(true);
+    setIngestError('');
+    setIngestMessage('');
+    try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) throw new Error('Authentication required');
+      const now = new Date();
+      const start = new Date(now.getTime() - (24 * 60 * 60 * 1000));
+      const res = await fetch('/api/admin/revenue/provider-costs/ingest/live', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          startDate: start.toISOString(),
+          endDate: now.toISOString(),
+          providers: ['openai', 'elevenlabs'],
+        }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(data.error || 'Live ingest failed');
+      setIngestMessage(`Ingest completed. Events: ${data.ingested || 0}`);
+      await fetchDashboardData();
+    } catch (e) {
+      setIngestError(e.message || 'Ingest failed');
+    } finally {
+      setIngesting(false);
     }
   }
 
@@ -93,6 +133,34 @@ export default function AdminRevenueDashboard() {
 
   function formatPercent(value) {
     return `${(value || 0).toFixed(2)}%`;
+  }
+
+  function formatTimestamp(dateValue) {
+    if (!dateValue) return 'Never';
+    return dateValue.toLocaleString();
+  }
+
+  function getReconciliationBadgeState() {
+    if (!reconciliation) {
+      return {
+        label: 'Reconciliation unknown',
+        className: 'badge badge-ghost',
+      };
+    }
+    const needsAttention = Boolean(
+      reconciliation.mismatches?.hasRevenueMismatch ||
+      reconciliation.mismatches?.hasMissingInputs
+    );
+    if (needsAttention) {
+      return {
+        label: 'Reconciliation attention needed',
+        className: 'badge badge-warning',
+      };
+    }
+    return {
+      label: 'Reconciliation healthy',
+      className: 'badge badge-success',
+    };
   }
 
   if (loading) {
@@ -121,6 +189,8 @@ export default function AdminRevenueDashboard() {
     );
   }
 
+  const reconciliationBadge = getReconciliationBadgeState();
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -128,6 +198,9 @@ export default function AdminRevenueDashboard() {
         <div>
           <h1 className="text-3xl font-bold">Revenue Tracking</h1>
           <p className="text-base-content/40 mt-1">Real-time financial metrics and conversion tracking</p>
+          <div className="mt-2">
+            <span className={reconciliationBadge.className}>{reconciliationBadge.label}</span>
+          </div>
         </div>
         <button 
           onClick={fetchDashboardData}
@@ -359,6 +432,84 @@ export default function AdminRevenueDashboard() {
               <p className="text-2xl font-bold text-warning">{formatCurrency(burnRate.projectedMonthlyCost)}</p>
             </div>
           </div>
+        </div>
+      </div>
+
+      {/* Provider Billing Ops */}
+      <div className="card bg-base-200 shadow-lg">
+        <div className="card-body">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div>
+              <h2 className="text-xl font-semibold">Provider Billing Ops</h2>
+              <p className="text-sm text-base-content/50">Run live provider billing ingestion and verify reconciliation flags.</p>
+            </div>
+            <div className="flex gap-2">
+              <Link href="/admin/revenue/reconciliation" className="btn btn-ghost btn-sm">
+                View Reconciliation Details
+              </Link>
+              <button
+                className="btn btn-outline btn-sm gap-2"
+                onClick={fetchDashboardData}
+                disabled={loading || ingesting}
+              >
+                <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+                Refresh Flags
+              </button>
+              <button
+                className="btn btn-primary btn-sm gap-2"
+                onClick={runLiveProviderIngest}
+                disabled={loading || ingesting}
+              >
+                <RefreshCw className={`w-4 h-4 ${ingesting ? 'animate-spin' : ''}`} />
+                Run Live Ingest
+              </button>
+            </div>
+          </div>
+
+          {ingestMessage ? (
+            <div className="alert alert-success mt-3">
+              <span>{ingestMessage}</span>
+            </div>
+          ) : null}
+          {ingestError ? (
+            <div className="alert alert-error mt-3">
+              <span>{ingestError}</span>
+            </div>
+          ) : null}
+
+          {reconciliation ? (
+            <div className="mt-4">
+              <div className="text-xs text-base-content/60 mb-3">
+                Last reconciliation refresh: {formatTimestamp(lastReconciliationRefreshAt)}
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+              <div className="rounded-lg border border-base-300 p-3">
+                <p className="text-xs text-base-content/50">Provider Cost Source</p>
+                <p className="text-sm font-semibold mt-1">{reconciliation.providerCosts?.source || 'unknown'}</p>
+              </div>
+              <div className="rounded-lg border border-base-300 p-3">
+                <p className="text-xs text-base-content/50">Provider Cost (Window)</p>
+                <p className="text-sm font-semibold mt-1">{formatCurrency(reconciliation.providerCosts?.totalCostUsd || 0)}</p>
+              </div>
+              <div className="rounded-lg border border-base-300 p-3">
+                <p className="text-xs text-base-content/50">Revenue Mismatch</p>
+                <p className={`text-sm font-semibold mt-1 ${reconciliation.mismatches?.hasRevenueMismatch ? 'text-warning' : 'text-success'}`}>
+                  {reconciliation.mismatches?.hasRevenueMismatch ? 'Yes' : 'No'}
+                </p>
+              </div>
+              <div className="rounded-lg border border-base-300 p-3">
+                <p className="text-xs text-base-content/50">Missing Inputs</p>
+                <p className={`text-sm font-semibold mt-1 ${reconciliation.mismatches?.hasMissingInputs ? 'text-warning' : 'text-success'}`}>
+                  {reconciliation.mismatches?.hasMissingInputs ? 'Yes' : 'No'}
+                </p>
+              </div>
+            </div>
+            </div>
+          ) : (
+            <div className="text-sm text-base-content/50 mt-4">
+              Reconciliation data unavailable.
+            </div>
+          )}
         </div>
       </div>
 
