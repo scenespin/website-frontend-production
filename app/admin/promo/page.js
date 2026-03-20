@@ -1,14 +1,14 @@
 'use client';
 
-import AdminVoiceConsentDashboard from '@/components/admin/AdminVoiceConsentDashboard';
 import AdminNav from '@/components/admin/AdminNav';
 import AdminShell from '@/components/admin/AdminShell';
+import AdminPromoDashboard from '@/components/admin/AdminPromoDashboard';
 
-export default function AdminVoiceConsentsPage() {
+export default function AdminPromoPage() {
   return (
     <AdminShell>
       <AdminNav />
-      <AdminVoiceConsentDashboard />
+      <AdminPromoDashboard />
     </AdminShell>
   );
 }

@@ -4,13 +4,14 @@ export const dynamic = 'force-dynamic';
 
 import AdminRevenueDashboard from '@/components/admin/AdminRevenueDashboard';
 import AdminNav from '@/components/admin/AdminNav';
+import AdminShell from '@/components/admin/AdminShell';
 
 export default function AdminRevenuePage() {
   return (
-    <div className="container mx-auto p-6">
+    <AdminShell>
       <AdminNav />
       <AdminRevenueDashboard />
-    </div>
+    </AdminShell>
   );
 }
 

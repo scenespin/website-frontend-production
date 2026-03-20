@@ -2,10 +2,11 @@
 
 import AdminPricingDashboard from '@/components/admin/AdminPricingDashboard';
 import AdminNav from '@/components/admin/AdminNav';
+import AdminShell from '@/components/admin/AdminShell';
 
 export default function AdminPricingPage() {
   return (
-    <div className="container mx-auto p-6">
+    <AdminShell>
       <AdminNav />
       
       <div className="mb-6">
@@ -16,7 +17,7 @@ export default function AdminPricingPage() {
       </div>
 
       <AdminPricingDashboard />
-    </div>
+    </AdminShell>
   );
 }
 

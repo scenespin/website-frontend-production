@@ -2,10 +2,11 @@
 
 import WorkflowAnalyticsDashboard from '@/components/admin/WorkflowAnalyticsDashboard';
 import AdminNav from '@/components/admin/AdminNav';
+import AdminShell from '@/components/admin/AdminShell';
 
 export default function AdminAnalyticsPage() {
   return (
-    <div className="container mx-auto p-6">
+    <AdminShell>
       <AdminNav />
       
       <div className="mb-6">
@@ -16,6 +17,6 @@ export default function AdminAnalyticsPage() {
       </div>
 
       <WorkflowAnalyticsDashboard />
-    </div>
+    </AdminShell>
   );
 }

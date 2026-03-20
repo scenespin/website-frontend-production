@@ -2,13 +2,14 @@
 
 import AdminAbuseDashboard from '@/components/admin/AdminAbuseDashboard';
 import AdminNav from '@/components/admin/AdminNav';
+import AdminShell from '@/components/admin/AdminShell';
 
 export default function AdminAbusePage() {
   return (
-    <div className="container mx-auto p-6">
+    <AdminShell>
       <AdminNav />
       <AdminAbuseDashboard />
-    </div>
+    </AdminShell>
   );
 }
 

@@ -2,12 +2,13 @@
 
 import AdminNewsletterDashboard from '@/components/admin/AdminNewsletterDashboard';
 import AdminNav from '@/components/admin/AdminNav';
+import AdminShell from '@/components/admin/AdminShell';
 
 export default function AdminNewsletterPage() {
   return (
-    <div className="container mx-auto p-6">
+    <AdminShell>
       <AdminNav />
       <AdminNewsletterDashboard />
-    </div>
+    </AdminShell>
   );
 }
