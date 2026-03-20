@@ -75,13 +75,13 @@ export default function AdminPromoDashboard() {
     });
   }
 
-  async function loadUser(options = { clearStatus: true }) {
-    if (!normalizedLookup && !normalizedUserId) return;
+  async function loadUser(options = { clearStatus: true, forceUserId: '' }) {
+    if (!normalizedLookup && !normalizedUserId && !options.forceUserId) return;
     setBusy(true);
     setError('');
     if (options.clearStatus) setStatus('');
     try {
-      let targetUserId = normalizedUserId;
+      let targetUserId = (options.forceUserId || '').trim() || normalizedUserId;
       if (!targetUserId) {
         const lookupRes = await authedFetch(`/api/admin/users/lookup?query=${encodeURIComponent(normalizedLookup)}&limit=5`);
         const lookupData = await lookupRes.json().catch(() => ({}));
@@ -268,6 +268,10 @@ export default function AdminPromoDashboard() {
               setUserLookup(e.target.value);
               setResolvedUserId('');
               setLookupMatches([]);
+              setDetails(null);
+              setLedger([]);
+              setError('');
+              setStatus('');
             }}
             placeholder="Enter user_id, email, or username"
             className="input input-bordered w-full border-zinc-700 bg-black text-zinc-100"
@@ -290,11 +294,12 @@ export default function AdminPromoDashboard() {
                 <button
                   key={u.user_id}
                   className="btn btn-xs border-zinc-700 bg-zinc-900 text-zinc-100 hover:bg-zinc-800"
-                  onClick={() => {
+                  onClick={async () => {
                     setResolvedUserId(u.user_id);
                     setUserLookup(u.email || u.user_id);
                     setStatus(`Selected ${u.email || u.user_id}`);
                     setLookupMatches([]);
+                    await loadUser({ clearStatus: false, forceUserId: u.user_id });
                   }}
                 >
                   {u.email || u.user_id}

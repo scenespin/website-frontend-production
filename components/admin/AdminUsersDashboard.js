@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useUser, useAuth } from '@clerk/nextjs';
 import {
   Users,
@@ -21,9 +21,11 @@ export default function AdminUsersDashboard() {
   const { user } = useUser();
   const { getToken } = useAuth();
   const [loading, setLoading] = useState(true);
+  const [hasLoadedOnce, setHasLoadedOnce] = useState(false);
   const [users, setUsers] = useState([]);
   const [totalUsers, setTotalUsers] = useState(0);
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
   const [filters, setFilters] = useState({
     tier: '',
     status: '',
@@ -42,13 +44,12 @@ export default function AdminUsersDashboard() {
   };
 
   useEffect(() => {
-    if (user) {
-      fetchUsers();
-    }
-  }, [user, filters, pagination, searchQuery]);
+    const handle = setTimeout(() => setDebouncedSearch(searchQuery), 250);
+    return () => clearTimeout(handle);
+  }, [searchQuery]);
 
-  async function fetchUsers() {
-    setLoading(true);
+  const fetchUsers = useCallback(async () => {
+    if (!hasLoadedOnce) setLoading(true);
     
     try {
       const token = await getToken({ template: 'wryda-backend' });
@@ -60,7 +61,7 @@ export default function AdminUsersDashboard() {
       const params = new URLSearchParams({
         page: pagination.page.toString(),
         limit: pagination.limit.toString(),
-        ...(searchQuery.trim() && { search: searchQuery.trim() }),
+        ...(debouncedSearch.trim() && { search: debouncedSearch.trim() }),
         ...(filters.tier && { tier: filters.tier }),
         ...(filters.status && { status: filters.status }),
       });
@@ -74,12 +75,19 @@ export default function AdminUsersDashboard() {
 
       setUsers(data.users || []);
       setTotalUsers(data.total || 0);
+      setHasLoadedOnce(true);
     } catch (error) {
       console.error('[Admin Users] Failed to fetch users:', error);
     } finally {
-      setLoading(false);
+      if (!hasLoadedOnce) setLoading(false);
     }
-  }
+  }, [debouncedSearch, filters, getToken, hasLoadedOnce, pagination]);
+
+  useEffect(() => {
+    if (user) {
+      fetchUsers();
+    }
+  }, [user, fetchUsers]);
 
   async function handleCreditAdjustment(userId) {
     const amountInput = prompt('Enter credits to add (positive number):');
@@ -184,7 +192,10 @@ export default function AdminUsersDashboard() {
                   placeholder="Search by email, ID, or name..."
                   className="input input-bordered w-full"
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => {
+                    setSearchQuery(e.target.value);
+                    setPagination((p) => ({ ...p, page: 1 }));
+                  }}
                 />
               </div>
             </div>
