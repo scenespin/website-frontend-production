@@ -36,6 +36,8 @@ export default function AdminPricingDashboard() {
   const [editingPrice, setEditingPrice] = useState(null);
   const [allProviders, setAllProviders] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('all');
+  const [registrySort, setRegistrySort] = useState({ key: 'provider_id', direction: 'asc' });
+  const [catalogSort, setCatalogSort] = useState({ key: 'provider_id', direction: 'asc' });
   const [editFormData, setEditFormData] = useState({
     base_cost_usd: 0,
     retail_credits: 0,
@@ -235,6 +237,42 @@ export default function AdminPricingDashboard() {
   const isRuntimeKey = (provider) =>
     provider.is_runtime_pricing_key ?? ['video', 'image', 'audio'].includes(provider.category);
   const runtimeCatalogCount = allProviders.filter((p) => isRuntimeKey(p)).length;
+  
+  const toggleSort = (setter, current, key) => {
+    setter({
+      key,
+      direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc',
+    });
+  };
+
+  const compareValues = (a, b, direction) => {
+    if (a === b) return 0;
+    if (a == null) return 1;
+    if (b == null) return -1;
+    if (typeof a === 'number' && typeof b === 'number') {
+      return direction === 'asc' ? a - b : b - a;
+    }
+    return direction === 'asc'
+      ? String(a).localeCompare(String(b))
+      : String(b).localeCompare(String(a));
+  };
+
+  const sortRows = (rows, sort) => {
+    const copy = [...rows];
+    copy.sort((left, right) => compareValues(left[sort.key], right[sort.key], sort.direction));
+    return copy;
+  };
+
+  const sortedPriceRegistry = sortRows(priceRegistry, registrySort);
+  const filteredCatalogProviders = allProviders.filter(
+    (p) => selectedCategory === 'all' || p.category === selectedCategory
+  );
+  const sortedCatalogProviders = sortRows(filteredCatalogProviders, catalogSort);
+
+  const SortIndicator = ({ active, direction }) =>
+    active ? (
+      direction === 'asc' ? <ChevronUp className="w-3 h-3 inline ml-1" /> : <ChevronDown className="w-3 h-3 inline ml-1" />
+    ) : null;
 
   return (
     <div className="space-y-6">
@@ -368,17 +406,37 @@ export default function AdminPricingDashboard() {
                     <table className="table table-zebra w-full">
                       <thead>
                         <tr>
-                          <th>Provider</th>
+                          <th>
+                            <button className="btn btn-ghost btn-xs" onClick={() => toggleSort(setRegistrySort, registrySort, 'provider_id')}>
+                              Provider
+                              <SortIndicator active={registrySort.key === 'provider_id'} direction={registrySort.direction} />
+                            </button>
+                          </th>
                           <th>Operation</th>
-                          <th className="text-right">Cost (USD)</th>
-                          <th className="text-right">Retail Credits</th>
-                          <th className="text-right">Margin</th>
+                          <th className="text-right">
+                            <button className="btn btn-ghost btn-xs" onClick={() => toggleSort(setRegistrySort, registrySort, 'base_cost_usd')}>
+                              Cost (USD)
+                              <SortIndicator active={registrySort.key === 'base_cost_usd'} direction={registrySort.direction} />
+                            </button>
+                          </th>
+                          <th className="text-right">
+                            <button className="btn btn-ghost btn-xs" onClick={() => toggleSort(setRegistrySort, registrySort, 'retail_credits')}>
+                              Retail Credits
+                              <SortIndicator active={registrySort.key === 'retail_credits'} direction={registrySort.direction} />
+                            </button>
+                          </th>
+                          <th className="text-right">
+                            <button className="btn btn-ghost btn-xs" onClick={() => toggleSort(setRegistrySort, registrySort, 'margin_percent')}>
+                              Margin
+                              <SortIndicator active={registrySort.key === 'margin_percent'} direction={registrySort.direction} />
+                            </button>
+                          </th>
                           <th className="text-center">Last Updated</th>
                           <th className="text-center">Actions</th>
                         </tr>
                       </thead>
                       <tbody>
-                        {priceRegistry.map((price) => {
+                        {sortedPriceRegistry.map((price) => {
                           const margin = price.margin_percent || 0;
                           const marginClass = margin < 60 
                             ? 'badge-error' 
@@ -419,7 +477,7 @@ export default function AdminPricingDashboard() {
 
                   {/* Mobile Card View */}
                   <div className="md:hidden space-y-3">
-                    {priceRegistry.map((price) => {
+                    {sortedPriceRegistry.map((price) => {
                       const margin = price.margin_percent || 0;
                       const marginClass = margin < 60 
                         ? 'badge-error' 
@@ -707,28 +765,62 @@ export default function AdminPricingDashboard() {
                       <table className="table table-zebra w-full">
                         <thead>
                           <tr>
-                            <th>Provider ID</th>
-                            <th>Label</th>
+                            <th>
+                              <button className="btn btn-ghost btn-xs" onClick={() => toggleSort(setCatalogSort, catalogSort, 'provider_id')}>
+                                Provider ID
+                                <SortIndicator active={catalogSort.key === 'provider_id'} direction={catalogSort.direction} />
+                              </button>
+                            </th>
+                            <th>
+                              <button className="btn btn-ghost btn-xs" onClick={() => toggleSort(setCatalogSort, catalogSort, 'label')}>
+                                Label
+                                <SortIndicator active={catalogSort.key === 'label'} direction={catalogSort.direction} />
+                              </button>
+                            </th>
                             <th className="text-right">
-                              Config Cost (USD)
+                              <button className="btn btn-ghost btn-xs" onClick={() => toggleSort(setCatalogSort, catalogSort, 'config_cost_usd')}>
+                                Config Cost (USD)
+                                <SortIndicator active={catalogSort.key === 'config_cost_usd'} direction={catalogSort.direction} />
+                              </button>
                               {selectedCategory === 'llm' && <span className="text-xs font-normal opacity-70 block">per 1M tokens</span>}
                             </th>
                             <th className="text-right">
-                              Registry Cost (USD)
+                              <button className="btn btn-ghost btn-xs" onClick={() => toggleSort(setCatalogSort, catalogSort, 'registry_cost_usd')}>
+                                Registry Cost (USD)
+                                <SortIndicator active={catalogSort.key === 'registry_cost_usd'} direction={catalogSort.direction} />
+                              </button>
                               {selectedCategory === 'llm' && <span className="text-xs font-normal opacity-70 block">per 1M tokens</span>}
                             </th>
-                            <th className="text-right">Config Credits</th>
-                            <th className="text-right">Registry Credits</th>
-                            <th className="text-right">Config Margin</th>
-                            <th className="text-right">Registry Margin</th>
+                            <th className="text-right">
+                              <button className="btn btn-ghost btn-xs" onClick={() => toggleSort(setCatalogSort, catalogSort, 'config_credits')}>
+                                Config Credits
+                                <SortIndicator active={catalogSort.key === 'config_credits'} direction={catalogSort.direction} />
+                              </button>
+                            </th>
+                            <th className="text-right">
+                              <button className="btn btn-ghost btn-xs" onClick={() => toggleSort(setCatalogSort, catalogSort, 'registry_credits')}>
+                                Registry Credits
+                                <SortIndicator active={catalogSort.key === 'registry_credits'} direction={catalogSort.direction} />
+                              </button>
+                            </th>
+                            <th className="text-right">
+                              <button className="btn btn-ghost btn-xs" onClick={() => toggleSort(setCatalogSort, catalogSort, 'config_margin')}>
+                                Config Margin
+                                <SortIndicator active={catalogSort.key === 'config_margin'} direction={catalogSort.direction} />
+                              </button>
+                            </th>
+                            <th className="text-right">
+                              <button className="btn btn-ghost btn-xs" onClick={() => toggleSort(setCatalogSort, catalogSort, 'registry_margin')}>
+                                Registry Margin
+                                <SortIndicator active={catalogSort.key === 'registry_margin'} direction={catalogSort.direction} />
+                              </button>
+                            </th>
                             <th className="text-center">Status</th>
                             <th className="text-center">Actions</th>
                           </tr>
                         </thead>
                         <tbody>
-                          {allProviders
-                            .filter(p => selectedCategory === 'all' || p.category === selectedCategory)
-                            .map((provider) => {
+                          {sortedCatalogProviders.map((provider) => {
                               const hasRegistry = provider.has_registry_entry;
                               const costDiff = provider.registry_cost_usd !== null 
                                 ? ((provider.registry_cost_usd - provider.config_cost_usd) / provider.config_cost_usd * 100).toFixed(1)
@@ -852,9 +944,7 @@ export default function AdminPricingDashboard() {
 
                     {/* Mobile Card View */}
                     <div className="lg:hidden space-y-4">
-                      {allProviders
-                        .filter(p => selectedCategory === 'all' || p.category === selectedCategory)
-                        .map((provider) => {
+                      {sortedCatalogProviders.map((provider) => {
                           const hasRegistry = provider.has_registry_entry;
                           const costDiff = provider.registry_cost_usd !== null 
                             ? ((provider.registry_cost_usd - provider.config_cost_usd) / provider.config_cost_usd * 100).toFixed(1)

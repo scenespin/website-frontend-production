@@ -13,7 +13,9 @@ function toDateTimeLocal(ms) {
 
 export default function AdminPromoDashboard() {
   const { getToken } = useAuth();
-  const [userId, setUserId] = useState('');
+  const [userLookup, setUserLookup] = useState('');
+  const [resolvedUserId, setResolvedUserId] = useState('');
+  const [lookupMatches, setLookupMatches] = useState([]);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [status, setStatus] = useState('');
@@ -34,7 +36,12 @@ export default function AdminPromoDashboard() {
     reason: 'admin_promo_adjustment',
   });
 
-  const normalizedUserId = useMemo(() => userId.trim(), [userId]);
+  function applyQuickAmount(amount) {
+    setCreditAction((s) => ({ ...s, credits: amount }));
+  }
+
+  const normalizedLookup = useMemo(() => userLookup.trim(), [userLookup]);
+  const normalizedUserId = useMemo(() => resolvedUserId.trim(), [resolvedUserId]);
 
   async function authedFetch(url, options = {}) {
     const token = await getToken({ template: 'wryda-backend' });
@@ -50,14 +57,37 @@ export default function AdminPromoDashboard() {
   }
 
   async function loadUser() {
-    if (!normalizedUserId) return;
+    if (!normalizedLookup && !normalizedUserId) return;
     setBusy(true);
     setError('');
     setStatus('');
     try {
+      let targetUserId = normalizedUserId;
+      if (!targetUserId) {
+        const lookupRes = await authedFetch(`/api/admin/users/lookup?query=${encodeURIComponent(normalizedLookup)}&limit=5`);
+        const lookupData = await lookupRes.json().catch(() => ({}));
+        if (!lookupRes.ok) {
+          throw new Error(lookupData.error || 'Failed to resolve user lookup');
+        }
+        const users = lookupData.users || [];
+        setLookupMatches(users);
+        if (users.length === 0) {
+          throw new Error('No user found for that lookup');
+        }
+        if (users.length > 1) {
+          const first = users[0];
+          setResolvedUserId(first.user_id);
+          setStatus(`Multiple matches found. Defaulted to ${first.email || first.user_id}. You can choose a different match below.`);
+          targetUserId = first.user_id;
+        } else {
+          setResolvedUserId(users[0].user_id);
+          targetUserId = users[0].user_id;
+        }
+      }
+
       const [detailsRes, ledgerRes] = await Promise.all([
-        authedFetch(`/api/admin/users/${normalizedUserId}`),
-        authedFetch(`/api/admin/users/${normalizedUserId}/promo/ledger?limit=100`),
+        authedFetch(`/api/admin/users/${targetUserId}`),
+        authedFetch(`/api/admin/users/${targetUserId}/promo/ledger?limit=100`),
       ]);
 
       if (!detailsRes.ok) {
@@ -71,6 +101,7 @@ export default function AdminPromoDashboard() {
 
       const detailsData = await detailsRes.json();
       const ledgerData = await ledgerRes.json();
+      setResolvedUserId(targetUserId);
 
       setDetails(detailsData);
       setLedger(ledgerData.entries || []);
@@ -191,16 +222,46 @@ export default function AdminPromoDashboard() {
         </div>
         <div className="flex flex-col gap-3 md:flex-row">
           <input
-            value={userId}
-            onChange={(e) => setUserId(e.target.value)}
-            placeholder="Enter Clerk/BACKEND user_id"
+            value={userLookup}
+            onChange={(e) => {
+              setUserLookup(e.target.value);
+              setResolvedUserId('');
+              setLookupMatches([]);
+            }}
+            placeholder="Enter user_id, email, or username"
             className="input input-bordered w-full border-zinc-700 bg-black text-zinc-100"
           />
-          <button className="btn border-zinc-700 bg-zinc-900 text-zinc-100 hover:bg-zinc-800" onClick={loadUser} disabled={busy || !normalizedUserId}>
+          <button className="btn border-zinc-700 bg-zinc-900 text-zinc-100 hover:bg-zinc-800" onClick={loadUser} disabled={busy || (!normalizedLookup && !normalizedUserId)}>
             <RefreshCw className={`h-4 w-4 ${busy ? 'animate-spin' : ''}`} />
             Load
           </button>
         </div>
+        {resolvedUserId ? (
+          <div className="mt-2 text-xs text-zinc-400">
+            Resolved user_id: <span className="font-mono text-zinc-200">{resolvedUserId}</span>
+          </div>
+        ) : null}
+        {lookupMatches.length > 1 ? (
+          <div className="mt-3 rounded-lg border border-zinc-800 bg-black/40 p-3">
+            <div className="mb-2 text-xs uppercase tracking-wide text-zinc-500">Select a match</div>
+            <div className="flex flex-wrap gap-2">
+              {lookupMatches.map((u) => (
+                <button
+                  key={u.user_id}
+                  className="btn btn-xs border-zinc-700 bg-zinc-900 text-zinc-100 hover:bg-zinc-800"
+                  onClick={() => {
+                    setResolvedUserId(u.user_id);
+                    setUserLookup(u.email || u.user_id);
+                    setStatus(`Selected ${u.email || u.user_id}`);
+                    setLookupMatches([]);
+                  }}
+                >
+                  {u.email || u.user_id}
+                </button>
+              ))}
+            </div>
+          </div>
+        ) : null}
       </div>
 
       {error ? <div className="rounded-lg border border-red-900 bg-red-950/40 p-3 text-sm text-red-300">{error}</div> : null}
@@ -307,6 +368,17 @@ export default function AdminPromoDashboard() {
                 onChange={(e) => setCreditAction((s) => ({ ...s, reason: e.target.value }))}
                 placeholder="reason"
               />
+            </div>
+            <div className="mt-3 flex flex-wrap gap-2">
+              <button type="button" className="btn btn-xs border-zinc-700 bg-zinc-900 text-zinc-100 hover:bg-zinc-800" onClick={() => applyQuickAmount(100)}>
+                +100
+              </button>
+              <button type="button" className="btn btn-xs border-zinc-700 bg-zinc-900 text-zinc-100 hover:bg-zinc-800" onClick={() => applyQuickAmount(1000)}>
+                +1,000
+              </button>
+              <button type="button" className="btn btn-xs border-zinc-700 bg-zinc-900 text-zinc-100 hover:bg-zinc-800" onClick={() => applyQuickAmount(5000)}>
+                +5,000
+              </button>
             </div>
             <div className="mt-3">
               <button className="btn btn-sm border-zinc-700 bg-zinc-900 text-zinc-100 hover:bg-zinc-800" onClick={submitCredits} disabled={busy}>

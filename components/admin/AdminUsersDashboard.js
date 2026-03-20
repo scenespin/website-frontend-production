@@ -9,8 +9,6 @@ import {
   CreditCard,
   ChevronLeft,
   ChevronRight,
-  AlertTriangle,
-  Edit,
   Trash2
 } from 'lucide-react';
 
@@ -34,8 +32,6 @@ export default function AdminUsersDashboard() {
     page: 1,
     limit: 50,
   });
-  const [selectedUser, setSelectedUser] = useState(null);
-  const [showEditModal, setShowEditModal] = useState(false);
 
   const getDisplayCredits = (u) => {
     if (!u) return 0;
@@ -130,28 +126,6 @@ export default function AdminUsersDashboard() {
     } catch (error) {
       console.error('[Admin Users] Failed to adjust credits:', error);
       alert(`Failed to adjust credits: ${error.message || 'Unknown error'}`);
-    }
-  }
-
-  async function handleTierChange(userId, newTier) {
-    try {
-      const token = await getToken({ template: 'wryda-backend' });
-      if (!token) {
-        alert('Authentication required');
-        return;
-      }
-      await fetch(`/api/admin/users/${userId}/tier`, {
-        method: 'PUT',
-        headers: { 
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({ tier: newTier }),
-      });
-      fetchUsers();
-    } catch (error) {
-      console.error('[Admin Users] Failed to change tier:', error);
-      alert('Failed to change tier');
     }
   }
 
@@ -316,13 +290,6 @@ export default function AdminUsersDashboard() {
                           <CreditCard className="w-3 h-3" />
                         </button>
                         <button
-                          onClick={() => setSelectedUser(u)}
-                          className="btn btn-xs btn-info"
-                          title="Edit User"
-                        >
-                          <Edit className="w-3 h-3" />
-                        </button>
-                        <button
                           disabled
                           className="btn btn-xs btn-disabled"
                           title="Delete user (not enabled)"
@@ -366,49 +333,6 @@ export default function AdminUsersDashboard() {
           </div>
         </div>
       </div>
-
-      {/* Quick Edit Modal */}
-      {selectedUser && (
-        <div className="modal modal-open">
-          <div className="modal-box">
-            <h3 className="font-bold text-lg mb-4">Edit User: {selectedUser.email}</h3>
-            
-            <div className="space-y-4">
-              <div className="form-control">
-                <label className="label">
-                  <span className="label-text">Tier</span>
-                </label>
-                <select
-                  className="select select-bordered"
-                  defaultValue={selectedUser.tier || 'free'}
-                  onChange={(e) => handleTierChange(selectedUser.user_id, e.target.value)}
-                >
-                  <option value="free">Free</option>
-                  <option value="pro">Pro</option>
-                  <option value="ultra">Ultra</option>
-                  <option value="studio">Studio</option>
-                </select>
-              </div>
-
-              <div className="alert alert-info">
-                <AlertTriangle className="w-5 h-5" />
-                <span className="text-sm">
-                  Current Credits: <strong>{getDisplayCredits(selectedUser)}</strong>
-                </span>
-              </div>
-            </div>
-
-            <div className="modal-action">
-              <button
-                onClick={() => setSelectedUser(null)}
-                className="btn"
-              >
-                Close
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }

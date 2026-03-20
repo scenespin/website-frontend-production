@@ -5,7 +5,6 @@ import { usePathname } from 'next/navigation';
 import { 
   BarChart3, 
   Users, 
-  Shield, 
   DollarSign,
   Settings,
   Home,
@@ -27,7 +26,6 @@ export default function AdminNav() {
     { href: '/admin/promo', icon: Sparkles, label: 'Promo Credits' },
     { href: '/admin/affiliates', icon: DollarSign, label: 'Affiliate Program' },
     { href: '/admin/abuse', icon: AlertTriangle, label: 'Abuse Management' },
-    { href: '/admin/voice-consents', icon: Shield, label: 'Voice Consents' },
     { href: '/admin/newsletter', icon: Mail, label: 'Newsletter' },
     { href: '/admin/users', icon: Users, label: 'Users' },
     { href: '/admin/settings', icon: Settings, label: 'Settings' },
