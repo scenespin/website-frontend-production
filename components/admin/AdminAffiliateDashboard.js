@@ -88,7 +88,7 @@ export default function AdminAffiliateDashboard() {
         alert('Authentication required');
         return;
       }
-      await fetch(`/api/admin/affiliates/${affiliateId}/approve`, {
+      await fetch(`/api/admin/affiliates/id/${affiliateId}/approve`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -110,7 +110,7 @@ export default function AdminAffiliateDashboard() {
         alert('Authentication required');
         return;
       }
-      await fetch(`/api/admin/affiliates/${affiliateId}/suspend`, {
+      await fetch(`/api/admin/affiliates/id/${affiliateId}/suspend`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
