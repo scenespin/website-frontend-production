@@ -45,7 +45,7 @@ export default function AdminUsersDashboard() {
     if (user) {
       fetchUsers();
     }
-  }, [user, filters, pagination]);
+  }, [user, filters, pagination, searchQuery]);
 
   async function fetchUsers() {
     setLoading(true);
@@ -60,6 +60,7 @@ export default function AdminUsersDashboard() {
       const params = new URLSearchParams({
         page: pagination.page.toString(),
         limit: pagination.limit.toString(),
+        ...(searchQuery.trim() && { search: searchQuery.trim() }),
         ...(filters.tier && { tier: filters.tier }),
         ...(filters.status && { status: filters.status }),
       });
@@ -128,14 +129,6 @@ export default function AdminUsersDashboard() {
       alert(`Failed to adjust credits: ${error.message || 'Unknown error'}`);
     }
   }
-
-  const filteredUsers = users.filter(u =>
-    searchQuery ? 
-      u.email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      u.user_id?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      u.name?.toLowerCase().includes(searchQuery.toLowerCase())
-    : true
-  );
 
   const totalPages = Math.ceil(totalUsers / pagination.limit);
 
@@ -244,7 +237,7 @@ export default function AdminUsersDashboard() {
                 </tr>
               </thead>
               <tbody>
-                {filteredUsers.map((u) => (
+                {users.map((u) => (
                   <tr key={u.user_id}>
                     <td>
                       <div>
