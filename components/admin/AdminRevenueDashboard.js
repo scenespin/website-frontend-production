@@ -31,6 +31,7 @@ export default function AdminRevenueDashboard() {
   const [burnRate, setBurnRate] = useState(null);
   const [upgradeStats, setUpgradeStats] = useState(null);
   const [reconciliation, setReconciliation] = useState(null);
+  const [providerCostComparison, setProviderCostComparison] = useState(null);
   const [lastReconciliationRefreshAt, setLastReconciliationRefreshAt] = useState(null);
   const [ingestMessage, setIngestMessage] = useState('');
   const [ingestError, setIngestError] = useState('');
@@ -52,12 +53,13 @@ export default function AdminRevenueDashboard() {
       };
 
       // Fetch all revenue data in parallel
-      const [metricsRes, funnelRes, burnRateRes, upgradeStatsRes, reconciliationRes] = await Promise.all([
+      const [metricsRes, funnelRes, burnRateRes, upgradeStatsRes, reconciliationRes, comparisonRes] = await Promise.all([
         fetch('/api/admin/revenue/metrics', { headers }),
         fetch('/api/admin/revenue/conversion-funnel', { headers }),
         fetch('/api/admin/revenue/free-tier-burn', { headers }),
         fetch('/api/admin/revenue/upgrade-stats', { headers }),
         fetch('/api/admin/revenue/reconciliation', { headers }),
+        fetch('/api/admin/revenue/provider-costs/comparison', { headers }),
       ]);
 
       if (!metricsRes.ok) throw new Error('Failed to fetch metrics');
@@ -70,12 +72,14 @@ export default function AdminRevenueDashboard() {
       const burnRateData = await burnRateRes.json();
       const upgradeStatsData = await upgradeStatsRes.json();
       const reconciliationData = reconciliationRes.ok ? await reconciliationRes.json() : null;
+      const comparisonData = comparisonRes.ok ? await comparisonRes.json() : null;
 
       setMetrics(metricsData);
       setFunnel(funnelData);
       setBurnRate(burnRateData);
       setUpgradeStats(upgradeStatsData);
       setReconciliation(reconciliationData);
+      setProviderCostComparison(comparisonData);
       setLastReconciliationRefreshAt(new Date());
     } catch (err) {
       console.error('[Admin Revenue] Failed to fetch data:', err);
@@ -400,6 +404,62 @@ export default function AdminRevenueDashboard() {
               </tr>
             </tbody>
           </table>
+        </div>
+      </div>
+
+      {/* Provider Cost Cross-Check */}
+      <div className="card bg-base-200 shadow-lg">
+        <div className="card-body">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-semibold">Provider Cost Cross-Check</h2>
+              <p className="text-sm text-base-content/50">Internal usage estimate vs strict provider billed costs.</p>
+            </div>
+            {providerCostComparison?.delta ? (
+              <span className={`badge ${providerCostComparison.delta.hasMaterialMismatch ? 'badge-warning' : 'badge-success'}`}>
+                {providerCostComparison.delta.hasMaterialMismatch ? 'Mismatch detected' : 'In range'}
+              </span>
+            ) : null}
+          </div>
+
+          {providerCostComparison ? (
+            <>
+              <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3">
+                <div className="rounded-lg border border-base-300 p-3">
+                  <p className="text-xs text-base-content/50">Provider billed (USD)</p>
+                  <p className="text-lg font-semibold mt-1">{formatCurrency(providerCostComparison.providerBilled?.totalCostUsd || 0)}</p>
+                  <p className="text-xs text-base-content/60 mt-1">
+                    Events: {providerCostComparison.providerBilled?.eventCount || 0}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-base-300 p-3">
+                  <p className="text-xs text-base-content/50">Internal estimate (USD)</p>
+                  <p className="text-lg font-semibold mt-1">{formatCurrency(providerCostComparison.internalEstimate?.estimatedCostUsd || 0)}</p>
+                  <p className="text-xs text-base-content/60 mt-1">
+                    Credits: {(providerCostComparison.internalEstimate?.totalCredits || 0).toLocaleString()}
+                  </p>
+                </div>
+                <div className="rounded-lg border border-base-300 p-3">
+                  <p className="text-xs text-base-content/50">Delta (billed - estimate)</p>
+                  <p className={`text-lg font-semibold mt-1 ${Math.abs(providerCostComparison.delta?.usd || 0) >= 1 ? 'text-warning' : 'text-success'}`}>
+                    {formatCurrency(providerCostComparison.delta?.usd || 0)}
+                  </p>
+                  <p className="text-xs text-base-content/60 mt-1">
+                    {formatPercent(providerCostComparison.delta?.pctVsInternalEstimate || 0)} vs estimate
+                  </p>
+                </div>
+              </div>
+              {Array.isArray(providerCostComparison.dataQuality?.notes) && providerCostComparison.dataQuality.notes.length > 0 ? (
+                <div className="mt-3 text-xs text-base-content/60">
+                  Notes: {providerCostComparison.dataQuality.notes.join(' | ')}
+                </div>
+              ) : null}
+            </>
+          ) : (
+            <div className="text-sm text-base-content/50 mt-4">
+              Provider comparison unavailable.
+            </div>
+          )}
         </div>
       </div>
 
