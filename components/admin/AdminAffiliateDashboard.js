@@ -33,6 +33,9 @@ export default function AdminAffiliateDashboard() {
   const [inviteCodes, setInviteCodes] = useState([]);
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [newInviteCode, setNewInviteCode] = useState({ code: '', max_uses: 1, expires_at: '', notes: '' });
+  const [splitModalAffiliate, setSplitModalAffiliate] = useState(null);
+  const [splitForm, setSplitForm] = useState({ total: 30, payout: 30, discount: 0 });
+  const [splitSaving, setSplitSaving] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -97,6 +100,89 @@ export default function AdminAffiliateDashboard() {
       fetchDashboardData();
     } catch (error) {
       console.error('[Admin Affiliates] Failed to approve:', error);
+    }
+  }
+
+  function openSplitModal(affiliate) {
+    const totalRaw = affiliate.affiliate_percentage_budget ?? affiliate.commission_rate ?? 0.3;
+    const payoutRaw = affiliate.affiliate_payout_rate ?? affiliate.commission_rate ?? totalRaw;
+    const discountRaw = affiliate.referral_discount_rate ?? Math.max(0, totalRaw - payoutRaw);
+
+    setSplitForm({
+      total: Number((totalRaw * 100).toFixed(2)),
+      payout: Number((payoutRaw * 100).toFixed(2)),
+      discount: Number((discountRaw * 100).toFixed(2)),
+    });
+    setSplitModalAffiliate(affiliate);
+  }
+
+  function updateSplitPayout(nextPayout) {
+    const payout = Math.max(0, Math.min(Number(nextPayout) || 0, splitForm.total));
+    setSplitForm(prev => ({
+      ...prev,
+      payout,
+      discount: Number((prev.total - payout).toFixed(2)),
+    }));
+  }
+
+  function updateSplitDiscount(nextDiscount) {
+    const discount = Math.max(0, Math.min(Number(nextDiscount) || 0, splitForm.total));
+    setSplitForm(prev => ({
+      ...prev,
+      discount,
+      payout: Number((prev.total - discount).toFixed(2)),
+    }));
+  }
+
+  function updateSplitTotal(nextTotal) {
+    const total = Math.max(0, Number(nextTotal) || 0);
+    setSplitForm(prev => {
+      const payout = Math.min(prev.payout, total);
+      return {
+        total: Number(total.toFixed(2)),
+        payout: Number(payout.toFixed(2)),
+        discount: Number((total - payout).toFixed(2)),
+      };
+    });
+  }
+
+  async function saveSplitConfig() {
+    if (!splitModalAffiliate) return;
+    setSplitSaving(true);
+    try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) {
+        alert('Authentication required');
+        return;
+      }
+
+      const payload = {
+        total_affiliate_percentage: splitForm.total / 100,
+        affiliate_payout_percentage: splitForm.payout / 100,
+        referral_discount_percentage: splitForm.discount / 100,
+      };
+
+      const res = await fetch(`/api/admin/affiliates/id/${splitModalAffiliate.affiliate_id}/split-config`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error?.error || 'Failed to save split config');
+      }
+
+      setSplitModalAffiliate(null);
+      await fetchDashboardData();
+    } catch (error) {
+      console.error('[Admin Affiliates] Failed to save split config:', error);
+      alert(error?.message || 'Failed to save split config');
+    } finally {
+      setSplitSaving(false);
     }
   }
 
@@ -306,6 +392,7 @@ export default function AdminAffiliateDashboard() {
                   <th>Email</th>
                   <th>Referral Code</th>
                   <th>Status</th>
+                  <th>Split</th>
                   <th>Referrals</th>
                   <th>Commissions</th>
                   <th>Actions</th>
@@ -328,6 +415,13 @@ export default function AdminAffiliateDashboard() {
                         {affiliate.status}
                       </span>
                     </td>
+                    <td>
+                      <div className="text-xs">
+                        <div>Budget: {(((affiliate.affiliate_percentage_budget ?? affiliate.commission_rate ?? 0) * 100).toFixed(1))}%</div>
+                        <div>Affiliate: {(((affiliate.affiliate_payout_rate ?? affiliate.commission_rate ?? 0) * 100).toFixed(1))}%</div>
+                        <div>User: {(((affiliate.referral_discount_rate ?? 0) * 100).toFixed(1))}%</div>
+                      </div>
+                    </td>
                     <td>{affiliate.total_signups || 0}</td>
                     <td>${(affiliate.total_commissions_earned || 0).toFixed(2)}</td>
                     <td>
@@ -348,6 +442,13 @@ export default function AdminAffiliateDashboard() {
                             <XCircle className="w-3 h-3" />
                           </button>
                         )}
+                        <button
+                          className="btn btn-xs btn-outline"
+                          onClick={() => openSplitModal(affiliate)}
+                          title="Edit payout/discount split"
+                        >
+                          Split
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -600,6 +701,95 @@ export default function AdminAffiliateDashboard() {
           )}
         </div>
       </div>
+
+      {splitModalAffiliate && (
+        <div className="modal modal-open">
+          <div className="modal-box">
+            <h3 className="font-bold text-lg mb-4">Affiliate Split Configuration</h3>
+            <p className="text-sm text-base-content/60 mb-4">
+              Configure how the affiliate percentage budget is split between affiliate payout and user discount.
+            </p>
+            <div className="space-y-4">
+              <div>
+                <label className="label">
+                  <span className="label-text">Total Affiliate Percentage Budget</span>
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.1"
+                  className="input input-bordered w-full"
+                  value={splitForm.total}
+                  onChange={(e) => updateSplitTotal(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="label">
+                  <span className="label-text">Affiliate Payout %</span>
+                </label>
+                <input
+                  type="range"
+                  min="0"
+                  max={splitForm.total}
+                  step="0.1"
+                  className="range range-primary"
+                  value={splitForm.payout}
+                  onChange={(e) => updateSplitPayout(e.target.value)}
+                />
+                <input
+                  type="number"
+                  min="0"
+                  max={splitForm.total}
+                  step="0.1"
+                  className="input input-bordered w-full mt-2"
+                  value={splitForm.payout}
+                  onChange={(e) => updateSplitPayout(e.target.value)}
+                />
+              </div>
+
+              <div>
+                <label className="label">
+                  <span className="label-text">User Discount %</span>
+                </label>
+                <input
+                  type="range"
+                  min="0"
+                  max={splitForm.total}
+                  step="0.1"
+                  className="range range-secondary"
+                  value={splitForm.discount}
+                  onChange={(e) => updateSplitDiscount(e.target.value)}
+                />
+                <input
+                  type="number"
+                  min="0"
+                  max={splitForm.total}
+                  step="0.1"
+                  className="input input-bordered w-full mt-2"
+                  value={splitForm.discount}
+                  onChange={(e) => updateSplitDiscount(e.target.value)}
+                />
+              </div>
+
+              <div className="text-sm bg-base-300 rounded p-3">
+                <div>Total budget: <b>{splitForm.total.toFixed(2)}%</b></div>
+                <div>Affiliate payout: <b>{splitForm.payout.toFixed(2)}%</b></div>
+                <div>User discount: <b>{splitForm.discount.toFixed(2)}%</b></div>
+                <div>Check: <b>{(splitForm.payout + splitForm.discount).toFixed(2)}%</b></div>
+              </div>
+            </div>
+            <div className="modal-action">
+              <button className="btn" onClick={() => setSplitModalAffiliate(null)}>
+                Cancel
+              </button>
+              <button className="btn btn-primary" onClick={saveSplitConfig} disabled={splitSaving}>
+                {splitSaving ? 'Saving...' : 'Save Split'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
