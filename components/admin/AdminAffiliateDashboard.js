@@ -34,6 +34,10 @@ export default function AdminAffiliateDashboard() {
   const [splitModalAffiliate, setSplitModalAffiliate] = useState(null);
   const [splitForm, setSplitForm] = useState({ total: 30, payout: 30, discount: 0 });
   const [splitSaving, setSplitSaving] = useState(false);
+  const [attributionModalAffiliate, setAttributionModalAffiliate] = useState(null);
+  const [attributionLoading, setAttributionLoading] = useState(false);
+  const [attributionSummary, setAttributionSummary] = useState(null);
+  const [attributionError, setAttributionError] = useState('');
   const NON_DESTRUCTIVE_NOTE = 'Non-destructive: does not delete past commissions or referral history.';
 
   useEffect(() => {
@@ -192,6 +196,34 @@ export default function AdminAffiliateDashboard() {
       alert(error?.message || 'Failed to save split config');
     } finally {
       setSplitSaving(false);
+    }
+  }
+
+  async function openAttributionModal(affiliate) {
+    setAttributionModalAffiliate(affiliate);
+    setAttributionSummary(null);
+    setAttributionError('');
+    setAttributionLoading(true);
+    try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) {
+        throw new Error('Authentication required');
+      }
+      const res = await fetch(`/api/admin/affiliates/id/${affiliate.affiliate_id}/attribution-summary?limit=25`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.error || 'Failed to load attribution summary');
+      }
+      setAttributionSummary(data);
+    } catch (error) {
+      console.error('[Admin Affiliates] Failed to load attribution summary:', error);
+      setAttributionError(error?.message || 'Failed to load attribution summary');
+    } finally {
+      setAttributionLoading(false);
     }
   }
 
@@ -505,6 +537,13 @@ export default function AdminAffiliateDashboard() {
                           title="Edit payout/discount split"
                         >
                           Split
+                        </button>
+                        <button
+                          className="btn btn-xs btn-ghost"
+                          onClick={() => openAttributionModal(affiliate)}
+                          title="View attribution summary"
+                        >
+                          Attribution
                         </button>
                       </div>
                     </td>
@@ -842,6 +881,97 @@ export default function AdminAffiliateDashboard() {
               </button>
               <button className="btn btn-primary" onClick={saveSplitConfig} disabled={splitSaving}>
                 {splitSaving ? 'Saving...' : 'Save Split'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {attributionModalAffiliate && (
+        <div className="modal modal-open">
+          <div className="modal-box max-w-3xl">
+            <h3 className="font-bold text-lg mb-2">Attribution Summary</h3>
+            <p className="text-sm text-base-content/60 mb-4">
+              {attributionModalAffiliate.email} ({attributionModalAffiliate.referral_code})
+            </p>
+
+            {attributionLoading && (
+              <div className="py-8 text-center">
+                <span className="loading loading-spinner loading-md"></span>
+              </div>
+            )}
+
+            {!attributionLoading && attributionError && (
+              <div className="alert alert-error">
+                <span>{attributionError}</span>
+              </div>
+            )}
+
+            {!attributionLoading && !attributionError && attributionSummary && (
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div className="card bg-base-300">
+                    <div className="card-body p-3">
+                      <div className="text-xs opacity-70">Manual Code</div>
+                      <div className="text-xl font-bold">{attributionSummary.attribution?.by_source?.manual_code || 0}</div>
+                    </div>
+                  </div>
+                  <div className="card bg-base-300">
+                    <div className="card-body p-3">
+                      <div className="text-xs opacity-70">Query Param</div>
+                      <div className="text-xl font-bold">{attributionSummary.attribution?.by_source?.query_param || 0}</div>
+                    </div>
+                  </div>
+                  <div className="card bg-base-300">
+                    <div className="card-body p-3">
+                      <div className="text-xs opacity-70">Cookie</div>
+                      <div className="text-xl font-bold">{attributionSummary.attribution?.by_source?.cookie || 0}</div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="card bg-base-300">
+                  <div className="card-body p-3">
+                    <div className="text-sm font-semibold mb-2">Funnel</div>
+                    <div className="grid grid-cols-3 gap-2 text-sm">
+                      <div>Clicked: <b>{attributionSummary.funnel?.clicked || 0}</b></div>
+                      <div>Signed up: <b>{attributionSummary.funnel?.signed_up || 0}</b></div>
+                      <div>Converted: <b>{attributionSummary.funnel?.converted || 0}</b></div>
+                    </div>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="text-sm font-semibold mb-2">Recent Attributions</div>
+                  <div className="overflow-x-auto max-h-64">
+                    <table className="table table-zebra table-sm">
+                      <thead>
+                        <tr>
+                          <th>User</th>
+                          <th>Source</th>
+                          <th>Code</th>
+                          <th>Captured</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(attributionSummary.attribution?.recent_attributions || []).map((row) => (
+                          <tr key={`${row.user_id}-${row.captured_at}`}>
+                            <td>{row.email || row.user_id}</td>
+                            <td>{row.source}</td>
+                            <td><code>{row.referral_code_used}</code></td>
+                            <td>{row.captured_at ? new Date(row.captured_at).toLocaleString() : '-'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            <div className="modal-action">
+              <button className="btn" onClick={() => setAttributionModalAffiliate(null)}>
+                Close
               </button>
             </div>
           </div>
