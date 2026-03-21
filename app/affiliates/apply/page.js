@@ -3,7 +3,7 @@
 export const dynamic = 'force-dynamic';
 
 import { useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useAuth, useUser } from '@clerk/nextjs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,7 +14,6 @@ import { CheckCircle, AlertCircle } from 'lucide-react';
 
 export default function AffiliateApplyPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { getToken, isSignedIn } = useAuth();
   const { user } = useUser();
   const [loading, setLoading] = useState(false);
@@ -59,11 +58,13 @@ export default function AffiliateApplyPage() {
   }, [formData]);
 
   useEffect(() => {
-    const fromPartnerFlow = searchParams?.get('partner') === '1';
+    if (typeof window === 'undefined') return;
+    const params = new URLSearchParams(window.location.search);
+    const fromPartnerFlow = params.get('partner') === '1';
     if (fromPartnerFlow && isSignedIn) {
       setShowResumeNotice(true);
     }
-  }, [searchParams, isSignedIn]);
+  }, [isSignedIn]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
