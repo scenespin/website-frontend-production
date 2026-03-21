@@ -9,8 +9,6 @@ import {
   UserCheck, 
   Clock, 
   AlertTriangle,
-  CheckCircle,
-  XCircle,
   Search,
   Filter
 } from 'lucide-react';
@@ -36,6 +34,7 @@ export default function AdminAffiliateDashboard() {
   const [splitModalAffiliate, setSplitModalAffiliate] = useState(null);
   const [splitForm, setSplitForm] = useState({ total: 30, payout: 30, discount: 0 });
   const [splitSaving, setSplitSaving] = useState(false);
+  const NON_DESTRUCTIVE_NOTE = 'Non-destructive: does not delete past commissions or referral history.';
 
   useEffect(() => {
     if (user) {
@@ -84,22 +83,32 @@ export default function AdminAffiliateDashboard() {
     }
   }
 
-  async function approveAffiliate(affiliateId) {
+  async function approveAffiliate(affiliate) {
+    const confirmed = window.confirm(
+      `Approve affiliate ${affiliate?.email || affiliate?.affiliate_id}?\n\n${NON_DESTRUCTIVE_NOTE}`
+    );
+    if (!confirmed) return;
+
     try {
       const token = await getToken({ template: 'wryda-backend' });
       if (!token) {
         alert('Authentication required');
         return;
       }
-      await fetch(`/api/admin/affiliates/id/${affiliateId}/approve`, {
+      const res = await fetch(`/api/admin/affiliates/id/${affiliate.affiliate_id}/approve`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${token}`,
         },
       });
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error?.error || 'Failed to approve affiliate');
+      }
       fetchDashboardData();
     } catch (error) {
       console.error('[Admin Affiliates] Failed to approve:', error);
+      alert(error?.message || 'Failed to approve affiliate');
     }
   }
 
@@ -186,8 +195,13 @@ export default function AdminAffiliateDashboard() {
     }
   }
 
-  async function suspendAffiliate(affiliateId) {
-    const reason = prompt('Enter suspension reason:');
+  async function suspendAffiliate(affiliate) {
+    const confirmed = window.confirm(
+      `Suspend affiliate ${affiliate?.email || affiliate?.affiliate_id}?\n\n${NON_DESTRUCTIVE_NOTE}`
+    );
+    if (!confirmed) return;
+
+    const reason = prompt('Enter suspension reason (required):');
     if (!reason) return;
 
     try {
@@ -196,7 +210,7 @@ export default function AdminAffiliateDashboard() {
         alert('Authentication required');
         return;
       }
-      await fetch(`/api/admin/affiliates/id/${affiliateId}/suspend`, {
+      const res = await fetch(`/api/admin/affiliates/id/${affiliate.affiliate_id}/suspend`, {
         method: 'PUT',
         headers: { 
           'Content-Type': 'application/json',
@@ -204,9 +218,44 @@ export default function AdminAffiliateDashboard() {
         },
         body: JSON.stringify({ reason }),
       });
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error?.error || 'Failed to suspend affiliate');
+      }
       fetchDashboardData();
     } catch (error) {
       console.error('[Admin Affiliates] Failed to suspend:', error);
+      alert(error?.message || 'Failed to suspend affiliate');
+    }
+  }
+
+  async function reactivateAffiliate(affiliate) {
+    const confirmed = window.confirm(
+      `Reactivate affiliate ${affiliate?.email || affiliate?.affiliate_id}?\n\n${NON_DESTRUCTIVE_NOTE}`
+    );
+    if (!confirmed) return;
+
+    try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) {
+        alert('Authentication required');
+        return;
+      }
+
+      const res = await fetch(`/api/admin/affiliates/id/${affiliate.affiliate_id}/unsuspend`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      if (!res.ok) {
+        const error = await res.json().catch(() => ({}));
+        throw new Error(error?.error || 'Failed to reactivate affiliate');
+      }
+      fetchDashboardData();
+    } catch (error) {
+      console.error('[Admin Affiliates] Failed to reactivate:', error);
+      alert(error?.message || 'Failed to reactivate affiliate');
     }
   }
 
@@ -429,17 +478,25 @@ export default function AdminAffiliateDashboard() {
                         {affiliate.status === 'pending' && (
                           <button
                             className="btn btn-xs btn-success"
-                            onClick={() => approveAffiliate(affiliate.affiliate_id)}
+                            onClick={() => approveAffiliate(affiliate)}
                           >
-                            <CheckCircle className="w-3 h-3" />
+                            Approve
                           </button>
                         )}
                         {affiliate.status === 'active' && (
                           <button
                             className="btn btn-xs btn-warning"
-                            onClick={() => suspendAffiliate(affiliate.affiliate_id)}
+                            onClick={() => suspendAffiliate(affiliate)}
                           >
-                            <XCircle className="w-3 h-3" />
+                            Suspend
+                          </button>
+                        )}
+                        {affiliate.status === 'suspended' && (
+                          <button
+                            className="btn btn-xs btn-success"
+                            onClick={() => reactivateAffiliate(affiliate)}
+                          >
+                            Reactivate
                           </button>
                         )}
                         <button
