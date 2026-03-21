@@ -115,7 +115,14 @@ export default function SignUpPage() {
       setManualReferralState({
         loading: false,
         valid: true,
-        message: 'Referral code applied.',
+        message: (() => {
+          const discount = data?.discount
+          if (!discount?.enabled) return 'Referral code applied.'
+          if (discount.type === 'amount') {
+            return `Referral code applied - your discount: $${Number(discount.value || 0).toFixed(2)}`
+          }
+          return `Referral code applied - your discount: ${Number(discount.value || 0)}%`
+        })(),
       })
     } catch (error) {
       setManualReferralState({
