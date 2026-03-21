@@ -57,6 +57,7 @@ export default function AffiliatePortal() {
   const [referralCodeDraft, setReferralCodeDraft] = useState('');
   const [savingReferralCode, setSavingReferralCode] = useState(false);
   const [referralCodeMessage, setReferralCodeMessage] = useState('');
+  const [portalAccessError, setPortalAccessError] = useState('');
 
   const referralLink = affiliate ? `${typeof window !== 'undefined' ? window.location.origin : 'https://www.wryda.ai'}?ref=${affiliate.referral_code}` : '';
 
@@ -85,6 +86,13 @@ export default function AffiliatePortal() {
       const profileRes = await fetch('/api/affiliates/me', { headers });
       
       if (!profileRes.ok) {
+        if (profileRes.status === 403) {
+          const err = await profileRes.json().catch(() => ({}));
+          setPortalAccessError(err?.error || 'Affiliate portal access denied.');
+          setAffiliate(null);
+          setLoading(false);
+          return;
+        }
         if (profileRes.status === 404) {
           // Not an affiliate - this is OK
           setAffiliate(null);
@@ -97,9 +105,10 @@ export default function AffiliatePortal() {
       const profileData = await profileRes.json();
       setAffiliate(profileData);
       setReferralCodeDraft(profileData?.referral_code || '');
+      setPortalAccessError('');
 
-      // Only load stats/commissions/payouts if affiliate is active
-      if (profileData.status === 'active') {
+      // Load read-only analytics for suspended affiliates too.
+      if (profileData.status === 'active' || profileData.status === 'suspended') {
         // Load stats
         try {
           const statsRes = await fetch('/api/affiliates/stats', { headers });
@@ -149,6 +158,10 @@ export default function AffiliatePortal() {
   };
 
   const requestPayout = async () => {
+    if (affiliate?.status !== 'active') {
+      alert('Payout requests are available only for active affiliates.');
+      return;
+    }
     try {
       const token = await getToken({ template: 'wryda-backend' });
       if (!token) {
@@ -179,6 +192,10 @@ export default function AffiliatePortal() {
   };
 
   const connectStripe = async () => {
+    if (affiliate?.status !== 'active') {
+      alert('Stripe onboarding is available only for active affiliates.');
+      return;
+    }
     try {
       const token = await getToken({ template: 'wryda-backend' });
       if (!token) {
@@ -212,6 +229,10 @@ export default function AffiliatePortal() {
   };
 
   const saveReferralCode = async () => {
+    if (affiliate?.status !== 'active') {
+      setReferralCodeMessage('Referral code edits are available only for active affiliates.');
+      return;
+    }
     try {
       setSavingReferralCode(true);
       setReferralCodeMessage('');
@@ -266,6 +287,21 @@ export default function AffiliatePortal() {
   }
 
   if (!affiliate) {
+    if (portalAccessError) {
+      return (
+        <div className="min-h-screen bg-[#0A0A0A]">
+          <div className="container mx-auto px-4 py-16 max-w-2xl">
+            <div className="bg-[#141414] border border-[#DC143C]/30 rounded-lg shadow-2xl p-8 text-center">
+              <AlertCircle className="h-16 w-16 text-[#DC143C] mx-auto mb-6" />
+              <h1 className="text-3xl font-bold text-white mb-4">Affiliate Portal Unavailable</h1>
+              <p className="text-[#B3B3B3] text-lg">
+                {portalAccessError}
+              </p>
+            </div>
+          </div>
+        </div>
+      );
+    }
     return (
       <div className="min-h-screen bg-[#0A0A0A]">
         <div className="container mx-auto px-4 py-16 max-w-4xl">
@@ -350,21 +386,7 @@ export default function AffiliatePortal() {
     );
   }
 
-  if (affiliate.status === 'suspended') {
-    return (
-      <div className="min-h-screen bg-[#0A0A0A]">
-        <div className="container mx-auto px-4 py-16 max-w-2xl">
-          <div className="bg-[#141414] border border-[#DC143C]/30 rounded-lg shadow-2xl p-8 text-center">
-            <AlertCircle className="h-16 w-16 text-[#DC143C] mx-auto mb-6" />
-            <h1 className="text-3xl font-bold text-white mb-4">Account Suspended</h1>
-            <p className="text-[#B3B3B3] text-lg">
-              Your affiliate account has been suspended. Please contact support for more information.
-            </p>
-          </div>
-        </div>
-      </div>
-    );
-  }
+  const isReadOnly = affiliate.status === 'suspended';
 
   const trafficSourceData = stats && stats.traffic_sources ? Object.entries(stats.traffic_sources).map(([name, value]) => ({
     name: name.charAt(0).toUpperCase() + name.slice(1),
@@ -405,6 +427,14 @@ export default function AffiliatePortal() {
               </Badge>
             )}
           </div>
+          {isReadOnly && (
+            <div className="mt-4 rounded-lg border border-[#DC143C]/30 bg-[#141414] p-4">
+              <p className="text-sm text-[#B3B3B3]">
+                This affiliate account is suspended and currently in read-only mode. Historical stats remain visible,
+                but payout requests and account edits are disabled until reactivated.
+              </p>
+            </div>
+          )}
         </div>
 
       {/* Quick Stats */}
@@ -684,11 +714,17 @@ export default function AffiliatePortal() {
               </p>
               <Button 
                 onClick={connectStripe}
+                disabled={isReadOnly}
                 className="bg-gradient-to-r from-[#DC143C] to-[#8B0000] hover:from-[#DC143C]/90 hover:to-[#8B0000]/90 text-white"
               >
                 <Wallet className="h-4 w-4 mr-2" />
                 Connect Stripe Account
               </Button>
+              {isReadOnly && (
+                <p className="text-sm text-[#808080] mt-3">
+                  Stripe onboarding is disabled while the account is suspended.
+                </p>
+              )}
             </div>
           ) : (
             <>
@@ -700,11 +736,16 @@ export default function AffiliatePortal() {
                 </p>
                 <Button 
                   onClick={requestPayout}
-                  disabled={(affiliate.pending_commissions || 0) < (affiliate.minimum_payout || 50)}
+                  disabled={isReadOnly || (affiliate.pending_commissions || 0) < (affiliate.minimum_payout || 50)}
                   className="bg-gradient-to-r from-[#DC143C] to-[#8B0000] hover:from-[#DC143C]/90 hover:to-[#8B0000]/90 text-white disabled:opacity-50"
                 >
                   Request Payout
                 </Button>
+                {isReadOnly && (
+                  <p className="text-sm text-[#808080] mt-3">
+                    Payout requests are disabled while the account is suspended.
+                  </p>
+                )}
                 {(affiliate.pending_commissions || 0) < (affiliate.minimum_payout || 50) && (
                   <p className="text-sm text-[#808080] mt-3">
                     You need ${((affiliate.minimum_payout || 50) - (affiliate.pending_commissions || 0)).toFixed(2)} more to request a payout
@@ -759,7 +800,7 @@ export default function AffiliatePortal() {
                   <Button
                     type="button"
                     onClick={saveReferralCode}
-                    disabled={savingReferralCode || !referralCodeDraft?.trim()}
+                    disabled={isReadOnly || savingReferralCode || !referralCodeDraft?.trim()}
                     className="bg-[#DC143C] hover:bg-[#B8112F] text-white"
                   >
                     {savingReferralCode ? 'Saving...' : 'Save'}
