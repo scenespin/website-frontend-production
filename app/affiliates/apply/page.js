@@ -2,8 +2,8 @@
 
 export const dynamic = 'force-dynamic';
 
-import { useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth, useUser } from '@clerk/nextjs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -14,11 +14,13 @@ import { CheckCircle, AlertCircle } from 'lucide-react';
 
 export default function AffiliateApplyPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { getToken, isSignedIn } = useAuth();
   const { user } = useUser();
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
+  const [showResumeNotice, setShowResumeNotice] = useState(false);
   const [formData, setFormData] = useState({
     invite_code: '',
     referral_code: '',
@@ -30,6 +32,38 @@ export default function AffiliateApplyPage() {
     tiktok: '',
     instagram: '',
   });
+  const DRAFT_KEY = 'affiliate_apply_draft_v1';
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      const raw = window.localStorage.getItem(DRAFT_KEY);
+      if (!raw) return;
+      const parsed = JSON.parse(raw);
+      if (parsed && typeof parsed === 'object') {
+        setFormData((prev) => ({ ...prev, ...parsed }));
+        setShowResumeNotice(true);
+      }
+    } catch (e) {
+      console.error('[AffiliateApply] Failed to restore draft:', e);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      window.localStorage.setItem(DRAFT_KEY, JSON.stringify(formData));
+    } catch (e) {
+      console.error('[AffiliateApply] Failed to save draft:', e);
+    }
+  }, [formData]);
+
+  useEffect(() => {
+    const fromPartnerFlow = searchParams?.get('partner') === '1';
+    if (fromPartnerFlow && isSignedIn) {
+      setShowResumeNotice(true);
+    }
+  }, [searchParams, isSignedIn]);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -40,8 +74,8 @@ export default function AffiliateApplyPage() {
       // Check if user is signed in
       if (!isSignedIn || !user) {
         // Redirect to sign-in with return URL
-        const currentUrl = window.location.href;
-        const signInUrl = `/sign-in?redirect_url=${encodeURIComponent(currentUrl)}`;
+        const applyReturnUrl = `${window.location.origin}/affiliates/apply?partner=1`;
+        const signInUrl = `/sign-in?partner=1&redirect_url=${encodeURIComponent(applyReturnUrl)}`;
         router.push(signInUrl);
         return;
       }
@@ -75,10 +109,10 @@ export default function AffiliateApplyPage() {
       });
 
       if (res.ok) {
+        if (typeof window !== 'undefined') {
+          window.localStorage.removeItem(DRAFT_KEY);
+        }
         setSuccess(true);
-        setTimeout(() => {
-          router.push('/affiliates');
-        }, 3000);
       } else {
         const errorData = await res.json();
         setError(errorData.error || 'Failed to submit application');
@@ -94,19 +128,41 @@ export default function AffiliateApplyPage() {
   if (success) {
     return (
       <div className="min-h-screen bg-[#0A0A0A]">
-        <div className="container mx-auto px-4 py-16 max-w-2xl">
-          <div className="bg-[#141414] border border-white/10 rounded-lg shadow-2xl p-8 text-center">
+        <div className="container mx-auto px-4 py-16 max-w-3xl">
+          <div className="bg-[#141414] border border-white/10 rounded-lg shadow-2xl p-8">
             <CheckCircle className="h-20 w-20 text-[#FFD700] mx-auto mb-6" />
-            <h2 className="text-3xl font-bold text-white mb-4">Application Submitted!</h2>
-            <p className="text-[#B3B3B3] text-lg mb-6">
-              We'll review your application within 24-48 hours and send you an email when approved.
+            <h2 className="text-3xl font-bold text-white mb-4 text-center">Partner Application Submitted</h2>
+            <p className="text-[#B3B3B3] text-lg mb-2 text-center">
+              Your application is under review. We&apos;ll email you when it&apos;s approved.
             </p>
-            <Button 
-              className="mt-6 bg-gradient-to-r from-[#DC143C] to-[#8B0000] hover:from-[#DC143C]/90 hover:to-[#8B0000]/90 text-white font-semibold px-8 py-6 text-lg" 
-              onClick={() => router.push('/affiliates')}
-            >
-              Go to Dashboard
-            </Button>
+            <p className="text-[#808080] text-base mb-6 text-center">
+              Once approved, you can manage your referral code, track clicks/signups/conversions, and view payouts in your Partner Dashboard.
+            </p>
+
+            <div className="bg-[#1F1F1F] border border-white/5 rounded-lg p-5 mb-6">
+              <h3 className="text-white font-semibold mb-3">What happens next</h3>
+              <ul className="text-sm text-[#B3B3B3] space-y-2">
+                <li>Review in 24-48 hours</li>
+                <li>Approval email</li>
+                <li>Dashboard unlock + tracking</li>
+              </ul>
+            </div>
+
+            <div className="flex flex-col sm:flex-row gap-3">
+              <Button
+                className="flex-1 bg-gradient-to-r from-[#DC143C] to-[#8B0000] hover:from-[#DC143C]/90 hover:to-[#8B0000]/90 text-white font-semibold py-5 text-base"
+                onClick={() => router.push('/affiliates')}
+              >
+                Go to Partner Dashboard
+              </Button>
+              <Button
+                variant="outline"
+                className="flex-1 border-white/20 text-white hover:bg-white/5 py-5 text-base"
+                onClick={() => router.push('/dashboard')}
+              >
+                Return to Main Dashboard
+              </Button>
+            </div>
           </div>
         </div>
       </div>
@@ -118,11 +174,26 @@ export default function AffiliateApplyPage() {
       <div className="container mx-auto px-4 py-16 max-w-2xl">
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold text-white mb-4">Become a Wryda Affiliate</h1>
-          <p className="text-xl text-[#B3B3B3] mb-2">Earn 30% recurring commission on every referral</p>
+          <p className="text-xl text-[#B3B3B3] mb-2">Earn recurring commissions for successful referrals</p>
           <p className="text-base text-[#808080]">Join creators who are building passive income by sharing the future of filmmaking</p>
         </div>
 
         <div className="bg-[#141414] border border-white/10 rounded-lg shadow-2xl p-8">
+          {!isSignedIn && (
+            <div className="mb-6 p-4 bg-[#1F1F1F] border border-[#00D9FF]/30 rounded-lg">
+              <p className="text-sm text-[#B3B3B3]">
+                You&apos;re applying to the Wryda Partner Program. Sign in or create your account to continue.
+              </p>
+            </div>
+          )}
+          {isSignedIn && showResumeNotice && (
+            <div className="mb-6 p-4 bg-[#1F1F1F] border border-[#FFD700]/30 rounded-lg">
+              <p className="text-sm text-[#B3B3B3]">
+                Continuing your Partner Program application
+              </p>
+            </div>
+          )}
+
           {error && (
             <div className="mb-6 p-4 bg-[#1F1F1F] border border-[#DC143C]/30 rounded-lg flex items-center gap-3">
               <AlertCircle className="h-5 w-5 text-[#DC143C] flex-shrink-0" />
@@ -247,7 +318,7 @@ export default function AffiliateApplyPage() {
               <ul className="text-sm space-y-3 text-[#B3B3B3]">
                 <li className="flex items-center gap-3">
                   <span className="text-[#FFD700] text-lg">💰</span>
-                  <span>30% recurring commission on all referrals</span>
+                  <span>Recurring commission payouts on qualified referrals</span>
                 </li>
                 <li className="flex items-center gap-3">
                   <span className="text-[#00D9FF] text-lg">📊</span>

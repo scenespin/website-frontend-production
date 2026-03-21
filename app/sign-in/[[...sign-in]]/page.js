@@ -9,6 +9,10 @@ export default function SignInPage() {
   const searchParams = useSearchParams()
   // Get redirect_url from query params
   const redirectUrl = searchParams?.get('redirect_url') || searchParams?.get('redirectUrl') || '/'
+  const isPartnerFlow = searchParams?.get('partner') === '1'
+  const signUpLink = isPartnerFlow
+    ? `/sign-up?partner=1&redirect_url=${encodeURIComponent(redirectUrl)}`
+    : '/sign-up'
   
   return (
     <div className="min-h-screen bg-black">
@@ -19,7 +23,7 @@ export default function SignInPage() {
             {config.appName}<span className="text-[#DC143C]">.ai</span>
           </span>
         </Link>
-        <Link href="/sign-up" className="text-sm md:text-base text-gray-300 hover:text-white transition-colors min-h-[44px] px-3 md:px-4 flex items-center">
+        <Link href={signUpLink} className="text-sm md:text-base text-gray-300 hover:text-white transition-colors min-h-[44px] px-3 md:px-4 flex items-center">
           Create an account
         </Link>
       </header>
@@ -28,6 +32,13 @@ export default function SignInPage() {
       <div className="flex items-center justify-center px-4 py-6 md:py-8 w-full min-h-[calc(100vh-80px)]">
         <div className="w-full max-w-md mx-auto">
           <div className="bg-[#141414] border border-white/10 rounded-lg shadow-2xl p-4 sm:p-6 md:p-8 mx-auto">
+            {isPartnerFlow && (
+              <div className="mb-4 p-3 rounded-lg border border-[#00D9FF]/30 bg-[#0A0A0A]">
+                <p className="text-sm text-[#B3B3B3]">
+                  You&apos;re applying to the Wryda Partner Program. Sign in or create your account to continue.
+                </p>
+              </div>
+            )}
             <SignIn 
               routing="path"
               path="/sign-in"

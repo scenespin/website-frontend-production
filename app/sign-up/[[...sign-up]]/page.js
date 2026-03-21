@@ -11,6 +11,8 @@ export default function SignUpPage() {
   const searchParams = useSearchParams()
   const planParam = searchParams?.get('plan') || 'free'
   const refParam = searchParams?.get('ref') || ''
+  const redirectUrlParam = searchParams?.get('redirect_url') || searchParams?.get('redirectUrl')
+  const isPartnerFlow = searchParams?.get('partner') === '1'
   const [manualReferralCode, setManualReferralCode] = useState('')
   const [manualReferralState, setManualReferralState] = useState({
     loading: false,
@@ -25,6 +27,7 @@ export default function SignUpPage() {
   
   // Determine if it's a paid plan
   const isPaidPlan = selectedPlan.price > 0
+  const authRedirectUrl = redirectUrlParam || (isPaidPlan ? `/dashboard?plan=${planParam}` : '/dashboard')
 
   useEffect(() => {
     const normalizedRef = String(refParam || '').trim()
@@ -367,6 +370,13 @@ export default function SignUpPage() {
           {/* RIGHT: Clerk Signup */}
           <div className="order-1 md:order-2 flex flex-col items-center md:items-start">
             <div className="w-full max-w-md bg-[#141414] border border-white/10 rounded-lg shadow-2xl p-4 sm:p-6 md:p-8">
+              {isPartnerFlow && (
+                <div className="mb-4 p-3 rounded-lg border border-[#00D9FF]/30 bg-[#0A0A0A]">
+                  <p className="text-sm text-[#B3B3B3]">
+                    You&apos;re applying to the Wryda Partner Program. Sign in or create your account to continue.
+                  </p>
+                </div>
+              )}
               <div className="mb-4 p-3 rounded-lg border border-white/10 bg-[#0A0A0A]">
                 <p className="text-sm text-white mb-2">Have a referral code?</p>
                 <div className="flex gap-2">
@@ -393,8 +403,8 @@ export default function SignUpPage() {
               </div>
 
               <SignUp 
-                fallbackRedirectUrl={isPaidPlan ? `/dashboard?plan=${planParam}` : '/dashboard'}
-                forceRedirectUrl={isPaidPlan ? `/dashboard?plan=${planParam}` : undefined}
+                fallbackRedirectUrl={authRedirectUrl}
+                forceRedirectUrl={isPartnerFlow ? authRedirectUrl : (isPaidPlan ? `/dashboard?plan=${planParam}` : undefined)}
                 appearance={{
                   baseTheme: undefined,
                 variables: {
