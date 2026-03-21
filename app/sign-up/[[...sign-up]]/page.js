@@ -3,12 +3,20 @@
 import { SignUp } from '@clerk/nextjs'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
+import { useEffect, useState } from 'react'
 import config from '@/config'
 import { CheckCircle, Shield, Zap, Sparkles, Video, FileText, Image, Film } from 'lucide-react'
 
 export default function SignUpPage() {
   const searchParams = useSearchParams()
   const planParam = searchParams?.get('plan') || 'free'
+  const refParam = searchParams?.get('ref') || ''
+  const [manualReferralCode, setManualReferralCode] = useState('')
+  const [manualReferralState, setManualReferralState] = useState({
+    loading: false,
+    valid: false,
+    message: '',
+  })
   
   // Find matching plan (case-insensitive)
   const selectedPlan = config.stripe.plans.find(
@@ -17,6 +25,103 @@ export default function SignUpPage() {
   
   // Determine if it's a paid plan
   const isPaidPlan = selectedPlan.price > 0
+
+  useEffect(() => {
+    const normalizedRef = String(refParam || '').trim()
+    if (!normalizedRef) return
+
+    setManualReferralCode(normalizedRef)
+
+    if (typeof window !== 'undefined') {
+      const existingSource = window.localStorage.getItem('pending_referral_source')
+      if (existingSource !== 'manual_code') {
+        window.localStorage.setItem('pending_referral_code', normalizedRef.toLowerCase())
+        window.localStorage.setItem('pending_referral_source', 'query_param')
+      }
+    }
+
+    // Capture referral link source early so backend can set signed tracking cookie.
+    void fetch('/api/affiliates/capture', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        referral_code: normalizedRef,
+        source: 'query_param',
+        landing_page: typeof window !== 'undefined' ? window.location.pathname : '/sign-up',
+      }),
+    }).catch(() => {
+      // Non-blocking: signup should continue even if capture call fails.
+    })
+  }, [refParam])
+
+  const applyManualReferralCode = async () => {
+    const code = String(manualReferralCode || '').trim().toLowerCase()
+    if (!code) {
+      setManualReferralState({
+        loading: false,
+        valid: false,
+        message: 'Enter a referral code first.',
+      })
+      return
+    }
+
+    try {
+      setManualReferralState({
+        loading: true,
+        valid: false,
+        message: '',
+      })
+
+      const res = await fetch('/api/affiliates/capture', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          referral_code: code,
+          source: 'manual_code',
+          landing_page: typeof window !== 'undefined' ? window.location.pathname : '/sign-up',
+        }),
+      })
+      const data = await res.json()
+      if (!res.ok) {
+        throw new Error(data?.error || 'Failed to validate code')
+      }
+
+      if (data?.disabled) {
+        setManualReferralState({
+          loading: false,
+          valid: false,
+          message: 'Referral code entry is currently disabled.',
+        })
+        return
+      }
+
+      if (!data?.valid) {
+        setManualReferralState({
+          loading: false,
+          valid: false,
+          message: data?.message || 'Invalid referral code.',
+        })
+        return
+      }
+
+      if (typeof window !== 'undefined') {
+        window.localStorage.setItem('pending_referral_code', code)
+        window.localStorage.setItem('pending_referral_source', 'manual_code')
+      }
+
+      setManualReferralState({
+        loading: false,
+        valid: true,
+        message: 'Referral code applied.',
+      })
+    } catch (error) {
+      setManualReferralState({
+        loading: false,
+        valid: false,
+        message: (error && error.message) ? error.message : 'Could not apply referral code.',
+      })
+    }
+  }
 
   return (
     <div className="min-h-screen bg-black">
@@ -262,6 +367,31 @@ export default function SignUpPage() {
           {/* RIGHT: Clerk Signup */}
           <div className="order-1 md:order-2 flex flex-col items-center md:items-start">
             <div className="w-full max-w-md bg-[#141414] border border-white/10 rounded-lg shadow-2xl p-4 sm:p-6 md:p-8">
+              <div className="mb-4 p-3 rounded-lg border border-white/10 bg-[#0A0A0A]">
+                <p className="text-sm text-white mb-2">Have a referral code?</p>
+                <div className="flex gap-2">
+                  <input
+                    value={manualReferralCode}
+                    onChange={(e) => setManualReferralCode(e.target.value)}
+                    placeholder="Enter referral code"
+                    className="w-full bg-black border border-white/20 rounded px-3 py-2 text-sm text-white placeholder:text-gray-500"
+                  />
+                  <button
+                    type="button"
+                    onClick={applyManualReferralCode}
+                    disabled={manualReferralState.loading}
+                    className="px-3 py-2 text-sm rounded bg-[#DC143C] hover:bg-[#B8112F] disabled:opacity-60 text-white"
+                  >
+                    {manualReferralState.loading ? 'Applying...' : 'Apply'}
+                  </button>
+                </div>
+                {manualReferralState.message && (
+                  <p className={`mt-2 text-xs ${manualReferralState.valid ? 'text-green-400' : 'text-yellow-400'}`}>
+                    {manualReferralState.message}
+                  </p>
+                )}
+              </div>
+
               <SignUp 
                 fallbackRedirectUrl={isPaidPlan ? `/dashboard?plan=${planParam}` : '/dashboard'}
                 forceRedirectUrl={isPaidPlan ? `/dashboard?plan=${planParam}` : undefined}

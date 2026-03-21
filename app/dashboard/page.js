@@ -121,6 +121,43 @@ export default function Dashboard() {
     }
   }, [user]);
 
+  useEffect(() => {
+    if (!user) return;
+    if (typeof window === 'undefined') return;
+
+    const pendingReferralCode = window.localStorage.getItem('pending_referral_code');
+    const pendingReferralSource = window.localStorage.getItem('pending_referral_source') || 'query_param';
+    if (!pendingReferralCode) return;
+
+    const finalizeAttribution = async () => {
+      try {
+        const token = await getToken({ template: 'wryda-backend' });
+        if (!token) return;
+
+        const res = await fetch('/api/affiliates/finalize-attribution', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            query_code: pendingReferralSource === 'query_param' ? pendingReferralCode : undefined,
+            manual_code: pendingReferralSource === 'manual_code' ? pendingReferralCode : undefined,
+          }),
+        });
+
+        if (res.ok) {
+          window.localStorage.removeItem('pending_referral_code');
+          window.localStorage.removeItem('pending_referral_source');
+        }
+      } catch (error) {
+        console.error('[Dashboard] Failed to finalize referral attribution:', error);
+      }
+    };
+
+    void finalizeAttribution();
+  }, [user, getToken]);
+
   // Fetch entity counts for current screenplay
   useEffect(() => {
     if (!currentScreenplayId || !getToken) {

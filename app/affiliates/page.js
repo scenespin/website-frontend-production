@@ -54,6 +54,9 @@ export default function AffiliatePortal() {
   const [payouts, setPayouts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [referralCodeDraft, setReferralCodeDraft] = useState('');
+  const [savingReferralCode, setSavingReferralCode] = useState(false);
+  const [referralCodeMessage, setReferralCodeMessage] = useState('');
 
   const referralLink = affiliate ? `${typeof window !== 'undefined' ? window.location.origin : 'https://www.wryda.ai'}?ref=${affiliate.referral_code}` : '';
 
@@ -93,6 +96,7 @@ export default function AffiliatePortal() {
       
       const profileData = await profileRes.json();
       setAffiliate(profileData);
+      setReferralCodeDraft(profileData?.referral_code || '');
 
       // Only load stats/commissions/payouts if affiliate is active
       if (profileData.status === 'active') {
@@ -204,6 +208,49 @@ export default function AffiliatePortal() {
     } catch (error) {
       console.error('Error connecting Stripe:', error);
       alert('Failed to connect Stripe account');
+    }
+  };
+
+  const saveReferralCode = async () => {
+    try {
+      setSavingReferralCode(true);
+      setReferralCodeMessage('');
+
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) {
+        setReferralCodeMessage('Authentication required.');
+        return;
+      }
+
+      const code = String(referralCodeDraft || '').trim().toLowerCase();
+      if (!code) {
+        setReferralCodeMessage('Referral code is required.');
+        return;
+      }
+
+      const res = await fetch('/api/affiliates/settings/referral-code', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ referral_code: code }),
+      });
+
+      const data = await res.json();
+      if (!res.ok) {
+        setReferralCodeMessage(data?.error || 'Failed to update referral code.');
+        return;
+      }
+
+      setReferralCodeMessage('Referral code updated successfully.');
+      setAffiliate(prev => prev ? { ...prev, referral_code: data.referral_code } : prev);
+      setReferralCodeDraft(data.referral_code);
+    } catch (error) {
+      console.error('Error saving referral code:', error);
+      setReferralCodeMessage('Failed to update referral code.');
+    } finally {
+      setSavingReferralCode(false);
     }
   };
 
@@ -703,7 +750,24 @@ export default function AffiliatePortal() {
             <div className="space-y-6">
               <div>
                 <Label className="text-[#B3B3B3] mb-2 block">Referral Code</Label>
-                <Input value={affiliate.referral_code} disabled className="font-mono bg-[#1F1F1F] border-white/10 text-white" />
+                <div className="flex gap-2">
+                  <Input
+                    value={referralCodeDraft}
+                    onChange={(e) => setReferralCodeDraft(e.target.value)}
+                    className="font-mono bg-[#1F1F1F] border-white/10 text-white"
+                  />
+                  <Button
+                    type="button"
+                    onClick={saveReferralCode}
+                    disabled={savingReferralCode || !referralCodeDraft?.trim()}
+                    className="bg-[#DC143C] hover:bg-[#B8112F] text-white"
+                  >
+                    {savingReferralCode ? 'Saving...' : 'Save'}
+                  </Button>
+                </div>
+                {referralCodeMessage && (
+                  <p className="text-xs text-[#B3B3B3] mt-2">{referralCodeMessage}</p>
+                )}
               </div>
               <div>
                 <Label className="text-[#B3B3B3] mb-2 block">Commission Rate</Label>
