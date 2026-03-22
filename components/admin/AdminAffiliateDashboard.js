@@ -32,7 +32,7 @@ export default function AdminAffiliateDashboard() {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [newInviteCode, setNewInviteCode] = useState({ code: '', max_uses: 1, expires_at: '', notes: '' });
   const [splitModalAffiliate, setSplitModalAffiliate] = useState(null);
-  const [splitForm, setSplitForm] = useState({ total: 30, payout: 30, discount: 0 });
+  const [splitForm, setSplitForm] = useState({ total: 30, payout: 30, discount: 0, commissionType: 'first_payment_only' });
   const [splitSaving, setSplitSaving] = useState(false);
   const [attributionModalAffiliate, setAttributionModalAffiliate] = useState(null);
   const [attributionLoading, setAttributionLoading] = useState(false);
@@ -120,11 +120,13 @@ export default function AdminAffiliateDashboard() {
     const totalRaw = affiliate.affiliate_percentage_budget ?? affiliate.commission_rate ?? 0.3;
     const payoutRaw = affiliate.affiliate_payout_rate ?? affiliate.commission_rate ?? totalRaw;
     const discountRaw = affiliate.referral_discount_rate ?? Math.max(0, totalRaw - payoutRaw);
+    const commissionTypeRaw = affiliate.commission_type === 'recurring' ? 'recurring' : 'first_payment_only';
 
     setSplitForm({
       total: Number((totalRaw * 100).toFixed(2)),
       payout: Number((payoutRaw * 100).toFixed(2)),
       discount: Number((discountRaw * 100).toFixed(2)),
+      commissionType: commissionTypeRaw,
     });
     setSplitModalAffiliate(affiliate);
   }
@@ -152,6 +154,7 @@ export default function AdminAffiliateDashboard() {
     setSplitForm(prev => {
       const payout = Math.min(prev.payout, total);
       return {
+        ...prev,
         total: Number(total.toFixed(2)),
         payout: Number(payout.toFixed(2)),
         discount: Number((total - payout).toFixed(2)),
@@ -187,6 +190,23 @@ export default function AdminAffiliateDashboard() {
       if (!res.ok) {
         const error = await res.json().catch(() => ({}));
         throw new Error(error?.error || 'Failed to save split config');
+      }
+
+      const commissionTypeRes = await fetch(`/api/admin/affiliates/id/${splitModalAffiliate.affiliate_id}/commission-rate`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          commission_rate: splitForm.payout / 100,
+          commission_type: splitForm.commissionType,
+        }),
+      });
+
+      if (!commissionTypeRes.ok) {
+        const error = await commissionTypeRes.json().catch(() => ({}));
+        throw new Error(error?.error || 'Failed to save commission type');
       }
 
       setSplitModalAffiliate(null);
@@ -501,6 +521,7 @@ export default function AdminAffiliateDashboard() {
                         <div>Budget: {(((affiliate.affiliate_percentage_budget ?? affiliate.commission_rate ?? 0) * 100).toFixed(1))}%</div>
                         <div>Affiliate: {(((affiliate.affiliate_payout_rate ?? affiliate.commission_rate ?? 0) * 100).toFixed(1))}%</div>
                         <div>User: {(((affiliate.referral_discount_rate ?? 0) * 100).toFixed(1))}%</div>
+                        <div>Type: {affiliate.commission_type === 'recurring' ? 'Recurring' : 'First payment only'}</div>
                       </div>
                     </td>
                     <td>{affiliate.total_signups || 0}</td>
@@ -873,6 +894,23 @@ export default function AdminAffiliateDashboard() {
                 <div>Affiliate payout: <b>{splitForm.payout.toFixed(2)}%</b></div>
                 <div>User discount: <b>{splitForm.discount.toFixed(2)}%</b></div>
                 <div>Check: <b>{(splitForm.payout + splitForm.discount).toFixed(2)}%</b></div>
+              </div>
+
+              <div>
+                <label className="label">
+                  <span className="label-text">Commission Type</span>
+                </label>
+                <select
+                  className="select select-bordered w-full"
+                  value={splitForm.commissionType}
+                  onChange={(e) => setSplitForm(prev => ({ ...prev, commissionType: e.target.value }))}
+                >
+                  <option value="first_payment_only">First payment only (default)</option>
+                  <option value="recurring">Recurring (renewals included)</option>
+                </select>
+                <p className="text-xs text-base-content/60 mt-2">
+                  Controls whether the affiliate earns once or on each successful renewal.
+                </p>
               </div>
             </div>
             <div className="modal-action">
