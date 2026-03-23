@@ -21,6 +21,8 @@ import {
 export default function AdminAffiliateDashboard() {
   const { user } = useUser();
   const { getToken } = useAuth();
+  const defaultEndDate = new Date().toISOString().slice(0, 10);
+  const defaultStartDate = new Date(Date.now() - (29 * 24 * 60 * 60 * 1000)).toISOString().slice(0, 10);
   const [loading, setLoading] = useState(true);
   const [overview, setOverview] = useState(null);
   const [affiliates, setAffiliates] = useState([]);
@@ -38,11 +40,43 @@ export default function AdminAffiliateDashboard() {
   const [attributionLoading, setAttributionLoading] = useState(false);
   const [attributionSummary, setAttributionSummary] = useState(null);
   const [attributionError, setAttributionError] = useState('');
+  const [varianceReport, setVarianceReport] = useState(null);
+  const [varianceLoading, setVarianceLoading] = useState(false);
+  const [varianceError, setVarianceError] = useState('');
+  const [periodDashboard, setPeriodDashboard] = useState(null);
+  const [periodLoading, setPeriodLoading] = useState(false);
+  const [periodError, setPeriodError] = useState('');
+  const [periodFilters, setPeriodFilters] = useState({
+    period: 'month',
+    startDate: defaultStartDate,
+    endDate: defaultEndDate,
+  });
+  const [calibrationLogs, setCalibrationLogs] = useState([]);
+  const [calibrationLoading, setCalibrationLoading] = useState(false);
+  const [calibrationError, setCalibrationError] = useState('');
+  const [calibrationSaving, setCalibrationSaving] = useState(false);
+  const [calibrationForm, setCalibrationForm] = useState({
+    windowStart: defaultStartDate,
+    windowEnd: defaultEndDate,
+    proposedCostPerCredit: '0.0096',
+    adoptedCostPerCredit: '',
+    status: 'proposed',
+    rationale: '',
+    notes: '',
+  });
+  const [varianceFilters, setVarianceFilters] = useState({
+    startDate: defaultStartDate,
+    endDate: defaultEndDate,
+    affiliateId: '',
+  });
   const NON_DESTRUCTIVE_NOTE = 'Non-destructive: does not delete past commissions or referral history.';
 
   useEffect(() => {
     if (user) {
       fetchDashboardData();
+      fetchVarianceReport();
+      fetchPeriodDashboard();
+      fetchCalibrationLogs();
     }
   }, [user, statusFilter]);
 
@@ -85,6 +119,166 @@ export default function AdminAffiliateDashboard() {
     } finally {
       setLoading(false);
     }
+  }
+
+  async function fetchVarianceReport() {
+    setVarianceLoading(true);
+    setVarianceError('');
+    try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) {
+        throw new Error('Authentication required');
+      }
+      const query = new URLSearchParams();
+      if (varianceFilters.startDate) query.set('startDate', varianceFilters.startDate);
+      if (varianceFilters.endDate) query.set('endDate', varianceFilters.endDate);
+      if (varianceFilters.affiliateId) query.set('affiliateId', varianceFilters.affiliateId);
+      const res = await fetch(`/api/admin/revenue/affiliate-cost-model-variance?${query.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.error || 'Failed to load cost model variance');
+      }
+      setVarianceReport(data);
+    } catch (error) {
+      console.error('[Admin Affiliates] Failed to load cost model variance:', error);
+      setVarianceError(error?.message || 'Failed to load cost model variance');
+      setVarianceReport(null);
+    } finally {
+      setVarianceLoading(false);
+    }
+  }
+
+  async function fetchPeriodDashboard() {
+    setPeriodLoading(true);
+    setPeriodError('');
+    try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) throw new Error('Authentication required');
+      const query = new URLSearchParams();
+      query.set('period', periodFilters.period);
+      if (periodFilters.period === 'custom') {
+        if (periodFilters.startDate) query.set('startDate', periodFilters.startDate);
+        if (periodFilters.endDate) query.set('endDate', periodFilters.endDate);
+      }
+      const res = await fetch(`/api/admin/revenue/affiliate-period-dashboard?${query.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.error || 'Failed to load period dashboard');
+      }
+      setPeriodDashboard(data);
+    } catch (error) {
+      console.error('[Admin Affiliates] Failed to load period dashboard:', error);
+      setPeriodError(error?.message || 'Failed to load period dashboard');
+      setPeriodDashboard(null);
+    } finally {
+      setPeriodLoading(false);
+    }
+  }
+
+  async function fetchCalibrationLogs() {
+    setCalibrationLoading(true);
+    setCalibrationError('');
+    try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) throw new Error('Authentication required');
+      const res = await fetch('/api/admin/revenue/affiliate-cost-model/calibration-logs?limit=20', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.error || 'Failed to load calibration logs');
+      }
+      setCalibrationLogs(data.logs || []);
+    } catch (error) {
+      console.error('[Admin Affiliates] Failed to load calibration logs:', error);
+      setCalibrationError(error?.message || 'Failed to load calibration logs');
+      setCalibrationLogs([]);
+    } finally {
+      setCalibrationLoading(false);
+    }
+  }
+
+  async function saveCalibrationLog() {
+    setCalibrationSaving(true);
+    try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) throw new Error('Authentication required');
+      const windowStart = new Date(calibrationForm.windowStart).getTime();
+      const windowEnd = new Date(calibrationForm.windowEnd).getTime();
+      const payload = {
+        window_start: windowStart,
+        window_end: windowEnd,
+        proposed_cost_per_credit_usd: Number(calibrationForm.proposedCostPerCredit),
+        adopted_cost_per_credit_usd: calibrationForm.adoptedCostPerCredit ? Number(calibrationForm.adoptedCostPerCredit) : undefined,
+        status: calibrationForm.status,
+        rationale: calibrationForm.rationale || undefined,
+        notes: calibrationForm.notes || undefined,
+      };
+      const res = await fetch('/api/admin/revenue/affiliate-cost-model/calibration-logs', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.error || 'Failed to save calibration log');
+      }
+      await Promise.all([fetchCalibrationLogs(), fetchVarianceReport()]);
+      setCalibrationForm((prev) => ({
+        ...prev,
+        rationale: '',
+        notes: '',
+      }));
+    } catch (error) {
+      console.error('[Admin Affiliates] Failed to save calibration log:', error);
+      alert(error?.message || 'Failed to save calibration log');
+    } finally {
+      setCalibrationSaving(false);
+    }
+  }
+
+  function getVarianceHealth(variancePercentVsEstimated) {
+    const pct = Number(variancePercentVsEstimated);
+    if (!Number.isFinite(pct)) {
+      return {
+        label: 'NO ACTUAL BASELINE',
+        badgeClass: 'badge-ghost',
+        hint: 'No provider-billed allocation for this window yet.',
+      };
+    }
+    const absPct = Math.abs(pct);
+    if (absPct <= 5) {
+      return {
+        label: 'GREEN',
+        badgeClass: 'badge-success',
+        hint: 'Variance within +/-5% of estimate.',
+      };
+    }
+    if (absPct <= 15) {
+      return {
+        label: 'YELLOW',
+        badgeClass: 'badge-warning',
+        hint: 'Variance between +/-5% and +/-15%.',
+      };
+    }
+    return {
+      label: 'RED',
+      badgeClass: 'badge-error',
+      hint: 'Variance above +/-15%; recalibrate soon.',
+    };
   }
 
   async function approveAffiliate(affiliate) {
@@ -336,6 +530,8 @@ export default function AdminAffiliateDashboard() {
     );
   }
 
+  const varianceHealth = getVarianceHealth(varianceReport?.totals?.variancePercentVsEstimated);
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -412,6 +608,336 @@ export default function AdminAffiliateDashboard() {
               <Clock className="w-8 h-8 text-warning opacity-50" />
             </div>
           </div>
+        </div>
+      </div>
+
+      <div className="card bg-base-200 shadow-lg">
+        <div className="card-body">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+            <div>
+              <h2 className="card-title">Global Period Economics</h2>
+              <p className="text-sm text-base-content/60">
+                One view for money in, provider cost, affiliate liabilities, and profit after affiliate.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2 items-end">
+              <label className="form-control">
+                <span className="label-text text-xs">Period</span>
+                <select
+                  className="select select-bordered select-sm"
+                  value={periodFilters.period}
+                  onChange={(e) => setPeriodFilters((prev) => ({ ...prev, period: e.target.value }))}
+                >
+                  <option value="day">Day (today)</option>
+                  <option value="week">Week (last 7 days)</option>
+                  <option value="month">Month (last 30 days)</option>
+                  <option value="custom">Custom</option>
+                </select>
+              </label>
+              {periodFilters.period === 'custom' && (
+                <>
+                  <label className="form-control">
+                    <span className="label-text text-xs">Start</span>
+                    <input
+                      type="date"
+                      className="input input-bordered input-sm"
+                      value={periodFilters.startDate}
+                      onChange={(e) => setPeriodFilters((prev) => ({ ...prev, startDate: e.target.value }))}
+                    />
+                  </label>
+                  <label className="form-control">
+                    <span className="label-text text-xs">End</span>
+                    <input
+                      type="date"
+                      className="input input-bordered input-sm"
+                      value={periodFilters.endDate}
+                      onChange={(e) => setPeriodFilters((prev) => ({ ...prev, endDate: e.target.value }))}
+                    />
+                  </label>
+                </>
+              )}
+              <button className="btn btn-primary btn-sm" onClick={fetchPeriodDashboard} disabled={periodLoading}>
+                {periodLoading ? 'Loading...' : 'Refresh'}
+              </button>
+            </div>
+          </div>
+
+          {periodError && (
+            <div className="alert alert-error mt-4">
+              <span>{periodError}</span>
+            </div>
+          )}
+
+          {!periodError && periodDashboard && (
+            <div className="mt-4 space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm">
+                <div>Net collected: <b>${Number(periodDashboard.revenue?.netCollectedUsd || 0).toFixed(2)}</b></div>
+                <div>Provider cost: <b>${Number(periodDashboard.providerCost?.usd || 0).toFixed(2)}</b></div>
+                <div>Provider confidence: <b>{periodDashboard.providerCost?.confidence || 'unknown'}</b></div>
+                <div>Gross profit: <b>${Number(periodDashboard.economics?.grossProfitUsd || 0).toFixed(2)}</b></div>
+                <div>Gross margin: <b>{Number(periodDashboard.economics?.grossMarginPercent || 0).toFixed(2)}%</b></div>
+                <div>Profit after affiliate: <b className={Number(periodDashboard.economics?.profitAfterAffiliateUsd || 0) < 0 ? 'text-error' : 'text-success'}>${Number(periodDashboard.economics?.profitAfterAffiliateUsd || 0).toFixed(2)}</b></div>
+                <div>Affiliate paid: <b>${Number(periodDashboard.affiliateCommissions?.paidUsd || 0).toFixed(2)}</b></div>
+                <div>Affiliate approved: <b>${Number(periodDashboard.affiliateCommissions?.approvedUsd || 0).toFixed(2)}</b></div>
+                <div>Affiliate held: <b>${Number(periodDashboard.affiliateCommissions?.heldUsd || 0).toFixed(2)}</b></div>
+              </div>
+              <div className="text-xs text-base-content/70">
+                Retained margin after affiliate: <b>{Number(periodDashboard.economics?.retainedMarginPercentAfterAffiliate || 0).toFixed(2)}%</b>
+              </div>
+              {(periodDashboard.dataQuality?.notes || []).length > 0 && (
+                <div className="text-xs text-base-content/70">
+                  {(periodDashboard.dataQuality.notes || []).map((note, idx) => (
+                    <div key={`${note}-${idx}`}>- {note}</div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="card bg-base-200 shadow-lg">
+        <div className="card-body">
+          <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3">
+            <div>
+              <div className="flex items-center gap-2">
+                <h2 className="card-title">Affiliate Cost Model Calibration</h2>
+                <span className={`badge badge-sm ${varianceHealth.badgeClass}`} title={varianceHealth.hint}>
+                  {varianceHealth.label}
+                </span>
+              </div>
+              <p className="text-sm text-base-content/60">
+                Compare estimated affiliate AI cost vs allocated provider-billed actual by plan and usage band.
+              </p>
+            </div>
+            <div className="flex flex-wrap gap-2 items-end">
+              <label className="form-control">
+                <span className="label-text text-xs">Start</span>
+                <input
+                  type="date"
+                  className="input input-bordered input-sm"
+                  value={varianceFilters.startDate}
+                  onChange={(e) => setVarianceFilters((prev) => ({ ...prev, startDate: e.target.value }))}
+                />
+              </label>
+              <label className="form-control">
+                <span className="label-text text-xs">End</span>
+                <input
+                  type="date"
+                  className="input input-bordered input-sm"
+                  value={varianceFilters.endDate}
+                  onChange={(e) => setVarianceFilters((prev) => ({ ...prev, endDate: e.target.value }))}
+                />
+              </label>
+              <label className="form-control">
+                <span className="label-text text-xs">Affiliate</span>
+                <select
+                  className="select select-bordered select-sm"
+                  value={varianceFilters.affiliateId}
+                  onChange={(e) => setVarianceFilters((prev) => ({ ...prev, affiliateId: e.target.value }))}
+                >
+                  <option value="">All affiliates</option>
+                  {affiliates.map((affiliate) => (
+                    <option key={affiliate.affiliate_id} value={affiliate.affiliate_id}>
+                      {affiliate.email || affiliate.referral_code || affiliate.affiliate_id}
+                    </option>
+                  ))}
+                </select>
+              </label>
+              <button className="btn btn-primary btn-sm" onClick={fetchVarianceReport} disabled={varianceLoading}>
+                {varianceLoading ? 'Loading...' : 'Run Calibration'}
+              </button>
+            </div>
+          </div>
+
+          {varianceError && (
+            <div className="alert alert-error mt-4">
+              <span>{varianceError}</span>
+            </div>
+          )}
+
+          {!varianceError && varianceReport && (
+            <div className="mt-4 space-y-3">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm">
+                <div>Cost model version: <b>{varianceReport.costModelVersion || 'unknown'}</b></div>
+                <div>Estimated $/credit: <b>${Number(varianceReport.estimatedCostPerCreditUsd || 0).toFixed(6)}</b></div>
+                <div>Provider billed total: <b>${Number(varianceReport.providerBilledTotalCostUsd || 0).toFixed(2)}</b></div>
+                <div>Commissions: <b>{Number(varianceReport.totals?.commissions || 0)}</b></div>
+                <div>Referred users: <b>{Number(varianceReport.totals?.uniqueUsers || 0)}</b></div>
+                <div>Estimated credits: <b>{Number(varianceReport.totals?.estimatedCredits || 0).toFixed(2)}</b></div>
+                <div>Estimated cost: <b>${Number(varianceReport.totals?.estimatedCostUsd || 0).toFixed(2)}</b></div>
+                <div>Allocated actual: <b>{varianceReport.totals?.actualAllocatedCostUsd == null ? '-' : `$${Number(varianceReport.totals.actualAllocatedCostUsd).toFixed(2)}`}</b></div>
+                <div>
+                  Variance: <b className={Number(varianceReport.totals?.varianceUsd || 0) >= 0 ? 'text-success' : 'text-error'}>
+                    {varianceReport.totals?.varianceUsd == null ? '-' : `$${Number(varianceReport.totals.varianceUsd).toFixed(2)} (${Number(varianceReport.totals?.variancePercentVsEstimated || 0).toFixed(2)}%)`}
+                  </b>
+                </div>
+              </div>
+              <div className="text-xs text-base-content/70">
+                Thresholds: <b>GREEN</b> <= +/-5%, <b>YELLOW</b> <= +/-15%, <b>RED</b> {'>'} +/-15%.
+              </div>
+
+              <div className="overflow-x-auto max-h-72">
+                <table className="table table-zebra table-sm">
+                  <thead>
+                    <tr>
+                      <th>Plan</th>
+                      <th>Usage Band</th>
+                      <th>Commissions</th>
+                      <th>Users</th>
+                      <th>Est. Credits</th>
+                      <th>Est. Cost</th>
+                      <th>Allocated Actual</th>
+                      <th>Variance</th>
+                      <th>Confidence</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(varianceReport.rows || []).map((row) => (
+                      <tr key={`${row.plan}-${row.usageBand}`}>
+                        <td>{row.plan}</td>
+                        <td>{row.usageBand}</td>
+                        <td>{Number(row.commissions || 0)}</td>
+                        <td>{Number(row.uniqueUsers || 0)}</td>
+                        <td>{Number(row.estimatedCredits || 0).toFixed(2)}</td>
+                        <td>${Number(row.estimatedCostUsd || 0).toFixed(2)}</td>
+                        <td>{row.actualAllocatedCostUsd == null ? '-' : `$${Number(row.actualAllocatedCostUsd).toFixed(2)}`}</td>
+                        <td className={Number(row.varianceUsd || 0) >= 0 ? 'text-success' : 'text-error'}>
+                          {row.varianceUsd == null ? '-' : `$${Number(row.varianceUsd).toFixed(2)} (${Number(row.variancePercentVsEstimated || 0).toFixed(2)}%)`}
+                        </td>
+                        <td>{row.confidence || 'unknown'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {(varianceReport.dataQuality?.notes || []).length > 0 && (
+                <div className="text-xs text-base-content/70">
+                  {(varianceReport.dataQuality.notes || []).map((note, idx) => (
+                    <div key={`${note}-${idx}`}>- {note}</div>
+                  ))}
+                </div>
+              )}
+
+              <div className="divider my-2">Calibration Runbook Log</div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                <label className="form-control">
+                  <span className="label-text text-xs">Window Start</span>
+                  <input
+                    type="date"
+                    className="input input-bordered input-sm"
+                    value={calibrationForm.windowStart}
+                    onChange={(e) => setCalibrationForm((prev) => ({ ...prev, windowStart: e.target.value }))}
+                  />
+                </label>
+                <label className="form-control">
+                  <span className="label-text text-xs">Window End</span>
+                  <input
+                    type="date"
+                    className="input input-bordered input-sm"
+                    value={calibrationForm.windowEnd}
+                    onChange={(e) => setCalibrationForm((prev) => ({ ...prev, windowEnd: e.target.value }))}
+                  />
+                </label>
+                <label className="form-control">
+                  <span className="label-text text-xs">Status</span>
+                  <select
+                    className="select select-bordered select-sm"
+                    value={calibrationForm.status}
+                    onChange={(e) => setCalibrationForm((prev) => ({ ...prev, status: e.target.value }))}
+                  >
+                    <option value="proposed">Proposed</option>
+                    <option value="adopted">Adopted</option>
+                    <option value="rejected">Rejected</option>
+                  </select>
+                </label>
+                <label className="form-control">
+                  <span className="label-text text-xs">Proposed $/credit</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.000001"
+                    className="input input-bordered input-sm"
+                    value={calibrationForm.proposedCostPerCredit}
+                    onChange={(e) => setCalibrationForm((prev) => ({ ...prev, proposedCostPerCredit: e.target.value }))}
+                  />
+                </label>
+                <label className="form-control">
+                  <span className="label-text text-xs">Adopted $/credit (optional)</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.000001"
+                    className="input input-bordered input-sm"
+                    value={calibrationForm.adoptedCostPerCredit}
+                    onChange={(e) => setCalibrationForm((prev) => ({ ...prev, adoptedCostPerCredit: e.target.value }))}
+                  />
+                </label>
+                <label className="form-control md:col-span-3">
+                  <span className="label-text text-xs">Rationale</span>
+                  <input
+                    type="text"
+                    className="input input-bordered input-sm"
+                    value={calibrationForm.rationale}
+                    onChange={(e) => setCalibrationForm((prev) => ({ ...prev, rationale: e.target.value }))}
+                    placeholder="Why this calibration is proposed/adopted."
+                  />
+                </label>
+                <label className="form-control md:col-span-3">
+                  <span className="label-text text-xs">Notes</span>
+                  <input
+                    type="text"
+                    className="input input-bordered input-sm"
+                    value={calibrationForm.notes}
+                    onChange={(e) => setCalibrationForm((prev) => ({ ...prev, notes: e.target.value }))}
+                    placeholder="Optional runbook notes."
+                  />
+                </label>
+              </div>
+              <div className="flex gap-2">
+                <button className="btn btn-sm btn-primary" onClick={saveCalibrationLog} disabled={calibrationSaving}>
+                  {calibrationSaving ? 'Saving...' : 'Save Calibration Log'}
+                </button>
+                <button className="btn btn-sm btn-outline" onClick={fetchCalibrationLogs} disabled={calibrationLoading}>
+                  {calibrationLoading ? 'Loading...' : 'Refresh Logs'}
+                </button>
+              </div>
+              {calibrationError && (
+                <div className="alert alert-error">
+                  <span>{calibrationError}</span>
+                </div>
+              )}
+              <div className="overflow-x-auto max-h-56">
+                <table className="table table-zebra table-sm">
+                  <thead>
+                    <tr>
+                      <th>Created</th>
+                      <th>Status</th>
+                      <th>Window</th>
+                      <th>Prev</th>
+                      <th>Proposed</th>
+                      <th>Adopted</th>
+                      <th>Variance %</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(calibrationLogs || []).map((log) => (
+                      <tr key={log.calibration_id}>
+                        <td>{log.created_at ? new Date(log.created_at).toLocaleString() : '-'}</td>
+                        <td>{log.status || 'unknown'}</td>
+                        <td>{log.window_start ? new Date(log.window_start).toLocaleDateString() : '-'} - {log.window_end ? new Date(log.window_end).toLocaleDateString() : '-'}</td>
+                        <td>{Number(log.previous_cost_per_credit_usd || 0).toFixed(6)}</td>
+                        <td>{Number(log.proposed_cost_per_credit_usd || 0).toFixed(6)}</td>
+                        <td>{log.adopted_cost_per_credit_usd == null ? '-' : Number(log.adopted_cost_per_credit_usd).toFixed(6)}</td>
+                        <td>{log.variance_percent_vs_estimated == null ? '-' : `${Number(log.variance_percent_vs_estimated).toFixed(2)}%`}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
