@@ -46,7 +46,7 @@ import {
 const COLORS = ['#DC143C', '#00D9FF', '#FFD700', '#8B0000', '#0099CC'];
 
 export default function AffiliatePortal() {
-  const { user } = useUser();
+  const { user, isLoaded, isSignedIn } = useUser();
   const { getToken } = useAuth();
   const [affiliate, setAffiliate] = useState(null);
   const [stats, setStats] = useState(null);
@@ -62,10 +62,13 @@ export default function AffiliatePortal() {
   const referralLink = affiliate ? `${typeof window !== 'undefined' ? window.location.origin : 'https://www.wryda.ai'}?ref=${affiliate.referral_code}` : '';
 
   useEffect(() => {
+    if (!isLoaded) return;
     if (user) {
       loadAffiliateData();
+    } else {
+      setLoading(false);
     }
-  }, [user]);
+  }, [isLoaded, user]);
 
   const loadAffiliateData = async () => {
     try {
@@ -275,12 +278,37 @@ export default function AffiliatePortal() {
     }
   };
 
-  if (loading) {
+  if (!isLoaded || loading) {
     return (
       <div className="flex items-center justify-center h-screen bg-[#0A0A0A]">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#DC143C] mx-auto"></div>
           <p className="mt-4 text-[#B3B3B3]">Loading affiliate dashboard...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isSignedIn) {
+    return (
+      <div className="min-h-screen bg-[#0A0A0A]">
+        <div className="container mx-auto px-4 py-16 max-w-2xl">
+          <div className="bg-[#141414] border border-white/10 rounded-lg shadow-2xl p-8 text-center">
+            <AlertCircle className="h-16 w-16 text-[#DC143C] mx-auto mb-6" />
+            <h1 className="text-3xl font-bold text-white mb-4">Sign In Required</h1>
+            <p className="text-[#B3B3B3] text-lg mb-6">
+              The affiliate dashboard is available only to signed-in affiliate accounts.
+            </p>
+            <Button
+              onClick={() => {
+                const redirect = encodeURIComponent('/affiliates');
+                window.location.href = `/sign-in?redirect_url=${redirect}`;
+              }}
+              className="bg-[#DC143C] hover:bg-[#DC143C]/90 text-white"
+            >
+              Sign In
+            </Button>
+          </div>
         </div>
       </div>
     );
@@ -302,65 +330,22 @@ export default function AffiliatePortal() {
         </div>
       );
     }
+
     return (
       <div className="min-h-screen bg-[#0A0A0A]">
-        <div className="container mx-auto px-4 py-16 max-w-4xl">
-          <div className="text-center mb-12">
-            <h1 className="text-5xl font-bold text-white mb-4">Join the Wryda Affiliate Program</h1>
-            <p className="text-xl text-[#B3B3B3] mb-2">Earn recurring commissions by sharing the future of filmmaking</p>
-            <p className="text-lg text-[#808080]">Help creators bring their stories to life while building passive income</p>
-          </div>
-
-          <div className="bg-[#141414] border border-white/10 rounded-lg shadow-2xl p-8 mb-8">
-            <h2 className="text-2xl font-bold text-white mb-6">Why Become a Wryda Affiliate?</h2>
-            <div className="grid md:grid-cols-2 gap-6 mb-8">
-              <div className="flex items-start gap-4">
-                <div className="text-[#DC143C] text-2xl">💰</div>
-                <div>
-                  <h3 className="text-lg font-semibold text-white mb-2">30% Recurring Commission</h3>
-                  <p className="text-[#B3B3B3]">Earn on every subscription your referrals purchase, month after month</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-4">
-                <div className="text-[#00D9FF] text-2xl">📊</div>
-                <div>
-                  <h3 className="text-lg font-semibold text-white mb-2">Real-Time Analytics</h3>
-                  <p className="text-[#B3B3B3]">Track clicks, conversions, and earnings with our comprehensive dashboard</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-4">
-                <div className="text-[#FFD700] text-2xl">🎬</div>
-                <div>
-                  <h3 className="text-lg font-semibold text-white mb-2">30-Day Cookie Window</h3>
-                  <p className="text-[#B3B3B3]">Extended tracking ensures you get credit for every conversion</p>
-                </div>
-              </div>
-              <div className="flex items-start gap-4">
-                <div className="text-[#DC143C] text-2xl">⚡</div>
-                <div>
-                  <h3 className="text-lg font-semibold text-white mb-2">Monthly Payouts</h3>
-                  <p className="text-[#B3B3B3]">Fast, reliable payments via Stripe Connect with $50 minimum</p>
-                </div>
-              </div>
-            </div>
-            <Button 
+        <div className="container mx-auto px-4 py-16 max-w-2xl">
+          <div className="bg-[#141414] border border-white/10 rounded-lg shadow-2xl p-8 text-center">
+            <AlertCircle className="h-16 w-16 text-[#FFD700] mx-auto mb-6" />
+            <h1 className="text-3xl font-bold text-white mb-4">Affiliate Account Required</h1>
+            <p className="text-[#B3B3B3] text-lg mb-6">
+              This dashboard is available only to approved affiliate accounts.
+            </p>
+            <Button
               onClick={() => window.location.href = '/affiliates/apply'}
-              className="w-full bg-gradient-to-r from-[#DC143C] to-[#8B0000] hover:from-[#DC143C]/90 hover:to-[#8B0000]/90 text-white font-semibold py-6 text-lg"
+              className="bg-gradient-to-r from-[#DC143C] to-[#8B0000] hover:from-[#DC143C]/90 hover:to-[#8B0000]/90 text-white"
             >
               Apply to Become an Affiliate
             </Button>
-          </div>
-
-          <div className="bg-[#141414] border border-white/10 rounded-lg p-6">
-            <h3 className="text-xl font-semibold text-white mb-4">Perfect For</h3>
-            <div className="grid md:grid-cols-3 gap-4 text-[#B3B3B3]">
-              <div>✓ Content Creators</div>
-              <div>✓ Filmmaking Educators</div>
-              <div>✓ Industry Influencers</div>
-              <div>✓ YouTube Channels</div>
-              <div>✓ Podcast Hosts</div>
-              <div>✓ Blog Writers</div>
-            </div>
           </div>
         </div>
       </div>
