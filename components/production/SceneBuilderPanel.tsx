@@ -4829,8 +4829,9 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                 const isDialogueShotForValidation = s.type === 'dialogue';
                 const isSceneVoiceoverForValidation = selectedDialogueWorkflows[s.slot] === 'scene-voiceover';
                 const isOverrideAllowedForValidation = !isDialogueShotForValidation || isSceneVoiceoverForValidation;
+                const isActionElementsForValidation = s.type === 'action' && !!contextState.useElementsForVideo?.[s.slot];
                 
-                if (isOverrideAllowedForValidation && firstFrameOverrideEnabled[s.slot]) {
+                if (isOverrideAllowedForValidation && !isActionElementsForValidation && firstFrameOverrideEnabled[s.slot]) {
                   const hasPrompt = firstFramePromptOverrides[s.slot]?.trim() !== '';
                   const hasUploadedFirstFrame = !!uploadedFirstFrames[s.slot];
                   if (!hasPrompt && !hasUploadedFirstFrame) {

@@ -403,6 +403,7 @@ export function ShotConfigurationStep({
   // 🔥 Feature 0218: Override section only for Narrate Shot (and non-dialogue). Hidden Mouth uses additive video prompt in panel, not overrides.
   const isDialogueShot = shot.type === 'dialogue';
   const isSceneVoiceover = finalSelectedDialogueWorkflow === 'scene-voiceover';
+  const isActionElementsMode = shot.type === 'action' && !!state.useElementsForVideo?.[shot.slot];
   const isOverrideAllowed = !isDialogueShot || isSceneVoiceover;
   
   // Auto-enable checkboxes if override data exists (preserves state on navigation)
@@ -2040,7 +2041,7 @@ export function ShotConfigurationStep({
           ) : null}
 
           {/* Override First Frame – moved outside !uploadedFirstFrameUrl so user can remove when uploaded */}
-          {isOverrideAllowed && (
+          {isOverrideAllowed && !isActionElementsMode && (
             <div className="mt-4 pt-3 border-t border-[#3F3F46]">
                       <div className="flex items-center gap-2 mb-3">
                         <input
