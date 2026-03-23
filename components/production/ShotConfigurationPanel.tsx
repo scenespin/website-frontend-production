@@ -2125,7 +2125,7 @@ export function ShotConfigurationPanel({
       {!useElementsForVideo && renderAfterReferenceSelection}
 
       {/* Additive prompt for first-frame generation (dialogue/action). */}
-      {showMotionDirection && (
+      {showMotionDirection && !useElementsForVideo && (
         <div className="py-3 border-b border-[#3F3F46]">
           <label className="block text-xs font-medium text-[#FFFFFF] mb-2">
             First frame additive prompt (optional)

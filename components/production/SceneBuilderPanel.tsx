@@ -1812,6 +1812,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     setSelectedSceneId(null);
     setHasConfirmedSceneSelection(false);
     setSceneAnalysisResult(null);
+    setEnabledShots([]);
     setAnalysisError(null);
   }, [selectedSceneId, sortedScenes, setSceneAnalysisResult]);
 
@@ -1835,6 +1836,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     setSelectedSceneId(targetSceneId);
     setHasConfirmedSceneSelection(false);
     setSceneAnalysisResult(null);
+    setEnabledShots([]);
     setAnalysisError(null);
 
     const sceneText = scene.synopsis ||
@@ -4164,6 +4166,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                       setSelectedSceneId(sceneId);
                             setHasConfirmedSceneSelection(false); // Reset confirmation when scene changes
                             setSceneAnalysisResult(null); // Clear previous analysis
+                            setEnabledShots([]); // Reset shot selection for new scene; Step 1 will default to all shots
                             setAnalysisError(null); // Clear any errors
                       const scene = screenplay.scenes?.find(s => s.id === sceneId);
                       if (scene) {
@@ -4177,6 +4180,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                             setSelectedSceneId(null);
                             setHasConfirmedSceneSelection(false);
                             setSceneAnalysisResult(null);
+                            setEnabledShots([]);
                             setAnalysisError(null);
                           }
                         }}
