@@ -552,7 +552,29 @@ export function ShotConfigurationPanel({
         return true;
       });
 
-    return cleanedSentences.slice(0, 2).join('. ').trim();
+    return cleanedSentences.join('. ').trim();
+  }, []);
+
+  // Keep auto-prefill readable/reliable: cap long action text at sentence boundary.
+  const capAtSentenceBoundary = React.useCallback((text: string, maxChars: number): string => {
+    const normalized = (text || '').replace(/\s+/g, ' ').trim();
+    if (!normalized) return '';
+    if (normalized.length <= maxChars) return normalized;
+
+    const sentenceMatches = normalized.match(/[^.!?]+[.!?]*/g) || [];
+    let out = '';
+    for (const part of sentenceMatches) {
+      const sentence = part.trim();
+      if (!sentence) continue;
+      const candidate = out ? `${out} ${sentence}` : sentence;
+      if (candidate.length > maxChars) break;
+      out = candidate;
+    }
+    if (out) return out.replace(/[.!?]+$/, '').trim();
+
+    // Fallback when first sentence already exceeds the limit.
+    const fallback = normalized.slice(0, maxChars).trim();
+    return fallback.replace(/[.!?]+$/, '').trim();
   }, []);
 
   const inferInteriorScene = React.useCallback((sceneHeading: string, locationName: string, actionText: string): boolean => {
@@ -609,7 +631,7 @@ export function ShotConfigurationPanel({
     const actionWithNames = replacePronounsWithCharacterNames(actionLine.trim(), shotMappings || {}, allCharacters);
     const visualAction = toVisualOnlyAction(actionWithNames);
     const actionSentence = visualAction
-      ? `${visualAction}.`
+      ? `${capAtSentenceBoundary(visualAction, 700)}.`
       : 'The subject performs one clear physical action with readable body movement and expression.';
     const style = 'Photorealistic cinematic style, controlled lighting, natural motion, and consistent character likeness.';
 
@@ -650,7 +672,7 @@ export function ShotConfigurationPanel({
       `Style & Ambiance:\n${style}`,
       `Negative prompt:\n${negativePrompt}`,
     ].join('\n\n');
-  }, [selectedElementsForVideo, elementsListForShot, shot, shotMappings, allCharacters, sceneAnalysisResult, replacePronounsWithCharacterNames, toVisualOnlyAction, inferInteriorScene]);
+  }, [selectedElementsForVideo, elementsListForShot, shot, shotMappings, allCharacters, sceneAnalysisResult, replacePronounsWithCharacterNames, toVisualOnlyAction, inferInteriorScene, capAtSentenceBoundary]);
 
   // When Elements selection changes, update stored prompt to the new suggestion (so prefill stays in sync with refs).
   const prevSuggestionRef = React.useRef('');
@@ -2396,7 +2418,7 @@ export function ShotConfigurationPanel({
                     rows={3}
                     className="w-full px-3 py-2 text-xs bg-[#0A0A0A] border border-[#3F3F46] rounded text-[#FFFFFF] placeholder-[#6B7280] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-[#DC143C] resize-y min-h-[4rem]"
                   />
-                  <p className="text-[10px] text-[#808080] mt-1">Best practice: use the provided images as refs, then subject + action + context + style. Prefilled from the script—edit shot type (e.g. close-up, wide shot) and mood as needed.</p>
+                  <p className="text-[10px] text-[#808080] mt-1">Best practice: use the provided images as refs, then subject + action + context + style. Prefilled from scene action; long action descriptions are sentence-trimmed (about 700 chars) for model reliability.</p>
                 </div>
               )}
             </div>
