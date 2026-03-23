@@ -2180,7 +2180,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   
   // Poll workflow status every 3 seconds
   useEffect(() => {
-    if (!workflowExecutionId || !isGenerating) return;
+    if (!workflowExecutionId) return;
     
     const interval = setInterval(async () => {
       try {
@@ -2256,7 +2256,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     }, 3000);
     
     return () => clearInterval(interval);
-  }, [workflowExecutionId, isGenerating]);
+  }, [workflowExecutionId, getToken, projectId]);
   
   // detectDialogue function moved to sceneBuilderUtils.ts
   
@@ -3668,7 +3668,6 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       setSelectedSceneId(null);
       setHasConfirmedSceneSelection(false);
       setIsGenerating(false);
-      setWorkflowExecutionId(null);
       setWorkflowStatus(null);
       localStorage.removeItem(`scene-builder-execution-${projectId}`);
       window.scrollTo({ top: 0, behavior: 'smooth' });
