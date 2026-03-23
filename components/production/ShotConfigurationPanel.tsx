@@ -229,7 +229,7 @@ interface ShotConfigurationPanelProps {
   showDialogueWorkflowSection?: boolean;
   onAddDialogueVideoClick?: () => void;
   onCollapseDialogueVideo?: () => void;
-  /** Feature 0234: Additive motion direction for lip-sync dialogue. Shown above "+ Add Dialogue Video" when true. */
+  /** Additive prompt text for first-frame generation. */
   motionDirectionPrompt?: string;
   onMotionDirectionChange?: (value: string) => void;
   showMotionDirection?: boolean;
@@ -2124,16 +2124,16 @@ export function ShotConfigurationPanel({
       {/* Reference Shot (model + preview) + Override First Frame. Hidden when Elements to Video is on (Feature 0259). */}
       {!useElementsForVideo && renderAfterReferenceSelection}
 
-      {/* Feature 0234: Motion Direction – associated with first frame generation; above upload and lip-sync. */}
+      {/* Additive prompt for first-frame generation (dialogue/action). */}
       {showMotionDirection && (
         <div className="py-3 border-b border-[#3F3F46]">
           <label className="block text-xs font-medium text-[#FFFFFF] mb-2">
-            Motion Direction (optional)
+            First frame additive prompt (optional)
           </label>
           <textarea
             value={motionDirectionPrompt}
             onChange={(e) => onMotionDirectionChange?.(e.target.value)}
-            placeholder="Add expressions or motion cues (e.g., 'tilts head', 'rolls eyes', 'smirks', 'leans forward')"
+            placeholder="Add motion/expression direction (e.g., 'tilts head', 'rolls eyes', 'smirks', 'leans forward')"
             rows={2}
             className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none"
           />

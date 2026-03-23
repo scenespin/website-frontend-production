@@ -1940,6 +1940,9 @@ export function ShotConfigurationStep({
                   selectedElementsForVideo={state.selectedElementsForVideo[shot.slot] || []}
                   onSelectedElementsForShotChange={(elementIds) => actions.updateSelectedElementsForShot(shot.slot, elementIds)}
                   elementsMaxSelect={VEO_MAX_ELEMENTS}
+                  motionDirectionPrompt={state.motionDirectionPrompt[shotSlot] || ''}
+                  onMotionDirectionChange={(value) => actions.updateMotionDirectionPrompt(shotSlot, value)}
+                  showMotionDirection={shot.type === 'action'}
                   elementsVideoPrompt={state.videoPromptOverrides[shot.slot] ?? ''}
                   onElementsVideoPromptChange={(value) => actions.updateVideoPromptOverride(shot.slot, value)}
                   elementsVideoDuration={state.elementsVideoDurations[shot.slot]}

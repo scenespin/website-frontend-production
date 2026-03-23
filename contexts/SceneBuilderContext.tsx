@@ -161,7 +161,7 @@ export interface SceneBuilderState {
   selectedVideoTypes: Record<number, VideoType>;
   /** Feature 0233: Per-shot video opt-in. When false/absent, shot is first-frame-only. */
   generateVideoForShot: Record<number, boolean>;
-  /** Feature 0234: Additive motion direction for lip-sync dialogue (e.g., "tilts head", "rolls eyes"). */
+  /** Additive first-frame prompt text per shot (e.g., "tilts head", "rolls eyes"). */
   motionDirectionPrompt: Record<number, string>;
   /** Feature 0259: Per-shot "Elements" option on (show ref list + prompt). UI-only; submit uses selectedElementsForVideo. */
   useElementsForVideo: Record<number, boolean>;
@@ -294,7 +294,7 @@ export interface SceneBuilderActions {
   /** Feature 0233: Per-shot video opt-in. Expand "Add Dialogue Video" sets true. */
   setGenerateVideoForShot: (byShot: Record<number, boolean>) => void;
   updateGenerateVideoForShot: (shotSlot: number, enabled: boolean) => void;
-  /** Feature 0234: Additive motion direction for lip-sync dialogue. */
+  /** Additive first-frame prompt text per shot. */
   setMotionDirectionPrompt: (byShot: Record<number, string>) => void;
   updateMotionDirectionPrompt: (shotSlot: number, prompt: string) => void;
   /** Feature 0259: Elements option on/off (UI). When on, show ref list + prompt. */
@@ -1402,7 +1402,7 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
       }));
     }, []),
     
-    // Feature 0234: Additive motion direction for lip-sync dialogue
+    // Additive first-frame prompt text per shot
     setMotionDirectionPrompt: useCallback((byShot) => {
       setState(prev => ({ ...prev, motionDirectionPrompt: byShot }));
     }, []),
