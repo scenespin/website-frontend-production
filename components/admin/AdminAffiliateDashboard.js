@@ -27,6 +27,7 @@ export default function AdminAffiliateDashboard() {
   const [affiliates, setAffiliates] = useState([]);
   const [topPerformers, setTopPerformers] = useState([]);
   const [pendingPayouts, setPendingPayouts] = useState([]);
+  const [processingPayoutId, setProcessingPayoutId] = useState(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState('all');
   const [inviteCodes, setInviteCodes] = useState([]);
@@ -570,6 +571,49 @@ export default function AdminAffiliateDashboard() {
     } catch (error) {
       console.error('[Admin Affiliates] Failed to reactivate:', error);
       alert(error?.message || 'Failed to reactivate affiliate');
+    }
+  }
+
+  async function processPendingPayout(payout) {
+    const payoutId = String(payout?.payout_id || '').trim();
+    if (!payoutId) {
+      alert('Missing payout ID');
+      return;
+    }
+    const confirmed = window.confirm(
+      `Process payout for ${payout?.affiliate_email || 'affiliate'}?\n\nAmount: $${Number(payout?.amount || 0).toFixed(2)}`
+    );
+    if (!confirmed) return;
+
+    setProcessingPayoutId(payoutId);
+    try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) {
+        alert('Authentication required');
+        return;
+      }
+      const res = await fetch('/api/admin/affiliates/process-payouts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({ payout_ids: [payoutId] }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.error || 'Failed to process payout');
+      }
+      const result = Array.isArray(data?.results) ? data.results[0] : null;
+      if (result?.status === 'error') {
+        throw new Error(result?.message || 'Payout processing failed');
+      }
+      await fetchDashboardData();
+    } catch (error) {
+      console.error('[Admin Affiliates] Failed to process payout:', error);
+      alert(error?.message || 'Failed to process payout');
+    } finally {
+      setProcessingPayoutId(null);
     }
   }
 
@@ -1265,8 +1309,12 @@ export default function AdminAffiliateDashboard() {
                         <span className="badge badge-warning">{payout.status}</span>
                       </td>
                       <td>
-                        <button className="btn btn-xs btn-primary">
-                          Process
+                        <button
+                          className="btn btn-xs btn-primary"
+                          onClick={() => processPendingPayout(payout)}
+                          disabled={processingPayoutId === payout.payout_id}
+                        >
+                          {processingPayoutId === payout.payout_id ? 'Processing...' : 'Process'}
                         </button>
                       </td>
                     </tr>
