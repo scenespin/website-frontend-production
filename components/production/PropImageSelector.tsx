@@ -3,7 +3,7 @@
 /**
  * PropImageSelector - Prop Image Selection for Shots
  *
- * Single dropdown: All angles (by category) + Creation Image.
+ * Single dropdown: Angles + Creation Image.
  * Display names use spaces (no underscores). Same pattern as location filter.
  */
 
@@ -13,10 +13,12 @@ import { getAvailablePropImagesByGroup, type AvailableImage } from './utils/prop
 import { SCENE_BUILDER_GRID_COLS, SCENE_BUILDER_GRID_GAP, THUMBNAIL_ASPECT_RATIO, THUMBNAIL_STYLE } from './utils/imageConstants';
 
 const CREATION_IMAGE_VALUE = '__creation__';
+const ANGLES_VALUE = '__angles__';
 
 /** Display category with spaces instead of underscores (e.g. "back_left" → "back left"). */
 function formatCategoryDisplay(value: string): string {
   if (value === CREATION_IMAGE_VALUE) return 'Creation Image';
+  if (value === ANGLES_VALUE) return 'Angles';
   return value.replace(/_/g, ' ').trim() || value;
 }
 
@@ -56,24 +58,11 @@ export function PropImageSelector({
   const creationImages = groupedImages['Creation Image'] || [];
   const hasAnyImages = hubImages.length > 0 || creationImages.length > 0;
 
-  // Unified options: each angle category + Creation Image (if any) — no "All"
+  // Unified options: Angles + Creation Image
   const unifiedOptions = useMemo(() => {
     const options: Array<{ value: string; count: number }> = [];
     if (hubImages.length > 0) {
-      const labels = new Set<string>();
-      hubImages.forEach((img) => {
-        const label = (img.label && img.label.trim()) ? img.label.trim() : 'Uncategorized';
-        labels.add(label);
-      });
-      Array.from(labels)
-        .sort((a, b) => a.localeCompare(b))
-        .forEach((label) => {
-          const count = hubImages.filter((img) => {
-            const l = (img.label && img.label.trim()) ? img.label.trim() : 'Uncategorized';
-            return l === label;
-          }).length;
-          options.push({ value: label, count });
-        });
+      options.push({ value: ANGLES_VALUE, count: hubImages.length });
     }
     if (creationImages.length > 0) {
       options.push({ value: CREATION_IMAGE_VALUE, count: creationImages.length });
@@ -81,16 +70,13 @@ export function PropImageSelector({
     return options;
   }, [groupedImages]);
 
-  // Single selection: an angle label or CREATION_IMAGE_VALUE
+  // Single selection: ANGLES or CREATION_IMAGE_VALUE
   const selectedOptionFromImage = useMemo(() => {
     if (!selectedImageId) return unifiedOptions[0]?.value ?? '';
     const inCreation = creationImages.some((img) => img.id === selectedImageId);
     if (inCreation) return CREATION_IMAGE_VALUE;
     const hubImg = hubImages.find((img) => img.id === selectedImageId);
-    if (hubImg) {
-      const label = (hubImg.label && hubImg.label.trim()) ? hubImg.label.trim() : 'Uncategorized';
-      return label;
-    }
+    if (hubImg) return ANGLES_VALUE;
     return unifiedOptions[0]?.value ?? '';
   }, [selectedImageId, hubImages, creationImages, unifiedOptions]);
 
@@ -103,10 +89,7 @@ export function PropImageSelector({
   // Images to show based on single dropdown selection
   const displayedImages = useMemo(() => {
     if (selectedOption === CREATION_IMAGE_VALUE) return creationImages;
-    return hubImages.filter((img) => {
-      const label = (img.label && img.label.trim()) ? img.label.trim() : 'Uncategorized';
-      return label === selectedOption;
-    });
+    return hubImages;
   }, [selectedOption, hubImages, creationImages]);
 
   // Resolve image URL (thumbnail or full)
@@ -138,10 +121,7 @@ export function PropImageSelector({
     setSelectedOption(value);
     const nextImages = value === CREATION_IMAGE_VALUE
       ? creationImages
-      : hubImages.filter((img) => {
-          const label = (img.label && img.label.trim()) ? img.label.trim() : 'Uncategorized';
-          return label === value;
-        });
+      : hubImages;
     const stillVisible = selectedImageId && nextImages.some((img) => img.id === selectedImageId);
     if (!stillVisible) onImageChange(propId, undefined);
   };
@@ -164,7 +144,7 @@ export function PropImageSelector({
 
   return (
     <div className="space-y-2">
-      {/* Single unified dropdown: angle categories + Creation Image */}
+      {/* Single unified dropdown: Angles + Creation Image */}
       {unifiedOptions.length > 0 && (
         <div className="flex items-center gap-2">
           <label className="text-xs text-[#808080]">Filter by:</label>
