@@ -293,34 +293,35 @@ export default function AdminAffiliateDashboard() {
     }
   }
 
-  function getVarianceHealth(variancePercentVsEstimated) {
-    const pct = Number(variancePercentVsEstimated);
-    if (!Number.isFinite(pct)) {
+  function getVarianceHealth(report) {
+    const coverage = Number(report?.totals?.allocatedCostCoveragePercent || 0);
+    const providerBilledTotal = Number(report?.providerBilledTotalCostUsd || 0);
+    const heldCommissions = Number(report?.totals?.heldCommissions || 0);
+    if (providerBilledTotal <= 0) {
       return {
-        label: 'NO ACTUAL BASELINE',
+        label: 'NO LEDGER ACTUAL',
         badgeClass: 'badge-ghost',
-        hint: 'No provider-billed allocation for this window yet.',
+        hint: 'No provider-billed ledger data in this window yet.',
       };
     }
-    const absPct = Math.abs(pct);
-    if (absPct <= 5) {
+    if (coverage >= 98 && heldCommissions === 0) {
       return {
         label: 'GREEN',
         badgeClass: 'badge-success',
-        hint: 'Variance within +/-5% of estimate.',
+        hint: 'High ledger coverage with no held commissions.',
       };
     }
-    if (absPct <= 15) {
+    if (coverage >= 90) {
       return {
         label: 'YELLOW',
         badgeClass: 'badge-warning',
-        hint: 'Variance between +/-5% and +/-15%.',
+        hint: 'Partial ledger coverage or some held commissions remain.',
       };
     }
     return {
       label: 'RED',
       badgeClass: 'badge-error',
-      hint: 'Variance above +/-15%; recalibrate soon.',
+      hint: 'Low ledger coverage; payout finalization likely blocked for many commissions.',
     };
   }
 
@@ -642,7 +643,7 @@ export default function AdminAffiliateDashboard() {
     );
   }
 
-  const varianceHealth = getVarianceHealth(varianceReport?.totals?.variancePercentVsEstimated);
+  const varianceHealth = getVarianceHealth(varianceReport);
 
   return (
     <div className="space-y-6">
@@ -880,7 +881,7 @@ export default function AdminAffiliateDashboard() {
                 <span className="badge badge-outline badge-sm">Finance analytics only</span>
               </div>
               <p className="text-sm text-base-content/60">
-                Monitoring view only. Compares legacy estimate reference vs provider-ledger actuals to detect drift; never used to approve or release payouts.
+                Monitoring view only. Shows ledger-truth payout readiness and provider-cost coverage; never used to approve or release payouts.
               </p>
             </div>
             <div className="flex flex-wrap gap-2 items-end">
@@ -937,22 +938,31 @@ export default function AdminAffiliateDashboard() {
                 </span>
               </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm">
-                <div>Cost model version: <b>{varianceReport.costModelVersion || 'unknown'}</b></div>
-                <div>Legacy estimate reference (not payout): <b>${Number(varianceReport.estimatedCostPerCreditUsd || 0).toFixed(6)}</b></div>
                 <div>Provider billed total: <b>${Number(varianceReport.providerBilledTotalCostUsd || 0).toFixed(2)}</b></div>
                 <div>Commissions: <b>{Number(varianceReport.totals?.commissions || 0)}</b></div>
                 <div>Referred users: <b>{Number(varianceReport.totals?.uniqueUsers || 0)}</b></div>
-                <div>Estimated credits: <b>{Number(varianceReport.totals?.estimatedCredits || 0).toFixed(2)}</b></div>
-                <div>Estimated cost: <b>${Number(varianceReport.totals?.estimatedCostUsd || 0).toFixed(2)}</b></div>
                 <div>Allocated actual: <b>{varianceReport.totals?.actualAllocatedCostUsd == null ? '-' : `$${Number(varianceReport.totals.actualAllocatedCostUsd).toFixed(2)}`}</b></div>
-                <div>
-                  Variance: <b className={Number(varianceReport.totals?.varianceUsd || 0) >= 0 ? 'text-success' : 'text-error'}>
-                    {varianceReport.totals?.varianceUsd == null ? '-' : `$${Number(varianceReport.totals.varianceUsd).toFixed(2)} (${Number(varianceReport.totals?.variancePercentVsEstimated || 0).toFixed(2)}%)`}
-                  </b>
+                <div>Ledger coverage: <b>{Number(varianceReport.totals?.allocatedCostCoveragePercent || 0).toFixed(2)}%</b></div>
+                <div>Confidence: <b>{varianceReport.totals?.confidence || 'unknown'}</b></div>
+                <div>Finalizable commissions: <b>{Number(varianceReport.totals?.finalizableCommissions || 0)}</b></div>
+                <div>Held commissions: <b>{Number(varianceReport.totals?.heldCommissions || 0)}</b></div>
+                <div>Confidence mix: <b>
+                  A:{Number(varianceReport.totals?.confidenceBreakdown?.actual || 0)} / M:{Number(varianceReport.totals?.confidenceBreakdown?.mixed || 0)} / E:{Number(varianceReport.totals?.confidenceBreakdown?.estimated || 0)} / U:{Number(varianceReport.totals?.confidenceBreakdown?.unknown || 0)}
+                </b></div>
+              </div>
+              <div className="rounded-md border border-base-300 p-3 text-xs">
+                <div className="font-semibold mb-1">Rolling realized provider cost per credit (ledger-based)</div>
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+                  <div>30d: <b>{varianceReport.rollingRealizedCostPerCredit?.d30?.realizedCostPerCreditUsd == null ? 'insufficient data' : `$${Number(varianceReport.rollingRealizedCostPerCredit.d30.realizedCostPerCreditUsd).toFixed(6)}`}</b></div>
+                  <div>60d: <b>{varianceReport.rollingRealizedCostPerCredit?.d60?.realizedCostPerCreditUsd == null ? 'insufficient data' : `$${Number(varianceReport.rollingRealizedCostPerCredit.d60.realizedCostPerCreditUsd).toFixed(6)}`}</b></div>
+                  <div>90d: <b>{varianceReport.rollingRealizedCostPerCredit?.d90?.realizedCostPerCreditUsd == null ? 'insufficient data' : `$${Number(varianceReport.rollingRealizedCostPerCredit.d90.realizedCostPerCreditUsd).toFixed(6)}`}</b></div>
+                </div>
+                <div className="mt-1 text-base-content/70">
+                  Spec: realized $/credit = provider billed total in window / metered credits in window. Confidence is <code>actual</code> only when both inputs are present.
                 </div>
               </div>
               <div className="text-xs text-base-content/70">
-                Thresholds: <b>GREEN</b> {'<='} +/-5%, <b>YELLOW</b> {'<='} +/-15%, <b>RED</b> {'>'} +/-15%.
+                Thresholds: <b>GREEN</b> coverage {'>='} 98% and held=0, <b>YELLOW</b> coverage {'>='} 90%, <b>RED</b> coverage {'<'} 90%.
               </div>
 
               <div className="overflow-x-auto max-h-72">
@@ -963,10 +973,10 @@ export default function AdminAffiliateDashboard() {
                       <th>Usage Band</th>
                       <th>Commissions</th>
                       <th>Users</th>
-                      <th>Est. Credits</th>
-                      <th>Est. Cost</th>
                       <th>Allocated Actual</th>
-                      <th>Variance</th>
+                      <th>Coverage</th>
+                      <th>Finalizable</th>
+                      <th>Held</th>
                       <th>Confidence</th>
                     </tr>
                   </thead>
@@ -977,12 +987,10 @@ export default function AdminAffiliateDashboard() {
                         <td>{row.usageBand}</td>
                         <td>{Number(row.commissions || 0)}</td>
                         <td>{Number(row.uniqueUsers || 0)}</td>
-                        <td>{Number(row.estimatedCredits || 0).toFixed(2)}</td>
-                        <td>${Number(row.estimatedCostUsd || 0).toFixed(2)}</td>
                         <td>{row.actualAllocatedCostUsd == null ? '-' : `$${Number(row.actualAllocatedCostUsd).toFixed(2)}`}</td>
-                        <td className={Number(row.varianceUsd || 0) >= 0 ? 'text-success' : 'text-error'}>
-                          {row.varianceUsd == null ? '-' : `$${Number(row.varianceUsd).toFixed(2)} (${Number(row.variancePercentVsEstimated || 0).toFixed(2)}%)`}
-                        </td>
+                        <td>{Number(row.allocatedCostCoveragePercent || 0).toFixed(2)}%</td>
+                        <td>{Number(row.finalizableCommissions || 0)}</td>
+                        <td>{Number(row.heldCommissions || 0)}</td>
                         <td>{row.confidence || 'unknown'}</td>
                       </tr>
                     ))}
