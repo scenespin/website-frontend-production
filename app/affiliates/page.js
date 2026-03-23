@@ -63,12 +63,17 @@ export default function AffiliatePortal() {
 
   useEffect(() => {
     if (!isLoaded) return;
+    if (!isSignedIn) {
+      const redirect = encodeURIComponent('/affiliates');
+      window.location.href = `/sign-in?redirect_url=${redirect}`;
+      return;
+    }
     if (user) {
       loadAffiliateData();
     } else {
       setLoading(false);
     }
-  }, [isLoaded, user]);
+  }, [isLoaded, isSignedIn, user]);
 
   const loadAffiliateData = async () => {
     try {
@@ -291,24 +296,10 @@ export default function AffiliatePortal() {
 
   if (!isSignedIn) {
     return (
-      <div className="min-h-screen bg-[#0A0A0A]">
-        <div className="container mx-auto px-4 py-16 max-w-2xl">
-          <div className="bg-[#141414] border border-white/10 rounded-lg shadow-2xl p-8 text-center">
-            <AlertCircle className="h-16 w-16 text-[#DC143C] mx-auto mb-6" />
-            <h1 className="text-3xl font-bold text-white mb-4">Sign In Required</h1>
-            <p className="text-[#B3B3B3] text-lg mb-6">
-              The affiliate dashboard is available only to signed-in affiliate accounts.
-            </p>
-            <Button
-              onClick={() => {
-                const redirect = encodeURIComponent('/affiliates');
-                window.location.href = `/sign-in?redirect_url=${redirect}`;
-              }}
-              className="bg-[#DC143C] hover:bg-[#DC143C]/90 text-white"
-            >
-              Sign In
-            </Button>
-          </div>
+      <div className="flex items-center justify-center h-screen bg-[#0A0A0A]">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-[#DC143C] mx-auto"></div>
+          <p className="mt-4 text-[#B3B3B3]">Redirecting to sign in...</p>
         </div>
       </div>
     );
