@@ -27,6 +27,48 @@ function toDateTimeLocal(ms) {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+function normalizeEmail(value) {
+  return String(value || '').trim().toLowerCase();
+}
+
+function uniqueByUserId(users) {
+  const seen = new Set();
+  return (users || []).filter((u) => {
+    const id = String(u?.user_id || '').trim();
+    if (!id) return false;
+    if (seen.has(id)) return false;
+    seen.add(id);
+    return true;
+  });
+}
+
+function buildEmailCounts(users) {
+  const counts = new Map();
+  (users || []).forEach((u) => {
+    const key = normalizeEmail(u?.email);
+    if (!key) return;
+    counts.set(key, (counts.get(key) || 0) + 1);
+  });
+  return counts;
+}
+
+function getDuplicateWarning(users) {
+  const byEmail = new Map();
+  (users || []).forEach((u) => {
+    const key = normalizeEmail(u?.email);
+    if (!key) return;
+    if (!byEmail.has(key)) byEmail.set(key, []);
+    const id = String(u?.user_id || '').trim();
+    if (id) byEmail.get(key).push(id);
+  });
+  const duplicateEntries = Array.from(byEmail.entries()).filter(([, userIds]) => userIds.length > 1);
+  if (duplicateEntries.length === 0) return '';
+  const first = duplicateEntries[0];
+  const firstLine = `Duplicate accounts detected for normalized email ${first[0]} (${first[1].length} user_ids).`;
+  if (duplicateEntries.length === 1) return firstLine;
+  return `${firstLine} +${duplicateEntries.length - 1} additional duplicate email group(s).`;
+}
+
 export default function AdminPromoDashboard() {
   const { getToken } = useAuth();
   const [userLookup, setUserLookup] = useState('');
@@ -35,6 +77,7 @@ export default function AdminPromoDashboard() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [status, setStatus] = useState('');
+  const [duplicateWarning, setDuplicateWarning] = useState('');
   const [details, setDetails] = useState(null);
   const [ledger, setLedger] = useState([]);
 
@@ -58,6 +101,18 @@ export default function AdminPromoDashboard() {
 
   const normalizedLookup = useMemo(() => userLookup.trim(), [userLookup]);
   const normalizedUserId = useMemo(() => resolvedUserId.trim(), [resolvedUserId]);
+  const emailCounts = useMemo(() => buildEmailCounts(lookupMatches), [lookupMatches]);
+
+  const getMatchLabel = (u, counts = emailCounts) => {
+    const email = String(u?.email || '').trim();
+    const userId = String(u?.user_id || '').trim();
+    if (!email) return userId;
+    const key = normalizeEmail(email);
+    if (key && (counts.get(key) || 0) > 1) {
+      return `${email} (${userId})`;
+    }
+    return email;
+  };
 
   async function authedFetch(url, options = {}) {
     const token = await getToken({ template: 'wryda-backend' });
@@ -80,6 +135,7 @@ export default function AdminPromoDashboard() {
     setBusy(true);
     setError('');
     if (options.clearStatus) setStatus('');
+    setDuplicateWarning('');
     try {
       let targetUserId = (options.forceUserId || '').trim() || normalizedUserId;
       if (!targetUserId) {
@@ -88,15 +144,18 @@ export default function AdminPromoDashboard() {
         if (!lookupRes.ok) {
           throw new Error(lookupData.error || 'Failed to resolve user lookup');
         }
-        const users = lookupData.users || [];
+        const users = uniqueByUserId(lookupData.users || []);
+        const usersEmailCounts = buildEmailCounts(users);
+        const duplicateEmailWarning = getDuplicateWarning(users);
         setLookupMatches(users);
+        setDuplicateWarning(duplicateEmailWarning);
         if (users.length === 0) {
           throw new Error('No user found for that lookup');
         }
         if (users.length > 1) {
           const first = users[0];
           setResolvedUserId(first.user_id);
-          setStatus(`Multiple matches found. Defaulted to ${first.email || first.user_id}. You can choose a different match below.`);
+          setStatus(`Multiple matches found. Defaulted to ${getMatchLabel(first, usersEmailCounts)}. You can choose a different match below.`);
           targetUserId = first.user_id;
         } else {
           setResolvedUserId(users[0].user_id);
@@ -268,6 +327,7 @@ export default function AdminPromoDashboard() {
               setUserLookup(e.target.value);
               setResolvedUserId('');
               setLookupMatches([]);
+              setDuplicateWarning('');
               setDetails(null);
               setLedger([]);
               setError('');
@@ -297,12 +357,13 @@ export default function AdminPromoDashboard() {
                   onClick={async () => {
                     setResolvedUserId(u.user_id);
                     setUserLookup(u.email || u.user_id);
-                    setStatus(`Selected ${u.email || u.user_id}`);
+                    setStatus(`Selected ${getMatchLabel(u)}`);
                     setLookupMatches([]);
+                    setDuplicateWarning('');
                     await loadUser({ clearStatus: false, forceUserId: u.user_id });
                   }}
                 >
-                  {u.email || u.user_id}
+                  {getMatchLabel(u)}
                 </button>
               ))}
             </div>
@@ -311,6 +372,7 @@ export default function AdminPromoDashboard() {
       </div>
 
       {error ? <div className="rounded-lg border border-red-900 bg-red-950/40 p-3 text-sm text-red-300">{error}</div> : null}
+      {duplicateWarning ? <div className="rounded-lg border border-amber-900 bg-amber-950/40 p-3 text-sm text-amber-300">{duplicateWarning}</div> : null}
       {status ? <div className="rounded-lg border border-emerald-900 bg-emerald-950/40 p-3 text-sm text-emerald-300">{status}</div> : null}
 
       {details ? (
