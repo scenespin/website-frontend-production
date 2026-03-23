@@ -312,7 +312,8 @@ export function GenerateWardrobeTab({
         quality: derivedQuality,
         providerId: providerId || undefined,
         headshotS3Key: baseReferenceS3Key || undefined,
-        typicalClothing: finalOutfitName,
+        // Keep outfit names organizational only; do not inject them into prompts.
+        outfitName: finalOutfitName,
         clothingReferences: clothingReferences.length > 0 ? clothingReferences : undefined,
         additionalPrompt: finalPrompt || undefined,
         // Note: headshotUrl, screenplayContent, manualDescription are auto-handled by backend
