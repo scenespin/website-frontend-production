@@ -10,7 +10,8 @@ import {
   CreditCard,
   LogOut,
   ChevronRight,
-  Crown
+  Crown,
+  Share2
 } from 'lucide-react';
 import { useState, useEffect } from 'react';
 import { getOverageSettings, updateOverageSettings, getSubscriptionDetails, cancelSubscription, getBillingUsageHistory } from '@/lib/stripe-client';
@@ -34,6 +35,7 @@ export default function AccountPage() {
   const [usagePageIndex, setUsagePageIndex] = useState(0);
   const [loadingUsage, setLoadingUsage] = useState(true);
   const [loadingMoreUsage, setLoadingMoreUsage] = useState(false);
+  const [affiliateProfile, setAffiliateProfile] = useState(null);
 
   useEffect(() => {
     if (user?.id) {
@@ -41,6 +43,7 @@ export default function AccountPage() {
       fetchOverage();
       fetchSubscription();
       fetchUsageHistory({ append: false });
+      fetchAffiliateProfile();
     }
   }, [user?.id]);
 
@@ -96,6 +99,27 @@ export default function AccountPage() {
       setSubscription(null);
     } finally {
       setLoadingSubscription(false);
+    }
+  }
+
+  async function fetchAffiliateProfile() {
+    try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) return;
+      const res = await fetch('/api/affiliates/me', {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      if (!res.ok) {
+        setAffiliateProfile(null);
+        return;
+      }
+      const data = await res.json().catch(() => null);
+      setAffiliateProfile(data);
+    } catch (error) {
+      console.error('Failed to fetch affiliate profile:', error);
+      setAffiliateProfile(null);
     }
   }
 
@@ -269,7 +293,18 @@ export default function AccountPage() {
           action: () => window.Clerk?.openUserProfile()
         }
       ]
-    }
+    },
+    ...(affiliateProfile ? [{
+      title: 'Creator Programs',
+      items: [
+        {
+          icon: Share2,
+          label: 'Affiliate Dashboard',
+          value: `Status: ${String(affiliateProfile.status || 'active')}`,
+          action: () => router.push('/affiliates')
+        }
+      ]
+    }] : [])
   ];
 
   return (
