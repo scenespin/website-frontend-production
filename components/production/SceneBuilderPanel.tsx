@@ -162,6 +162,7 @@ interface WorkflowStatus {
   totalSteps: number;
   stepResults: any[];
   totalCreditsUsed: number;
+  error?: string;
   /** Array of video outputs, or object shape { additionalVideos, additionalVideoS3Keys } from backend */
   finalOutputs: any[] | { additionalVideos?: string[]; additionalVideoS3Keys?: string[] };
   videos?: string[];  // Optional: URLs of generated videos
@@ -2193,6 +2194,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
           totalSteps: execution.totalSteps || 5,
           stepResults: execution.stepResults || [],
           totalCreditsUsed: execution.totalCreditsUsed || 0,
+          error: execution.error,
           finalOutputs: execution.finalOutputs || [],
           metadata: execution.metadata // Required for Shot Board (firstFrames, videoShotMapping)
         });
@@ -2211,6 +2213,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
           totalSteps: execution.totalSteps || 5,
           stepResults: execution.stepResults || [],
           totalCreditsUsed: execution.totalCreditsUsed || 0,
+          error: execution.error,
           finalOutputs: execution.finalOutputs || [],
           metadata: execution.metadata // Required for Shot Board (firstFrames, videoShotMapping)
         };
@@ -4056,10 +4059,25 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
    */
   function handleGenerationFailed(execution: WorkflowStatus) {
     setIsGenerating(false);
-    
-    toast.error('Scene Builder failed', {
-      description: 'Some steps could not be completed'
-    });
+    const rawError = (execution.error || '').trim();
+    const failedShotError = Array.isArray(execution.metadata?.failedShots) && execution.metadata.failedShots.length > 0
+      ? String(execution.metadata.failedShots[0]?.error || '').trim()
+      : '';
+    const errorText = rawError || failedShotError;
+    const supportCodeMatch = errorText.match(/support\s*codes?:\s*([0-9]+)/i);
+    const supportCode = supportCodeMatch?.[1];
+
+    if (/responsible ai|sensitive words|allowlisting/i.test(errorText)) {
+      toast.error('Prompt blocked by model safety policy', {
+        description: supportCode
+          ? `The Elements prompt was blocked by provider policy (support code ${supportCode}). Rephrase the prompt and try again.`
+          : 'The Elements prompt was blocked by provider policy. Rephrase the prompt and try again.'
+      });
+    } else {
+      toast.error('Scene Builder failed', {
+        description: errorText || 'Some steps could not be completed'
+      });
+    }
     
     setWorkflowExecutionId(null);
     setWorkflowStatus(null);
