@@ -75,6 +75,25 @@ export function SceneAnalysisStep({
   
   // 🔥 FIX: Track if user has explicitly deselected shots to prevent auto-select
   const userDeselectedShotsRef = useRef(false);
+  const lastSceneSelectionKeyRef = useRef<string | null>(null);
+  
+  // When analysis switches to a different scene, default back to "all shots selected".
+  // This prevents selection carry-over (e.g., 1st+3rd checked) across scenes.
+  useEffect(() => {
+    if (!sceneAnalysisResult?.shotBreakdown?.shots) return;
+    const shots = sceneAnalysisResult.shotBreakdown.shots;
+    const sceneSelectionKey = sceneAnalysisResult.sceneId
+      ? `scene:${sceneAnalysisResult.sceneId}`
+      : `shots:${shots.map((s: any) => `${s.slot}:${s.type}:${(s.description || s.dialogueBlock?.dialogue || '').slice(0, 32)}`).join('|')}`;
+    
+    if (lastSceneSelectionKeyRef.current && lastSceneSelectionKeyRef.current !== sceneSelectionKey) {
+      const allShotSlots = shots.map((s: any) => s.slot);
+      onEnabledShotsChange(allShotSlots);
+      userDeselectedShotsRef.current = false;
+    }
+    
+    lastSceneSelectionKeyRef.current = sceneSelectionKey;
+  }, [sceneAnalysisResult, onEnabledShotsChange]);
   
   // Auto-select all shots when analysis completes (only if user hasn't explicitly deselected)
   useEffect(() => {
