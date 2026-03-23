@@ -3665,8 +3665,14 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       // Clear props fetch cache so re-selecting the same scene triggers a fresh fetch (props were empty after reset)
       lastFetchedSceneRef.current = { sceneId: null, propIds: '' };
       pendingAutoSelectedSceneIdRef.current = nextSceneIdAfterCurrent;
+      // Reset wizard navigation state to avoid blank screen (no branch rendered)
+      setCurrentStep(1);
+      setWizardStep('analysis');
+      setCurrentShotIndex(0);
       setSelectedSceneId(null);
       setHasConfirmedSceneSelection(false);
+      setSceneAnalysisResult(null);
+      setAnalysisError(null);
       setIsGenerating(false);
       setWorkflowStatus(null);
       localStorage.removeItem(`scene-builder-execution-${projectId}`);
