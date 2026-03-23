@@ -59,6 +59,44 @@ const INTERIOR_PROP_PROMPT_HELPERS: Array<{ id: string; label: string; template:
   },
 ];
 
+const FIRST_FRAME_ADDITIVE_PROMPT_HELPERS: Array<{ id: string; label: string; template: string }> = [
+  {
+    id: 'subtle-expression',
+    label: 'Subtle Expression',
+    template: 'subtle expression shift, minimal facial movement, natural micro-expressions',
+  },
+  {
+    id: 'head-motion',
+    label: 'Head Motion',
+    template: 'gentle head tilt, brief glance shift, realistic eye focus',
+  },
+  {
+    id: 'camera-drift',
+    label: 'Camera Drift',
+    template: 'subtle camera drift, stable framing, minimal handheld feel',
+  },
+  {
+    id: 'hold-composure',
+    label: 'Hold Composure',
+    template: 'controlled body posture, restrained movement, confident stillness',
+  },
+  {
+    id: 'cinematic-color-grade',
+    label: 'Cinematic Grade',
+    template: 'cinematic color grade with balanced contrast, filmic highlight rolloff, and subtle teal-orange separation',
+  },
+  {
+    id: 'warm-filmic-look',
+    label: 'Warm Filmic Look',
+    template: 'warm filmic color treatment, soft highlight bloom, natural skin tones, and gentle contrast curve',
+  },
+  {
+    id: 'black-and-white',
+    label: 'Black & White',
+    template: 'black-and-white monochrome grade with rich tonal separation, clean highlights, and deep cinematic contrast',
+  },
+];
+
 function shouldShowInteriorPropHelpers(
   propName: string,
   selectedImageLabel?: string,
@@ -2130,6 +2168,28 @@ export function ShotConfigurationPanel({
           <label className="block text-xs font-medium text-[#FFFFFF] mb-2">
             First frame additive prompt (optional)
           </label>
+          <div className="mb-2">
+            <div className="text-[10px] text-[#808080] mb-1">Prompt helpers</div>
+            <div className="flex flex-wrap gap-1.5">
+              {FIRST_FRAME_ADDITIVE_PROMPT_HELPERS.map((helper) => (
+                <button
+                  key={helper.id}
+                  type="button"
+                  onClick={() => {
+                    const currentText = (motionDirectionPrompt || '').trim();
+                    const nextText = currentText.includes(helper.template)
+                      ? currentText
+                      : (currentText ? `${currentText}\n\n${helper.template}` : helper.template);
+                    onMotionDirectionChange?.(nextText);
+                  }}
+                  className="px-2 py-1 text-[10px] rounded border border-[#3F3F46] bg-[#111111] text-[#D4D4D8] hover:border-[#DC143C]/60 hover:text-white transition-colors"
+                  title={helper.template}
+                >
+                  {helper.label}
+                </button>
+              ))}
+            </div>
+          </div>
           <textarea
             value={motionDirectionPrompt}
             onChange={(e) => onMotionDirectionChange?.(e.target.value)}
