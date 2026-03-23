@@ -877,9 +877,10 @@ export default function AdminAffiliateDashboard() {
                 <span className={`badge badge-sm ${varianceHealth.badgeClass}`} title={varianceHealth.hint}>
                   {varianceHealth.label}
                 </span>
+                <span className="badge badge-outline badge-sm">Analytics only</span>
               </div>
               <p className="text-sm text-base-content/60">
-                Compare estimated affiliate AI cost vs allocated provider-billed actual by plan and usage band.
+                Compare legacy estimate baseline vs allocated provider-billed actual by plan and usage band.
               </p>
             </div>
             <div className="flex flex-wrap gap-2 items-end">
@@ -930,9 +931,14 @@ export default function AdminAffiliateDashboard() {
 
           {!varianceError && varianceReport && (
             <div className="mt-4 space-y-3">
+              <div className="alert alert-info py-2">
+                <span className="text-xs">
+                  <b>Payout authority:</b> finalized ledger cost. Legacy estimate values below are analytics-only and not used for final payout approval.
+                </span>
+              </div>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm">
                 <div>Cost model version: <b>{varianceReport.costModelVersion || 'unknown'}</b></div>
-                <div>Estimated $/credit: <b>${Number(varianceReport.estimatedCostPerCreditUsd || 0).toFixed(6)}</b></div>
+                <div>Legacy estimate baseline (analytics only): <b>${Number(varianceReport.estimatedCostPerCreditUsd || 0).toFixed(6)}</b></div>
                 <div>Provider billed total: <b>${Number(varianceReport.providerBilledTotalCostUsd || 0).toFixed(2)}</b></div>
                 <div>Commissions: <b>{Number(varianceReport.totals?.commissions || 0)}</b></div>
                 <div>Referred users: <b>{Number(varianceReport.totals?.uniqueUsers || 0)}</b></div>
