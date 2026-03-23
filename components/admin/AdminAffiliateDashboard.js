@@ -774,7 +774,7 @@ export default function AdminAffiliateDashboard() {
                 </div>
               </div>
               <div className="text-xs text-base-content/70">
-                Thresholds: <b>GREEN</b> <= +/-5%, <b>YELLOW</b> <= +/-15%, <b>RED</b> {'>'} +/-15%.
+                Thresholds: <b>GREEN</b> {'<='} +/-5%, <b>YELLOW</b> {'<='} +/-15%, <b>RED</b> {'>'} +/-15%.
               </div>
 
               <div className="overflow-x-auto max-h-72">
