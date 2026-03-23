@@ -3829,6 +3829,14 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   
   function handleGenerationComplete(execution: WorkflowStatus) {
     setIsGenerating(false);
+    const failedShots = Array.isArray(execution.metadata?.failedShots)
+      ? execution.metadata.failedShots
+      : [];
+    const firstFailedShotError = failedShots.length > 0
+      ? String(failedShots[0]?.error || '').trim()
+      : '';
+    const supportCodeMatch = firstFailedShotError.match(/support\s*codes?:\s*([0-9]+)/i);
+    const supportCode = supportCodeMatch?.[1];
     
     // Feature 0233: Support both array and object finalOutputs (backend may send { additionalVideos, additionalVideoS3Keys })
     const rawOutputs = Array.isArray(execution.finalOutputs)
@@ -3900,6 +3908,21 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
           : `${videoCount} video${videoCount !== 1 ? 's' : ''} generated (${execution.totalCreditsUsed} credits)`,
       duration: 15000
     });
+
+    // Surface per-shot failures even when workflow status is "completed" (partial shot success pattern).
+    if (failedShots.length > 0) {
+      if (/responsible ai|sensitive words|allowlisting/i.test(firstFailedShotError)) {
+        toast.error('Some shots were blocked by model safety policy', {
+          description: supportCode
+            ? `${failedShots.length} shot(s) failed. Provider support code ${supportCode}. Rephrase the Elements prompt and retry failed shots.`
+            : `${failedShots.length} shot(s) failed. Rephrase the Elements prompt and retry failed shots.`
+        });
+      } else {
+        toast.error('Some shots failed', {
+          description: `${failedShots.length} shot(s) could not be generated. ${firstFailedShotError || 'Review shot prompts and try again.'}`
+        });
+      }
+    }
     
     // 🔥 Refresh credits immediately after generation completes
     if (typeof window !== 'undefined' && (window as any).refreshCredits) {
