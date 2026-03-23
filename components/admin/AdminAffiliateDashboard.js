@@ -9,8 +9,7 @@ import {
   UserCheck, 
   Clock, 
   AlertTriangle,
-  Search,
-  Filter
+  Search
 } from 'lucide-react';
 
 /**
@@ -34,7 +33,16 @@ export default function AdminAffiliateDashboard() {
   const [showInviteModal, setShowInviteModal] = useState(false);
   const [newInviteCode, setNewInviteCode] = useState({ code: '', max_uses: 1, expires_at: '', notes: '' });
   const [splitModalAffiliate, setSplitModalAffiliate] = useState(null);
-  const [splitForm, setSplitForm] = useState({ total: 30, payout: 30, discount: 0, commissionType: 'first_payment_only' });
+  const [splitForm, setSplitForm] = useState({
+    total: 30,
+    payout: 30,
+    discount: 0,
+    commissionType: 'first_payment_only',
+    payoutCapEnabled: false,
+    payoutCapPlanRate: 0.25,
+    payoutCapMarginRate: 0.5,
+    recurringMinRetainedMarginPercent: 0,
+  });
   const [splitSaving, setSplitSaving] = useState(false);
   const [attributionModalAffiliate, setAttributionModalAffiliate] = useState(null);
   const [attributionLoading, setAttributionLoading] = useState(false);
@@ -46,6 +54,10 @@ export default function AdminAffiliateDashboard() {
   const [periodDashboard, setPeriodDashboard] = useState(null);
   const [periodLoading, setPeriodLoading] = useState(false);
   const [periodError, setPeriodError] = useState('');
+  const [periodTrend, setPeriodTrend] = useState(null);
+  const [periodTrendLoading, setPeriodTrendLoading] = useState(false);
+  const [periodTrendError, setPeriodTrendError] = useState('');
+  const [periodTrendPoints, setPeriodTrendPoints] = useState(8);
   const [periodFilters, setPeriodFilters] = useState({
     period: 'month',
     startDate: defaultStartDate,
@@ -76,6 +88,7 @@ export default function AdminAffiliateDashboard() {
       fetchDashboardData();
       fetchVarianceReport();
       fetchPeriodDashboard();
+      fetchPeriodTrend();
       fetchCalibrationLogs();
     }
   }, [user, statusFilter]);
@@ -180,6 +193,35 @@ export default function AdminAffiliateDashboard() {
       setPeriodDashboard(null);
     } finally {
       setPeriodLoading(false);
+    }
+  }
+
+  async function fetchPeriodTrend() {
+    setPeriodTrendLoading(true);
+    setPeriodTrendError('');
+    try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) throw new Error('Authentication required');
+      const trendPeriod = periodFilters.period === 'custom' ? 'month' : periodFilters.period;
+      const query = new URLSearchParams();
+      query.set('period', trendPeriod);
+      query.set('points', String(periodTrendPoints));
+      const res = await fetch(`/api/admin/revenue/affiliate-period-dashboard/trend?${query.toString()}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        throw new Error(data?.error || 'Failed to load period trend');
+      }
+      setPeriodTrend(data);
+    } catch (error) {
+      console.error('[Admin Affiliates] Failed to load period trend:', error);
+      setPeriodTrendError(error?.message || 'Failed to load period trend');
+      setPeriodTrend(null);
+    } finally {
+      setPeriodTrendLoading(false);
     }
   }
 
@@ -315,12 +357,20 @@ export default function AdminAffiliateDashboard() {
     const payoutRaw = affiliate.affiliate_payout_rate ?? affiliate.commission_rate ?? totalRaw;
     const discountRaw = affiliate.referral_discount_rate ?? Math.max(0, totalRaw - payoutRaw);
     const commissionTypeRaw = affiliate.commission_type === 'recurring' ? 'recurring' : 'first_payment_only';
+    const payoutCapEnabledRaw = Boolean(affiliate.payout_cap_enabled);
+    const payoutCapPlanRateRaw = Number(affiliate.payout_cap_plan_rate ?? 0.25);
+    const payoutCapMarginRateRaw = Number(affiliate.payout_cap_margin_rate ?? 0.5);
+    const recurringThresholdRaw = Number(affiliate.recurring_min_retained_margin_percent ?? 0);
 
     setSplitForm({
       total: Number((totalRaw * 100).toFixed(2)),
       payout: Number((payoutRaw * 100).toFixed(2)),
       discount: Number((discountRaw * 100).toFixed(2)),
       commissionType: commissionTypeRaw,
+      payoutCapEnabled: payoutCapEnabledRaw,
+      payoutCapPlanRate: Number(payoutCapPlanRateRaw.toFixed(4)),
+      payoutCapMarginRate: Number(payoutCapMarginRateRaw.toFixed(4)),
+      recurringMinRetainedMarginPercent: Number(recurringThresholdRaw.toFixed(2)),
     });
     setSplitModalAffiliate(affiliate);
   }
@@ -401,6 +451,24 @@ export default function AdminAffiliateDashboard() {
       if (!commissionTypeRes.ok) {
         const error = await commissionTypeRes.json().catch(() => ({}));
         throw new Error(error?.error || 'Failed to save commission type');
+      }
+
+      const policyRes = await fetch(`/api/admin/affiliates/id/${splitModalAffiliate.affiliate_id}/policy-controls`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          payout_cap_enabled: Boolean(splitForm.payoutCapEnabled),
+          payout_cap_plan_rate: Number(splitForm.payoutCapPlanRate),
+          payout_cap_margin_rate: Number(splitForm.payoutCapMarginRate),
+          recurring_min_retained_margin_percent: Number(splitForm.recurringMinRetainedMarginPercent),
+        }),
+      });
+      if (!policyRes.ok) {
+        const error = await policyRes.json().catch(() => ({}));
+        throw new Error(error?.error || 'Failed to save policy controls');
       }
 
       setSplitModalAffiliate(null);
@@ -656,8 +724,26 @@ export default function AdminAffiliateDashboard() {
                   </label>
                 </>
               )}
-              <button className="btn btn-primary btn-sm" onClick={fetchPeriodDashboard} disabled={periodLoading}>
-                {periodLoading ? 'Loading...' : 'Refresh'}
+              <label className="form-control">
+                <span className="label-text text-xs">Trend Points</span>
+                <select
+                  className="select select-bordered select-sm"
+                  value={periodTrendPoints}
+                  onChange={(e) => setPeriodTrendPoints(Number(e.target.value))}
+                >
+                  <option value={6}>6</option>
+                  <option value={8}>8</option>
+                  <option value={12}>12</option>
+                </select>
+              </label>
+              <button
+                className="btn btn-primary btn-sm"
+                onClick={async () => {
+                  await Promise.all([fetchPeriodDashboard(), fetchPeriodTrend()]);
+                }}
+                disabled={periodLoading || periodTrendLoading}
+              >
+                {(periodLoading || periodTrendLoading) ? 'Loading...' : 'Refresh'}
               </button>
             </div>
           </div>
@@ -689,6 +775,48 @@ export default function AdminAffiliateDashboard() {
                   {(periodDashboard.dataQuality.notes || []).map((note, idx) => (
                     <div key={`${note}-${idx}`}>- {note}</div>
                   ))}
+                </div>
+              )}
+
+              {periodTrendError && (
+                <div className="alert alert-error">
+                  <span>{periodTrendError}</span>
+                </div>
+              )}
+
+              {!periodTrendError && periodTrend && (
+                <div>
+                  <div className="text-sm font-semibold mb-2">Trend ({periodTrend.period}, {periodTrend.points} points)</div>
+                  <div className="overflow-x-auto max-h-64">
+                    <table className="table table-zebra table-sm">
+                      <thead>
+                        <tr>
+                          <th>Period End</th>
+                          <th>Net Collected</th>
+                          <th>Provider Cost</th>
+                          <th>Gross Margin</th>
+                          <th>Affiliate Accrued</th>
+                          <th>Profit After Affiliate</th>
+                          <th>Confidence</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(periodTrend.rows || []).map((row) => (
+                          <tr key={`${row.startDate}-${row.endDate}`}>
+                            <td>{new Date(row.endDate).toLocaleDateString()}</td>
+                            <td>${Number(row.revenue?.netCollectedUsd || 0).toFixed(2)}</td>
+                            <td>${Number(row.providerCost?.usd || 0).toFixed(2)}</td>
+                            <td>{Number(row.economics?.grossMarginPercent || 0).toFixed(2)}%</td>
+                            <td>${Number(row.affiliateCommissions?.totalAccruedUsd || 0).toFixed(2)}</td>
+                            <td className={Number(row.economics?.profitAfterAffiliateUsd || 0) < 0 ? 'text-error' : 'text-success'}>
+                              ${Number(row.economics?.profitAfterAffiliateUsd || 0).toFixed(2)}
+                            </td>
+                            <td>{row.providerCost?.confidence || 'unknown'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
                 </div>
               )}
             </div>
@@ -1048,6 +1176,8 @@ export default function AdminAffiliateDashboard() {
                         <div>Affiliate: {(((affiliate.affiliate_payout_rate ?? affiliate.commission_rate ?? 0) * 100).toFixed(1))}%</div>
                         <div>User: {(((affiliate.referral_discount_rate ?? 0) * 100).toFixed(1))}%</div>
                         <div>Type: {affiliate.commission_type === 'recurring' ? 'Recurring' : 'First payment only'}</div>
+                        <div>Cap: {affiliate.payout_cap_enabled ? 'On' : 'Off'} ({Number(affiliate.payout_cap_plan_rate ?? 0.25).toFixed(2)}/{Number(affiliate.payout_cap_margin_rate ?? 0.5).toFixed(2)})</div>
+                        <div>Recurr min retained: {Number(affiliate.recurring_min_retained_margin_percent ?? 0).toFixed(1)}%</div>
                       </div>
                     </td>
                     <td>{affiliate.total_signups || 0}</td>
@@ -1436,6 +1566,72 @@ export default function AdminAffiliateDashboard() {
                 </select>
                 <p className="text-xs text-base-content/60 mt-2">
                   Controls whether the affiliate earns once or on each successful renewal.
+                </p>
+              </div>
+
+              <div className="divider my-1">Policy Controls</div>
+
+              <div className="form-control">
+                <label className="label cursor-pointer justify-start gap-3">
+                  <input
+                    type="checkbox"
+                    className="checkbox checkbox-sm"
+                    checked={Boolean(splitForm.payoutCapEnabled)}
+                    onChange={(e) => setSplitForm((prev) => ({ ...prev, payoutCapEnabled: e.target.checked }))}
+                  />
+                  <span className="label-text">Enable payout-cap formula</span>
+                </label>
+                <p className="text-xs text-base-content/60">
+                  `commission = min(plan_rate * net_revenue, margin_rate * margin_base)`
+                </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                <div>
+                  <label className="label">
+                    <span className="label-text">Cap plan rate (0-1)</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    className="input input-bordered w-full"
+                    value={splitForm.payoutCapPlanRate}
+                    onChange={(e) => setSplitForm((prev) => ({ ...prev, payoutCapPlanRate: Number(e.target.value) }))}
+                  />
+                </div>
+                <div>
+                  <label className="label">
+                    <span className="label-text">Cap margin rate (0-1)</span>
+                  </label>
+                  <input
+                    type="number"
+                    min="0"
+                    max="1"
+                    step="0.01"
+                    className="input input-bordered w-full"
+                    value={splitForm.payoutCapMarginRate}
+                    onChange={(e) => setSplitForm((prev) => ({ ...prev, payoutCapMarginRate: Number(e.target.value) }))}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="label">
+                  <span className="label-text">Recurring minimum retained margin %</span>
+                </label>
+                <input
+                  type="number"
+                  min="0"
+                  max="100"
+                  step="0.1"
+                  className="input input-bordered w-full"
+                  value={splitForm.recurringMinRetainedMarginPercent}
+                  onChange={(e) => setSplitForm((prev) => ({ ...prev, recurringMinRetainedMarginPercent: Number(e.target.value) }))}
+                />
+                <p className="text-xs text-base-content/60 mt-2">
+                  If recurring retained margin falls below this threshold, renewal commission is skipped.
                 </p>
               </div>
             </div>
