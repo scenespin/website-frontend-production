@@ -58,6 +58,8 @@ export default function AffiliatePortal() {
   const [savingReferralCode, setSavingReferralCode] = useState(false);
   const [referralCodeMessage, setReferralCodeMessage] = useState('');
   const [portalAccessError, setPortalAccessError] = useState('');
+  const [stripeConnectStatus, setStripeConnectStatus] = useState(null);
+  const [remediationLinkMessage, setRemediationLinkMessage] = useState('');
 
   const referralLink = affiliate ? `${typeof window !== 'undefined' ? window.location.origin : 'https://www.wryda.ai'}?ref=${affiliate.referral_code}` : '';
 
@@ -114,6 +116,17 @@ export default function AffiliatePortal() {
       setAffiliate(profileData);
       setReferralCodeDraft(profileData?.referral_code || '');
       setPortalAccessError('');
+      setStripeConnectStatus(null);
+
+      try {
+        const stripeStatusRes = await fetch('/api/affiliates/stripe-connect/status', { headers });
+        if (stripeStatusRes.ok) {
+          const stripeStatusData = await stripeStatusRes.json();
+          setStripeConnectStatus(stripeStatusData);
+        }
+      } catch (e) {
+        console.error('Error loading Stripe Connect status:', e);
+      }
 
       // Load read-only analytics for suspended affiliates too.
       if (profileData.status === 'active' || profileData.status === 'suspended') {
@@ -233,6 +246,46 @@ export default function AffiliatePortal() {
     } catch (error) {
       console.error('Error connecting Stripe:', error);
       alert('Failed to connect Stripe account');
+    }
+  };
+
+  const requestRemediationLink = async () => {
+    if (affiliate?.status !== 'active') {
+      setRemediationLinkMessage('Remediation links are available only for active affiliates.');
+      return;
+    }
+    try {
+      setRemediationLinkMessage('');
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) {
+        setRemediationLinkMessage('Authentication required.');
+        return;
+      }
+
+      const origin = typeof window !== 'undefined' ? window.location.origin : 'https://www.wryda.ai';
+      const res = await fetch('/api/affiliates/stripe-connect/remediation-link', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          return_url: `${origin}/affiliates/connect-success`,
+          refresh_url: `${origin}/affiliates/connect-refresh`,
+        }),
+      });
+
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || !data?.url) {
+        setRemediationLinkMessage(data?.error || 'Failed to generate remediation link.');
+        return;
+      }
+
+      await navigator.clipboard.writeText(String(data.url));
+      setRemediationLinkMessage('Remediation link copied. Share it or open it to complete onboarding.');
+    } catch (error) {
+      console.error('Error generating remediation link:', error);
+      setRemediationLinkMessage('Failed to generate remediation link.');
     }
   };
 
@@ -363,6 +416,11 @@ export default function AffiliatePortal() {
   }
 
   const isReadOnly = affiliate.status === 'suspended';
+  const stripeStatusState = stripeConnectStatus?.state
+    || ((affiliate?.stripe_connect_account_id && affiliate?.payout_method === 'stripe') ? 'pending' : 'not_connected');
+  const isStripeConnectedForPayouts = stripeStatusState === 'connected';
+  const isStripePending = stripeStatusState === 'pending';
+  const requirementsDueCount = Number(stripeConnectStatus?.requirements_due_count || 0);
 
   const trafficSourceData = stats && stats.traffic_sources ? Object.entries(stats.traffic_sources).map(([name, value]) => ({
     name: name.charAt(0).toUpperCase() + name.slice(1),
@@ -682,23 +740,46 @@ export default function AffiliatePortal() {
 
         {/* Payouts Tab */}
         <TabsContent value="payouts" className="space-y-4">
-          {affiliate.payout_method === 'none' || !affiliate.payout_method ? (
+          {!isStripeConnectedForPayouts ? (
             <div className="bg-[#141414] border border-white/10 rounded-lg p-6">
               <h3 className="text-2xl font-semibold text-white mb-2">Setup Payouts</h3>
               <p className="text-[#B3B3B3] mb-6">
-                Connect Stripe to receive your earnings
+                {isStripePending
+                  ? 'Stripe onboarding is pending. Resume onboarding to enable payouts.'
+                  : 'Connect Stripe to receive your earnings'}
               </p>
+              {isStripePending && (
+                <div className="mb-4 rounded-md border border-[#FFD700]/30 bg-[#1A1A1A] p-3 text-sm text-[#FFD700]">
+                  Status: Onboarding pending{requirementsDueCount > 0 ? ` (${requirementsDueCount} requirement${requirementsDueCount === 1 ? '' : 's'} due)` : ''}.
+                </div>
+              )}
               <Button 
                 onClick={connectStripe}
                 disabled={isReadOnly}
                 className="bg-gradient-to-r from-[#DC143C] to-[#8B0000] hover:from-[#DC143C]/90 hover:to-[#8B0000]/90 text-white"
               >
                 <Wallet className="h-4 w-4 mr-2" />
-                Connect Stripe Account
+                {isStripePending ? 'Resume Stripe Onboarding' : 'Connect Stripe Account'}
               </Button>
+              {isStripePending && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={requestRemediationLink}
+                  disabled={isReadOnly}
+                  className="ml-2 border-white/20 text-white hover:bg-white/5"
+                >
+                  Copy Remediation Link
+                </Button>
+              )}
               {isReadOnly && (
                 <p className="text-sm text-[#808080] mt-3">
                   Stripe onboarding is disabled while the account is suspended.
+                </p>
+              )}
+              {remediationLinkMessage && (
+                <p className="text-sm text-[#B3B3B3] mt-3">
+                  {remediationLinkMessage}
                 </p>
               )}
             </div>
