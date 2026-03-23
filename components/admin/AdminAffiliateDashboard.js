@@ -979,6 +979,28 @@ export default function AdminAffiliateDashboard() {
                   </div>
                 </div>
 
+                <div className="card bg-base-300">
+                  <div className="card-body p-3">
+                    <div className="flex items-center justify-between mb-2">
+                      <div className="text-sm font-semibold">Unit Economics (Affiliate-Referred Users)</div>
+                      <div className="text-xs opacity-70">
+                        Confidence: <b>{attributionSummary.unit_economics?.summary?.confidence || 'unknown'}</b>
+                      </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-2 text-sm">
+                      <div>Net revenue: <b>${Number(attributionSummary.unit_economics?.summary?.net_revenue_usd || 0).toFixed(2)}</b></div>
+                      <div>AI cost: <b>${Number(attributionSummary.unit_economics?.summary?.provider_cost_usd || 0).toFixed(2)}</b></div>
+                      <div>Margin base: <b>${Number(attributionSummary.unit_economics?.summary?.margin_base_usd || 0).toFixed(2)}</b></div>
+                      <div>Affiliate payout: <b>${Number(attributionSummary.unit_economics?.summary?.affiliate_payout_usd || 0).toFixed(2)}</b></div>
+                      <div>Profit after affiliate: <b>${Number(attributionSummary.unit_economics?.summary?.profit_after_affiliate_usd || 0).toFixed(2)}</b></div>
+                      <div>Retained margin %: <b>{Number(attributionSummary.unit_economics?.summary?.retained_margin_percent_after_affiliate || 0).toFixed(2)}%</b></div>
+                    </div>
+                    <div className="text-xs opacity-70 mt-2">
+                      AI cost basis reflects current affiliate margin settlement inputs (estimated per-credit when marked as estimated).
+                    </div>
+                  </div>
+                </div>
+
                 <div>
                   <div className="text-sm font-semibold mb-2">Recent Attributions</div>
                   <div className="overflow-x-auto max-h-64">
@@ -998,6 +1020,40 @@ export default function AdminAffiliateDashboard() {
                             <td>{row.source}</td>
                             <td><code>{row.referral_code_used}</code></td>
                             <td>{row.captured_at ? new Date(row.captured_at).toLocaleString() : '-'}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
+                <div>
+                  <div className="text-sm font-semibold mb-2">Per-User Profitability (Referred)</div>
+                  <div className="overflow-x-auto max-h-64">
+                    <table className="table table-zebra table-sm">
+                      <thead>
+                        <tr>
+                          <th>User</th>
+                          <th>Net Revenue</th>
+                          <th>AI Cost</th>
+                          <th>Margin Base</th>
+                          <th>Affiliate Payout</th>
+                          <th>Profit After Affiliate</th>
+                          <th>Confidence</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {(attributionSummary.unit_economics?.rows || []).map((row) => (
+                          <tr key={`${row.referred_user_id}-${row.referral_id}`}>
+                            <td><code>{row.referred_user_id}</code></td>
+                            <td>${Number(row.net_revenue_usd || 0).toFixed(2)}</td>
+                            <td>${Number(row.provider_cost_usd || 0).toFixed(2)}</td>
+                            <td>${Number(row.margin_base_usd || 0).toFixed(2)}</td>
+                            <td>${Number(row.affiliate_payout_usd || 0).toFixed(2)}</td>
+                            <td className={Number(row.profit_after_affiliate_usd || 0) < 0 ? 'text-error' : 'text-success'}>
+                              ${Number(row.profit_after_affiliate_usd || 0).toFixed(2)}
+                            </td>
+                            <td>{row.confidence || 'unknown'}</td>
                           </tr>
                         ))}
                       </tbody>
