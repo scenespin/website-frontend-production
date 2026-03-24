@@ -136,43 +136,49 @@ export function useFountainFormatting(
             let content = input;
             let changed = true;
 
-            // Peel known outer wrappers in a loop so nested combinations can be detected.
+            // Peel repeated outer wrappers so prior malformed output re-normalizes to one layer.
             while (changed) {
                 changed = false;
 
-                if (!flags.strike && content.startsWith('~~') && content.endsWith('~~') && content.length > 4) {
+                while (content.startsWith('~~') && content.endsWith('~~') && content.length > 4) {
                     content = content.slice(2, -2);
                     flags.strike = true;
                     changed = true;
-                    continue;
                 }
 
-                if (!flags.underline && content.startsWith('_') && content.endsWith('_') && content.length > 2) {
+                while (content.startsWith('_') && content.endsWith('_') && content.length > 2) {
                     content = content.slice(1, -1);
                     flags.underline = true;
                     changed = true;
-                    continue;
                 }
 
-                if (!flags.bold && !flags.italic && content.startsWith('***') && content.endsWith('***') && content.length > 6) {
-                    content = content.slice(3, -3);
-                    flags.bold = true;
-                    flags.italic = true;
-                    changed = true;
-                    continue;
-                }
+                let starChanged = true;
+                while (starChanged) {
+                    starChanged = false;
 
-                if (!flags.bold && content.startsWith('**') && content.endsWith('**') && content.length > 4) {
-                    content = content.slice(2, -2);
-                    flags.bold = true;
-                    changed = true;
-                    continue;
-                }
+                    if (content.startsWith('***') && content.endsWith('***') && content.length > 6) {
+                        content = content.slice(3, -3);
+                        flags.bold = true;
+                        flags.italic = true;
+                        changed = true;
+                        starChanged = true;
+                        continue;
+                    }
 
-                if (!flags.italic && content.startsWith('*') && content.endsWith('*') && content.length > 2) {
-                    content = content.slice(1, -1);
-                    flags.italic = true;
-                    changed = true;
+                    if (content.startsWith('**') && content.endsWith('**') && content.length > 4) {
+                        content = content.slice(2, -2);
+                        flags.bold = true;
+                        changed = true;
+                        starChanged = true;
+                        continue;
+                    }
+
+                    if (content.startsWith('*') && content.endsWith('*') && content.length > 2) {
+                        content = content.slice(1, -1);
+                        flags.italic = true;
+                        changed = true;
+                        starChanged = true;
+                    }
                 }
             }
 
