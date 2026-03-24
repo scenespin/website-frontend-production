@@ -646,6 +646,20 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   const generateVideoForShot = contextState.generateVideoForShot;
   const motionDirectionPrompt = contextState.motionDirectionPrompt;
   const sceneAnalysisResult = contextState.sceneAnalysisResult;
+
+  // Keep shot-config navigation deterministic: never mutate wizard step during render.
+  const enabledShotsListForStepTwo = useMemo(() => {
+    const shots = sceneAnalysisResult?.shotBreakdown?.shots || [];
+    return shots.filter((s: any) => enabledShots.includes(s.slot));
+  }, [sceneAnalysisResult?.shotBreakdown?.shots, enabledShots]);
+
+  useEffect(() => {
+    if (currentStep !== 2 || wizardStep !== 'shot-config') return;
+    if (enabledShotsListForStepTwo.length === 0) return;
+    if (currentShotIndex >= enabledShotsListForStepTwo.length) {
+      setWizardStep('review');
+    }
+  }, [currentStep, wizardStep, currentShotIndex, enabledShotsListForStepTwo, setWizardStep]);
   
   // 🔥 FIX: First frame override validation state (for completedShots calculation)
   const firstFrameOverrideEnabled = contextState.firstFrameOverrideEnabled;
@@ -3781,6 +3795,10 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
    */
   async function handlePartialDelivery(execution: WorkflowStatus) {
     setIsGenerating(false);
+    // partial_delivery is terminal for this run; clear polling-bound state to avoid stale UI lock
+    setWorkflowExecutionId(null);
+    setWorkflowStatus(null);
+    localStorage.removeItem(`scene-builder-execution-${projectId}`);
     
     try {
       const token = await getToken({ template: 'wryda-backend' });
@@ -4155,7 +4173,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
         {/* Content */}
         <div className="space-y-3">
         {/* Simple animation when generating (before jobs drawer opens) */}
-        {isGenerating && !workflowStatus && (
+        {isGenerating && (
           <motion.div
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -4174,7 +4192,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
         )}
         
         {/* Scene Builder Form - Wizard Flow */}
-        {!isGenerating && !workflowStatus && (
+        {!isGenerating && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
@@ -4562,9 +4580,13 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
               
               const currentShot = enabledShotsList[currentShotIndex];
               if (!currentShot) {
-                // All shots configured, move to review
-                setWizardStep('review');
-                return null;
+                return (
+                  <Card className="bg-[#141414] border-[#3F3F46]">
+                    <CardContent className="p-3">
+                      <div className="text-xs text-[#808080]">Preparing review...</div>
+                    </CardContent>
+                  </Card>
+                );
               }
               
               // Helper functions imported from sceneBuilderUtils.ts
