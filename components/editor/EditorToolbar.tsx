@@ -887,6 +887,7 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                     {onToggleItalics && (
                         <div className="tooltip tooltip-bottom" data-tip="Italics • Ctrl+I • *text*">
                             <button
+                                onMouseDown={(e) => e.preventDefault()}
                                 onClick={onToggleItalics}
                                 className="px-2 py-2 bg-base-100 hover:bg-base-300 rounded text-xs font-semibold min-w-[40px] min-h-[40px] flex flex-col items-center justify-center transition-colors"
                             >
@@ -1319,6 +1320,7 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                     {onToggleItalics && (
                         <div className="tooltip tooltip-bottom" data-tip="Italics • Ctrl+I">
                             <button
+                                onMouseDown={(e) => e.preventDefault()}
                                 onClick={onToggleItalics}
                                 className="w-full px-1 py-1.5 bg-base-100 hover:bg-base-300 rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-colors"
                             >

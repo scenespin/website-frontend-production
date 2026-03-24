@@ -844,8 +844,10 @@ export default function EditorWorkspace() {
                         onOpenFindReplace={() => setIsFindReplaceModalOpen(true)}
                         onToggleItalics={() => {
                             // Trigger Ctrl+I programmatically
-                            const textarea = document.querySelector('textarea') as HTMLTextAreaElement;
+                            const textarea = document.querySelector('textarea.fountain-editor-textarea') as HTMLTextAreaElement ||
+                                document.querySelector('textarea') as HTMLTextAreaElement;
                             if (textarea) {
+                                textarea.focus();
                                 const event = new KeyboardEvent('keydown', {
                                     key: 'i',
                                     ctrlKey: true,
