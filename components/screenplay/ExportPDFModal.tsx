@@ -286,10 +286,10 @@ export function ExportPDFModal({
         body: JSON.stringify({
           content: screenplay, // Keep parity with current UX (exports unsaved editor content).
           title,
+          author: author || undefined,
+          contact: contact || undefined,
           ...(exportFormat === 'pdf'
             ? {
-                author: author || undefined,
-                contact: contact || undefined,
                 watermark: includeWatermark
                   ? {
                       enabled: true,
