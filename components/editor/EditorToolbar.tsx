@@ -20,7 +20,10 @@ interface EditorToolbarProps {
     isPreviewMode?: boolean;
     onTogglePreview?: () => void;
     onOpenFindReplace?: () => void;
+    onToggleBold?: () => void;
     onToggleItalics?: () => void;
+    onToggleUnderline?: () => void;
+    onToggleStrikethrough?: () => void;
     onOpenVersionHistory?: () => void;
     onOpenAIDisclosure?: () => void;
     onToggleSceneNav?: () => void;
@@ -423,7 +426,7 @@ function GitHubSaveButton() {
  * EditorToolbar - Formatting toolbar with screenplay element buttons
  * Theme-aware styling with DaisyUI classes
  */
-export default function EditorToolbar({ className = '', onExportPDF, onOpenCollaboration, onSave, isEditorFullscreen = false, onToggleEditorFullscreen, isPreviewMode = false, onTogglePreview, onOpenFindReplace, onToggleItalics, onOpenVersionHistory, onOpenAIDisclosure, onToggleSceneNav, onLaunchDirector, onLaunchDialogue }: EditorToolbarProps) {
+export default function EditorToolbar({ className = '', onExportPDF, onOpenCollaboration, onSave, isEditorFullscreen = false, onToggleEditorFullscreen, isPreviewMode = false, onTogglePreview, onOpenFindReplace, onToggleBold, onToggleItalics, onToggleUnderline, onToggleStrikethrough, onOpenVersionHistory, onOpenAIDisclosure, onToggleSceneNav, onLaunchDirector, onLaunchDialogue }: EditorToolbarProps) {
     const { state, setContent, setCursorPosition, toggleFocusMode, setFontSize, undo, redo, saveNow, isEditorLocked, isPreviewMode: contextPreviewMode, setIsPreviewMode } = useEditor();
     
     // Use prop if provided, otherwise use context
@@ -824,6 +827,7 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
     const canDecreaseFontSize = state.fontSize > minFontSize;
     
     const [showMoreFormats, setShowMoreFormats] = React.useState(false);
+    const [showMobileStyleMenu, setShowMobileStyleMenu] = React.useState(false);
     
     return (
         <div className={`bg-[#0A0A0A] border-t border-white/10 shadow-sm ${className}`}>
@@ -883,7 +887,19 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                         </button>
                     </div>
                     
-                    {/* Italics */}
+                    {/* Inline style cluster */}
+                    {onToggleBold && (
+                        <div className="tooltip tooltip-bottom" data-tip="Bold • Ctrl+B • **text**">
+                            <button
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={onToggleBold}
+                                className="px-2 py-2 bg-base-100 hover:bg-base-300 rounded text-xs font-semibold min-w-[40px] min-h-[40px] flex flex-col items-center justify-center transition-colors"
+                            >
+                                <span className="text-base font-bold">B</span>
+                                <span className="text-[9px] hidden sm:inline">BOLD</span>
+                            </button>
+                        </div>
+                    )}
                     {onToggleItalics && (
                         <div className="tooltip tooltip-bottom" data-tip="Italics • Ctrl+I • *text*">
                             <button
@@ -893,6 +909,30 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                             >
                                 <span className="text-base italic font-semibold">I</span>
                                 <span className="text-[9px] hidden sm:inline">ITALIC</span>
+                            </button>
+                        </div>
+                    )}
+                    {onToggleUnderline && (
+                        <div className="tooltip tooltip-bottom" data-tip="Underline • Ctrl+U • _text_">
+                            <button
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={onToggleUnderline}
+                                className="px-2 py-2 bg-base-100 hover:bg-base-300 rounded text-xs font-semibold min-w-[40px] min-h-[40px] flex flex-col items-center justify-center transition-colors"
+                            >
+                                <span className="text-base font-semibold underline">U</span>
+                                <span className="text-[9px] hidden sm:inline">UNDER</span>
+                            </button>
+                        </div>
+                    )}
+                    {onToggleStrikethrough && (
+                        <div className="tooltip tooltip-bottom" data-tip="Strikethrough • Ctrl+Shift+X • ~~text~~">
+                            <button
+                                onMouseDown={(e) => e.preventDefault()}
+                                onClick={onToggleStrikethrough}
+                                className="px-2 py-2 bg-base-100 hover:bg-base-300 rounded text-xs font-semibold min-w-[40px] min-h-[40px] flex flex-col items-center justify-center transition-colors"
+                            >
+                                <span className="text-base font-semibold line-through">S</span>
+                                <span className="text-[9px] hidden sm:inline">STRIKE</span>
                             </button>
                         </div>
                     )}
@@ -1313,22 +1353,24 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                         </div>
                 </div>
                 
-                {/* ROW 2: -, +, Italic, Save, Rescan, Import, Download, More (8 buttons) - Hidden in fullscreen */}
+                {/* ROW 2: Aa, -, +, Save, Rescan, Import, Download, More (8 buttons) - Hidden in fullscreen */}
                 {!isEditorFullscreen && (
                 <div className="grid grid-cols-8 gap-1">
-                    {/* Italics */}
-                    {onToggleItalics && (
-                        <div className="tooltip tooltip-bottom" data-tip="Italics • Ctrl+I">
-                            <button
-                                onMouseDown={(e) => e.preventDefault()}
-                                onClick={onToggleItalics}
-                                className="w-full px-1 py-1.5 bg-base-100 hover:bg-base-300 rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-colors"
-                            >
-                                <span className="text-sm italic font-semibold">I</span>
-                                <span className="text-[8px] leading-tight">Italic</span>
-                            </button>
-                        </div>
-                    )}
+                    {/* Mobile style toggle */}
+                    <div className="tooltip tooltip-bottom" data-tip="Style options (B I U S)">
+                        <button
+                            onClick={() => {
+                                setShowMobileStyleMenu(prev => !prev);
+                                setShowMoreFormats(false);
+                            }}
+                            className={`w-full px-1 py-1.5 rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-colors ${
+                                showMobileStyleMenu ? 'bg-primary text-primary-content' : 'bg-base-100 hover:bg-base-300'
+                            }`}
+                        >
+                            <span className="text-sm font-semibold">Aa</span>
+                            <span className="text-[8px] leading-tight">Style</span>
+                        </button>
+                    </div>
                     {/* Decrease Font Size */}
                     <div className="tooltip tooltip-bottom" data-tip="Decrease Font Size">
                         <button
@@ -1429,7 +1471,10 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                     {/* More Formats */}
                     <div className="tooltip tooltip-bottom" data-tip="More Formats">
                         <button
-                            onClick={() => setShowMoreFormats(!showMoreFormats)}
+                            onClick={() => {
+                                setShowMoreFormats(!showMoreFormats);
+                                setShowMobileStyleMenu(false);
+                            }}
                             className={`w-full px-1 py-1.5 rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-colors ${
                                 showMoreFormats ? 'bg-primary text-primary-content' : 'bg-base-100 hover:bg-base-300'
                             }`}
@@ -1442,6 +1487,62 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                 )}
 
             </div>
+
+            {/* Mobile inline styles menu (left-side mirror of More menu style) */}
+            {showMobileStyleMenu && !isEditorFullscreen && (
+                <div className="md:hidden border-t border-white/10 p-2 bg-[#0A0A0A]">
+                    <div className="grid grid-cols-4 gap-1">
+                        {onToggleBold && (
+                            <div className="tooltip tooltip-top" data-tip="Bold • Ctrl+B">
+                                <button
+                                    onMouseDown={(e) => e.preventDefault()}
+                                    onClick={onToggleBold}
+                                    className="px-2 py-2 bg-base-200 hover:bg-base-300 rounded text-xs font-medium border border-base-300 w-full min-h-[40px] flex flex-col items-center justify-center"
+                                >
+                                    <span className="text-base font-bold">B</span>
+                                    <span className="text-[9px]">BOLD</span>
+                                </button>
+                            </div>
+                        )}
+                        {onToggleItalics && (
+                            <div className="tooltip tooltip-top" data-tip="Italics • Ctrl+I">
+                                <button
+                                    onMouseDown={(e) => e.preventDefault()}
+                                    onClick={onToggleItalics}
+                                    className="px-2 py-2 bg-base-200 hover:bg-base-300 rounded text-xs font-medium border border-base-300 w-full min-h-[40px] flex flex-col items-center justify-center"
+                                >
+                                    <span className="text-base italic font-semibold">I</span>
+                                    <span className="text-[9px]">ITALIC</span>
+                                </button>
+                            </div>
+                        )}
+                        {onToggleUnderline && (
+                            <div className="tooltip tooltip-top" data-tip="Underline • Ctrl+U">
+                                <button
+                                    onMouseDown={(e) => e.preventDefault()}
+                                    onClick={onToggleUnderline}
+                                    className="px-2 py-2 bg-base-200 hover:bg-base-300 rounded text-xs font-medium border border-base-300 w-full min-h-[40px] flex flex-col items-center justify-center"
+                                >
+                                    <span className="text-base font-semibold underline">U</span>
+                                    <span className="text-[9px]">UNDER</span>
+                                </button>
+                            </div>
+                        )}
+                        {onToggleStrikethrough && (
+                            <div className="tooltip tooltip-top" data-tip="Strikethrough • Ctrl+Shift+X">
+                                <button
+                                    onMouseDown={(e) => e.preventDefault()}
+                                    onClick={onToggleStrikethrough}
+                                    className="px-2 py-2 bg-base-200 hover:bg-base-300 rounded text-xs font-medium border border-base-300 w-full min-h-[40px] flex flex-col items-center justify-center"
+                                >
+                                    <span className="text-base font-semibold line-through">S</span>
+                                    <span className="text-[9px]">STRIKE</span>
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
             
             {/* Extended format menu */}
             {showMoreFormats && (

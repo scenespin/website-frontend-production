@@ -268,6 +268,22 @@ export default function EditorWorkspace() {
             setIsSaving(false);
         }
     };
+
+    const triggerInlineStyleShortcut = useCallback((key: string, options?: { shiftKey?: boolean }) => {
+        const textarea = document.querySelector('textarea.fountain-editor-textarea') as HTMLTextAreaElement ||
+            document.querySelector('textarea') as HTMLTextAreaElement;
+        if (!textarea) return;
+
+        textarea.focus();
+        const event = new KeyboardEvent('keydown', {
+            key,
+            ctrlKey: true,
+            shiftKey: options?.shiftKey || false,
+            bubbles: true,
+            cancelable: true
+        });
+        textarea.dispatchEvent(event);
+    }, []);
     
     
     // Calculate word count and duration (using accurate screenplay calculation)
@@ -842,21 +858,10 @@ export default function EditorWorkspace() {
                         isPreviewMode={isPreviewMode}
                         onTogglePreview={() => setIsPreviewMode(!isPreviewMode)}
                         onOpenFindReplace={() => setIsFindReplaceModalOpen(true)}
-                        onToggleItalics={() => {
-                            // Trigger Ctrl+I programmatically
-                            const textarea = document.querySelector('textarea.fountain-editor-textarea') as HTMLTextAreaElement ||
-                                document.querySelector('textarea') as HTMLTextAreaElement;
-                            if (textarea) {
-                                textarea.focus();
-                                const event = new KeyboardEvent('keydown', {
-                                    key: 'i',
-                                    ctrlKey: true,
-                                    bubbles: true,
-                                    cancelable: true
-                                });
-                                textarea.dispatchEvent(event);
-                            }
-                        }}
+                        onToggleBold={() => triggerInlineStyleShortcut('b')}
+                        onToggleItalics={() => triggerInlineStyleShortcut('i')}
+                        onToggleUnderline={() => triggerInlineStyleShortcut('u')}
+                        onToggleStrikethrough={() => triggerInlineStyleShortcut('x', { shiftKey: true })}
                         onOpenVersionHistory={() => setIsVersionHistoryModalOpen(true)}
                         onOpenAIDisclosure={aiDisclosureEnabled ? () => setIsAIDisclosurePanelOpen(true) : undefined}
                         onToggleSceneNav={() => {

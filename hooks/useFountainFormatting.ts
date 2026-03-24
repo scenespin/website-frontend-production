@@ -38,6 +38,120 @@ export function useFountainFormatting(
      * - Tab: Format current line as CHARACTER (unless Wryda Tab Navigation is enabled)
      * - Shift+Tab: Format current line as SCENE HEADING
      */
+    const handleInlineStyleToggle = useCallback((
+        textarea: HTMLTextAreaElement,
+        marker: string,
+        logPrefix: string
+    ) => {
+        const cursorPos = textarea.selectionStart;
+        const displayContent = stripTagsForDisplay(state.content);
+        const displaySelectionStart = textarea.selectionStart; // Position in displayContent
+        const displaySelectionEnd = textarea.selectionEnd; // Position in displayContent
+        const hasSelection = displaySelectionStart !== displaySelectionEnd;
+        
+        if (!hasSelection) {
+            // No selection - insert paired markers and place cursor between them
+            const fullCursorPos = mapDisplayPositionToFullContent(displayContent, state.content, cursorPos);
+            const pair = `${marker}${marker}`;
+            const newContent = state.content.substring(0, fullCursorPos) + pair + state.content.substring(fullCursorPos);
+            setContent(newContent);
+            
+            setTimeout(() => {
+                if (textareaRef.current) {
+                    const newPos = cursorPos + marker.length;
+                    textareaRef.current.selectionStart = newPos;
+                    textareaRef.current.selectionEnd = newPos;
+                    setCursorPosition(newPos);
+                }
+            }, 0);
+            return;
+        }
+        
+        // Map display positions to full content positions
+        const fullSelectionStart = mapDisplayPositionToFullContent(displayContent, state.content, displaySelectionStart);
+        const fullSelectionEnd = mapDisplayPositionToFullContent(displayContent, state.content, displaySelectionEnd);
+        
+        // Get selected text from full content
+        let selectedText = state.content.substring(fullSelectionStart, fullSelectionEnd);
+        
+        console.log(`[${logPrefix}] Selection debug:`, {
+            displayStart: displaySelectionStart,
+            displayEnd: displaySelectionEnd,
+            fullStart: fullSelectionStart,
+            fullEnd: fullSelectionEnd,
+            selectedText: JSON.stringify(selectedText),
+            selectedTextLength: selectedText.length,
+            includesNewline: selectedText.includes('\n'),
+            lines: selectedText.split('\n').length,
+            textareaSelection: textarea.value.substring(textarea.selectionStart, textarea.selectionEnd)
+        });
+        
+        // Handle whitespace: trim trailing spaces from word selections
+        const isSingleLine = !selectedText.includes('\n');
+        const isShortSelection = selectedText.length < 50; // Likely a word/phrase, not a paragraph
+        const trimmedText = selectedText.trim();
+        const hasTrailingSpace = selectedText.endsWith(' ') && !selectedText.endsWith('\n');
+        const hasLeadingSpace = selectedText.startsWith(' ') && !selectedText.startsWith('\n');
+        
+        let trailingSpaceToRestore = '';
+        if (isSingleLine && isShortSelection && hasTrailingSpace && !hasLeadingSpace) {
+            trailingSpaceToRestore = ' ';
+            selectedText = selectedText.slice(0, -1);
+        } else if (isSingleLine && isShortSelection && hasTrailingSpace && hasLeadingSpace) {
+            const leadingSpace = selectedText.match(/^ +/)?.[0] || '';
+            selectedText = leadingSpace + trimmedText;
+            trailingSpaceToRestore = ' ';
+        }
+        
+        // Handle trailing newline for single-line selection
+        const hasTrailingNewline = selectedText.endsWith('\n');
+        const lines = selectedText.split('\n');
+        const lastLineIsEmpty = lines.length > 1 && lines[lines.length - 1] === '';
+        let shouldAddNewlineAfterWrap = false;
+        
+        if (hasTrailingNewline && lines.length === 2 && lastLineIsEmpty) {
+            selectedText = selectedText.slice(0, -1);
+            shouldAddNewlineAfterWrap = true;
+        }
+        
+        const leadingWhitespace = selectedText.match(/^\s*/)?.[0] || '';
+        const trailingWhitespace = selectedText.match(/\s*$/)?.[0] || '';
+        const contentWithoutWhitespace = selectedText.slice(leadingWhitespace.length, selectedText.length - trailingWhitespace.length);
+        
+        const isAlreadyStyled = contentWithoutWhitespace.startsWith(marker) && 
+                               contentWithoutWhitespace.endsWith(marker) &&
+                               contentWithoutWhitespace.length > marker.length * 2;
+        
+        let newText: string;
+        
+        if (isAlreadyStyled) {
+            const unwrappedContent = contentWithoutWhitespace.slice(marker.length, -marker.length);
+            newText = leadingWhitespace + unwrappedContent + trailingWhitespace;
+        } else {
+            if (shouldAddNewlineAfterWrap) {
+                newText = `${marker}${selectedText}${marker}\n${trailingSpaceToRestore}`;
+            } else if (trailingSpaceToRestore) {
+                newText = `${marker}${selectedText}${marker}${trailingSpaceToRestore}`;
+            } else {
+                newText = `${marker}${selectedText}${marker}`;
+            }
+        }
+        
+        // Replace selection using replaceSelection function
+        replaceSelection(newText, fullSelectionStart, fullSelectionEnd);
+        
+        // Update cursor position - new text length in display content
+        const newDisplayLength = stripTagsForDisplay(newText).length;
+        setTimeout(() => {
+            if (textareaRef.current) {
+                const newEnd = displaySelectionStart + newDisplayLength;
+                textareaRef.current.selectionStart = newEnd;
+                textareaRef.current.selectionEnd = newEnd;
+                setCursorPosition(newEnd);
+            }
+        }, 0);
+    }, [replaceSelection, setContent, setCursorPosition, state.content, textareaRef]);
+
     const handleKeyDown = useCallback((e: KeyboardEvent<HTMLTextAreaElement>) => {
         if (!textareaRef.current) return;
         
@@ -157,141 +271,24 @@ export function useFountainFormatting(
         // Ctrl/Cmd + I - Toggle italics (case-insensitive for Caps Lock)
         else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'i') {
             e.preventDefault();
-            
-            const displayContent = stripTagsForDisplay(state.content);
-            const displaySelectionStart = textarea.selectionStart; // Position in displayContent
-            const displaySelectionEnd = textarea.selectionEnd; // Position in displayContent
-            const hasSelection = displaySelectionStart !== displaySelectionEnd;
-            
-            if (!hasSelection) {
-                // No selection - insert paired markers and place cursor between them
-                const fullCursorPos = mapDisplayPositionToFullContent(displayContent, state.content, cursorPos);
-                const newContent = state.content.substring(0, fullCursorPos) + '**' + state.content.substring(fullCursorPos);
-                setContent(newContent);
-                
-                setTimeout(() => {
-                    if (textareaRef.current) {
-                        const newPos = cursorPos + 1;
-                        textareaRef.current.selectionStart = newPos;
-                        textareaRef.current.selectionEnd = newPos;
-                        setCursorPosition(newPos);
-                    }
-                }, 0);
-                return;
-            }
-            
-            // Map display positions to full content positions
-            const fullSelectionStart = mapDisplayPositionToFullContent(displayContent, state.content, displaySelectionStart);
-            const fullSelectionEnd = mapDisplayPositionToFullContent(displayContent, state.content, displaySelectionEnd);
-            
-            // Get selected text from full content
-            let selectedText = state.content.substring(fullSelectionStart, fullSelectionEnd);
-            
-            // Debug: Log selection to help diagnose issues
-            console.log('[Italics] Selection debug:', {
-                displayStart: displaySelectionStart,
-                displayEnd: displaySelectionEnd,
-                fullStart: fullSelectionStart,
-                fullEnd: fullSelectionEnd,
-                selectedText: JSON.stringify(selectedText),
-                selectedTextLength: selectedText.length,
-                includesNewline: selectedText.includes('\n'),
-                lines: selectedText.split('\n').length,
-                textareaSelection: textarea.value.substring(textarea.selectionStart, textarea.selectionEnd)
-            });
-            
-            // Handle whitespace: trim trailing spaces from word selections
-            // When selecting a word, browsers often include the trailing space
-            // e.g., "slides " should become "*slides* " not "*slides *"
-            const isSingleLine = !selectedText.includes('\n');
-            const isShortSelection = selectedText.length < 50; // Likely a word/phrase, not a paragraph
-            const trimmedText = selectedText.trim();
-            const hasTrailingSpace = selectedText.endsWith(' ') && !selectedText.endsWith('\n');
-            const hasLeadingSpace = selectedText.startsWith(' ') && !selectedText.startsWith('\n');
-            
-            let trailingSpaceToRestore = '';
-            if (isSingleLine && isShortSelection && hasTrailingSpace && !hasLeadingSpace) {
-                // Single word with trailing space - trim it and restore after closing asterisk
-                trailingSpaceToRestore = ' ';
-                selectedText = selectedText.slice(0, -1);
-                console.log('[Italics] Trimmed trailing space from word selection');
-            } else if (isSingleLine && isShortSelection && hasTrailingSpace && hasLeadingSpace) {
-                // Both leading and trailing spaces - preserve leading, trim trailing
-                const leadingSpace = selectedText.match(/^ +/)?.[0] || '';
-                selectedText = leadingSpace + trimmedText;
-                trailingSpaceToRestore = ' ';
-                console.log('[Italics] Trimmed trailing space, preserved leading space');
-            }
-            
-            // Handle trailing newline: if selection is a single line that ends with newline,
-            // we need to preserve the line break structure
-            const hasTrailingNewline = selectedText.endsWith('\n');
-            const lines = selectedText.split('\n');
-            const lastLineIsEmpty = lines.length > 1 && lines[lines.length - 1] === '';
-            let shouldAddNewlineAfterWrap = false;
-            
-            if (hasTrailingNewline && lines.length === 2 && lastLineIsEmpty) {
-                // Single line with trailing newline - remove newline from selection
-                // but we'll add it back AFTER the closing asterisk to preserve line structure
-                selectedText = selectedText.slice(0, -1);
-                shouldAddNewlineAfterWrap = true;
-                console.log('[Italics] Single line with trailing newline - will add newline after wrap');
-            }
-            
-            // Check if already italic (wrapped in *text*)
-            // For multi-line selections, check if the entire block is wrapped (not per-line)
-            const trimmed = selectedText.trim();
-            const startsWithAsterisk = trimmed.startsWith('*');
-            const endsWithAsterisk = trimmed.endsWith('*');
-            
-            // Check if the entire selection is wrapped (not individual lines)
-            // Look for pattern: *text* where text can include newlines
-            // We need to check if the FIRST character after leading whitespace is * 
-            // and the LAST character before trailing whitespace is *
-            const leadingWhitespace = selectedText.match(/^\s*/)?.[0] || '';
-            const trailingWhitespace = selectedText.match(/\s*$/)?.[0] || '';
-            const contentWithoutWhitespace = selectedText.slice(leadingWhitespace.length, selectedText.length - trailingWhitespace.length);
-            
-            const isAlreadyItalic = contentWithoutWhitespace.startsWith('*') && 
-                                   contentWithoutWhitespace.endsWith('*') &&
-                                   contentWithoutWhitespace.length > 1; // At least *something*
-            
-            let newText: string;
-            
-            if (isAlreadyItalic) {
-                // Remove italics - remove outer asterisks while preserving whitespace
-                const unwrappedContent = contentWithoutWhitespace.slice(1, -1); // Remove first and last *
-                newText = leadingWhitespace + unwrappedContent + trailingWhitespace;
-            } else {
-                // Add italics - wrap entire selection as one block
-                // If we removed trailing whitespace, add it back after the closing asterisk
-                // This preserves spacing: *word* instead of *word *
-                if (shouldAddNewlineAfterWrap) {
-                    newText = `*${selectedText}*\n${trailingSpaceToRestore}`;
-                } else if (trailingSpaceToRestore) {
-                    // Word selection with trailing space - restore space after closing asterisk
-                    newText = `*${selectedText}*${trailingSpaceToRestore}`;
-                } else {
-                    // Multi-line or no trailing whitespace: wrap as-is
-                    newText = `*${selectedText}*`;
-                }
-            }
-            
-            // Replace selection using replaceSelection function
-            replaceSelection(newText, fullSelectionStart, fullSelectionEnd);
-            
-            // Update cursor position - new text length in display content
-            const newDisplayLength = stripTagsForDisplay(newText).length;
-            setTimeout(() => {
-                if (textareaRef.current) {
-                    const newEnd = displaySelectionStart + newDisplayLength;
-                    textareaRef.current.selectionStart = newEnd;
-                    textareaRef.current.selectionEnd = newEnd;
-                    setCursorPosition(newEnd);
-                }
-            }, 0);
+            handleInlineStyleToggle(textarea, '*', 'Italics');
         }
-    }, [textareaRef, state.content, setContent, setCursorPosition, setCurrentElementType, replaceSelection]);
+        // Ctrl/Cmd + B - Toggle bold
+        else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'b') {
+            e.preventDefault();
+            handleInlineStyleToggle(textarea, '**', 'Bold');
+        }
+        // Ctrl/Cmd + U - Toggle underline
+        else if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'u') {
+            e.preventDefault();
+            handleInlineStyleToggle(textarea, '_', 'Underline');
+        }
+        // Ctrl/Cmd + Shift + X - Toggle strikethrough
+        else if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key.toLowerCase() === 'x') {
+            e.preventDefault();
+            handleInlineStyleToggle(textarea, '~~', 'Strike');
+        }
+    }, [textareaRef, setCurrentElementType, handleInlineStyleToggle]);
     
     /**
      * Detect the current element type at cursor position
