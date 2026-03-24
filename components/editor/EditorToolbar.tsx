@@ -1088,15 +1088,15 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                 {/* Divider */}
                 <div className="hidden md:block h-8 w-px bg-base-300 mx-2"></div>
                 
-                {/* Export PDF button - Emoji */}
+                {/* Export button - PDF/FDX modal */}
                 {onExportPDF && (
-                    <div className="tooltip tooltip-bottom" data-tip="Export PDF • Industry-standard format • Cmd+P">
+                    <div className="tooltip tooltip-bottom" data-tip="Export screenplay • PDF or FDX • Cmd+P">
                         <button
                             onClick={onExportPDF}
                             className="px-2 py-2 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-w-[40px] min-h-[40px] flex flex-col items-center justify-center transition-colors"
                         >
                             <span className="text-base">⬇️</span>
-                            <span className="text-[9px] hidden sm:inline">PDF</span>
+                            <span className="text-[9px] hidden sm:inline">EXPORT</span>
                         </button>
                     </div>
                 )}
@@ -1413,15 +1413,15 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                     </div>
                     )}
                     
-                    {/* Download (PDF) */}
+                    {/* Export (PDF/FDX) */}
                     {onExportPDF && (
-                        <div className="tooltip tooltip-bottom" data-tip="Export PDF • Industry-standard format">
+                        <div className="tooltip tooltip-bottom" data-tip="Export screenplay • PDF or FDX">
                             <button
                                 onClick={onExportPDF}
                                 className="w-full px-1 py-1.5 bg-base-300 hover:bg-[#DC143C]/10 hover:text-[#DC143C] rounded text-xs font-semibold min-h-[36px] flex flex-col items-center justify-center transition-colors"
                             >
                                 <span className="text-sm">⬇️</span>
-                                <span className="text-[8px] leading-tight">Download</span>
+                                <span className="text-[8px] leading-tight">Export</span>
                             </button>
                         </div>
                     )}

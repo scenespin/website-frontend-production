@@ -173,7 +173,7 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
               wordWrap: 'break-word',
             }}
           >
-            {element.text}
+            {renderInlineText(element.text)}
           </div>
         );
 
@@ -192,7 +192,7 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
               whiteSpace: 'pre-wrap',
             }}
           >
-            {element.text}
+            {renderInlineText(element.text)}
           </div>
         );
 
@@ -210,7 +210,7 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
               fontSize: '12pt',
             }}
           >
-            {element.text}
+            {renderInlineText(element.text)}
           </div>
         );
 

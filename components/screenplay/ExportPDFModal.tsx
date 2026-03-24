@@ -10,6 +10,8 @@ interface ExportPDFModalProps {
   onClose: () => void;
 }
 
+type ExportFormat = 'pdf' | 'fdx';
+
 /**
  * Export PDF Modal - 100% FREE for all users!
  * No plan gating - democratizing professional screenplay export
@@ -18,6 +20,7 @@ export function ExportPDFModal({ screenplayId, screenplay, onClose }: ExportPDFM
   const { getToken } = useAuth();
   const [isExporting, setIsExporting] = useState(false);
   const [exported, setExported] = useState(false);
+  const [exportFormat, setExportFormat] = useState<ExportFormat>('pdf');
   
   // Form state
   const [title, setTitle] = useState('Untitled Screenplay');
@@ -198,8 +201,8 @@ export function ExportPDFModal({ screenplayId, screenplay, onClose }: ExportPDFM
       return;
     }
     
-    // Validate watermark image if image type is selected
-    if (includeWatermark && watermarkType === 'image') {
+    // Validate watermark image only for PDF exports
+    if (exportFormat === 'pdf' && includeWatermark && watermarkType === 'image') {
       if (!watermarkImage) {
         alert('Please upload an image for the watermark');
         return;
@@ -226,7 +229,7 @@ export function ExportPDFModal({ screenplayId, screenplay, onClose }: ExportPDFM
     try {
       let watermark = undefined;
       
-      if (includeWatermark) {
+      if (exportFormat === 'pdf' && includeWatermark) {
         if (watermarkType === 'image' && watermarkImage) {
           console.log('[PDF Export] Creating image watermark...', {
             imageLength: watermarkImage.length,
@@ -250,8 +253,9 @@ export function ExportPDFModal({ screenplayId, screenplay, onClose }: ExportPDFM
         }
       }
       
-      console.log('[PDF Export] Starting PDF export...', {
+      console.log('[Export] Starting screenplay export...', {
         screenplayId,
+        exportFormat,
         hasWatermark: !!watermark,
         watermarkType: watermark?.image ? 'image' : watermark?.text ? 'text' : 'none',
       });
@@ -262,7 +266,8 @@ export function ExportPDFModal({ screenplayId, screenplay, onClose }: ExportPDFM
       }
 
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
-      const response = await fetch(`${backendUrl}/api/screenplay/${encodeURIComponent(screenplayId)}/export/pdf`, {
+      const exportPath = exportFormat === 'pdf' ? 'export/pdf' : 'export/fdx';
+      const response = await fetch(`${backendUrl}/api/screenplay/${encodeURIComponent(screenplayId)}/${exportPath}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -271,16 +276,20 @@ export function ExportPDFModal({ screenplayId, screenplay, onClose }: ExportPDFM
         body: JSON.stringify({
           content: screenplay, // Keep parity with current UX (exports unsaved editor content).
           title,
-          author: author || undefined,
-          contact: contact || undefined,
-          watermark: includeWatermark
+          ...(exportFormat === 'pdf'
             ? {
-                enabled: true,
-                ...watermark,
+                author: author || undefined,
+                contact: contact || undefined,
+                watermark: includeWatermark
+                  ? {
+                      enabled: true,
+                      ...watermark,
+                    }
+                  : {
+                      enabled: false,
+                    },
               }
-            : {
-                enabled: false,
-              },
+            : {}),
         }),
       });
 
@@ -298,7 +307,8 @@ export function ExportPDFModal({ screenplayId, screenplay, onClose }: ExportPDFM
       const blob = await response.blob();
       const contentDisposition = response.headers.get('content-disposition') || '';
       const filenameMatch = contentDisposition.match(/filename="([^"]+)"/i);
-      const filename = filenameMatch?.[1] || `${title.replace(/[^a-zA-Z0-9]/g, '_')}.pdf`;
+      const fallbackExt = exportFormat === 'pdf' ? 'pdf' : 'fdx';
+      const filename = filenameMatch?.[1] || `${title.replace(/[^a-zA-Z0-9]/g, '_')}.${fallbackExt}`;
 
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -309,7 +319,7 @@ export function ExportPDFModal({ screenplayId, screenplay, onClose }: ExportPDFM
       document.body.removeChild(a);
       URL.revokeObjectURL(url);
       
-      console.log('[PDF Export] PDF exported successfully');
+      console.log('[Export] Screenplay exported successfully');
       setExported(true);
       
       // Close modal after brief delay
@@ -318,14 +328,15 @@ export function ExportPDFModal({ screenplayId, screenplay, onClose }: ExportPDFM
       }, 1500);
       
     } catch (error) {
-      console.error('[PDF Export] Failed:', error);
-      console.error('[PDF Export] Error details:', {
+      console.error('[Export] Failed:', error);
+      console.error('[Export] Error details:', {
         errorMessage: error instanceof Error ? error.message : String(error),
         errorStack: error instanceof Error ? error.stack : undefined,
+        exportFormat,
         watermarkType,
         hasWatermarkImage: !!watermarkImage,
       });
-      alert(`Failed to export PDF: ${error instanceof Error ? error.message : 'Unknown error'}. Please check the console for details.`);
+      alert(`Failed to export ${exportFormat.toUpperCase()}: ${error instanceof Error ? error.message : 'Unknown error'}. Please check the console for details.`);
     } finally {
       setIsExporting(false);
     }
@@ -339,7 +350,7 @@ export function ExportPDFModal({ screenplayId, screenplay, onClose }: ExportPDFM
         <div className="flex items-center justify-between p-6 border-b border-[#3F3F46] bg-[#141414]">
           <div className="flex items-center gap-3">
             <FileDown className="w-5 h-5 text-[#DC143C]" />
-            <h2 className="text-xl font-semibold text-[#FFFFFF]">Export to PDF</h2>
+            <h2 className="text-xl font-semibold text-[#FFFFFF]">Export Screenplay</h2>
           </div>
           <button
             onClick={onClose}
@@ -353,6 +364,37 @@ export function ExportPDFModal({ screenplayId, screenplay, onClose }: ExportPDFM
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-6 bg-[#0A0A0A]">
           
+          {/* Export Format */}
+          <div className="space-y-2">
+            <label className="text-sm font-medium text-[#FFFFFF]">
+              Export Format
+            </label>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => setExportFormat('pdf')}
+                className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  exportFormat === 'pdf'
+                    ? 'bg-[#DC143C] text-white'
+                    : 'bg-[#141414] border border-[#3F3F46] text-[#E5E7EB] hover:bg-[#1F1F1F]'
+                }`}
+              >
+                PDF
+              </button>
+              <button
+                type="button"
+                onClick={() => setExportFormat('fdx')}
+                className={`flex-1 px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  exportFormat === 'fdx'
+                    ? 'bg-[#DC143C] text-white'
+                    : 'bg-[#141414] border border-[#3F3F46] text-[#E5E7EB] hover:bg-[#1F1F1F]'
+                }`}
+              >
+                Final Draft (FDX)
+              </button>
+            </div>
+          </div>
+
           {/* Title */}
           <div className="space-y-2">
             <label htmlFor="title" className="text-sm font-medium text-[#FFFFFF]">
@@ -368,6 +410,9 @@ export function ExportPDFModal({ screenplayId, screenplay, onClose }: ExportPDFM
             />
           </div>
           
+          {/* PDF-only fields */}
+          {exportFormat === 'pdf' && (
+          <>
           {/* Author */}
           <div className="space-y-2">
             <label htmlFor="author" className="text-sm font-medium text-[#FFFFFF]">
@@ -591,6 +636,8 @@ export function ExportPDFModal({ screenplayId, screenplay, onClose }: ExportPDFM
               </div>
             )}
           </div>
+          </>
+          )}
           
           {/* Info Alert */}
           <div className="bg-blue-900/20 border border-blue-500/50 rounded-lg p-4 flex items-start gap-3">
@@ -598,7 +645,12 @@ export function ExportPDFModal({ screenplayId, screenplay, onClose }: ExportPDFM
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
             </svg>
             <div className="text-sm text-[#E5E7EB]">
-              <strong className="text-[#FFFFFF]">Industry-Standard Format:</strong> Courier 12pt, proper margins, scene bookmarks, professional page numbering.
+              <strong className="text-[#FFFFFF]">
+                {exportFormat === 'pdf' ? 'Industry-Standard PDF:' : 'Final Draft (FDX):'}
+              </strong>{' '}
+              {exportFormat === 'pdf'
+                ? 'Courier 12pt, proper margins, scene bookmarks, professional page numbering.'
+                : 'Exports screenplay structure for Final Draft compatibility.'}
             </div>
           </div>
         </div>
@@ -630,7 +682,7 @@ export function ExportPDFModal({ screenplayId, screenplay, onClose }: ExportPDFM
             ) : (
               <>
                 <FileDown className="w-4 h-4" />
-                Export PDF
+                {exportFormat === 'pdf' ? 'Export PDF' : 'Export FDX'}
               </>
             )}
           </button>
