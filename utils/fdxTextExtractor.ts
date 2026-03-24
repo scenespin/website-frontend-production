@@ -64,6 +64,42 @@ export async function extractTextFromFDX(file: File): Promise<FDXExtractionResul
     
     let previousType = '';
     
+    const applyFountainInlineStyles = (rawText: string, style: string | null): string => {
+      if (!style || !rawText || rawText.trim().length === 0) {
+        return rawText;
+      }
+
+      const styleParts = style
+        .split('+')
+        .map(part => part.trim().toLowerCase())
+        .filter(Boolean);
+
+      const hasBold = styleParts.includes('bold');
+      const hasItalic = styleParts.includes('italic');
+      const hasUnderline = styleParts.includes('underline');
+      const hasStrike = styleParts.includes('strikeout');
+
+      let formatted = rawText;
+
+      if (hasBold && hasItalic) {
+        formatted = `***${formatted}***`;
+      } else if (hasBold) {
+        formatted = `**${formatted}**`;
+      } else if (hasItalic) {
+        formatted = `*${formatted}*`;
+      }
+
+      if (hasUnderline) {
+        formatted = `_${formatted}_`;
+      }
+
+      if (hasStrike) {
+        formatted = `~~${formatted}~~`;
+      }
+
+      return formatted;
+    };
+
     paragraphs.forEach((paragraph) => {
       const type = paragraph.getAttribute('Type');
       if (!type) return;
@@ -71,7 +107,11 @@ export async function extractTextFromFDX(file: File): Promise<FDXExtractionResul
       // Extract text from paragraph
       const textNodes = paragraph.querySelectorAll('Text');
       const paragraphText = Array.from(textNodes)
-        .map(node => node.textContent || '')
+        .map((node) => {
+          const textContent = node.textContent || '';
+          const style = node.getAttribute('Style');
+          return applyFountainInlineStyles(textContent, style);
+        })
         .join('')
         .trim();
       

@@ -17,42 +17,85 @@ function inchesToRem(inches: number): string {
 type InlineRun = {
   text: string;
   italic: boolean;
+  bold: boolean;
+  underline: boolean;
+  strike: boolean;
 };
 
 function parseInlineItalicRuns(text: string): InlineRun[] {
   const runs: InlineRun[] = [];
   let buffer = '';
   let italic = false;
+  let bold = false;
+  let underline = false;
+  let strike = false;
+
+  const hasClosingToken = (token: string, fromIndex: number): boolean =>
+    text.indexOf(token, fromIndex) !== -1;
+
+  const pushBuffer = () => {
+    if (!buffer) return;
+    runs.push({ text: buffer, italic, bold, underline, strike });
+    buffer = '';
+  };
 
   for (let i = 0; i < text.length; i++) {
-    const ch = text[i];
-    const prev = i > 0 ? text[i - 1] : '';
-    const next = i < text.length - 1 ? text[i + 1] : '';
-
-    // Treat single asterisks as italic delimiters, keep double asterisks literal for now.
-    if (ch === '*' && prev !== '*' && next !== '*') {
-      if (buffer) {
-        runs.push({ text: buffer, italic });
-        buffer = '';
-      }
+    if (text.startsWith('***', i) && (bold && italic ? true : hasClosingToken('***', i + 3))) {
+      pushBuffer();
+      bold = !bold;
       italic = !italic;
+      i += 2;
+      continue;
+    }
+
+    if (text.startsWith('**', i) && !text.startsWith('***', i) && (bold ? true : hasClosingToken('**', i + 2))) {
+      pushBuffer();
+      bold = !bold;
+      i += 1;
+      continue;
+    }
+
+    if (text.startsWith('~~', i) && (strike ? true : hasClosingToken('~~', i + 2))) {
+      pushBuffer();
+      strike = !strike;
+      i += 1;
+      continue;
+    }
+
+    const ch = text[i];
+    if (ch === '*' && (italic ? true : hasClosingToken('*', i + 1))) {
+      pushBuffer();
+      italic = !italic;
+      continue;
+    }
+
+    if (ch === '_' && (underline ? true : hasClosingToken('_', i + 1))) {
+      pushBuffer();
+      underline = !underline;
       continue;
     }
 
     buffer += ch;
   }
 
-  if (buffer) {
-    runs.push({ text: buffer, italic });
-  }
+  pushBuffer();
 
-  return runs.length > 0 ? runs : [{ text, italic: false }];
+  return runs.length > 0 ? runs : [{ text, italic: false, bold: false, underline: false, strike: false }];
 }
 
 function renderInlineText(text: string) {
   const runs = parseInlineItalicRuns(text);
   return runs.map((run, idx) => (
-    <span key={`run-${idx}`} style={run.italic ? { fontStyle: 'italic' } : undefined}>
+    <span
+      key={`run-${idx}`}
+      style={{
+        fontStyle: run.italic ? 'italic' : undefined,
+        fontWeight: run.bold ? 700 : undefined,
+        textDecoration: [run.underline ? 'underline' : '', run.strike ? 'line-through' : '']
+          .filter(Boolean)
+          .join(' ') || undefined
+      }}
+    >
       {run.text}
     </span>
   ));
