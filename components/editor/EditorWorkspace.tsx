@@ -919,6 +919,8 @@ Tip:
                 <ExportPDFModal
                     screenplayId={screenplayId || screenplay.screenplayId || ''}
                     screenplay={state.content}
+                    initialTitle={state.title}
+                    initialAuthor={state.author}
                     onClose={() => setShowExportModal(false)}
                 />
             )}

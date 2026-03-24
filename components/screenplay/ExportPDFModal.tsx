@@ -7,6 +7,9 @@ import { useAuth } from '@clerk/nextjs';
 interface ExportPDFModalProps {
   screenplayId: string;
   screenplay: string;
+  initialTitle?: string;
+  initialAuthor?: string;
+  initialContact?: string;
   onClose: () => void;
 }
 
@@ -16,16 +19,23 @@ type ExportFormat = 'pdf' | 'fdx';
  * Export PDF Modal - 100% FREE for all users!
  * No plan gating - democratizing professional screenplay export
  */
-export function ExportPDFModal({ screenplayId, screenplay, onClose }: ExportPDFModalProps) {
+export function ExportPDFModal({
+  screenplayId,
+  screenplay,
+  initialTitle,
+  initialAuthor,
+  initialContact,
+  onClose
+}: ExportPDFModalProps) {
   const { getToken } = useAuth();
   const [isExporting, setIsExporting] = useState(false);
   const [exported, setExported] = useState(false);
   const [exportFormat, setExportFormat] = useState<ExportFormat>('pdf');
   
   // Form state
-  const [title, setTitle] = useState('Untitled Screenplay');
-  const [author, setAuthor] = useState('');
-  const [contact, setContact] = useState('');
+  const [title, setTitle] = useState((initialTitle && initialTitle.trim()) ? initialTitle : 'Untitled Screenplay');
+  const [author, setAuthor] = useState(initialAuthor || '');
+  const [contact, setContact] = useState(initialContact || '');
   const [includeWatermark, setIncludeWatermark] = useState(false);
   const [watermarkType, setWatermarkType] = useState<'text' | 'image'>('text');
   const [watermarkText, setWatermarkText] = useState('DRAFT');
