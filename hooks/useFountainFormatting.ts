@@ -280,10 +280,21 @@ export function useFountainFormatting(
         const newDisplayLength = stripTagsForDisplay(newText).length;
         setTimeout(() => {
             if (textareaRef.current) {
+                const newStart = expandedDisplayStart;
                 const newEnd = expandedDisplayStart + newDisplayLength;
-                textareaRef.current.selectionStart = newEnd;
-                textareaRef.current.selectionEnd = newEnd;
-                setCursorPosition(newEnd);
+                const shouldPreserveSelectionDesktop =
+                    typeof window !== 'undefined' && window.innerWidth >= 768;
+
+                if (shouldPreserveSelectionDesktop) {
+                    // Desktop polish: keep transformed text selected so users can stack styles quickly.
+                    textareaRef.current.selectionStart = newStart;
+                    textareaRef.current.selectionEnd = newEnd;
+                    setCursorPosition(newEnd);
+                } else {
+                    textareaRef.current.selectionStart = newEnd;
+                    textareaRef.current.selectionEnd = newEnd;
+                    setCursorPosition(newEnd);
+                }
             }
         }, 0);
     }, [replaceSelection, setContent, setCursorPosition, state.content, textareaRef]);

@@ -585,26 +585,26 @@ export default function EditorWorkspace() {
         
         // 🔥 CRITICAL: Only allow rewrite if text is actually selected (not just cursor position)
         if (!finalSelectedText || !finalSelectionRange) {
-            toast.error(`Please select at least ${MIN_REWRITE_SELECTION_CHARS} characters to rewrite`);
+            toast.error('Please select a larger amount of text to rewrite');
             return;
         }
         
         // Check if selection has actual content (not just whitespace)
         const trimmedText = finalSelectedText.trim();
         if (!trimmedText || trimmedText.length === 0) {
-            toast.error(`Please select at least ${MIN_REWRITE_SELECTION_CHARS} characters to rewrite`);
+            toast.error('Please select a larger amount of text to rewrite');
             return;
         }
         
         // Check if selection range has meaningful length (not just cursor position)
         if (finalSelectionRange.start === finalSelectionRange.end) {
-            toast.error(`Please select at least ${MIN_REWRITE_SELECTION_CHARS} characters to rewrite`);
+            toast.error('Please select a larger amount of text to rewrite');
             return;
         }
 
         const rawSelectionLength = finalSelectionRange.end - finalSelectionRange.start;
         if (rawSelectionLength < MIN_REWRITE_SELECTION_CHARS || trimmedText.length < MIN_REWRITE_SELECTION_CHARS) {
-            toast.error(`Please select at least ${MIN_REWRITE_SELECTION_CHARS} characters to rewrite`);
+            toast.error('Please select a larger amount of text to rewrite');
             return;
         }
         
