@@ -299,6 +299,11 @@ export function useFountainFormatting(
                     textareaRef.current.selectionEnd = newEnd;
                     setCursorPosition(newEnd);
                 }
+
+                // Force selection-state sync for toolbar active BIUS buttons after programmatic range updates.
+                if (typeof window !== 'undefined') {
+                    window.dispatchEvent(new CustomEvent('editor-sync-selection-state'));
+                }
             }
         }, 0);
     }, [replaceSelection, setContent, setCursorPosition, state.content, textareaRef]);

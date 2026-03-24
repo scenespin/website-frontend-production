@@ -148,6 +148,17 @@ export function useEditorSelection(
     const handlePointerUp = useCallback(() => {
         captureSelection();
     }, [captureSelection]);
+
+    // Programmatic selection updates (e.g., BIUS toggles) don't always emit pointer/mouse events.
+    // Listen for explicit sync requests so toolbar active-state can stay in sync with transformed text.
+    useEffect(() => {
+        const handleSyncSelection = () => {
+            captureSelection();
+        };
+
+        window.addEventListener('editor-sync-selection-state', handleSyncSelection);
+        return () => window.removeEventListener('editor-sync-selection-state', handleSyncSelection);
+    }, [captureSelection]);
     
     /**
      * Close selection toolbar
