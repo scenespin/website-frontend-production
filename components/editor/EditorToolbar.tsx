@@ -24,6 +24,12 @@ interface EditorToolbarProps {
     onToggleItalics?: () => void;
     onToggleUnderline?: () => void;
     onToggleStrikethrough?: () => void;
+    activeInlineStyles?: {
+        bold: boolean;
+        italic: boolean;
+        underline: boolean;
+        strike: boolean;
+    };
     onOpenVersionHistory?: () => void;
     onOpenAIDisclosure?: () => void;
     onToggleSceneNav?: () => void;
@@ -426,7 +432,7 @@ function GitHubSaveButton() {
  * EditorToolbar - Formatting toolbar with screenplay element buttons
  * Theme-aware styling with DaisyUI classes
  */
-export default function EditorToolbar({ className = '', onExportPDF, onOpenCollaboration, onSave, isEditorFullscreen = false, onToggleEditorFullscreen, isPreviewMode = false, onTogglePreview, onOpenFindReplace, onToggleBold, onToggleItalics, onToggleUnderline, onToggleStrikethrough, onOpenVersionHistory, onOpenAIDisclosure, onToggleSceneNav, onLaunchDirector, onLaunchDialogue }: EditorToolbarProps) {
+export default function EditorToolbar({ className = '', onExportPDF, onOpenCollaboration, onSave, isEditorFullscreen = false, onToggleEditorFullscreen, isPreviewMode = false, onTogglePreview, onOpenFindReplace, onToggleBold, onToggleItalics, onToggleUnderline, onToggleStrikethrough, activeInlineStyles, onOpenVersionHistory, onOpenAIDisclosure, onToggleSceneNav, onLaunchDirector, onLaunchDialogue }: EditorToolbarProps) {
     const { state, setContent, setCursorPosition, toggleFocusMode, setFontSize, undo, redo, saveNow, isEditorLocked, isPreviewMode: contextPreviewMode, setIsPreviewMode } = useEditor();
     
     // Use prop if provided, otherwise use context
@@ -828,6 +834,10 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
     
     const [showMoreFormats, setShowMoreFormats] = React.useState(false);
     const [showMobileStyleMenu, setShowMobileStyleMenu] = React.useState(false);
+    const getInlineStyleButtonClass = (isActive: boolean) => {
+        const base = 'px-2 py-2 rounded text-xs font-semibold min-w-[40px] min-h-[40px] flex flex-col items-center justify-center transition-colors';
+        return `${base} ${isActive ? 'bg-primary text-primary-content' : 'bg-base-100 hover:bg-base-300'}`;
+    };
     
     return (
         <div className={`bg-[#0A0A0A] border-t border-white/10 shadow-sm ${className}`}>
@@ -893,7 +903,7 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                             <button
                                 onMouseDown={(e) => e.preventDefault()}
                                 onClick={onToggleBold}
-                                className="px-2 py-2 bg-base-100 hover:bg-base-300 rounded text-xs font-semibold min-w-[40px] min-h-[40px] flex flex-col items-center justify-center transition-colors"
+                                className={getInlineStyleButtonClass(Boolean(activeInlineStyles?.bold))}
                             >
                                 <span className="text-base font-bold">B</span>
                                 <span className="text-[9px] hidden sm:inline">BOLD</span>
@@ -905,7 +915,7 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                             <button
                                 onMouseDown={(e) => e.preventDefault()}
                                 onClick={onToggleItalics}
-                                className="px-2 py-2 bg-base-100 hover:bg-base-300 rounded text-xs font-semibold min-w-[40px] min-h-[40px] flex flex-col items-center justify-center transition-colors"
+                                className={getInlineStyleButtonClass(Boolean(activeInlineStyles?.italic))}
                             >
                                 <span className="text-base italic font-semibold">I</span>
                                 <span className="text-[9px] hidden sm:inline">ITALIC</span>
@@ -917,7 +927,7 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                             <button
                                 onMouseDown={(e) => e.preventDefault()}
                                 onClick={onToggleUnderline}
-                                className="px-2 py-2 bg-base-100 hover:bg-base-300 rounded text-xs font-semibold min-w-[40px] min-h-[40px] flex flex-col items-center justify-center transition-colors"
+                                className={getInlineStyleButtonClass(Boolean(activeInlineStyles?.underline))}
                             >
                                 <span className="text-base font-semibold underline">U</span>
                                 <span className="text-[9px] hidden sm:inline">UNDER</span>
@@ -929,7 +939,7 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                             <button
                                 onMouseDown={(e) => e.preventDefault()}
                                 onClick={onToggleStrikethrough}
-                                className="px-2 py-2 bg-base-100 hover:bg-base-300 rounded text-xs font-semibold min-w-[40px] min-h-[40px] flex flex-col items-center justify-center transition-colors"
+                                className={getInlineStyleButtonClass(Boolean(activeInlineStyles?.strike))}
                             >
                                 <span className="text-base font-semibold line-through">S</span>
                                 <span className="text-[9px] hidden sm:inline">STRIKE</span>
@@ -1497,7 +1507,9 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                                 <button
                                     onMouseDown={(e) => e.preventDefault()}
                                     onClick={onToggleBold}
-                                    className="px-2 py-2 bg-base-200 hover:bg-base-300 rounded text-xs font-medium border border-base-300 w-full min-h-[40px] flex flex-col items-center justify-center"
+                                    className={`px-2 py-2 rounded text-xs font-medium border border-base-300 w-full min-h-[40px] flex flex-col items-center justify-center ${
+                                        activeInlineStyles?.bold ? 'bg-primary text-primary-content' : 'bg-base-200 hover:bg-base-300'
+                                    }`}
                                 >
                                     <span className="text-base font-bold">B</span>
                                     <span className="text-[9px]">BOLD</span>
@@ -1509,7 +1521,9 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                                 <button
                                     onMouseDown={(e) => e.preventDefault()}
                                     onClick={onToggleItalics}
-                                    className="px-2 py-2 bg-base-200 hover:bg-base-300 rounded text-xs font-medium border border-base-300 w-full min-h-[40px] flex flex-col items-center justify-center"
+                                    className={`px-2 py-2 rounded text-xs font-medium border border-base-300 w-full min-h-[40px] flex flex-col items-center justify-center ${
+                                        activeInlineStyles?.italic ? 'bg-primary text-primary-content' : 'bg-base-200 hover:bg-base-300'
+                                    }`}
                                 >
                                     <span className="text-base italic font-semibold">I</span>
                                     <span className="text-[9px]">ITALIC</span>
@@ -1521,7 +1535,9 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                                 <button
                                     onMouseDown={(e) => e.preventDefault()}
                                     onClick={onToggleUnderline}
-                                    className="px-2 py-2 bg-base-200 hover:bg-base-300 rounded text-xs font-medium border border-base-300 w-full min-h-[40px] flex flex-col items-center justify-center"
+                                    className={`px-2 py-2 rounded text-xs font-medium border border-base-300 w-full min-h-[40px] flex flex-col items-center justify-center ${
+                                        activeInlineStyles?.underline ? 'bg-primary text-primary-content' : 'bg-base-200 hover:bg-base-300'
+                                    }`}
                                 >
                                     <span className="text-base font-semibold underline">U</span>
                                     <span className="text-[9px]">UNDER</span>
@@ -1533,7 +1549,9 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                                 <button
                                     onMouseDown={(e) => e.preventDefault()}
                                     onClick={onToggleStrikethrough}
-                                    className="px-2 py-2 bg-base-200 hover:bg-base-300 rounded text-xs font-medium border border-base-300 w-full min-h-[40px] flex flex-col items-center justify-center"
+                                    className={`px-2 py-2 rounded text-xs font-medium border border-base-300 w-full min-h-[40px] flex flex-col items-center justify-center ${
+                                        activeInlineStyles?.strike ? 'bg-primary text-primary-content' : 'bg-base-200 hover:bg-base-300'
+                                    }`}
                                 >
                                     <span className="text-base font-semibold line-through">S</span>
                                     <span className="text-[9px]">STRIKE</span>

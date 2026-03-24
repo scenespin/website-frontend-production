@@ -269,6 +269,111 @@ export default function EditorWorkspace() {
         }
     };
 
+    const activeInlineStyles = useMemo(() => {
+        const empty = { bold: false, italic: false, underline: false, strike: false };
+        if (!selectionRange || selectionRange.start >= selectionRange.end) {
+            return empty;
+        }
+
+        let start = selectionRange.start;
+        let end = selectionRange.end;
+
+        const expandSelectionToStyleWrappers = () => {
+            let changed = true;
+            const tryExpand = (token: string): boolean => {
+                if (start < token.length || end + token.length > state.content.length) {
+                    return false;
+                }
+                const before = state.content.slice(start - token.length, start);
+                const after = state.content.slice(end, end + token.length);
+                if (before === token && after === token) {
+                    start -= token.length;
+                    end += token.length;
+                    return true;
+                }
+                return false;
+            };
+
+            while (changed) {
+                changed = false;
+                if (tryExpand('***')) { changed = true; continue; }
+                if (tryExpand('~~')) { changed = true; continue; }
+                if (tryExpand('**')) { changed = true; continue; }
+                if (tryExpand('_')) { changed = true; continue; }
+                if (tryExpand('*')) { changed = true; continue; }
+            }
+        };
+
+        const parseWrappedStyles = (input: string) => {
+            const flags = { bold: false, italic: false, underline: false, strike: false };
+            let content = input;
+            let changed = true;
+
+            while (changed) {
+                changed = false;
+
+                while (content.startsWith('~~') && content.endsWith('~~') && content.length > 4) {
+                    content = content.slice(2, -2);
+                    flags.strike = true;
+                    changed = true;
+                }
+
+                while (content.startsWith('_') && content.endsWith('_') && content.length > 2) {
+                    content = content.slice(1, -1);
+                    flags.underline = true;
+                    changed = true;
+                }
+
+                let starChanged = true;
+                while (starChanged) {
+                    starChanged = false;
+
+                    if (content.startsWith('***') && content.endsWith('***') && content.length > 6) {
+                        content = content.slice(3, -3);
+                        flags.bold = true;
+                        flags.italic = true;
+                        changed = true;
+                        starChanged = true;
+                        continue;
+                    }
+
+                    if (content.startsWith('**') && content.endsWith('**') && content.length > 4) {
+                        content = content.slice(2, -2);
+                        flags.bold = true;
+                        changed = true;
+                        starChanged = true;
+                        continue;
+                    }
+
+                    if (content.startsWith('*') && content.endsWith('*') && content.length > 2) {
+                        content = content.slice(1, -1);
+                        flags.italic = true;
+                        changed = true;
+                        starChanged = true;
+                    }
+                }
+            }
+
+            return flags;
+        };
+
+        expandSelectionToStyleWrappers();
+        const selected = state.content.substring(start, end);
+        if (!selected.trim()) {
+            return empty;
+        }
+
+        const leadingWhitespace = selected.match(/^\s*/)?.[0] || '';
+        const trailingWhitespace = selected.match(/\s*$/)?.[0] || '';
+        const core = selected.slice(leadingWhitespace.length, selected.length - trailingWhitespace.length);
+
+        if (!core) {
+            return empty;
+        }
+
+        return parseWrappedStyles(core);
+    }, [selectionRange, state.content]);
+
     const triggerInlineStyleShortcut = useCallback((key: string, options?: { shiftKey?: boolean }) => {
         const textarea = document.querySelector('textarea.fountain-editor-textarea') as HTMLTextAreaElement ||
             document.querySelector('textarea') as HTMLTextAreaElement;
@@ -862,6 +967,7 @@ export default function EditorWorkspace() {
                         onToggleItalics={() => triggerInlineStyleShortcut('i')}
                         onToggleUnderline={() => triggerInlineStyleShortcut('u')}
                         onToggleStrikethrough={() => triggerInlineStyleShortcut('x', { shiftKey: true })}
+                        activeInlineStyles={activeInlineStyles}
                         onOpenVersionHistory={() => setIsVersionHistoryModalOpen(true)}
                         onOpenAIDisclosure={aiDisclosureEnabled ? () => setIsAIDisclosurePanelOpen(true) : undefined}
                         onToggleSceneNav={() => {
