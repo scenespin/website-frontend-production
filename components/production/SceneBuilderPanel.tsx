@@ -3978,11 +3978,6 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       setTimeout(() => refreshMediaLibrary(), 2000);
     }
     
-    // Show follow-up options toast
-    setTimeout(() => {
-      handleShowNextStepOptions(historyItem.outputs);
-    }, 500);
-    
     // Reset form (wizard reset happens on 1.5s delay when user starts job; completion may be seen in Jobs panel)
     setSceneDescription('');
     setReferenceImages([null, null, null]);
@@ -3992,109 +3987,6 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     if (onVideoGenerated) {
       onVideoGenerated(historyItem.outputs);
     }
-  }
-  
-  /**
-   * Show next step options after generation
-   */
-  function handleShowNextStepOptions(videos: GeneratedVideo[]) {
-    // Encode videos for URL params
-    const clipsData = videos.map((video, index) => ({
-      url: video.url,
-      type: 'video',
-      name: `scene_${index + 1}.mp4`
-    }));
-    const encoded = encodeURIComponent(JSON.stringify(clipsData));
-    
-    toast.info('✨ What would you like to do next?', {
-      description: 'Choose how to continue with your generated videos',
-      duration: 20000, // 20 seconds
-      action: {
-        label: 'View Options',
-        onClick: () => {} // Keep toast open
-      }
-    });
-    
-    // Show detailed options toast after a brief delay
-    setTimeout(() => {
-      toast.custom((t) => (
-        <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl border border-border p-4 md:p-5 max-w-md">
-          <div className="flex items-center gap-3 mb-3">
-            <Film className="w-5 h-5" />
-            <div>
-              <h3 className="font-bold text-lg">Next Steps</h3>
-              <p className="text-sm text-muted-foreground">Choose your workflow</p>
-            </div>
-          </div>
-          
-          <div className="space-y-2">
-            {/* Composition First */}
-            <button
-              onClick={() => {
-                window.location.href = `/app/composition?preloadClips=${encoded}`;
-              }}
-              className="w-full p-3 rounded-lg border-2 border-[#DC143C] bg-purple-50 dark:bg-purple-950/20 hover:bg-purple-100 dark:hover:bg-purple-950/30 transition-colors text-left"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-[#DC143C] rounded">
-                  <span className="text-base-content text-lg">🎨</span>
-                </div>
-                <div className="flex-1">
-                  <div className="font-semibold text-sm">Composition Studio</div>
-                  <div className="text-xs text-muted-foreground">Apply layouts, effects, and transitions first</div>
-                </div>
-              </div>
-            </button>
-            
-            {/* Timeline Direct */}
-            <button
-              onClick={() => {
-                window.location.href = `/app/timeline?preloadClips=${encoded}`;
-              }}
-              className="w-full p-3 rounded-lg border-2 border-blue-500 bg-blue-50 dark:bg-blue-950/20 hover:bg-blue-100 dark:hover:bg-blue-950/30 transition-colors text-left"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-[#DC143C] rounded">
-                  <span className="text-base-content text-lg">⏱️</span>
-                </div>
-                <div className="flex-1">
-                  <div className="font-semibold text-sm">Timeline Editor</div>
-                  <div className="text-xs text-muted-foreground">Go directly to 8-track editing</div>
-                </div>
-              </div>
-            </button>
-            
-            {/* Add Audio */}
-            <button
-              onClick={() => {
-                window.location.href = '/app/production-hub?tab=audio';
-              }}
-              className="w-full p-3 rounded-lg border-2 border-green-500 bg-green-50 dark:bg-green-950/20 hover:bg-green-100 dark:hover:bg-green-950/30 transition-colors text-left"
-            >
-              <div className="flex items-center gap-3">
-                <div className="p-2 bg-green-500 rounded">
-                  <span className="text-base-content text-lg">🎵</span>
-                </div>
-                <div className="flex-1">
-                  <div className="font-semibold text-sm">Add Audio</div>
-                  <div className="text-xs text-muted-foreground">Music or sound effects (Suno/ElevenLabs)</div>
-                </div>
-              </div>
-            </button>
-            
-            {/* Stay Here */}
-            <button
-              onClick={() => {
-                toast.dismiss(t);
-              }}
-              className="w-full p-2 rounded-lg border border-border hover:bg-muted transition-colors text-center text-sm text-muted-foreground"
-            >
-              Stay here and generate more
-            </button>
-          </div>
-        </div>
-      ), { duration: Infinity });
-    }, 1000);
   }
   
   /**
