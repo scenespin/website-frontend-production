@@ -95,6 +95,7 @@ export default function EditorWorkspace() {
     const [sceneTypeDropdownPosition, setSceneTypeDropdownPosition] = useState<{ top: number; left: number; above?: boolean } | null>(null);
     const savedCursorPositionRef = React.useRef<number | null>(null);
     const aiDisclosureEnabled = isAIDisclosureEnabled();
+    const MIN_REWRITE_SELECTION_CHARS = 6;
     
     // Get screenplayId and sceneId from URL params (for collaboration and scene navigation)
     // Feature 0130: Use useSearchParams() for reactive URL parameter reading
@@ -571,9 +572,9 @@ export default function EditorWorkspace() {
                 const start = activeElement.selectionStart;
                 const end = activeElement.selectionEnd;
                 
-                if (end > start && end - start > 5) {
+                if (end > start && end - start >= MIN_REWRITE_SELECTION_CHARS) {
                     const text = activeElement.value.substring(start, end).trim();
-                    if (text.length > 0) {
+                    if (text.length >= MIN_REWRITE_SELECTION_CHARS) {
                         console.log('[EditorWorkspace] Using DOM fallback for selection:', { start, end, textLength: text.length });
                         finalSelectedText = text;
                         finalSelectionRange = { start, end };
@@ -584,20 +585,26 @@ export default function EditorWorkspace() {
         
         // 🔥 CRITICAL: Only allow rewrite if text is actually selected (not just cursor position)
         if (!finalSelectedText || !finalSelectionRange) {
-            toast.error('Please select text to rewrite');
+            toast.error(`Please select at least ${MIN_REWRITE_SELECTION_CHARS} characters to rewrite`);
             return;
         }
         
         // Check if selection has actual content (not just whitespace)
         const trimmedText = finalSelectedText.trim();
         if (!trimmedText || trimmedText.length === 0) {
-            toast.error('Please select text to rewrite');
+            toast.error(`Please select at least ${MIN_REWRITE_SELECTION_CHARS} characters to rewrite`);
             return;
         }
         
         // Check if selection range has meaningful length (not just cursor position)
         if (finalSelectionRange.start === finalSelectionRange.end) {
-            toast.error('Please select text to rewrite');
+            toast.error(`Please select at least ${MIN_REWRITE_SELECTION_CHARS} characters to rewrite`);
+            return;
+        }
+
+        const rawSelectionLength = finalSelectionRange.end - finalSelectionRange.start;
+        if (rawSelectionLength < MIN_REWRITE_SELECTION_CHARS || trimmedText.length < MIN_REWRITE_SELECTION_CHARS) {
+            toast.error(`Please select at least ${MIN_REWRITE_SELECTION_CHARS} characters to rewrite`);
             return;
         }
         
