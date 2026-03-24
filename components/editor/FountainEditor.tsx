@@ -128,6 +128,19 @@ export default function FountainEditor({
     const savedCursorPositionRef = useRef<number | null>(null); // Save cursor position before content changes
     const isUserTypingRef = useRef(false);
     const lastTypingTimeRef = useRef<number>(0);
+    const preserveHighlightSelectionOnceRef = useRef(false);
+
+    // One-shot signal used by formatting actions to keep transformed selection highlighted.
+    useEffect(() => {
+        const handlePreserveHighlightSelection = () => {
+            preserveHighlightSelectionOnceRef.current = true;
+        };
+
+        window.addEventListener('editor-preserve-highlight-selection-once', handlePreserveHighlightSelection);
+        return () => {
+            window.removeEventListener('editor-preserve-highlight-selection-once', handlePreserveHighlightSelection);
+        };
+    }, []);
     
     // Track when user is typing (to distinguish from programmatic updates)
     useEffect(() => {
@@ -390,16 +403,25 @@ export default function FountainEditor({
                 textareaRef.current.selectionStart = validStart;
                 textareaRef.current.selectionEnd = validEnd;
                 
-                // Position cursor at end of highlight (not selecting)
-                // This gives visual feedback without keeping selection active
-                setTimeout(() => {
-                    if (textareaRef.current && state.highlightRange) {
-                        textareaRef.current.selectionStart = validEnd;
-                        textareaRef.current.selectionEnd = validEnd;
-                        textareaRef.current.focus({ preventScroll: false });
-                        isSettingHighlightRef.current = false;
-                    }
-                }, 100);
+                if (preserveHighlightSelectionOnceRef.current) {
+                    // Consume one-shot flag: keep selection active for desktop style stacking.
+                    preserveHighlightSelectionOnceRef.current = false;
+                    textareaRef.current.focus({ preventScroll: false });
+                    setCursorPosition(validEnd);
+                    savedCursorPositionRef.current = validEnd;
+                    isSettingHighlightRef.current = false;
+                } else {
+                    // Position cursor at end of highlight (not selecting)
+                    // This gives visual feedback without keeping selection active
+                    setTimeout(() => {
+                        if (textareaRef.current && state.highlightRange) {
+                            textareaRef.current.selectionStart = validEnd;
+                            textareaRef.current.selectionEnd = validEnd;
+                            textareaRef.current.focus({ preventScroll: false });
+                            isSettingHighlightRef.current = false;
+                        }
+                    }, 100);
+                }
             } catch (error) {
                 console.error('[FountainEditor] Error setting highlight selection:', error);
                 isSettingHighlightRef.current = false;

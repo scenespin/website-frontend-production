@@ -286,6 +286,10 @@ export function useFountainFormatting(
                     typeof window !== 'undefined' && window.innerWidth >= 768;
 
                 if (shouldPreserveSelectionDesktop) {
+                    // One-shot signal for FountainEditor to avoid collapsing highlightRange immediately.
+                    if (typeof window !== 'undefined') {
+                        window.dispatchEvent(new CustomEvent('editor-preserve-highlight-selection-once'));
+                    }
                     // Desktop polish: keep transformed text selected so users can stack styles quickly.
                     textareaRef.current.selectionStart = newStart;
                     textareaRef.current.selectionEnd = newEnd;
