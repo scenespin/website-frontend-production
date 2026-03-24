@@ -129,16 +129,22 @@ export default function FountainEditor({
     const isUserTypingRef = useRef(false);
     const lastTypingTimeRef = useRef<number>(0);
     const preserveHighlightSelectionOnceRef = useRef(false);
+    const preserveSelectionOnBlurOnceRef = useRef(false);
 
     // One-shot signal used by formatting actions to keep transformed selection highlighted.
     useEffect(() => {
         const handlePreserveHighlightSelection = () => {
             preserveHighlightSelectionOnceRef.current = true;
         };
+        const handlePreserveSelectionOnBlur = () => {
+            preserveSelectionOnBlurOnceRef.current = true;
+        };
 
         window.addEventListener('editor-preserve-highlight-selection-once', handlePreserveHighlightSelection);
+        window.addEventListener('editor-preserve-selection-once', handlePreserveSelectionOnBlur);
         return () => {
             window.removeEventListener('editor-preserve-highlight-selection-once', handlePreserveHighlightSelection);
+            window.removeEventListener('editor-preserve-selection-once', handlePreserveSelectionOnBlur);
         };
     }, []);
     
@@ -892,6 +898,10 @@ export default function FountainEditor({
                     onPointerUp={selection.handlers.onPointerUp}
                     onBlur={(e) => {
                         if (isSettingHighlightRef.current) return;
+                        if (preserveSelectionOnBlurOnceRef.current) {
+                            preserveSelectionOnBlurOnceRef.current = false;
+                            return;
+                        }
                         const nextTarget = e.relatedTarget as HTMLElement | null;
                         if (nextTarget?.closest('[data-editor-preserve-selection="true"]')) {
                             return;

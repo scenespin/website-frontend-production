@@ -25,7 +25,7 @@ import AIDisclosurePanel from '../screenplay/AIDisclosurePanel';
 import { markPeriodicGitHubBackupCheckpoint } from '@/utils/githubPeriodicBackup';
 import { extractEditorContext } from '@/utils/editorContext';
 import { detectCurrentScene } from '@/utils/sceneDetection';
-import { detectElementType } from '@/utils/fountain';
+import { detectElementType, mapDisplayPositionToFullContent, stripTagsForDisplay } from '@/utils/fountain';
 import { toast } from 'sonner';
 import {
     buildAIDisclosurePreview,
@@ -276,8 +276,9 @@ export default function EditorWorkspace() {
             return empty;
         }
 
-        let start = selectionRange.start;
-        let end = selectionRange.end;
+        const displayContent = stripTagsForDisplay(state.content);
+        let start = mapDisplayPositionToFullContent(displayContent, state.content, selectionRange.start);
+        let end = mapDisplayPositionToFullContent(displayContent, state.content, selectionRange.end);
 
         const expandSelectionToStyleWrappers = () => {
             let changed = true;
