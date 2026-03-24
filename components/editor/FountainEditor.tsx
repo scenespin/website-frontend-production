@@ -687,8 +687,12 @@ export default function FountainEditor({
     useEffect(() => {
         if (onSelectionStateChange) {
             const hasSelection = selection.hasSelection;
-            const selectedText = hasSelection ? selection.selection.text : null;
-            const selectionRange = hasSelection && selection.selection.start !== null && selection.selection.end !== null
+            const hasRawSelection =
+                selection.selection.start !== null &&
+                selection.selection.end !== null &&
+                selection.selection.end > selection.selection.start;
+            const selectedText = hasRawSelection ? selection.selection.text : null;
+            const selectionRange = hasRawSelection
                 ? { start: selection.selection.start, end: selection.selection.end }
                 : null;
             onSelectionStateChange(hasSelection, selectedText, selectionRange);

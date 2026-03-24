@@ -91,9 +91,9 @@ export function useEditorSelection(
             onSelectionChange(start, end);
         }
         
-        // 🔥 CRITICAL: Check if there's actual text selection (not just cursor position)
-        // Only show toolbar if text is actually selected (more than 5 characters to avoid accidental selections)
-        if (end - start > 5) {
+        // Track any non-empty text selection for downstream consumers (e.g. BIUS active state).
+        // We still gate floating selection-toolbar visibility separately to avoid accidental popups.
+        if (end - start > 0) {
             const selected = content.substring(start, end);
             
             // Solution 6: Update ref immediately (synchronous, no React state delay)
@@ -106,14 +106,17 @@ export function useEditorSelection(
             
             console.log('[useEditorSelection] Text selected:', selected.substring(0, 50) + '...');
             
-            // Calculate toolbar position based on selection
-            const rect = textareaRef.current.getBoundingClientRect();
-            setToolbarPosition({
-                top: rect.top + window.scrollY,
-                left: rect.left + window.scrollX + (rect.width / 2)
-            });
-            
-            setShowSelectionToolbar(true);
+            // Only show floating toolbar for longer selections to avoid accidental popups.
+            if (end - start > 5) {
+                const rect = textareaRef.current.getBoundingClientRect();
+                setToolbarPosition({
+                    top: rect.top + window.scrollY,
+                    left: rect.left + window.scrollX + (rect.width / 2)
+                });
+                setShowSelectionToolbar(true);
+            } else {
+                setShowSelectionToolbar(false);
+            }
         } else {
             // 🔥 FIX: Clear selection state when there's no actual selection (cursor position only)
             // This ensures hasSelection is false when there's just a cursor, not a text selection
@@ -174,7 +177,8 @@ export function useEditorSelection(
      * 🔥 CRITICAL: Only return true if there's actual text selected (not just cursor position)
      * Require at least 1 character difference to ensure it's a real selection
      */
-    const hasSelection = selectionEnd - selectionStart > 0 && selectedText.trim().length > 0;
+    // Keep existing threshold behavior for floating toolbar / agent-facing "selection active" affordances.
+    const hasSelection = selectionEnd - selectionStart > 5 && selectedText.trim().length > 0;
 
     useEffect(() => {
         if (resetSignal === undefined) return;
