@@ -68,15 +68,56 @@ export function useFountainFormatting(
         }
         
         // Map display positions to full content positions
-        const fullSelectionStart = mapDisplayPositionToFullContent(displayContent, state.content, displaySelectionStart);
-        const fullSelectionEnd = mapDisplayPositionToFullContent(displayContent, state.content, displaySelectionEnd);
+        const originalFullSelectionStart = mapDisplayPositionToFullContent(displayContent, state.content, displaySelectionStart);
+        const originalFullSelectionEnd = mapDisplayPositionToFullContent(displayContent, state.content, displaySelectionEnd);
+        let fullSelectionStart = originalFullSelectionStart;
+        let fullSelectionEnd = originalFullSelectionEnd;
+
+        // If user selected inner text only, absorb surrounding style wrappers so toggle-off works naturally.
+        const expandSelectionToStyleWrappers = (start: number, end: number): { start: number; end: number } => {
+            let expandedStart = start;
+            let expandedEnd = end;
+            let changed = true;
+
+            const tryExpand = (token: string): boolean => {
+                if (expandedStart < token.length || expandedEnd + token.length > state.content.length) {
+                    return false;
+                }
+                const before = state.content.slice(expandedStart - token.length, expandedStart);
+                const after = state.content.slice(expandedEnd, expandedEnd + token.length);
+                if (before === token && after === token) {
+                    expandedStart -= token.length;
+                    expandedEnd += token.length;
+                    return true;
+                }
+                return false;
+            };
+
+            while (changed) {
+                changed = false;
+                // Longest tokens first to avoid splitting combined wrappers incorrectly.
+                if (tryExpand('***')) { changed = true; continue; }
+                if (tryExpand('~~')) { changed = true; continue; }
+                if (tryExpand('**')) { changed = true; continue; }
+                if (tryExpand('_')) { changed = true; continue; }
+                if (tryExpand('*')) { changed = true; continue; }
+            }
+
+            return { start: expandedStart, end: expandedEnd };
+        };
+
+        const expandedRange = expandSelectionToStyleWrappers(fullSelectionStart, fullSelectionEnd);
+        fullSelectionStart = expandedRange.start;
+        fullSelectionEnd = expandedRange.end;
         
-        // Get selected text from full content
+        // Get selected text from full content (after expansion)
         let selectedText = state.content.substring(fullSelectionStart, fullSelectionEnd);
         
         console.log(`[${logPrefix}] Selection debug:`, {
             displayStart: displaySelectionStart,
             displayEnd: displaySelectionEnd,
+            originalFullStart: originalFullSelectionStart,
+            originalFullEnd: originalFullSelectionEnd,
             fullStart: fullSelectionStart,
             fullEnd: fullSelectionEnd,
             selectedText: JSON.stringify(selectedText),
@@ -235,10 +276,11 @@ export function useFountainFormatting(
         replaceSelection(newText, fullSelectionStart, fullSelectionEnd);
         
         // Update cursor position - new text length in display content
+        const expandedDisplayStart = displaySelectionStart + (fullSelectionStart - originalFullSelectionStart);
         const newDisplayLength = stripTagsForDisplay(newText).length;
         setTimeout(() => {
             if (textareaRef.current) {
-                const newEnd = displaySelectionStart + newDisplayLength;
+                const newEnd = expandedDisplayStart + newDisplayLength;
                 textareaRef.current.selectionStart = newEnd;
                 textareaRef.current.selectionEnd = newEnd;
                 setCursorPosition(newEnd);
