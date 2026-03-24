@@ -838,12 +838,6 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
         const base = 'px-2 py-2 rounded text-xs font-semibold min-w-[40px] min-h-[40px] flex flex-col items-center justify-center transition-colors';
         return `${base} ${isActive ? 'bg-primary text-primary-content' : 'bg-base-100 hover:bg-base-300'}`;
     };
-    const preserveSelectionButtonDown = (e: React.MouseEvent | React.PointerEvent) => {
-        if (typeof window !== 'undefined') {
-            window.dispatchEvent(new CustomEvent('editor-preserve-selection-once'));
-        }
-        e.preventDefault();
-    };
     
     return (
         <div className={`bg-[#0A0A0A] border-t border-white/10 shadow-sm ${className}`}>
@@ -907,9 +901,7 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                     {onToggleBold && (
                         <div className="tooltip tooltip-bottom" data-tip="Bold • Ctrl+B • **text**">
                             <button
-                                data-editor-preserve-selection="true"
-                                onMouseDown={preserveSelectionButtonDown}
-                                onPointerDown={preserveSelectionButtonDown}
+                                onMouseDown={(e) => e.preventDefault()}
                                 onClick={onToggleBold}
                                 className={getInlineStyleButtonClass(Boolean(activeInlineStyles?.bold))}
                             >
@@ -921,9 +913,7 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                     {onToggleItalics && (
                         <div className="tooltip tooltip-bottom" data-tip="Italics • Ctrl+I • *text*">
                             <button
-                                data-editor-preserve-selection="true"
-                                onMouseDown={preserveSelectionButtonDown}
-                                onPointerDown={preserveSelectionButtonDown}
+                                onMouseDown={(e) => e.preventDefault()}
                                 onClick={onToggleItalics}
                                 className={getInlineStyleButtonClass(Boolean(activeInlineStyles?.italic))}
                             >
@@ -935,9 +925,7 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                     {onToggleUnderline && (
                         <div className="tooltip tooltip-bottom" data-tip="Underline • Ctrl+U • _text_">
                             <button
-                                data-editor-preserve-selection="true"
-                                onMouseDown={preserveSelectionButtonDown}
-                                onPointerDown={preserveSelectionButtonDown}
+                                onMouseDown={(e) => e.preventDefault()}
                                 onClick={onToggleUnderline}
                                 className={getInlineStyleButtonClass(Boolean(activeInlineStyles?.underline))}
                             >
@@ -949,9 +937,7 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                     {onToggleStrikethrough && (
                         <div className="tooltip tooltip-bottom" data-tip="Strikethrough • Ctrl+Shift+X • ~~text~~">
                             <button
-                                data-editor-preserve-selection="true"
-                                onMouseDown={preserveSelectionButtonDown}
-                                onPointerDown={preserveSelectionButtonDown}
+                                onMouseDown={(e) => e.preventDefault()}
                                 onClick={onToggleStrikethrough}
                                 className={getInlineStyleButtonClass(Boolean(activeInlineStyles?.strike))}
                             >
@@ -1383,9 +1369,6 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                     {/* Mobile style toggle */}
                     <div className="tooltip tooltip-bottom" data-tip="Style options (B I U S)">
                         <button
-                            data-editor-preserve-selection="true"
-                            onMouseDown={preserveSelectionButtonDown}
-                            onPointerDown={preserveSelectionButtonDown}
                             onClick={() => {
                                 setShowMobileStyleMenu(prev => !prev);
                                 setShowMoreFormats(false);
@@ -1522,9 +1505,7 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                         {onToggleBold && (
                             <div className="tooltip tooltip-top" data-tip="Bold • Ctrl+B">
                                 <button
-                                    data-editor-preserve-selection="true"
-                                    onMouseDown={preserveSelectionButtonDown}
-                                    onPointerDown={preserveSelectionButtonDown}
+                                    onMouseDown={(e) => e.preventDefault()}
                                     onClick={onToggleBold}
                                     className={`px-2 py-2 rounded text-xs font-medium border border-base-300 w-full min-h-[40px] flex flex-col items-center justify-center ${
                                         activeInlineStyles?.bold ? 'bg-primary text-primary-content' : 'bg-base-200 hover:bg-base-300'
@@ -1538,9 +1519,7 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                         {onToggleItalics && (
                             <div className="tooltip tooltip-top" data-tip="Italics • Ctrl+I">
                                 <button
-                                    data-editor-preserve-selection="true"
-                                    onMouseDown={preserveSelectionButtonDown}
-                                    onPointerDown={preserveSelectionButtonDown}
+                                    onMouseDown={(e) => e.preventDefault()}
                                     onClick={onToggleItalics}
                                     className={`px-2 py-2 rounded text-xs font-medium border border-base-300 w-full min-h-[40px] flex flex-col items-center justify-center ${
                                         activeInlineStyles?.italic ? 'bg-primary text-primary-content' : 'bg-base-200 hover:bg-base-300'
@@ -1554,9 +1533,7 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                         {onToggleUnderline && (
                             <div className="tooltip tooltip-top" data-tip="Underline • Ctrl+U">
                                 <button
-                                    data-editor-preserve-selection="true"
-                                    onMouseDown={preserveSelectionButtonDown}
-                                    onPointerDown={preserveSelectionButtonDown}
+                                    onMouseDown={(e) => e.preventDefault()}
                                     onClick={onToggleUnderline}
                                     className={`px-2 py-2 rounded text-xs font-medium border border-base-300 w-full min-h-[40px] flex flex-col items-center justify-center ${
                                         activeInlineStyles?.underline ? 'bg-primary text-primary-content' : 'bg-base-200 hover:bg-base-300'
@@ -1570,9 +1547,7 @@ export default function EditorToolbar({ className = '', onExportPDF, onOpenColla
                         {onToggleStrikethrough && (
                             <div className="tooltip tooltip-top" data-tip="Strikethrough • Ctrl+Shift+X">
                                 <button
-                                    data-editor-preserve-selection="true"
-                                    onMouseDown={preserveSelectionButtonDown}
-                                    onPointerDown={preserveSelectionButtonDown}
+                                    onMouseDown={(e) => e.preventDefault()}
                                     onClick={onToggleStrikethrough}
                                     className={`px-2 py-2 rounded text-xs font-medium border border-base-300 w-full min-h-[40px] flex flex-col items-center justify-center ${
                                         activeInlineStyles?.strike ? 'bg-primary text-primary-content' : 'bg-base-200 hover:bg-base-300'
