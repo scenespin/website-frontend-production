@@ -410,9 +410,6 @@ export function ExportPDFModal({ screenplayId, screenplay, onClose }: ExportPDFM
             />
           </div>
           
-          {/* PDF-only fields */}
-          {exportFormat === 'pdf' && (
-          <>
           {/* Author */}
           <div className="space-y-2">
             <label htmlFor="author" className="text-sm font-medium text-[#FFFFFF]">
@@ -443,6 +440,9 @@ export function ExportPDFModal({ screenplayId, screenplay, onClose }: ExportPDFM
             />
           </div>
           
+          {/* PDF-only fields */}
+          {exportFormat === 'pdf' && (
+          <>
           {/* Watermark Section - FREE FOR ALL! */}
           <div className="space-y-4 pt-4 border-t border-[#3F3F46]">
             <div className="flex items-center justify-between">
@@ -650,7 +650,7 @@ export function ExportPDFModal({ screenplayId, screenplay, onClose }: ExportPDFM
               </strong>{' '}
               {exportFormat === 'pdf'
                 ? 'Courier 12pt, proper margins, scene bookmarks, professional page numbering.'
-                : 'Exports screenplay structure for Final Draft compatibility.'}
+                : 'Exports screenplay structure plus title-page metadata (title, author, contact) for Final Draft compatibility.'}
             </div>
           </div>
         </div>
