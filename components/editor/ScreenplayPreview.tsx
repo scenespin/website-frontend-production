@@ -14,6 +14,50 @@ function inchesToRem(inches: number): string {
   return `${inches * 6}rem`;
 }
 
+type InlineRun = {
+  text: string;
+  italic: boolean;
+};
+
+function parseInlineItalicRuns(text: string): InlineRun[] {
+  const runs: InlineRun[] = [];
+  let buffer = '';
+  let italic = false;
+
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    const prev = i > 0 ? text[i - 1] : '';
+    const next = i < text.length - 1 ? text[i + 1] : '';
+
+    // Treat single asterisks as italic delimiters, keep double asterisks literal for now.
+    if (ch === '*' && prev !== '*' && next !== '*') {
+      if (buffer) {
+        runs.push({ text: buffer, italic });
+        buffer = '';
+      }
+      italic = !italic;
+      continue;
+    }
+
+    buffer += ch;
+  }
+
+  if (buffer) {
+    runs.push({ text: buffer, italic });
+  }
+
+  return runs.length > 0 ? runs : [{ text, italic: false }];
+}
+
+function renderInlineText(text: string) {
+  const runs = parseInlineItalicRuns(text);
+  return runs.map((run, idx) => (
+    <span key={`run-${idx}`} style={run.italic ? { fontStyle: 'italic' } : undefined}>
+      {run.text}
+    </span>
+  ));
+}
+
 export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
   // Parse Fountain content into elements
   const elements = useMemo(() => {
@@ -53,7 +97,7 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
               fontSize: '12pt',
             }}
           >
-            {element.text}
+            {renderInlineText(element.text)}
           </div>
         );
 
@@ -72,7 +116,7 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
               whiteSpace: 'pre-wrap',
             }}
           >
-            {element.text}
+            {renderInlineText(element.text)}
           </div>
         );
 
@@ -92,7 +136,7 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
               whiteSpace: 'pre-wrap',
             }}
           >
-            {element.text}
+            {renderInlineText(element.text)}
           </div>
         );
 
@@ -111,7 +155,7 @@ export default function ScreenplayPreview({ content }: ScreenplayPreviewProps) {
               fontWeight: 'normal',
             }}
           >
-            {element.text}
+            {renderInlineText(element.text)}
           </div>
         );
 

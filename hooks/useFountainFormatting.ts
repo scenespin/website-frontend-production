@@ -164,9 +164,9 @@ export function useFountainFormatting(
             const hasSelection = displaySelectionStart !== displaySelectionEnd;
             
             if (!hasSelection) {
-                // No selection - just insert italic markers at cursor
+                // No selection - insert paired markers and place cursor between them
                 const fullCursorPos = mapDisplayPositionToFullContent(displayContent, state.content, cursorPos);
-                const newContent = state.content.substring(0, fullCursorPos) + '*|*' + state.content.substring(fullCursorPos);
+                const newContent = state.content.substring(0, fullCursorPos) + '**' + state.content.substring(fullCursorPos);
                 setContent(newContent);
                 
                 setTimeout(() => {
