@@ -129,9 +129,19 @@ export default function FountainEditor({
     const isUserTypingRef = useRef(false);
     const lastTypingTimeRef = useRef<number>(0);
     const preserveHighlightSelectionOnceRef = useRef(false);
+    const consumeGlobalPreserveHighlightSelectionFlag = (): boolean => {
+        if (typeof window === 'undefined') return false;
+        const key = '__editorPreserveHighlightSelectionOnce';
+        const value = Boolean((window as any)[key]);
+        if (value) {
+            (window as any)[key] = false;
+            return true;
+        }
+        return false;
+    };
 
     // One-shot signal used by formatting actions to keep transformed selection highlighted.
-    useEffect(() => {
+    useLayoutEffect(() => {
         const handlePreserveHighlightSelection = () => {
             preserveHighlightSelectionOnceRef.current = true;
         };
@@ -403,7 +413,7 @@ export default function FountainEditor({
                 textareaRef.current.selectionStart = validStart;
                 textareaRef.current.selectionEnd = validEnd;
                 
-                if (preserveHighlightSelectionOnceRef.current) {
+                if (preserveHighlightSelectionOnceRef.current || consumeGlobalPreserveHighlightSelectionFlag()) {
                     // Consume one-shot flag: keep selection active for desktop style stacking.
                     preserveHighlightSelectionOnceRef.current = false;
                     textareaRef.current.focus({ preventScroll: false });

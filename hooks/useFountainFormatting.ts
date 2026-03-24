@@ -288,6 +288,7 @@ export function useFountainFormatting(
                 if (shouldPreserveSelectionDesktop) {
                     // One-shot signal for FountainEditor to avoid collapsing highlightRange immediately.
                     if (typeof window !== 'undefined') {
+                        (window as any).__editorPreserveHighlightSelectionOnce = true;
                         window.dispatchEvent(new CustomEvent('editor-preserve-highlight-selection-once'));
                     }
                     // Desktop polish: keep transformed text selected so users can stack styles quickly.
