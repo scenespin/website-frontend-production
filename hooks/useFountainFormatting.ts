@@ -118,23 +118,111 @@ export function useFountainFormatting(
         const trailingWhitespace = selectedText.match(/\s*$/)?.[0] || '';
         const contentWithoutWhitespace = selectedText.slice(leadingWhitespace.length, selectedText.length - trailingWhitespace.length);
         
-        const isAlreadyStyled = contentWithoutWhitespace.startsWith(marker) && 
-                               contentWithoutWhitespace.endsWith(marker) &&
-                               contentWithoutWhitespace.length > marker.length * 2;
-        
-        let newText: string;
-        
-        if (isAlreadyStyled) {
-            const unwrappedContent = contentWithoutWhitespace.slice(marker.length, -marker.length);
-            newText = leadingWhitespace + unwrappedContent + trailingWhitespace;
-        } else {
-            if (shouldAddNewlineAfterWrap) {
-                newText = `${marker}${selectedText}${marker}\n${trailingSpaceToRestore}`;
-            } else if (trailingSpaceToRestore) {
-                newText = `${marker}${selectedText}${marker}${trailingSpaceToRestore}`;
-            } else {
-                newText = `${marker}${selectedText}${marker}`;
+        type StyleFlags = {
+            bold: boolean;
+            italic: boolean;
+            underline: boolean;
+            strike: boolean;
+        };
+
+        const parseWrappedStyles = (input: string): { content: string; flags: StyleFlags } => {
+            const flags: StyleFlags = {
+                bold: false,
+                italic: false,
+                underline: false,
+                strike: false
+            };
+
+            let content = input;
+            let changed = true;
+
+            // Peel known outer wrappers in a loop so nested combinations can be detected.
+            while (changed) {
+                changed = false;
+
+                if (!flags.strike && content.startsWith('~~') && content.endsWith('~~') && content.length > 4) {
+                    content = content.slice(2, -2);
+                    flags.strike = true;
+                    changed = true;
+                    continue;
+                }
+
+                if (!flags.underline && content.startsWith('_') && content.endsWith('_') && content.length > 2) {
+                    content = content.slice(1, -1);
+                    flags.underline = true;
+                    changed = true;
+                    continue;
+                }
+
+                if (!flags.bold && !flags.italic && content.startsWith('***') && content.endsWith('***') && content.length > 6) {
+                    content = content.slice(3, -3);
+                    flags.bold = true;
+                    flags.italic = true;
+                    changed = true;
+                    continue;
+                }
+
+                if (!flags.bold && content.startsWith('**') && content.endsWith('**') && content.length > 4) {
+                    content = content.slice(2, -2);
+                    flags.bold = true;
+                    changed = true;
+                    continue;
+                }
+
+                if (!flags.italic && content.startsWith('*') && content.endsWith('*') && content.length > 2) {
+                    content = content.slice(1, -1);
+                    flags.italic = true;
+                    changed = true;
+                }
             }
+
+            return { content, flags };
+        };
+
+        const rebuildWithStyles = (content: string, flags: StyleFlags): string => {
+            let wrapped = content;
+
+            if (flags.bold && flags.italic) {
+                wrapped = `***${wrapped}***`;
+            } else if (flags.bold) {
+                wrapped = `**${wrapped}**`;
+            } else if (flags.italic) {
+                wrapped = `*${wrapped}*`;
+            }
+
+            if (flags.underline) {
+                wrapped = `_${wrapped}_`;
+            }
+
+            if (flags.strike) {
+                wrapped = `~~${wrapped}~~`;
+            }
+
+            return wrapped;
+        };
+
+        const targetStyle: keyof StyleFlags =
+            marker === '**' ? 'bold' :
+            marker === '*' ? 'italic' :
+            marker === '_' ? 'underline' :
+            'strike';
+
+        const parsed = parseWrappedStyles(contentWithoutWhitespace);
+        const nextFlags: StyleFlags = {
+            ...parsed.flags,
+            [targetStyle]: !parsed.flags[targetStyle]
+        };
+
+        const styledCore = rebuildWithStyles(parsed.content, nextFlags);
+        const rebuiltSelection = leadingWhitespace + styledCore + trailingWhitespace;
+
+        let newText: string;
+        if (shouldAddNewlineAfterWrap) {
+            newText = `${rebuiltSelection}\n${trailingSpaceToRestore}`;
+        } else if (trailingSpaceToRestore) {
+            newText = `${rebuiltSelection}${trailingSpaceToRestore}`;
+        } else {
+            newText = rebuiltSelection;
         }
         
         // Replace selection using replaceSelection function
