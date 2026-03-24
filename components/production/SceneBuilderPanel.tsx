@@ -2193,6 +2193,13 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   }, [sceneAnalysisResult]);
   
   // Poll workflow status every 3 seconds
+  const clearTerminalWorkflowState = useCallback(() => {
+    setWorkflowExecutionId(null);
+    setWorkflowStatus(null);
+    localStorage.removeItem(`scene-builder-execution-${projectId}`);
+  }, [projectId]);
+
+  // Poll workflow status every 3 seconds
   useEffect(() => {
     if (!workflowExecutionId) return;
     
@@ -2242,16 +2249,12 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
         if (execution.status === 'completed') {
           handleGenerationComplete(workflowStatus);
           clearInterval(interval);
-          // 🔥 NEW: Remove from localStorage when completed
-          localStorage.removeItem(`scene-builder-execution-${projectId}`);
         }
         
         // Check if failed
         if (execution.status === 'failed') {
           handleGenerationFailed(workflowStatus);
           clearInterval(interval);
-          // 🔥 NEW: Remove from localStorage when failed
-          localStorage.removeItem(`scene-builder-execution-${projectId}`);
         }
       } catch (error: any) {
         console.error('[SceneBuilderPanel] Failed to poll workflow:', error);
@@ -2259,6 +2262,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
         if (error.message?.includes('not found') || error.message?.includes('404')) {
           clearInterval(interval);
           setIsGenerating(false);
+          clearTerminalWorkflowState();
           toast.error('Workflow execution not found. It may have been deleted or expired.');
         } else if (error.message?.includes('Authentication') || error.message?.includes('401')) {
           clearInterval(interval);
@@ -2270,7 +2274,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     }, 3000);
     
     return () => clearInterval(interval);
-  }, [workflowExecutionId, getToken, projectId]);
+  }, [workflowExecutionId, getToken, projectId, clearTerminalWorkflowState]);
   
   // detectDialogue function moved to sceneBuilderUtils.ts
   
@@ -3795,10 +3799,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
    */
   async function handlePartialDelivery(execution: WorkflowStatus) {
     setIsGenerating(false);
-    // partial_delivery is terminal for this run; clear polling-bound state to avoid stale UI lock
-    setWorkflowExecutionId(null);
-    setWorkflowStatus(null);
-    localStorage.removeItem(`scene-builder-execution-${projectId}`);
+    clearTerminalWorkflowState();
     
     try {
       const token = await getToken({ template: 'wryda-backend' });
@@ -3985,11 +3986,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     // Reset form (wizard reset happens on 1.5s delay when user starts job; completion may be seen in Jobs panel)
     setSceneDescription('');
     setReferenceImages([null, null, null]);
-    setWorkflowExecutionId(null);
-    setWorkflowStatus(null);
-    
-    // 🔥 NEW: Clear localStorage when generation completes
-    localStorage.removeItem(`scene-builder-execution-${projectId}`);
+    clearTerminalWorkflowState();
     
     // Callback
     if (onVideoGenerated) {
@@ -4125,11 +4122,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       });
     }
     
-    setWorkflowExecutionId(null);
-    setWorkflowStatus(null);
-    
-    // 🔥 NEW: Clear localStorage when generation fails
-    localStorage.removeItem(`scene-builder-execution-${projectId}`);
+    clearTerminalWorkflowState();
   }
   
   /**
