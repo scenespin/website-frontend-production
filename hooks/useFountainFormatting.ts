@@ -295,6 +295,15 @@ export function useFountainFormatting(
                     textareaRef.current.selectionStart = newStart;
                     textareaRef.current.selectionEnd = newEnd;
                     setCursorPosition(newEnd);
+
+                    // Some first-interaction paths still collapse selection after mount/hard refresh.
+                    // Re-assert once after the highlight collapse window to keep desktop behavior stable.
+                    setTimeout(() => {
+                        if (!textareaRef.current) return;
+                        textareaRef.current.selectionStart = newStart;
+                        textareaRef.current.selectionEnd = newEnd;
+                        setCursorPosition(newEnd);
+                    }, 160);
                 } else {
                     textareaRef.current.selectionStart = newEnd;
                     textareaRef.current.selectionEnd = newEnd;
