@@ -116,6 +116,7 @@ import { SceneAnalysisResult } from '@/types/screenplay';
 import { SceneBuilderService } from '@/services/SceneBuilderService';
 import { createClientLogger } from '@/utils/clientLogger';
 import { canonicalOutfitName, canonicalToDisplay } from '@/utils/outfitUtils';
+import { stripFountainInlineStyleMarkers } from '@/utils/stripFountainInlineStyleMarkers';
 
 const MAX_IMAGE_SIZE_MB = 10;
 const MAX_IMAGE_SIZE_BYTES = MAX_IMAGE_SIZE_MB * 1024 * 1024;
@@ -4267,7 +4268,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                             <div>
                               <div className="text-[10px] text-[#808080] mb-1.5">Scene Content</div>
                               <div className="p-2.5 bg-[#141414] rounded text-[10px] text-[#808080] whitespace-pre-wrap max-h-96 overflow-y-auto font-mono">
-                                {fullSceneContent[selectedSceneId]}
+                                {stripFountainInlineStyleMarkers(fullSceneContent[selectedSceneId])}
                               </div>
                             </div>
                           ) : (
@@ -4441,7 +4442,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                                 <div>
                                   <div className="text-[10px] text-[#808080] mb-1.5">Scene Content</div>
                                   <div className="p-2.5 bg-[#141414] rounded text-[10px] text-[#808080] whitespace-pre-wrap max-h-96 overflow-y-auto font-mono">
-                                    {fullSceneContent[selectedSceneId]}
+                                    {stripFountainInlineStyleMarkers(fullSceneContent[selectedSceneId])}
                                   </div>
                                 </div>
                               ) : (

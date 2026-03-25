@@ -17,7 +17,7 @@ import { SceneAnalysisResult } from '@/types/screenplay';
 import { ShotConfigurationPanel } from './ShotConfigurationPanel';
 import { ShotNavigatorList } from './ShotNavigatorList';
 import { categorizeCharacters } from './utils/characterCategorization';
-import { getCharactersFromActionShot, findCharacterById, getCharacterName, getCharacterSource } from './utils/sceneBuilderUtils';
+import { getCharactersFromActionShot, findCharacterById, getCharacterName, getCharacterSource, getFullShotText } from './utils/sceneBuilderUtils';
 import { toast } from 'sonner';
 import { SceneBuilderService } from '@/services/SceneBuilderService';
 import { useAuth } from '@clerk/nextjs';
@@ -1415,7 +1415,7 @@ export function ShotConfigurationStep({
           <div className="pb-3 border-b border-[#3F3F46]">
             <div className="text-xs font-medium text-[#FFFFFF] mb-2">Shot Description</div>
             <div className="text-xs text-[#808080] break-words whitespace-pre-wrap">
-              {shot.narrationBlock?.text || shot.dialogueBlock?.dialogue || shot.description || 'No description'}
+              {getFullShotText(shot) || 'No description'}
             </div>
           </div>
 

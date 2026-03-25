@@ -7,14 +7,19 @@
 
 import { SceneAnalysisResult } from '@/types/screenplay';
 import { canonicalOutfitName } from '@/utils/outfitUtils';
+import { stripFountainInlineStyleMarkers } from '@/utils/stripFountainInlineStyleMarkers';
 
 /**
  * Get full text content from a shot (narration, dialogue, or description)
  */
 export function getFullShotText(shot: any): string {
-  if (shot.type === 'action' && shot.narrationBlock?.text) return shot.narrationBlock.text;
-  if (shot.type === 'dialogue' && shot.dialogueBlock?.dialogue) return shot.dialogueBlock.dialogue;
-  return shot.description || '';
+  const raw =
+    (shot.type === 'action' && shot.narrationBlock?.text)
+      ? shot.narrationBlock.text
+      : (shot.type === 'dialogue' && shot.dialogueBlock?.dialogue)
+        ? shot.dialogueBlock.dialogue
+        : (shot.description || '');
+  return stripFountainInlineStyleMarkers(raw);
 }
 
 /**

@@ -14,6 +14,7 @@ import { MapPin, Users, Package } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import type { Scene } from '@/types/screenplay';
 import { getScreenplay } from '@/utils/screenplayStorage';
+import { stripFountainInlineStyleMarkers } from '@/utils/stripFountainInlineStyleMarkers';
 
 interface SceneNavigatorListProps {
   selectedSceneId: string | null;
@@ -296,7 +297,7 @@ export function SceneNavigatorList({
                 if (hasValidSynopsis) {
                   return (
                     <p className="line-clamp-2 w-full text-left text-[10px] leading-relaxed text-[#808080]">
-                      {scene.synopsis}
+                      {stripFountainInlineStyleMarkers(scene.synopsis || '')}
                     </p>
                   );
                 }
@@ -306,7 +307,7 @@ export function SceneNavigatorList({
                 if (firstLine) {
                   return (
                     <p className="line-clamp-2 w-full text-left text-[10px] leading-relaxed text-[#808080]">
-                      {firstLine}
+                      {stripFountainInlineStyleMarkers(firstLine)}
                     </p>
                   );
                 }
