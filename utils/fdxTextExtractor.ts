@@ -62,8 +62,16 @@ export async function extractTextFromFDX(file: File): Promise<FDXExtractionResul
       throw new Error('Invalid XML structure in FDX file');
     }
     
-    // Find Content element
-    const content = xmlDoc.querySelector('Content');
+    // Find screenplay body Content element.
+    // Some FDX files include a TitlePage/Content block first; we need the
+    // Content block that contains typed screenplay Paragraph nodes.
+    const allContentNodes = Array.from(xmlDoc.querySelectorAll('Content'));
+    const content = allContentNodes.find((node) => {
+      const directChildren = Array.from(node.children);
+      return directChildren.some((child) =>
+        child.tagName === 'Paragraph' && !!child.getAttribute('Type')
+      );
+    }) || allContentNodes[0] || null;
     if (!content) {
       throw new Error('FDX file does not contain Content element');
     }
