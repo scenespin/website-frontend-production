@@ -16,6 +16,7 @@
     "test:import-parser-regression": "npx tsx tests/import-parser-regression.test.ts",
     "test:image-url-resolver": "npx tsx tests/image-url-resolver.test.ts",
     "test:ai-disclosure-ledger-0295": "npx tsx tests/ai-disclosure-ledger-queue-0295.test.ts",
+    "test:bius-toggle-regression": "node --import tsx tests/bius-toggle-selection-regression.test.ts",
     "test:e2e:github-sync": "playwright test tests/e2e/github-ai-disclosure-cross-script.spec.ts",
     "test:e2e:install": "playwright install chromium",
     "guard:plan-pricing-literals": "node scripts/guard-plan-pricing-literals.js",
