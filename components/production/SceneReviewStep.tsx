@@ -29,6 +29,7 @@ import { getCharacterName, getCharacterSource } from './utils/sceneBuilderUtils'
 import { DEFAULT_ELEMENTS_VIDEO_MODEL, getEffectiveElementsVideoDuration } from '@/lib/elementsWorkflowUtils';
 import { isValidImageUrl } from './utils/imageUrlResolver';
 import { formatImageModelLabel } from '@/utils/providerLabels';
+import { stripFountainInlineStyleMarkers } from '@/utils/stripFountainInlineStyleMarkers';
 
 // Honest resolution (0237): No resolution selector. Output is 720p (Reliable/LongCat) or 1080p (Premium/VEO) by workflow.
 
@@ -466,7 +467,7 @@ export function SceneReviewStep({
                     {/* Dialogue line - Display for dialogue shots when video is opted-in (instead of suggested workflow). Fallback "—" for rare bad/legacy data where type is dialogue but dialogueBlock.dialogue is missing. */}
                     {shot.type === 'dialogue' && generateVideoForShot[shot.slot] && (
                       <div className="text-[10px] text-[#808080]">
-                        Dialogue: <span className="text-[#FFFFFF]">"{shot.dialogueBlock?.dialogue ?? '—'}"</span>
+                        Dialogue: <span className="text-[#FFFFFF]">"{stripFountainInlineStyleMarkers(shot.dialogueBlock?.dialogue ?? '') || '—'}"</span>
                         {shotWorkflowOverrides[shot.slot] && shotWorkflowOverrides[shot.slot] !== shot.workflow && (
                           <span className="text-[#DC143C] ml-2">
                             (Override: {getWorkflowLabel(shotWorkflowOverrides[shot.slot])})

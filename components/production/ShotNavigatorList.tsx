@@ -12,6 +12,7 @@ import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Film } from 'lucide-react';
 import type { SceneAnalysisResult } from '@/types/screenplay';
+import { getFullShotText } from './utils/sceneBuilderUtils';
 
 interface ShotNavigatorListProps {
   shots: any[];
@@ -142,16 +143,16 @@ export function ShotNavigatorList({
               </div>
 
               {/* Shot Description - Full text, no truncation */}
-              {shot.description && (
+              {getFullShotText(shot) && (
                 <p className="w-full text-left text-[10px] leading-relaxed text-[#808080] break-words whitespace-pre-wrap">
-                  {shot.description}
+                  {getFullShotText(shot)}
                 </p>
               )}
               
               {/* Dialogue Preview - Full text, no truncation */}
               {shot.dialogueBlock?.dialogue && !shot.description && (
                 <p className="w-full text-left text-[10px] leading-relaxed text-[#808080] italic break-words whitespace-pre-wrap">
-                  "{shot.dialogueBlock.dialogue}"
+                  "{getFullShotText(shot)}"
                 </p>
               )}
 

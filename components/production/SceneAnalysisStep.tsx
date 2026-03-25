@@ -19,6 +19,7 @@ import { Loader2, ArrowRight, Film, Sparkles, Check, Box, X } from 'lucide-react
 import { SceneAnalysisResult } from '@/types/screenplay';
 import { useSceneBuilderState, useSceneBuilderActions } from '@/contexts/SceneBuilderContext';
 import { toast } from 'sonner';
+import { getFullShotText } from './utils/sceneBuilderUtils';
 
 export type Resolution = '1080p' | '4k';
 
@@ -312,7 +313,7 @@ export function SceneAnalysisStep({
                           </Badge>
                         </div>
                         <div className="text-xs text-[#808080] mt-1 line-clamp-2">
-                          {shot.description || shot.dialogueBlock?.dialogue || 'No description'}
+                          {getFullShotText(shot) || 'No description'}
                         </div>
                       </div>
                     </div>

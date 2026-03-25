@@ -13,6 +13,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { AlertCircle, CheckCircle2, Film, Users, MapPin, Package, Coins, Clock, Sparkles, ChevronDown, ChevronUp } from 'lucide-react';
 import { SceneAnalysisResult } from '@/types/screenplay';
+import { stripFountainInlineStyleMarkers } from '@/utils/stripFountainInlineStyleMarkers';
 
 interface SceneAnalysisPreviewProps {
   analysis: SceneAnalysisResult;
@@ -237,7 +238,7 @@ export function SceneAnalysisPreview({ analysis, isAnalyzing = false, error }: S
               <div className="mt-2 space-y-1">
                 {shotBreakdown.shots.map((shot, idx) => (
                   <div key={idx} className="text-xs text-[#808080] pl-5">
-                    {shot.slot}. {shot.description}
+                    {shot.slot}. {stripFountainInlineStyleMarkers(shot.description || '')}
                   </div>
                 ))}
               </div>
