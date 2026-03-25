@@ -274,9 +274,8 @@ export function UnifiedDialogueDropdown({
     console.log('[UnifiedDialogueDropdown] 🔥 Selection clicked:', { quality, workflow, shotSlot: shot.slot });
     onQualityChange(quality);
     onWorkflowChange(workflow);
-    if (quality !== 'premium') {
-      onPremiumProviderExperimentChange?.('veo');
-    }
+    // Any standard option selection exits experiment mode.
+    onPremiumProviderExperimentChange?.('veo');
   };
   
   const isVoiceoverWorkflow = currentWorkflow === 'off-frame-voiceover' || currentWorkflow === 'scene-voiceover';
@@ -287,7 +286,8 @@ export function UnifiedDialogueDropdown({
       <div>
         <div className="space-y-2">
           {lipSyncOptions.map((option, idx) => {
-            const isSelected = currentQuality === option.quality && 
+            const isSelected = premiumProviderExperiment !== 'ltx' &&
+                              currentQuality === option.quality &&
                               currentWorkflow === option.workflowType;
             return (
               <label
