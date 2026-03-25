@@ -155,6 +155,16 @@ export interface UpdateScreenplayParams {
   // Feature 0133: Optimistic Locking
   expectedVersion?: number;  // Version number expected when saving (for conflict detection)
   force?: boolean;  // Force save (bypass version check) - for conflict resolution "Keep My Changes"
+  fdxInteropImport?: {
+    schemaVersion: number;
+    sourceVersion?: string;
+    rawXml: string;
+    preservedNodes: Record<string, string>;
+    paragraphAttributeIndex: Record<string, {
+      attrs: Record<string, string>;
+      normalizedTextHash: string;
+    }>;
+  };
 }
 
 // ============================================================================

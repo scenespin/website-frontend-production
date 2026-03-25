@@ -21,6 +21,16 @@ export interface FDXExtractionResult {
   text: string;
   success: boolean;
   error?: string;
+  fdxInterop?: {
+    schemaVersion: number;
+    sourceVersion?: string;
+    rawXml: string;
+    preservedNodes: Record<string, string>;
+    paragraphAttributeIndex: Record<string, {
+      attrs: Record<string, string>;
+      normalizedTextHash: string;
+    }>;
+  };
 }
 
 /**
@@ -61,9 +71,31 @@ export async function extractTextFromFDX(file: File): Promise<FDXExtractionResul
     // Extract paragraphs and convert to Fountain
     const fountainLines: string[] = [];
     const paragraphs = content.querySelectorAll('Paragraph');
+    const paragraphTypeCounts: Record<string, number> = {};
+    const paragraphAttributeIndex: Record<string, {
+      attrs: Record<string, string>;
+      normalizedTextHash: string;
+    }> = {};
     
     let previousType = '';
     
+    const normalizeForFingerprint = (value: string): string =>
+      value.replace(/\s+/g, ' ').trim();
+
+    const hashString = (value: string): string => {
+      let hash = 2166136261;
+      for (let i = 0; i < value.length; i++) {
+        hash ^= value.charCodeAt(i);
+        hash +=
+          (hash << 1) +
+          (hash << 4) +
+          (hash << 7) +
+          (hash << 8) +
+          (hash << 24);
+      }
+      return (hash >>> 0).toString(16);
+    };
+
     const applyFountainInlineStyles = (rawText: string, style: string | null): string => {
       if (!style || !rawText || rawText.trim().length === 0) {
         return rawText;
@@ -166,6 +198,28 @@ export async function extractTextFromFDX(file: File): Promise<FDXExtractionResul
           // Unknown type - treat as action
           fountainLines.push(paragraphText);
       }
+
+      // Build fingerprint index for safe paragraph-attribute passthrough during export.
+      const typeCount = paragraphTypeCounts[type] || 0;
+      paragraphTypeCounts[type] = typeCount + 1;
+      const normalizedText = normalizeForFingerprint(paragraphText);
+      const normalizedTextHash = hashString(normalizedText);
+      const rawAttrs: Record<string, string> = {};
+      for (let attrIndex = 0; attrIndex < paragraph.attributes.length; attrIndex++) {
+        const attr = paragraph.attributes.item(attrIndex);
+        if (!attr || attr.name === 'Type') continue;
+        rawAttrs[attr.name] = attr.value;
+      }
+      if (Object.keys(rawAttrs).length > 0) {
+        paragraphAttributeIndex[`${type}|h:${normalizedTextHash}`] = {
+          attrs: rawAttrs,
+          normalizedTextHash,
+        };
+        paragraphAttributeIndex[`${type}|o:${typeCount}`] = {
+          attrs: rawAttrs,
+          normalizedTextHash,
+        };
+      }
       
       previousType = type;
     });
@@ -179,9 +233,28 @@ export async function extractTextFromFDX(file: File): Promise<FDXExtractionResul
     // Trim leading/trailing whitespace
     fountainText = fountainText.trim();
     
+    // Preserve unknown top-level nodes for export passthrough.
+    const preservedNodes: Record<string, string> = {};
+    const root = xmlDoc.documentElement;
+    const serializer = new XMLSerializer();
+    const reservedTopLevel = new Set(['Content', 'TitlePage', 'TextState']);
+    for (let i = 0; i < root.children.length; i++) {
+      const child = root.children.item(i);
+      if (!child) continue;
+      if (reservedTopLevel.has(child.tagName)) continue;
+      preservedNodes[child.tagName] = serializer.serializeToString(child);
+    }
+
     return {
       text: fountainText,
-      success: true
+      success: true,
+      fdxInterop: {
+        schemaVersion: 1,
+        sourceVersion: root.getAttribute('Version') || undefined,
+        rawXml: fileText,
+        preservedNodes,
+        paragraphAttributeIndex,
+      },
     };
     
   } catch (error) {

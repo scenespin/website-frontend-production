@@ -35,6 +35,13 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
     const [isExtractingFountain, setIsExtractingFountain] = useState(false); // 🔥 NEW: Fountain extraction state
     const [uploadedFileName, setUploadedFileName] = useState<string | null>(null); // 🔥 NEW: Track uploaded file name
     const [uploadedFileType, setUploadedFileType] = useState<'pdf' | 'word' | 'fdx' | 'fountain' | null>(null);
+    const [fdxInteropPayload, setFdxInteropPayload] = useState<{
+        schemaVersion: number;
+        sourceVersion?: string;
+        rawXml: string;
+        preservedNodes: Record<string, string>;
+        paragraphAttributeIndex: Record<string, { attrs: Record<string, string>; normalizedTextHash: string }>;
+    } | null>(null);
     const [selectedTimeOfDay, setSelectedTimeOfDay] = useState<Record<number, string>>({}); // 🔥 NEW: Track selected time of day for each scene heading issue
     
     // Reset all state when modal closes
@@ -51,6 +58,7 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
             setIsPostImportRescanning(false);
             setUploadedFileName(null);
             setUploadedFileType(null);
+            setFdxInteropPayload(null);
             setSelectedTimeOfDay({});
         }
     }, [isOpen]);
@@ -211,6 +219,7 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                 
                 // Set extracted text as content (will trigger parsing via useEffect)
                 setContentLocal(result.text);
+                setFdxInteropPayload(result.fdxInterop || null);
                 
                 toast.success('✅ Final Draft file extracted successfully', {
                     description: 'Review the preview below and click Import when ready'
@@ -223,6 +232,7 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                 });
                 setUploadedFileName(null);
                 setUploadedFileType(null);
+                setFdxInteropPayload(null);
             } finally {
                 setIsExtractingFDX(false);
                 event.target.value = '';
@@ -349,6 +359,22 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
                     content: processedContent
                 }, getToken);
             }
+
+            // Phase 3 FDX fidelity: store import sidecar + original XML pointer source payload.
+            if (uploadedFileType === 'fdx' && fdxInteropPayload) {
+                const activeScreenplayId =
+                    screenplay.screenplayId ||
+                    localStorage.getItem('current_screenplay_id') ||
+                    null;
+                if (activeScreenplayId) {
+                    await updateScreenplay({
+                        screenplay_id: activeScreenplayId,
+                        fdxInteropImport: fdxInteropPayload,
+                    }, getToken);
+                } else {
+                    console.warn('[ScriptImportModal] FDX interop payload captured but screenplay_id not available yet');
+                }
+            }
             importCompleted = true;
             
             if (rescanAfterImport) {
@@ -375,7 +401,7 @@ export default function ScriptImportModal({ isOpen, onClose }: ScriptImportModal
             setIsImporting(false);
             setIsPostImportRescanning(false);
         }
-    }, [content, parseResult, setContent, screenplay, saveNow, onClose, showWarning, editorContent, selectedTimeOfDay, uploadedFileType, getToken]);
+    }, [content, parseResult, setContent, screenplay, saveNow, onClose, showWarning, editorContent, selectedTimeOfDay, uploadedFileType, fdxInteropPayload, getToken]);
     
     if (!isOpen) return null;
     
