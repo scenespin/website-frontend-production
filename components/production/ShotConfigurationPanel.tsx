@@ -59,41 +59,160 @@ const INTERIOR_PROP_PROMPT_HELPERS: Array<{ id: string; label: string; template:
   },
 ];
 
-const FIRST_FRAME_ADDITIVE_PROMPT_HELPERS: Array<{ id: string; label: string; template: string }> = [
+type FirstFrameAdditivePromptHelper = {
+  id: string;
+  label: string;
+  template: string;
+  tier: 'default' | 'more';
+};
+
+const ACTION_FIRST_FRAME_ADDITIVE_PROMPT_HELPERS: FirstFrameAdditivePromptHelper[] = [
   {
-    id: 'subtle-expression',
+    id: 'action-composition-lock',
+    label: 'Composition Lock',
+    template: 'preserve framing and subject placement in the frame',
+    tier: 'default',
+  },
+  {
+    id: 'action-lighting-lock',
+    label: 'Lighting Lock',
+    template: 'maintain consistent lighting direction, intensity, and color',
+    tier: 'default',
+  },
+  {
+    id: 'action-body-orientation-lock',
+    label: 'Body Orientation Lock',
+    template: 'maintain consistent torso orientation and stance',
+    tier: 'default',
+  },
+  {
+    id: 'action-outfit-detail-lock',
+    label: 'Outfit Detail Lock',
+    template: 'preserve outfit details, textures, and accessories exactly',
+    tier: 'default',
+  },
+  {
+    id: 'action-prop-contact-lock',
+    label: 'Prop Contact Lock',
+    template: 'maintain consistent hand-to-prop contact and placement',
+    tier: 'default',
+  },
+  {
+    id: 'action-clean-output',
+    label: 'Clean Output',
+    template: 'no text overlays, no logos, no watermark, no visual artifacts',
+    tier: 'default',
+  },
+  {
+    id: 'action-subtle-expression',
     label: 'Subtle Expression',
-    template: 'subtle expression shift, minimal facial movement, natural micro-expressions',
+    template: 'maintain a subtle natural facial expression',
+    tier: 'more',
   },
   {
-    id: 'head-motion',
+    id: 'action-head-motion',
     label: 'Head Motion',
-    template: 'gentle head tilt, brief glance shift, realistic eye focus',
+    template: 'slight head turn only, no exaggerated motion blur',
+    tier: 'more',
   },
   {
-    id: 'camera-drift',
-    label: 'Camera Drift',
-    template: 'subtle camera drift, stable framing, minimal handheld feel',
+    id: 'action-eye-line-lock',
+    label: 'Eye-line Lock',
+    template: 'preserve stable eye-line direction',
+    tier: 'more',
   },
   {
-    id: 'hold-composure',
+    id: 'action-hand-pose-stability',
+    label: 'Hand Pose Stability',
+    template: 'preserve natural hand anatomy and stable hand pose',
+    tier: 'more',
+  },
+  {
+    id: 'action-depth-consistency',
+    label: 'Depth Consistency',
+    template: 'maintain consistent foreground/background depth separation',
+    tier: 'more',
+  },
+  {
+    id: 'action-hold-composure',
     label: 'Hold Composure',
-    template: 'controlled body posture, restrained movement, confident stillness',
+    template: 'keep composed posture and steady body alignment',
+    tier: 'more',
+  },
+];
+
+const DIALOGUE_FIRST_FRAME_ADDITIVE_PROMPT_HELPERS: FirstFrameAdditivePromptHelper[] = [
+  {
+    id: 'dialogue-mouth-readability',
+    label: 'Mouth Readability',
+    template: 'keep mouth clearly visible with clean facial framing',
+    tier: 'default',
   },
   {
-    id: 'cinematic-color-grade',
-    label: 'Cinematic Grade',
-    template: 'cinematic color grade with balanced contrast, filmic highlight rolloff, and subtle teal-orange separation',
+    id: 'dialogue-face-identity-lock',
+    label: 'Face Identity Lock',
+    template: 'preserve facial identity and proportions consistently',
+    tier: 'default',
   },
   {
-    id: 'warm-filmic-look',
-    label: 'Warm Filmic Look',
-    template: 'warm filmic color treatment, soft highlight bloom, natural skin tones, and gentle contrast curve',
+    id: 'dialogue-eye-line-lock',
+    label: 'Eye-line Lock',
+    template: 'preserve stable eye-line direction',
+    tier: 'default',
   },
   {
-    id: 'black-and-white',
-    label: 'Black & White',
-    template: 'black-and-white monochrome grade with rich tonal separation, clean highlights, and deep cinematic contrast',
+    id: 'dialogue-composition-lock',
+    label: 'Composition Lock',
+    template: 'preserve framing and subject placement in the frame',
+    tier: 'default',
+  },
+  {
+    id: 'dialogue-lighting-lock',
+    label: 'Lighting Lock',
+    template: 'maintain consistent lighting direction, intensity, and color',
+    tier: 'default',
+  },
+  {
+    id: 'dialogue-clean-output',
+    label: 'Clean Output',
+    template: 'no text overlays, no logos, no watermark, no visual artifacts',
+    tier: 'default',
+  },
+  {
+    id: 'dialogue-subtle-expression',
+    label: 'Subtle Expression',
+    template: 'maintain a subtle natural facial expression',
+    tier: 'more',
+  },
+  {
+    id: 'dialogue-subtle-head-movement',
+    label: 'Subtle Head Movement',
+    template: 'allow only subtle natural head movement',
+    tier: 'more',
+  },
+  {
+    id: 'dialogue-depth-consistency',
+    label: 'Depth Consistency',
+    template: 'maintain consistent foreground/background depth separation',
+    tier: 'more',
+  },
+  {
+    id: 'dialogue-outfit-detail-lock',
+    label: 'Outfit Detail Lock',
+    template: 'preserve outfit details, textures, and accessories exactly',
+    tier: 'more',
+  },
+  {
+    id: 'dialogue-background-continuity',
+    label: 'Background Continuity',
+    template: 'keep background geometry and depth continuity stable',
+    tier: 'more',
+  },
+  {
+    id: 'dialogue-hold-composure',
+    label: 'Hold Composure',
+    template: 'keep composed posture and steady body alignment',
+    tier: 'more',
   },
 ];
 
@@ -388,6 +507,12 @@ export function ShotConfigurationPanel({
   elementsVideoDuration = getDefaultElementsVideoDuration(),
   onElementsVideoDurationChange
 }: ShotConfigurationPanelProps) {
+  const [showAllFirstFramePromptHelpers, setShowAllFirstFramePromptHelpers] = useState(false);
+
+  useEffect(() => {
+    setShowAllFirstFramePromptHelpers(false);
+  }, [shot?.slot, isDialogueShot, shot?.type]);
+
   const shouldShowLocation = needsLocationAngle(shot) && sceneAnalysisResult?.location?.id && onLocationAngleChange;
 
   // Get detected workflow type for dialogue shots
@@ -396,6 +521,15 @@ export function ShotConfigurationPanel({
     : undefined;
   const workflowConfidence = sceneAnalysisResult.dialogue?.workflowTypeConfidence;
   const workflowReasoning = sceneAnalysisResult.dialogue?.workflowTypeReasoning;
+  const isDialogueFirstFramePromptContext = isDialogueShot || shot?.type === 'dialogue';
+  const firstFramePromptHelpers = isDialogueFirstFramePromptContext
+    ? DIALOGUE_FIRST_FRAME_ADDITIVE_PROMPT_HELPERS
+    : ACTION_FIRST_FRAME_ADDITIVE_PROMPT_HELPERS;
+  const firstFramePromptDefaultHelpers = firstFramePromptHelpers.filter((helper) => helper.tier === 'default');
+  const firstFramePromptMoreHelpers = firstFramePromptHelpers.filter((helper) => helper.tier === 'more');
+  const visibleFirstFramePromptHelpers = showAllFirstFramePromptHelpers
+    ? firstFramePromptHelpers
+    : firstFramePromptDefaultHelpers;
   
   // 🔥 NEW: Collect all prop image thumbnail S3 keys from Media Library map
   // Priority: angleReferences first, then baseReference as fallback
@@ -2197,7 +2331,7 @@ export function ShotConfigurationPanel({
           <div className="mb-2">
             <div className="text-[10px] text-[#808080] mb-1">Prompt helpers</div>
             <div className="flex flex-wrap gap-1.5">
-              {FIRST_FRAME_ADDITIVE_PROMPT_HELPERS.map((helper) => (
+              {visibleFirstFramePromptHelpers.map((helper) => (
                 <button
                   key={helper.id}
                   type="button"
@@ -2215,6 +2349,17 @@ export function ShotConfigurationPanel({
                 </button>
               ))}
             </div>
+            {firstFramePromptMoreHelpers.length > 0 && (
+              <button
+                type="button"
+                onClick={() => setShowAllFirstFramePromptHelpers((prev) => !prev)}
+                className="mt-2 text-[10px] text-[#A1A1AA] hover:text-[#FFFFFF] underline underline-offset-2 transition-colors"
+              >
+                {showAllFirstFramePromptHelpers
+                  ? 'Show fewer prompt helpers'
+                  : `Show ${firstFramePromptMoreHelpers.length} more prompt helpers`}
+              </button>
+            )}
           </div>
           <textarea
             value={motionDirectionPrompt}
