@@ -177,7 +177,7 @@ export default function ScreenplayReadingModal({
         return;
       }
 
-      const response = await fetch(`/api/screenplay/${screenplayId}/scenes`, {
+      const response = await fetch(`/api/screenplays/${screenplayId}/scenes`, {
         headers: {
           'Authorization': `Bearer ${token}`
         }
@@ -185,8 +185,8 @@ export default function ScreenplayReadingModal({
 
       const data = await response.json();
       
-      if (data.success && data.scenes) {
-        setScenes(data.scenes);
+      if (data.success && (data.scenes || data.data?.scenes)) {
+        setScenes(data.scenes || data.data?.scenes || []);
       } else {
         toast.error('Failed to load scenes');
       }
@@ -370,7 +370,7 @@ export default function ScreenplayReadingModal({
       if (!token) throw new Error('Authentication failed');
 
       const requestSelectedSceneIds = sceneIds.length === scenes.length ? [] : sceneIds;
-      const response = await fetch(`/api/screenplay/${screenplayId}/read/estimate`, {
+      const response = await fetch(`/api/screenplays/${screenplayId}/read/estimate`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -437,7 +437,7 @@ export default function ScreenplayReadingModal({
         throw new Error('Authentication failed');
       }
 
-      const response = await fetch(`/api/screenplay/${screenplayId}/read`, {
+      const response = await fetch(`/api/screenplays/${screenplayId}/read`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

@@ -277,7 +277,7 @@ export function ExportPDFModal({
 
       const backendUrl = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
       const exportPath = exportFormat === 'pdf' ? 'export/pdf' : 'export/fdx';
-      const response = await fetch(`${backendUrl}/api/screenplay/${encodeURIComponent(screenplayId)}/${exportPath}`, {
+      const response = await fetch(`${backendUrl}/api/screenplays/${encodeURIComponent(screenplayId)}/${exportPath}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
