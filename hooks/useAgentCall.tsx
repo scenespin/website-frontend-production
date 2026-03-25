@@ -238,7 +238,7 @@ export function useImageEditor() {
             body: {
                 sourceImageUrl,
                 editPrompt,
-                desiredModelId: modelId || 'nano-banana'
+                desiredModelId: modelId || 'nano-banana-pro-2k'
             }
         });
     }, [callAgent]);

@@ -552,7 +552,7 @@ function CreateCharacterDialog({
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
   const [prompt, setPrompt] = useState('');
-  const [model, setModel] = useState('nano-banana');
+  const [model, setModel] = useState('nano-banana-pro-2k');
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState('');
   const [isCreating, setIsCreating] = useState(false);
@@ -754,7 +754,7 @@ function CreateCharacterDialog({
                   onChange={(e) => setModel(e.target.value)}
                   className="select select-bordered w-full mt-1 bg-[#0A0A0A] border-[#3F3F46] text-[#FFFFFF] focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-[#DC143C]"
                 >
-                  <option value="nano-banana" className="bg-[#1A1A1A] text-[#FFFFFF]">Nano Banana (Fast, 5 credits)</option>
+                  <option value="nano-banana-pro-2k" className="bg-[#1A1A1A] text-[#FFFFFF]">Nano Banana Pro 2K (Standard)</option>
                   <option value="photon-1" className="bg-[#1A1A1A] text-[#FFFFFF]">Photon 1 (Quality, 10 credits)</option>
                   <option value="photon-flash" className="bg-[#1A1A1A] text-[#FFFFFF]">Photon Flash (Fast, 5 credits)</option>
                   <option value="dall-e-3" className="bg-[#1A1A1A] text-[#FFFFFF]">DALL-E 3 (High quality, 15 credits)</option>

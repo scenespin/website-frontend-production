@@ -43,7 +43,7 @@ interface GenerateVideoResult {
     videoKey: string;
     durationSeconds: number;
     creditsUsed: number;
-    provider: 'sora-2' | 'sora-2-pro' | 'veo-3';
+    provider: 'sora-2' | 'sora-2-pro' | 'veo-3.1';
     resolution: string;
     status: 'processing' | 'completed';
 }
@@ -116,7 +116,7 @@ export function useSceneVisualizer() {
      */
     const generateVideo = useCallback(async (
         prompts: ScenePrompt[],
-        provider: 'sora-2' | 'sora-2-pro' | 'veo-3' = 'sora-2',
+        provider: 'sora-2' | 'sora-2-pro' | 'veo-3.1' = 'sora-2',
         sceneId: string,
         sceneName: string
     ): Promise<GenerateVideoResult | null> => {

@@ -5,7 +5,7 @@ import { useImageGenerator } from '@/hooks/useAgentCall';
 
 export default function ImagePanel() {
     const [prompt, setPrompt] = useState('');
-    const [selectedModel, setSelectedModel] = useState('nano-banana');
+    const [selectedModel, setSelectedModel] = useState('nano-banana-pro-2k');
     const [generatedImage, setGeneratedImage] = useState('');
     
     const { generateImage, isLoading, error } = useImageGenerator();
@@ -65,7 +65,7 @@ export default function ImagePanel() {
                     value={selectedModel}
                     onChange={(e) => setSelectedModel(e.target.value)}
                 >
-                    <option value="nano-banana">Imagen 3 (1 credit)</option>
+                    <option value="nano-banana-pro-2k">Nano Banana Pro 2K</option>
                     <option value="stable-diffusion-3.5-large">SD 3.5 Large (50 credits)</option>
                     <option value="gpt-image-1">DALL-E 3 (100 credits)</option>
                 </select>
