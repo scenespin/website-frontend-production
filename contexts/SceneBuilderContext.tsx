@@ -10,7 +10,7 @@
 'use client';
 
 import React, { createContext, useContext, useState, useCallback, useEffect, useMemo, useRef, ReactNode } from 'react';
-import { DialogueWorkflowType } from '@/components/production/UnifiedDialogueDropdown';
+import { DialogueWorkflowType, PremiumProviderExperiment } from '@/components/production/UnifiedDialogueDropdown';
 import { SceneAnalysisResult } from '@/types/screenplay';
 import type { OffFrameShotType } from '@/types/offFrame';
 import { useCharacterReferences, type UseCharacterReferencesReturn } from '@/components/production/hooks/useCharacterReferences';
@@ -117,6 +117,7 @@ export interface SceneBuilderState {
   // Dialogue Workflow State
   selectedDialogueQualities: Record<number, DialogueQuality>;
   selectedDialogueWorkflows: Record<number, DialogueWorkflowType>;
+  premiumProviderExperiments: Record<number, PremiumProviderExperiment>;
   voiceoverBaseWorkflows: Record<number, string>;
   dialogueWorkflowPrompts: Record<number, string>;
   /** Narrate Shot: what the narrator says (per-shot). Required for scene-voiceover. */
@@ -231,6 +232,8 @@ export interface SceneBuilderActions {
   updateDialogueQuality: (shotSlot: number, quality: DialogueQuality) => void;
   setSelectedDialogueWorkflows: (workflows: Record<number, DialogueWorkflowType>) => void;
   updateDialogueWorkflow: (shotSlot: number, workflow: DialogueWorkflowType) => void;
+  setPremiumProviderExperiments: (providers: Record<number, PremiumProviderExperiment>) => void;
+  updatePremiumProviderExperiment: (shotSlot: number, provider: PremiumProviderExperiment) => void;
   setVoiceoverBaseWorkflows: (workflows: Record<number, string>) => void;
   updateVoiceoverBaseWorkflow: (shotSlot: number, workflow: string) => void;
   setDialogueWorkflowPrompts: (prompts: Record<number, string>) => void;
@@ -380,6 +383,7 @@ function getInitialSceneBuilderState(): SceneBuilderState {
     shotProps: {},
     selectedDialogueQualities: {},
     selectedDialogueWorkflows: {},
+    premiumProviderExperiments: {},
     voiceoverBaseWorkflows: {},
     dialogueWorkflowPrompts: {},
     narrationOverrides: {},
@@ -990,6 +994,20 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
         }
         return next;
       });
+    }, []),
+
+    setPremiumProviderExperiments: useCallback((providers) => {
+      setState(prev => ({ ...prev, premiumProviderExperiments: providers }));
+    }, []),
+
+    updatePremiumProviderExperiment: useCallback((shotSlot, provider) => {
+      setState(prev => ({
+        ...prev,
+        premiumProviderExperiments: {
+          ...prev.premiumProviderExperiments,
+          [shotSlot]: provider
+        }
+      }));
     }, []),
     
     setVoiceoverBaseWorkflows: useCallback((workflows) => {

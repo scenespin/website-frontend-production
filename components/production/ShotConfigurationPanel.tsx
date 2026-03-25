@@ -17,7 +17,7 @@ import { PronounMappingSection } from './PronounMappingSection';
 import { SceneAnalysisResult } from '@/types/screenplay';
 import { findCharacterById, getCharacterSource } from './utils/sceneBuilderUtils';
 import { resolveCharacterHeadshotUrl } from './utils/imageUrlResolver';
-import { UnifiedDialogueDropdown, DialogueQuality, DialogueWorkflowType } from './UnifiedDialogueDropdown';
+import { UnifiedDialogueDropdown, DialogueQuality, DialogueWorkflowType, PremiumProviderExperiment } from './UnifiedDialogueDropdown';
 import { useBulkPresignedUrls } from '@/hooks/useMediaLibrary';
 import {
   type OffFrameShotType,
@@ -199,9 +199,11 @@ interface ShotConfigurationPanelProps {
   // Dialogue workflow selection (per-shot) - NEW: Unified dropdown
   selectedDialogueQuality?: DialogueQuality; // 'premium' or 'reliable'
   selectedDialogueWorkflow?: DialogueWorkflowType; // Selected workflow for this shot (overrides auto-detection)
+  premiumProviderExperiment?: PremiumProviderExperiment;
   selectedBaseWorkflow?: string; // For voiceover workflows (e.g., 'hollywood-standard', 'reality-to-toon')
   onDialogueQualityChange?: (shotSlot: number, quality: DialogueQuality) => void;
   onDialogueWorkflowChange?: (shotSlot: number, workflowType: DialogueWorkflowType) => void;
+  onPremiumProviderExperimentChange?: (shotSlot: number, provider: PremiumProviderExperiment) => void;
   onBaseWorkflowChange?: (shotSlot: number, baseWorkflow: string) => void; // For voiceover workflows
   // Dialogue workflow override prompts (for Hidden Mouth Dialogue and Narrate Shot)
   // Note: Backend identifiers are 'off-frame-voiceover' and 'scene-voiceover'
@@ -325,9 +327,11 @@ export function ShotConfigurationPanel({
   locationFullImageUrlsMap,
   selectedDialogueQuality,
   selectedDialogueWorkflow,
+  premiumProviderExperiment,
   selectedBaseWorkflow,
   onDialogueQualityChange,
   onDialogueWorkflowChange,
+  onPremiumProviderExperimentChange,
   onBaseWorkflowChange,
   dialogueWorkflowPrompt,
   onDialogueWorkflowPromptChange,
@@ -2271,6 +2275,8 @@ export function ShotConfigurationPanel({
             ]}
             onQualityChange={(quality) => onDialogueQualityChange?.(shot.slot, quality)}
             onWorkflowChange={(workflow) => onDialogueWorkflowChange(shot.slot, workflow)}
+            premiumProviderExperiment={premiumProviderExperiment}
+            onPremiumProviderExperimentChange={(provider) => onPremiumProviderExperimentChange?.(shot.slot, provider)}
             onBaseWorkflowChange={(baseWorkflow) => onBaseWorkflowChange?.(shot.slot, baseWorkflow)}
             detectedWorkflow={detectedWorkflowType as DialogueWorkflowType}
             workflowConfidence={workflowConfidence}

@@ -24,7 +24,7 @@ import { useAuth } from '@clerk/nextjs';
 import { ReferencePreview } from './ReferencePreview';
 import { ReferenceShotSelector } from './ReferenceShotSelector';
 import { VideoGenerationSelector } from './VideoGenerationSelector';
-import { UnifiedDialogueDropdown, type DialogueWorkflowType } from './UnifiedDialogueDropdown';
+import { UnifiedDialogueDropdown, type DialogueWorkflowType, type PremiumProviderExperiment } from './UnifiedDialogueDropdown';
 import { getAvailablePropImages, getSelectedPropImageUrl } from './utils/propImageUtils';
 import { useSceneBuilderState, useSceneBuilderActions, VideoType, DEFAULT_REFERENCE_SHOT_MODEL, VEO_MAX_ELEMENTS, type DialogueCompositionType } from '@/contexts/SceneBuilderContext';
 import { useBulkPresignedUrls } from '@/hooks/useMediaLibrary';
@@ -196,9 +196,11 @@ interface ShotConfigurationStepProps {
   // Dialogue workflows - NEW: Unified dropdown
   selectedDialogueQuality?: 'premium' | 'reliable';
   selectedDialogueWorkflow?: DialogueWorkflowType;
+  premiumProviderExperiment?: PremiumProviderExperiment;
   selectedBaseWorkflow?: string; // For voiceover workflows
   onDialogueQualityChange?: (shotSlot: number, quality: 'premium' | 'reliable') => void;
   onDialogueWorkflowChange?: (shotSlot: number, workflowType: DialogueWorkflowType) => void;
+  onPremiumProviderExperimentChange?: (shotSlot: number, provider: PremiumProviderExperiment) => void;
   onBaseWorkflowChange?: (shotSlot: number, baseWorkflow: string) => void; // For voiceover workflows
   dialogueWorkflowPrompt?: string;
   onDialogueWorkflowPromptChange?: (shotSlot: number, prompt: string) => void;
@@ -295,9 +297,11 @@ export function ShotConfigurationStep({
   locationFullImageUrlsMap,
   selectedDialogueQuality,
   selectedDialogueWorkflow,
+  premiumProviderExperiment,
   selectedBaseWorkflow,
   onDialogueQualityChange,
   onDialogueWorkflowChange,
+  onPremiumProviderExperimentChange,
   onBaseWorkflowChange,
   dialogueWorkflowPrompt,
   onDialogueWorkflowPromptChange,
@@ -367,6 +371,7 @@ export function ShotConfigurationStep({
   // This ensures pricing updates when user selects Premium/Wryda in UnifiedDialogueDropdown
   const finalSelectedDialogueQuality = selectedDialogueQuality ?? state.selectedDialogueQualities[shotSlot];
   const finalSelectedDialogueWorkflow = selectedDialogueWorkflow ?? state.selectedDialogueWorkflows[shotSlot];
+  const finalPremiumProviderExperiment = premiumProviderExperiment ?? state.premiumProviderExperiments[shotSlot] ?? 'veo';
   const finalDialogueWorkflowPrompt = state.dialogueWorkflowPrompts[shotSlot];
   const finalOffFrameShotType = state.offFrameShotType[shotSlot];
   const finalOffFrameListenerCharacterId = state.offFrameListenerCharacterId[shotSlot] ?? null;
@@ -1525,6 +1530,12 @@ export function ShotConfigurationStep({
                           shot={shot}
                           selectedQuality={finalSelectedDialogueQuality}
                           selectedWorkflow={finalSelectedDialogueWorkflow as DialogueWorkflowType}
+                          premiumProviderExperiment={finalPremiumProviderExperiment}
+                          onPremiumProviderExperimentChange={(provider) => (
+                            onPremiumProviderExperimentChange
+                              ? onPremiumProviderExperimentChange(shotSlot, provider)
+                              : actions.updatePremiumProviderExperiment(shotSlot, provider)
+                          )}
                           selectedBaseWorkflow={undefined}
                           characterIds={[
                             ...(shot.characterId ? [shot.characterId] : []),
@@ -1614,8 +1625,10 @@ export function ShotConfigurationStep({
                   locationFullImageUrlsMap={locationFullImageUrlsMap}
                   selectedDialogueQuality={finalSelectedDialogueQuality}
                   selectedDialogueWorkflow={finalSelectedDialogueWorkflow}
+                  premiumProviderExperiment={finalPremiumProviderExperiment}
                   onDialogueQualityChange={finalOnDialogueQualityChange}
                   onDialogueWorkflowChange={finalOnDialogueWorkflowChange}
+                  onPremiumProviderExperimentChange={onPremiumProviderExperimentChange}
                   dialogueWorkflowPrompt={finalDialogueWorkflowPrompt}
                   onDialogueWorkflowPromptChange={finalOnDialogueWorkflowPromptChange}
                   narrationOverride={finalNarrationOverride}
@@ -1851,8 +1864,10 @@ export function ShotConfigurationStep({
               locationFullImageUrlsMap={locationFullImageUrlsMap}
               selectedDialogueQuality={finalSelectedDialogueQuality}
               selectedDialogueWorkflow={finalSelectedDialogueWorkflow}
+              premiumProviderExperiment={finalPremiumProviderExperiment}
               onDialogueQualityChange={finalOnDialogueQualityChange}
               onDialogueWorkflowChange={finalOnDialogueWorkflowChange}
+              onPremiumProviderExperimentChange={onPremiumProviderExperimentChange}
                   dialogueWorkflowPrompt={finalDialogueWorkflowPrompt}
                   onDialogueWorkflowPromptChange={finalOnDialogueWorkflowPromptChange}
                   narrationOverride={finalNarrationOverride}

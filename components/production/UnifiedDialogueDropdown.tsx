@@ -93,6 +93,7 @@ function BaseWorkflowDropdown({
 }
 
 export type DialogueQuality = 'premium' | 'reliable';
+export type PremiumProviderExperiment = 'veo' | 'ltx';
 export type DialogueWorkflowType = 
   | 'first-frame-lipsync'
   | 'extreme-closeup'
@@ -118,6 +119,8 @@ interface UnifiedDialogueDropdownProps {
   characterIds: string[]; // All characters for this shot
   onQualityChange: (quality: DialogueQuality) => void;
   onWorkflowChange: (workflow: DialogueWorkflowType) => void;
+  premiumProviderExperiment?: PremiumProviderExperiment;
+  onPremiumProviderExperimentChange?: (provider: PremiumProviderExperiment) => void;
   onBaseWorkflowChange?: (baseWorkflow: string) => void; // For voiceover workflows
   detectedWorkflow?: DialogueWorkflowType;
   workflowConfidence?: 'high' | 'medium' | 'low';
@@ -150,6 +153,8 @@ export function UnifiedDialogueDropdown({
   characterIds,
   onQualityChange,
   onWorkflowChange,
+  premiumProviderExperiment = 'veo',
+  onPremiumProviderExperimentChange,
   onBaseWorkflowChange,
   detectedWorkflow,
   workflowConfidence,
@@ -269,6 +274,9 @@ export function UnifiedDialogueDropdown({
     console.log('[UnifiedDialogueDropdown] 🔥 Selection clicked:', { quality, workflow, shotSlot: shot.slot });
     onQualityChange(quality);
     onWorkflowChange(workflow);
+    if (quality !== 'premium') {
+      onPremiumProviderExperimentChange?.('veo');
+    }
   };
   
   const isVoiceoverWorkflow = currentWorkflow === 'off-frame-voiceover' || currentWorkflow === 'scene-voiceover';
@@ -328,6 +336,49 @@ export function UnifiedDialogueDropdown({
       {showPremiumShortLineWarning && (
         <div className="text-[11px] px-2.5 py-2 rounded border border-yellow-500/40 bg-yellow-500/10 text-yellow-200">
           Premium Dialogue may produce unstable speech with very short lines. For best results, use 4+ words or switch to Reliable for this shot.
+        </div>
+      )}
+
+      {showOnlyLipSync && (
+        <div className="border-t border-[#3F3F46] my-4"></div>
+      )}
+
+      {showOnlyLipSync && (
+        <div>
+          <div className="text-xs font-medium text-[#FFFFFF] mb-2">TEST</div>
+          <label
+            className={`block p-3 rounded border cursor-pointer transition-colors ${
+              premiumProviderExperiment === 'ltx'
+                ? 'bg-[#DC143C]/20 border-[#DC143C]'
+                : 'bg-[#1A1A1A] border-[#3F3F46] hover:border-[#808080]'
+            }`}
+          >
+            <div className="flex items-start gap-3">
+              <input
+                type="radio"
+                name={`dialogue-provider-test-${shot.slot}`}
+                checked={premiumProviderExperiment === 'ltx'}
+                onChange={() => {
+                  onQualityChange('premium');
+                  if (
+                    currentWorkflow !== 'first-frame-lipsync' &&
+                    currentWorkflow !== 'extreme-closeup' &&
+                    currentWorkflow !== 'extreme-closeup-mouth'
+                  ) {
+                    onWorkflowChange('first-frame-lipsync');
+                  }
+                  onPremiumProviderExperimentChange?.('ltx');
+                }}
+                className="mt-1 w-3.5 h-3.5 text-[#DC143C] border-[#3F3F46] focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer"
+              />
+              <div className="flex-1">
+                <div className="text-xs font-medium text-[#FFFFFF] mb-1">Test</div>
+                <div className="text-[10px] text-[#808080] leading-relaxed">
+                  Use LTX for premium single-character lip-sync testing.
+                </div>
+              </div>
+            </div>
+          </label>
         </div>
       )}
       

@@ -58,7 +58,7 @@ import { toast } from 'sonner';
 import { SceneBuilderDecisionModal } from '@/components/video/SceneBuilderDecisionModal';
 import { PartialDeliveryModal } from '@/components/video/PartialDeliveryModal';
 import { ShotConfigurationStep } from './ShotConfigurationStep';
-import { DialogueWorkflowType } from './UnifiedDialogueDropdown';
+import { DialogueWorkflowType, PremiumProviderExperiment } from './UnifiedDialogueDropdown';
 import { MediaUploadSlot } from '@/components/production/MediaUploadSlot';
 import { useAuth } from '@clerk/nextjs';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
@@ -92,6 +92,7 @@ import { categorizeCharacters } from './utils/characterCategorization';
 import { isOffFrameListenerShotType, isOffFrameGroupShotType } from '@/types/offFrame';
 import type { OffFrameShotType } from '@/types/offFrame';
 import { SceneBuilderProvider, useSceneBuilderState, useSceneBuilderActions, VideoType, type AspectRatio, type DialogueVideoAspectRatio, DEFAULT_REFERENCE_SHOT_MODEL } from '@/contexts/SceneBuilderContext';
+import { extractBracketedErrorCode, getLtxErrorMessageByCode } from '@/lib/ltxErrorCodes';
 // Media Library mapping utilities are now used in hooks
 import { resolveCharacterHeadshotUrl, isValidImageUrl } from './utils/imageUrlResolver';
 import { SCENE_BUILDER_GRID_COLS, SCENE_BUILDER_GRID_GAP, THUMBNAIL_STYLE } from './utils/imageConstants';
@@ -498,6 +499,15 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     }
     // 🔥 FIX: contextActions functions are stable (useCallback with empty deps), so we don't need contextActions in deps
   }, [contextState.selectedDialogueWorkflows]);
+
+  const setPremiumProviderExperiments = useCallback((updater: Record<number, PremiumProviderExperiment> | ((prev: Record<number, PremiumProviderExperiment>) => Record<number, PremiumProviderExperiment>)) => {
+    if (typeof updater === 'function') {
+      const newValue = updater(contextState.premiumProviderExperiments);
+      contextActions.setPremiumProviderExperiments(newValue);
+    } else {
+      contextActions.setPremiumProviderExperiments(updater);
+    }
+  }, [contextState.premiumProviderExperiments]);
   
   const setVoiceoverBaseWorkflows = useCallback((updater: Record<number, string> | ((prev: Record<number, string>) => Record<number, string>)) => {
     if (typeof updater === 'function') {
@@ -569,6 +579,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   const characterOutfits = contextState.characterOutfits;
   const selectedDialogueQualities = contextState.selectedDialogueQualities;
   const selectedDialogueWorkflows = contextState.selectedDialogueWorkflows;
+  const premiumProviderExperiments = contextState.premiumProviderExperiments;
   const offFrameShotType = contextState.offFrameShotType;
   const offFrameListenerCharacterId = contextState.offFrameListenerCharacterId;
   const offFrameGroupCharacterIds = contextState.offFrameGroupCharacterIds;
@@ -2963,11 +2974,19 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        const errorMessage = errorData.error || errorData.message || `Dialogue generation failed: ${response.status}`;
+        const rawErrorMessage = errorData.error || errorData.message || `Dialogue generation failed: ${response.status}`;
+        const codeFromPayload = typeof errorData.code === 'string' ? errorData.code : undefined;
+        const codeFromMessage = extractBracketedErrorCode(rawErrorMessage);
+        const ltxCode = codeFromPayload || codeFromMessage;
+        const ltxFriendlyMessage = getLtxErrorMessageByCode(ltxCode);
+        const errorMessage = ltxFriendlyMessage
+          ? `${ltxFriendlyMessage}${ltxCode ? ` (${ltxCode})` : ''}`
+          : rawErrorMessage;
         console.error('[SceneBuilderPanel] Dialogue generation error:', {
           status: response.status,
           statusText: response.statusText,
           error: errorMessage,
+          errorCode: ltxCode,
           errorData: errorData,
           requestBody: {
             characterId: dialogueRequest.characterId,
@@ -3339,6 +3358,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
         characterOutfits: Object.keys(characterOutfits).length > 0 ? characterOutfits : undefined, // Per-shot, per-character outfit selection: { shotSlot: { characterId: outfitName } }
         selectedDialogueQualities: Object.keys(selectedDialogueQualities).length > 0 ? selectedDialogueQualities : undefined, // NEW: Per-shot dialogue quality selection (Premium vs Reliable): { shotSlot: 'premium' | 'reliable' }
         selectedDialogueWorkflows: Object.keys(selectedDialogueWorkflows).length > 0 ? selectedDialogueWorkflows : undefined, // Per-shot dialogue workflow selection: { shotSlot: workflowType }
+        premiumProviderExperiments: Object.keys(premiumProviderExperiments).length > 0 ? premiumProviderExperiments : undefined,
         // Feature 0209: Off-frame (Hidden Mouth) – send only for shots where workflow is off-frame-voiceover; never mix with lip-sync namespace
         ...(enabledShots.some((slot) => selectedDialogueWorkflows[slot] === 'off-frame-voiceover')
           ? {
@@ -3999,10 +4019,16 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       ? String(execution.metadata.failedShots[0]?.error || '').trim()
       : '';
     const errorText = rawError || failedShotError;
+    const ltxErrorCode = extractBracketedErrorCode(errorText);
+    const ltxFriendlyMessage = getLtxErrorMessageByCode(ltxErrorCode);
     const supportCodeMatch = errorText.match(/support\s*codes?:\s*([0-9]+)/i);
     const supportCode = supportCodeMatch?.[1];
 
-    if (/responsible ai|sensitive words|allowlisting/i.test(errorText)) {
+    if (ltxFriendlyMessage) {
+      toast.error('LTX Test failed', {
+        description: `${ltxFriendlyMessage}${ltxErrorCode ? ` (${ltxErrorCode})` : ''}`,
+      });
+    } else if (/responsible ai|sensitive words|allowlisting/i.test(errorText)) {
       toast.error('Prompt blocked by model safety policy', {
         description: supportCode
           ? `The Elements prompt was blocked by provider policy (support code ${supportCode}). Rephrase the prompt and try again.`
@@ -5029,6 +5055,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                   }}
                   selectedDialogueQuality={selectedDialogueQualities[currentShot.slot]}
                   selectedDialogueWorkflow={selectedDialogueWorkflows[currentShot.slot]}
+                  premiumProviderExperiment={premiumProviderExperiments[currentShot.slot]}
                   selectedBaseWorkflow={voiceoverBaseWorkflows[currentShot.slot]}
                   onDialogueQualityChange={(shotSlot, quality) => {
                     setSelectedDialogueQualities(prev => ({
@@ -5040,6 +5067,12 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                     setSelectedDialogueWorkflows(prev => ({
                       ...prev,
                       [shotSlot]: workflowType
+                    }));
+                  }}
+                  onPremiumProviderExperimentChange={(shotSlot, provider) => {
+                    setPremiumProviderExperiments(prev => ({
+                      ...prev,
+                      [shotSlot]: provider
                     }));
                   }}
                   onBaseWorkflowChange={(shotSlot, baseWorkflow) => {
