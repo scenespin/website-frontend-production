@@ -33,6 +33,7 @@ export default function AdminPricingDashboard() {
   const [lowMarginWorkflows, setLowMarginWorkflows] = useState([]);
   const [expandedChange, setExpandedChange] = useState(null);
   const [scraping, setScraping] = useState(false);
+  const [seeding, setSeeding] = useState(false);
   const [editingPrice, setEditingPrice] = useState(null);
   const [allProviders, setAllProviders] = useState([]);
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -174,6 +175,33 @@ export default function AdminPricingDashboard() {
       console.error('Error triggering scrape:', error);
       alert('Failed to trigger price scraping');
       setScraping(false);
+    }
+  }
+
+  async function handleSeedMissingRuntimeKeys() {
+    setSeeding(true);
+    try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) {
+        alert('Authentication required');
+        setSeeding(false);
+        return;
+      }
+      const result = await adminPricingApi.seedMissingRuntimeKeys(token);
+      if (result.success) {
+        const seeded = result.result?.seeded ?? 0;
+        const existing = result.result?.existing ?? 0;
+        const errors = Array.isArray(result.result?.errors) ? result.result.errors.length : 0;
+        alert(`Seed completed. Added ${seeded} missing runtime key(s), ${existing} already existed.${errors > 0 ? ` ${errors} error(s) logged.` : ''}`);
+        await fetchPricingData();
+      } else {
+        alert(`Seed failed: ${result.error}`);
+      }
+    } catch (error) {
+      console.error('Error seeding runtime keys:', error);
+      alert('Failed to seed missing runtime keys');
+    } finally {
+      setSeeding(false);
     }
   }
 
@@ -323,7 +351,24 @@ export default function AdminPricingDashboard() {
       </div>
 
       {/* Actions */}
-      <div className="flex justify-end">
+      <div className="flex justify-end gap-2">
+        <button
+          onClick={handleSeedMissingRuntimeKeys}
+          disabled={seeding}
+          className="btn btn-secondary"
+        >
+          {seeding ? (
+            <>
+              <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+              Seeding...
+            </>
+          ) : (
+            <>
+              <Save className="w-4 h-4 mr-2" />
+              Seed Missing Runtime Keys
+            </>
+          )}
+        </button>
         <button
           onClick={handleManualScrape}
           disabled={scraping}

@@ -173,6 +173,37 @@ export async function updateProviderPrice(
   }
 }
 
+export async function seedMissingRuntimeKeys(
+  token?: string,
+  options?: { operationTypes?: string[]; providerPrefix?: string; dryRun?: boolean }
+): Promise<{ success: boolean; result?: any; error?: string }> {
+  try {
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+    };
+
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+
+    const response = await fetch('/api/admin/pricing/registry/seed-missing', {
+      method: 'POST',
+      headers,
+      body: JSON.stringify(options || {}),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const data = await response.json();
+    return { success: true, result: data.result };
+  } catch (error: any) {
+    console.error('Error seeding missing runtime keys:', error);
+    return { success: false, error: error.message };
+  }
+}
+
 /**
  * Get price changes (optionally filter by status)
  */
