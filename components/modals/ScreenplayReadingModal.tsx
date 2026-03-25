@@ -186,7 +186,30 @@ export default function ScreenplayReadingModal({
       const data = await response.json();
       
       if (data.success && (data.scenes || data.data?.scenes)) {
-        setScenes(data.scenes || data.data?.scenes || []);
+        const rawScenes = data.scenes || data.data?.scenes || [];
+        const normalizedScenes: Scene[] = rawScenes
+          .map((scene: any) => {
+            const id = String(scene?.id || scene?.scene_id || '').trim();
+            const heading = String(scene?.heading || '').trim();
+            const characters = Array.isArray(scene?.characters) ? scene.characters : [];
+            const characterCount = typeof scene?.characterCount === 'number'
+              ? scene.characterCount
+              : characters.length;
+            const hasDialogue = typeof scene?.hasDialogue === 'boolean'
+              ? scene.hasDialogue
+              : characterCount > 0;
+
+            return {
+              id,
+              heading,
+              synopsis: scene?.synopsis,
+              characterCount,
+              hasDialogue,
+            };
+          })
+          .filter((scene: Scene) => scene.id.length > 0);
+
+        setScenes(normalizedScenes);
       } else {
         toast.error('Failed to load scenes');
       }
