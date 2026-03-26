@@ -4,7 +4,7 @@
  * Unified Dialogue Dropdown Component
  * 
  * Features:
- * - Wrapped model names (Premium Quality / Reliable Generation)
+ * - Simplified quality/framing controls
  * - Multi-character detection and routing
  * - Workflow selector for voiceover options
  * - Clear categorization (Lip Sync vs Non-Lip Sync)
@@ -208,7 +208,7 @@ export function UnifiedDialogueDropdown({
     {
       quality: 'premium' as DialogueQuality,
       workflowType: 'first-frame-lipsync' as DialogueWorkflowType,
-      label: 'Premium Lip Sync (Sequential Shots)',
+      label: 'Enhanced Lip Sync (Sequential Shots)',
       description: '3 separate generations (~3x cost, slower). Highest quality per character. Can review/edit individual shots. Some content may be restricted.',
       isMultiCharacter: true,
       costWarning: '~3x cost, slower generation'
@@ -218,20 +218,20 @@ export function UnifiedDialogueDropdown({
   const qualityOptions = useMemo(() => ([
     {
       quality: 'reliable' as DialogueQuality,
-      label: 'Reliable',
-      helper: 'Grok (720p)'
+      label: 'Standard',
+      helper: '720p'
     },
     {
       quality: 'premium' as DialogueQuality,
-      label: 'Premium',
-      helper: 'VEO (1080p)'
+      label: 'Enhanced',
+      helper: '1080p'
     }
   ]), []);
 
   const framingOptions = useMemo(() => ([
     {
       workflowType: 'first-frame-lipsync' as DialogueWorkflowType,
-      label: 'Standard',
+      label: 'Default Framing',
       description: 'Most standard shots.'
     },
     {
@@ -381,7 +381,7 @@ export function UnifiedDialogueDropdown({
 
       {showPremiumShortLineWarning && (
         <div className="text-[11px] px-2.5 py-2 rounded border border-yellow-500/40 bg-yellow-500/10 text-yellow-200">
-          Premium Dialogue may produce unstable speech with very short lines. For best results, use 4+ words or switch to Reliable for this shot.
+          Enhanced dialogue may produce unstable speech with very short lines. For best results, use 4+ words or switch to Standard for this shot.
         </div>
       )}
 

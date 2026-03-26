@@ -794,7 +794,7 @@ export function SceneReviewStep({
                 </div>
                 {hasAnyVideo && (
                   <div className="text-[10px] text-[#808080] italic mt-2 pt-2 border-t border-[#3F3F46]">
-                    Standard = 720p · Premium = 1080p
+                    Standard = 720p · Enhanced = 1080p
                   </div>
                 )}
                 </>
@@ -840,7 +840,7 @@ export function SceneReviewStep({
 
           {hasPremiumShortLineRisk && (
             <div className="text-[11px] px-2.5 py-2 rounded border border-yellow-500/40 bg-yellow-500/10 text-yellow-200">
-              Premium Dialogue may produce unstable speech with very short lines ({premiumShortLineShotList}). For best results, use 4+ words or switch those shots to Reliable.
+              Enhanced dialogue may produce unstable speech with very short lines ({premiumShortLineShotList}). For best results, use 4+ words or switch those shots to Standard.
             </div>
           )}
 
