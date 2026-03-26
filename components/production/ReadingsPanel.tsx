@@ -104,6 +104,12 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
   const audioRefs = useRef<Map<string, HTMLAudioElement>>(new Map()); // Track audio elements for pause
   const sceneAudioRefs = useRef<Map<string, HTMLAudioElement>>(new Map()); // Track individual scene audio elements
   const downloadingFiles = useRef<Set<string>>(new Set()); // Track files being downloaded
+  const filesToDub = useMemo<MediaFile[]>(() => {
+    if (!dubReading) return [];
+    return dubScope === 'master'
+      ? (dubReading.combinedAudio ? [dubReading.combinedAudio] : [])
+      : dubReading.sceneAudios.filter((f) => selectedSceneFileIds.includes(f.id));
+  }, [dubReading, dubScope, selectedSceneFileIds]);
 
   // Filter and group readings
   const groupedReadings = useMemo(() => {
@@ -548,7 +554,10 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
   };
 
   useEffect(() => {
-    if (!dubDialogOpen || !dubReading) return;
+    if (!dubDialogOpen || filesToDub.length === 0) {
+      setEstimatedCredits(null);
+      return;
+    }
     let cancelled = false;
     (async () => {
       try {
@@ -556,17 +565,32 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
         const token = await getToken({ template: 'wryda-backend' });
         if (!token) return;
         const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
-        const res = await fetch(`${BACKEND_API_URL}/api/audio/dub/estimate`, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ sourceLanguage, targetLanguage }),
-        });
-        if (!res.ok) throw new Error('Failed to estimate dubbing');
-        const data = await res.json();
-        if (!cancelled) setEstimatedCredits(Number(data?.estimatedCredits || 0));
+        const estimates = await Promise.all(
+          filesToDub.map(async (file) => {
+            const res = await fetch(`${BACKEND_API_URL}/api/audio/dub/estimate`, {
+              method: 'POST',
+              headers: {
+                Authorization: `Bearer ${token}`,
+                'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                sourceLanguage,
+                targetLanguage,
+                screenplayId,
+                sourceS3Key: file.s3Key,
+                sourceFileId: file.id,
+              }),
+            });
+            if (!res.ok) throw new Error('Failed to estimate dubbing');
+            const data = await res.json();
+            return Number(data?.estimatedCredits || 0);
+          })
+        );
+
+        if (!cancelled) {
+          const totalEstimate = estimates.reduce((sum, credits) => sum + credits, 0);
+          setEstimatedCredits(totalEstimate > 0 ? totalEstimate : null);
+        }
       } catch (err: any) {
         if (!cancelled) {
           setEstimatedCredits(null);
@@ -577,7 +601,7 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
       }
     })();
     return () => { cancelled = true; };
-  }, [dubDialogOpen, dubReading, sourceLanguage, targetLanguage, getToken]);
+  }, [dubDialogOpen, filesToDub, sourceLanguage, targetLanguage, screenplayId, getToken]);
 
   const startDubbing = async () => {
     if (!dubReading || !screenplayId) return;
@@ -586,10 +610,6 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
       const token = await getToken({ template: 'wryda-backend' });
       if (!token) throw new Error('Please sign in');
       const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
-
-      const filesToDub: MediaFile[] = dubScope === 'master'
-        ? (dubReading.combinedAudio ? [dubReading.combinedAudio] : [])
-        : dubReading.sceneAudios.filter((f) => selectedSceneFileIds.includes(f.id));
 
       if (filesToDub.length === 0) {
         throw new Error('Select at least one file to dub');
@@ -826,7 +846,7 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
               </div>
             </div>
             <div className="text-xs text-[#808080]">
-              {estimatingDub ? 'Estimating cost...' : `Estimated cost: ${estimatedCredits ?? '—'} credits per job`}
+              {estimatingDub ? 'Estimating cost...' : `Estimated cost: ${estimatedCredits ?? '—'} credits total`}
             </div>
             <div className="flex justify-end gap-2 pt-2">
               <button

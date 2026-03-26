@@ -1260,6 +1260,22 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
     return date.toLocaleDateString();
   };
 
+  const getDisplayCredits = (job: WorkflowJob): number | null => {
+    if (job.status === 'completed') {
+      const completedCredits = Number(job.results?.totalCreditsUsed);
+      if (Number.isFinite(completedCredits) && completedCredits >= 0) {
+        return completedCredits;
+      }
+    }
+
+    // Avoid showing pre-auth placeholder credits for long-running audio flows.
+    if ((job.jobType === 'screenplay-reading' || job.jobType === 'dubbing') && (job.status === 'running' || job.status === 'queued')) {
+      return null;
+    }
+
+    return Number.isFinite(Number(job.creditsUsed)) ? Number(job.creditsUsed) : 0;
+  };
+
   const isCameraRigJob = (job: WorkflowJob): boolean => {
     return !!(
       job.results?.cameraRigUsed ||
@@ -1360,7 +1376,10 @@ export function ProductionJobsPanel({}: ProductionJobsPanelProps) {
                     )}
                   </div>
                   <p className="text-xs text-slate-400">
-                    {formatTime(job.createdAt)} · {job.creditsUsed} credits
+                    {formatTime(job.createdAt)} · {(() => {
+                      const credits = getDisplayCredits(job);
+                      return credits === null ? 'pending final charge' : `${credits} credits`;
+                    })()}
                   </p>
                 </div>
 

@@ -1807,6 +1807,22 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
     return job.workflowName;
   };
 
+  const getDisplayCredits = (job: WorkflowJob): number | null => {
+    if (job.status === 'completed') {
+      const completedCredits = Number(job.results?.totalCreditsUsed);
+      if (Number.isFinite(completedCredits) && completedCredits >= 0) {
+        return completedCredits;
+      }
+    }
+
+    // Avoid showing pre-auth placeholder credits for long-running audio flows.
+    if ((job.jobType === 'screenplay-reading' || job.jobType === 'dubbing') && (job.status === 'running' || job.status === 'queued')) {
+      return null;
+    }
+
+    return Number.isFinite(Number(job.creditsUsed)) ? Number(job.creditsUsed) : 0;
+  };
+
   // Determine z-index based on chat drawer state
   const zIndex = isChatDrawerOpen ? Z_INDEX.JOBS_DRAWER : Z_INDEX.JOBS_DRAWER;
 
@@ -1861,7 +1877,10 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
                       {getStatusBadgeForJob(job)}
                     </div>
                     <p className="text-[10px] text-[#808080]">
-                      {formatTime(job.createdAt)} · {job.creditsUsed} credits
+                      {formatTime(job.createdAt)} · {(() => {
+                        const credits = getDisplayCredits(job);
+                        return credits === null ? 'pending final charge' : `${credits} credits`;
+                      })()}
                       {(job.status === 'running' || job.status === 'queued') && getEstimatedRemaining(job) && (
                         <span className="ml-1.5 text-blue-400">· ~{getEstimatedRemaining(job)} remaining</span>
                       )}

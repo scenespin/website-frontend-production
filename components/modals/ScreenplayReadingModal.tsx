@@ -115,7 +115,6 @@ export default function ScreenplayReadingModal({
   const [duration, setDuration] = useState(0);
   
   // Constants for estimates
-  const ESTIMATED_CREDITS_PER_SCENE = 50; // Rough estimate
   const ESTIMATED_MINUTES_PER_SCENE = 0.5; // ~30 seconds per scene (actual: 18-36 seconds, using 30s for conservative estimate)
   const LARGE_SELECTION_WARNING_THRESHOLD = 20; // Show warning if selecting more than this
 
@@ -373,12 +372,10 @@ export default function ScreenplayReadingModal({
     setPendingSceneCount(0);
   };
 
-  // Calculate estimated credits and time
-  const calculateEstimates = (sceneCount: number) => {
-    const estimatedCredits = sceneCount * ESTIMATED_CREDITS_PER_SCENE;
+  // Rough time fallback while backend estimate is loading
+  const calculateEstimatedMinutes = (sceneCount: number) => {
     // Round up to nearest 0.5 minutes for display (e.g., 8 scenes = 4 min, 9 scenes = 5 min)
-    const estimatedMinutes = Math.ceil((sceneCount * ESTIMATED_MINUTES_PER_SCENE) * 2) / 2;
-    return { estimatedCredits, estimatedMinutes };
+    return Math.ceil((sceneCount * ESTIMATED_MINUTES_PER_SCENE) * 2) / 2;
   };
 
   const fetchReadingEstimate = async (sceneIds: string[], showErrorToast: boolean = false) => {
@@ -880,16 +877,13 @@ export default function ScreenplayReadingModal({
                         
                         {/* Selection Summary & Warnings */}
                         {selectedSceneIds.length > 0 && (() => {
-                          const roughEstimate = calculateEstimates(selectedSceneIds.length);
                           const hasRuntimeEstimate = !!readingEstimate
                             && readingEstimate.sceneCount === selectedSceneIds.length
                             && readingEstimate.includeNarration === includeNarration;
-                          const estimatedCredits = hasRuntimeEstimate
-                            ? readingEstimate.estimatedCredits
-                            : roughEstimate.estimatedCredits;
+                          const estimatedCredits = hasRuntimeEstimate ? readingEstimate.estimatedCredits : null;
                           const estimatedMinutes = hasRuntimeEstimate
                             ? readingEstimate.estimatedTimeMinutes
-                            : roughEstimate.estimatedMinutes;
+                            : calculateEstimatedMinutes(selectedSceneIds.length);
                           const isLargeSelection = selectedSceneIds.length > LARGE_SELECTION_WARNING_THRESHOLD;
                           
                           return (
@@ -902,7 +896,9 @@ export default function ScreenplayReadingModal({
                                 <div className="flex items-center gap-4">
                                   <div>
                                     <span className="text-base-content/60">Estimated Credits:</span>
-                                    <span className="ml-2 font-semibold">{estimatedCredits.toLocaleString()}</span>
+                                    <span className="ml-2 font-semibold">
+                                      {estimatedCredits !== null ? estimatedCredits.toLocaleString() : 'Calculating...'}
+                                    </span>
                                   </div>
                                   <div>
                                     <span className="text-base-content/60">Est. Time:</span>
@@ -1310,16 +1306,13 @@ export default function ScreenplayReadingModal({
                             </p>
                             
                             {(() => {
-                              const roughEstimate = calculateEstimates(pendingSceneCount);
                               const hasRuntimeEstimate = !!readingEstimate
                                 && readingEstimate.sceneCount === pendingSceneCount
                                 && readingEstimate.includeNarration === includeNarration;
-                              const estimatedCredits = hasRuntimeEstimate
-                                ? readingEstimate.estimatedCredits
-                                : roughEstimate.estimatedCredits;
+                              const estimatedCredits = hasRuntimeEstimate ? readingEstimate.estimatedCredits : null;
                               const estimatedMinutes = hasRuntimeEstimate
                                 ? readingEstimate.estimatedTimeMinutes
-                                : roughEstimate.estimatedMinutes;
+                                : calculateEstimatedMinutes(pendingSceneCount);
                               const isLargeSelection = pendingSceneCount > LARGE_SELECTION_WARNING_THRESHOLD;
                               
                               return (
@@ -1327,7 +1320,9 @@ export default function ScreenplayReadingModal({
                                   <div className="bg-[#0A0A0A] border border-base-300/30 rounded-lg p-4 space-y-2">
                                     <div className="flex justify-between text-sm">
                                       <span className="text-base-content/60">Estimated Credits:</span>
-                                      <span className="font-semibold">{estimatedCredits.toLocaleString()}</span>
+                                      <span className="font-semibold">
+                                        {estimatedCredits !== null ? estimatedCredits.toLocaleString() : 'Calculating...'}
+                                      </span>
                                     </div>
                                     <div className="flex justify-between text-sm">
                                       <span className="text-base-content/60">Estimated Time:</span>
