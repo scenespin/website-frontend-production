@@ -25,7 +25,9 @@ import {
   Eye,
   FileAudio,
   CheckSquare,
-  Square
+  Square,
+  ArrowUp,
+  ArrowDown
 } from 'lucide-react';
 import {
   DropdownMenu,
@@ -106,6 +108,8 @@ export default function MediaLibrary({
   const [searchQuery, setSearchQuery] = useState('');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [filterType, setFilterType] = useState<string>('all');
+  const [sortKey, setSortKey] = useState<'updatedAt' | 'createdAt' | 'name' | 'size'>('updatedAt');
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc');
   const [isDragging, setIsDragging] = useState(false);
   const [previewFile, setPreviewFile] = useState<MediaFile | null>(null);
   const [previewImageIndex, setPreviewImageIndex] = useState<number | null>(null);
@@ -1051,7 +1055,7 @@ export default function MediaLibrary({
       
       // For images, use ImageViewer with navigation
       if (file.fileType === 'image') {
-        const imageFiles = filteredFiles.filter(f => f.fileType === 'image');
+        const imageFiles = sortedFiles.filter(f => f.fileType === 'image');
         const index = imageFiles.findIndex(f => f.id === file.id);
         if (index >= 0) {
           setPreviewImageIndex(index);
@@ -1316,8 +1320,8 @@ export default function MediaLibrary({
    * Returns folders that are direct children of the selected folder (or root if none selected)
    * Includes both S3 folders and cloud storage folders for identical experience
    */
-  const getChildFolders = (): Array<{ id: string; name: string; fileCount?: number; path: string[]; storageType?: 's3' | 'cloud' }> => {
-    const folders: Array<{ id: string; name: string; fileCount?: number; path: string[]; storageType?: 's3' | 'cloud' }> = [];
+  const getChildFolders = (): Array<{ id: string; name: string; fileCount?: number; path: string[]; storageType?: 's3' | 'cloud'; createdAt?: string; updatedAt?: string }> => {
+    const folders: Array<{ id: string; name: string; fileCount?: number; path: string[]; storageType?: 's3' | 'cloud'; createdAt?: string; updatedAt?: string }> = [];
     const compareFolderNames = (a: string, b: string): number =>
       a.localeCompare(b, undefined, { sensitivity: 'base', numeric: true });
     
@@ -1344,7 +1348,9 @@ export default function MediaLibrary({
             name: getFolderDisplayName(node.folderName),
             fileCount: node.fileCount,
             path: node.folderPath || [],
-            storageType: 's3' as const
+            storageType: 's3' as const,
+            createdAt: node.createdAt,
+            updatedAt: node.updatedAt,
           }))
           .sort((a, b) => compareFolderNames(a.name, b.name));
         folders.push(...s3Folders);
@@ -1357,7 +1363,9 @@ export default function MediaLibrary({
             name: getFolderDisplayName(node.folderName),
             fileCount: node.fileCount,
             path: node.folderPath || [],
-            storageType: 's3' as const
+            storageType: 's3' as const,
+            createdAt: node.createdAt,
+            updatedAt: node.updatedAt,
           }))
           .sort((a, b) => compareFolderNames(a.name, b.name));
           folders.push(...s3Children);
@@ -1415,8 +1423,56 @@ export default function MediaLibrary({
         return false;
       }
       return true;
-    })
-    .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base', numeric: true }));
+    });
+
+  const getTimestamp = (value?: string): number => {
+    if (!value) return 0;
+    const parsed = Date.parse(value);
+    return Number.isFinite(parsed) ? parsed : 0;
+  };
+
+  const sortedFolders = useMemo(() => {
+    const folders = [...filteredFolders];
+    folders.sort((a, b) => {
+      const direction = sortDirection === 'asc' ? 1 : -1;
+      if (sortKey === 'name') {
+        return direction * a.name.localeCompare(b.name, undefined, { sensitivity: 'base', numeric: true });
+      }
+      if (sortKey === 'size') {
+        // Folder "size" uses file count for now (cheap and available).
+        return direction * ((a.fileCount || 0) - (b.fileCount || 0));
+      }
+      if (sortKey === 'createdAt') {
+        return direction * (getTimestamp(a.createdAt) - getTimestamp(b.createdAt));
+      }
+      // updatedAt (default): fall back to createdAt when missing.
+      const aUpdated = getTimestamp(a.updatedAt || a.createdAt);
+      const bUpdated = getTimestamp(b.updatedAt || b.createdAt);
+      return direction * (aUpdated - bUpdated);
+    });
+    return folders;
+  }, [filteredFolders, sortDirection, sortKey]);
+
+  const sortedFiles = useMemo(() => {
+    const files = [...filteredFiles];
+    files.sort((a, b) => {
+      const direction = sortDirection === 'asc' ? 1 : -1;
+      if (sortKey === 'name') {
+        return direction * a.fileName.localeCompare(b.fileName, undefined, { sensitivity: 'base', numeric: true });
+      }
+      if (sortKey === 'size') {
+        return direction * ((a.fileSize || 0) - (b.fileSize || 0));
+      }
+      if (sortKey === 'createdAt') {
+        return direction * (getTimestamp(a.uploadedAt) - getTimestamp(b.uploadedAt));
+      }
+      // updatedAt: prefer metadata.updatedAt if present, otherwise uploadedAt.
+      const aUpdated = getTimestamp((a as any)?.metadata?.updatedAt || a.uploadedAt);
+      const bUpdated = getTimestamp((b as any)?.metadata?.updatedAt || b.uploadedAt);
+      return direction * (aUpdated - bUpdated);
+    });
+    return files;
+  }, [filteredFiles, sortDirection, sortKey]);
 
   const formatFileSize = (bytes: number): string => {
     if (bytes < 1024) return `${bytes} B`;
@@ -1465,6 +1521,21 @@ export default function MediaLibrary({
           year: date.getFullYear() !== now.getFullYear() ? 'numeric' : undefined 
         });
       }
+    } catch (error) {
+      return '';
+    }
+  };
+
+  const formatExactDateTime = (dateString: string | undefined): string => {
+    if (!dateString) return '';
+    try {
+      return new Date(dateString).toLocaleString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+        hour: 'numeric',
+        minute: '2-digit',
+      });
     } catch (error) {
       return '';
     }
@@ -1554,19 +1625,19 @@ export default function MediaLibrary({
             <div className="flex items-center gap-2">
               <button
                 onClick={() => {
-                  const allFilesSelected = selectedFiles.size === filteredFiles.length;
-                  const allFoldersSelected = selectedFolders.size === filteredFolders.length;
+                  const allFilesSelected = selectedFiles.size === sortedFiles.length;
+                  const allFoldersSelected = selectedFolders.size === sortedFolders.length;
                   if (allFilesSelected && allFoldersSelected) {
                     setSelectedFiles(new Set());
                     setSelectedFolders(new Set());
                   } else {
-                    setSelectedFiles(new Set(filteredFiles.map(f => f.id)));
-                    setSelectedFolders(new Set(filteredFolders.map(f => f.id)));
+                    setSelectedFiles(new Set(sortedFiles.map(f => f.id)));
+                    setSelectedFolders(new Set(sortedFolders.map(f => f.id)));
                   }
                 }}
                 className="px-3 py-1.5 bg-[#1F1F1F] hover:bg-[#2A2A2A] text-[#808080] hover:text-[#FFFFFF] rounded-lg text-sm font-medium transition-colors"
               >
-                {selectedFiles.size === filteredFiles.length && selectedFolders.size === filteredFolders.length ? 'Deselect All' : 'Select All'}
+                {selectedFiles.size === sortedFiles.length && selectedFolders.size === sortedFolders.length ? 'Deselect All' : 'Select All'}
               </button>
               <button
                 onClick={() => setShowBulkDeleteConfirm(true)}
@@ -1620,6 +1691,49 @@ export default function MediaLibrary({
             <option value="image" className="bg-[#1A1A1A] text-[#FFFFFF]">Images</option>
             <option value="audio" className="bg-[#1A1A1A] text-[#FFFFFF]">Audio</option>
           </select>
+
+          {/* Mobile sort controls */}
+          <select
+            value={sortKey}
+            onChange={(e) => setSortKey(e.target.value as 'updatedAt' | 'createdAt' | 'name' | 'size')}
+            className="md:hidden select select-bordered w-[145px] bg-[#0A0A0A] border-[#3F3F46] text-[#FFFFFF] text-sm focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-[#DC143C]"
+            title="Sort items"
+          >
+            <option value="updatedAt" className="bg-[#1A1A1A] text-[#FFFFFF]">Updated</option>
+            <option value="createdAt" className="bg-[#1A1A1A] text-[#FFFFFF]">Created</option>
+            <option value="name" className="bg-[#1A1A1A] text-[#FFFFFF]">Name</option>
+            <option value="size" className="bg-[#1A1A1A] text-[#FFFFFF]">Size</option>
+          </select>
+          <button
+            onClick={() => setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'))}
+            className="md:hidden p-2 border border-[#3F3F46] rounded-lg bg-[#141414] text-[#FFFFFF] hover:bg-[#1F1F1F] hover:border-[#DC143C] transition-colors"
+            title={sortDirection === 'asc' ? 'Ascending' : 'Descending'}
+            type="button"
+          >
+            {sortDirection === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />}
+          </button>
+
+          {/* Sort controls - newest first by default */}
+          <select
+            value={sortKey}
+            onChange={(e) => setSortKey(e.target.value as 'updatedAt' | 'createdAt' | 'name' | 'size')}
+            className="hidden md:block select select-bordered w-[170px] bg-[#0A0A0A] border-[#3F3F46] text-[#FFFFFF] text-sm focus:outline-none focus:ring-2 focus:ring-[#DC143C] focus:border-[#DC143C]"
+            title="Sort items"
+          >
+            <option value="updatedAt" className="bg-[#1A1A1A] text-[#FFFFFF]">Last Updated</option>
+            <option value="createdAt" className="bg-[#1A1A1A] text-[#FFFFFF]">Created</option>
+            <option value="name" className="bg-[#1A1A1A] text-[#FFFFFF]">Name</option>
+            <option value="size" className="bg-[#1A1A1A] text-[#FFFFFF]">Size / Count</option>
+          </select>
+          <button
+            onClick={() => setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'))}
+            className="hidden md:flex items-center gap-1 px-3 py-2 rounded-lg bg-[#1F1F1F] text-[#B3B3B3] hover:bg-[#2A2A2A] hover:text-[#FFFFFF] border border-[#3F3F46] transition-colors text-sm"
+            title={sortDirection === 'asc' ? 'Ascending' : 'Descending'}
+            type="button"
+          >
+            {sortDirection === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />}
+            {sortDirection === 'asc' ? 'Asc' : 'Desc'}
+          </button>
 
           {/* Select Multiple Button - Hidden on mobile, shown on tablet+ */}
           <button
@@ -1719,7 +1833,7 @@ export default function MediaLibrary({
                 <div className="flex items-center justify-center py-12">
                   <Loader2 className="w-8 h-8 animate-spin text-[#808080]" />
                 </div>
-              ) : filteredFiles.length === 0 && filteredFolders.length === 0 ? (
+              ) : sortedFiles.length === 0 && sortedFolders.length === 0 ? (
                 <div className="text-center py-12">
                   <p className="text-[#B3B3B3]">No files or folders found</p>
                   {searchQuery && (
@@ -1732,6 +1846,67 @@ export default function MediaLibrary({
                   )}
                 </div>
               ) : (
+                <>
+                {viewMode === 'list' && (
+                  <div className="hidden md:grid grid-cols-[minmax(0,1fr)_180px_140px_120px] gap-3 items-center px-3 py-2 mb-2 text-xs text-[#808080] border border-[#3F3F46] rounded-lg bg-[#141414]">
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (sortKey === 'name') {
+                          setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+                        } else {
+                          setSortKey('name');
+                          setSortDirection('asc');
+                        }
+                      }}
+                      className="text-left hover:text-[#FFFFFF] transition-colors"
+                    >
+                      Name {sortKey === 'name' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (sortKey === 'updatedAt') {
+                          setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+                        } else {
+                          setSortKey('updatedAt');
+                          setSortDirection('desc');
+                        }
+                      }}
+                      className="text-left hover:text-[#FFFFFF] transition-colors"
+                    >
+                      Last updated {sortKey === 'updatedAt' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (sortKey === 'createdAt') {
+                          setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+                        } else {
+                          setSortKey('createdAt');
+                          setSortDirection('desc');
+                        }
+                      }}
+                      className="text-left hover:text-[#FFFFFF] transition-colors"
+                    >
+                      Created {sortKey === 'createdAt' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        if (sortKey === 'size') {
+                          setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'));
+                        } else {
+                          setSortKey('size');
+                          setSortDirection('desc');
+                        }
+                      }}
+                      className="text-left hover:text-[#FFFFFF] transition-colors"
+                    >
+                      Size / count {sortKey === 'size' ? (sortDirection === 'asc' ? '↑' : '↓') : ''}
+                    </button>
+                  </div>
+                )}
                 <div
                   className={
                     viewMode === 'grid'
@@ -1740,7 +1915,7 @@ export default function MediaLibrary({
                   }
                 >
                   {/* 🔥 NEW: Display folders first (like a traditional file browser) - Hidden on mobile */}
-                  {filteredFolders.map((folder) => {
+                  {sortedFolders.map((folder) => {
                     // Determine storage type from folder (S3 or cloud)
                     const storageType = folder.storageType || (folder.id.includes('-cloud') ? 'cloud' : 's3');
                     return (
@@ -1822,6 +1997,22 @@ export default function MediaLibrary({
                               {folder.fileCount} {folder.fileCount === 1 ? 'file' : 'files'}
                             </p>
                           )}
+                          {(folder.updatedAt || folder.createdAt) && (
+                            <p
+                              className="hidden md:block text-xs text-[#6B7280] mt-1"
+                              title={formatExactDateTime(folder.updatedAt || folder.createdAt)}
+                            >
+                              Updated {formatDate(folder.updatedAt || folder.createdAt)}
+                            </p>
+                          )}
+                          {(folder.updatedAt || folder.createdAt) && (
+                            <p
+                              className="md:hidden text-[11px] text-[#6B7280] mt-1 truncate px-1"
+                              title={formatExactDateTime(folder.updatedAt || folder.createdAt)}
+                            >
+                              {formatDate(folder.updatedAt || folder.createdAt)}
+                            </p>
+                          )}
                         </div>
                         
                         {/* 🔥 NEW: Folder Actions Menu (for S3 folders) - only show when not in selection mode */}
@@ -1866,7 +2057,7 @@ export default function MediaLibrary({
                   })}
                   
                   {/* Files */}
-                  {filteredFiles.map((file) => {
+                  {sortedFiles.map((file) => {
                     // Get or create long-press state for this file
                     if (!longPressRefs.current.has(file.id)) {
                       longPressRefs.current.set(file.id, {
@@ -2077,9 +2268,20 @@ export default function MediaLibrary({
                           <span>{formatFileSize(file.fileSize)}</span>
                         </div>
                         {file.uploadedAt && (
-                          <div className="hidden md:flex items-center gap-1 mt-1 text-xs text-[#6B7280]">
+                          <div
+                            className="hidden md:flex items-center gap-1 mt-1 text-xs text-[#6B7280]"
+                            title={formatExactDateTime((file as any)?.metadata?.updatedAt || file.uploadedAt)}
+                          >
                             <Clock className="w-3 h-3" />
-                            <span>{formatDate(file.uploadedAt)}</span>
+                            <span>{formatDate((file as any)?.metadata?.updatedAt || file.uploadedAt)}</span>
+                          </div>
+                        )}
+                        {file.uploadedAt && (
+                          <div
+                            className="md:hidden mt-1 text-[11px] text-[#6B7280] px-1 truncate"
+                            title={formatExactDateTime((file as any)?.metadata?.updatedAt || file.uploadedAt)}
+                          >
+                            {formatDate((file as any)?.metadata?.updatedAt || file.uploadedAt)}
                           </div>
                         )}
                         {file.expiresAt && (
@@ -2152,6 +2354,7 @@ export default function MediaLibrary({
                     );
                   })}
                 </div>
+                </>
               )}
             </div>
             
@@ -2182,7 +2385,7 @@ export default function MediaLibrary({
 
       {/* Image Viewer - For images only */}
       {previewImageIndex !== null && (() => {
-        const imageFiles = filteredFiles.filter(f => f.fileType === 'image');
+        const imageFiles = sortedFiles.filter(f => f.fileType === 'image');
         return (
           <ImageViewer
             images={imageFiles.map((file): ImageItem => ({
