@@ -444,11 +444,11 @@ export default function ScreenplayReadingModal({
     const startedAt = Date.now();
     const requestSelectedSceneIds = selectedSceneIds.length === scenes.length ? [] : selectedSceneIds;
 
-    // Close immediately and hand off progress tracking to Jobs panel.
+    // Keep users in Readings while background job runs.
     onClose();
-    router.push('/produce?tab=jobs');
+    router.push('/produce?tab=readings');
     toast.info('Screenplay reading started', {
-      description: 'Processing in background. Track progress in Jobs.',
+      description: 'Processing in background. You can keep working in Readings; progress appears in Jobs.',
     });
 
     try {
@@ -525,7 +525,7 @@ export default function ScreenplayReadingModal({
           const recoveredJobId = await reconcileRecentScreenplayReadingJob();
           if (recoveredJobId) {
             registerJobInUi(recoveredJobId);
-            router.push(`/produce?tab=jobs&jobId=${recoveredJobId}`);
+            router.push('/produce?tab=readings');
           }
           return;
         }
@@ -541,7 +541,7 @@ export default function ScreenplayReadingModal({
         const jobId = String(data.jobId).trim();
         if (jobId) {
           registerJobInUi(jobId);
-          router.push(`/produce?tab=jobs&jobId=${jobId}`);
+          router.push('/produce?tab=readings');
         }
         return;
       }
@@ -550,7 +550,7 @@ export default function ScreenplayReadingModal({
       const recoveredJobId = await reconcileRecentScreenplayReadingJob();
       if (recoveredJobId) {
         registerJobInUi(recoveredJobId);
-        router.push(`/produce?tab=jobs&jobId=${recoveredJobId}`);
+        router.push('/produce?tab=readings');
         return;
       }
 

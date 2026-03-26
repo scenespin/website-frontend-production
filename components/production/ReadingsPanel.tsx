@@ -74,7 +74,7 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
   }, [screenplayId, getToken]);
 
   // Query all Media Library files
-  const { data: allFiles = [], isLoading } = useMediaFiles(
+  const { data: allFiles = [], isLoading, refetch: refetchMediaFiles } = useMediaFiles(
     screenplayId || '',
     undefined,
     !!screenplayId,
@@ -104,6 +104,14 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
   const audioRefs = useRef<Map<string, HTMLAudioElement>>(new Map()); // Track audio elements for pause
   const sceneAudioRefs = useRef<Map<string, HTMLAudioElement>>(new Map()); // Track individual scene audio elements
   const downloadingFiles = useRef<Set<string>>(new Set()); // Track files being downloaded
+  const getFileLanguageLabel = (file?: MediaFile): string | null => {
+    if (!file) return null;
+    const targetLanguageName = String(file.metadata?.targetLanguageName || '').trim();
+    if (targetLanguageName) return targetLanguageName;
+    const targetLanguageCode = String(file.metadata?.targetLanguageCode || '').trim();
+    if (targetLanguageCode) return targetLanguageCode.toUpperCase();
+    return null;
+  };
   const filesToDub = useMemo<MediaFile[]>(() => {
     if (!dubReading) return [];
     return dubScope === 'master'
@@ -142,10 +150,12 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
     const sessions: ReadingSession[] = [];
     
     for (const [groupId, files] of groups.entries()) {
-      // Find combined audio
-      const combinedAudio = files.find(
-        f => f.metadata?.isCombined === true && f.fileType === 'audio'
-      );
+      // Find combined/master audio variants and use newest as primary.
+      const combinedAudioCandidates = files
+        .filter((f) => f.metadata?.isCombined === true && f.fileType === 'audio')
+        .sort((a, b) => new Date(b.uploadedAt || 0).getTime() - new Date(a.uploadedAt || 0).getTime());
+      const combinedAudio = combinedAudioCandidates[0];
+      const additionalCombinedAudios = combinedAudioCandidates.slice(1);
 
       // Find scene audio files (not combined, not subtitle)
       const sceneAudios = files.filter(
@@ -153,6 +163,7 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
              !f.metadata?.isSubtitle && 
              f.fileType === 'audio'
       );
+      const visibleAudios = [...sceneAudios, ...additionalCombinedAudios];
 
       // Find subtitle files
       const subtitles = files.filter(
@@ -180,7 +191,7 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
         title,
         date: combinedAudio?.uploadedAt || files[0]?.uploadedAt || new Date().toISOString(),
         combinedAudio,
-        sceneAudios,
+        sceneAudios: visibleAudios,
         subtitles,
         metadata: combinedAudio?.metadata || files[0]?.metadata
       });
@@ -616,6 +627,7 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
       }
 
       let started = 0;
+      const startedJobIds: string[] = [];
       for (const file of filesToDub) {
         if (!file.s3Key) continue;
         const sourceUrl = await getPresignedDownloadUrl(file.s3Key);
@@ -648,6 +660,7 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
         }
         const data = await res.json();
         if (typeof window !== 'undefined' && data?.jobId) {
+          startedJobIds.push(String(data.jobId));
           window.dispatchEvent(new CustomEvent('wryda:optimistic-job', {
             detail: {
               jobId: data.jobId,
@@ -661,6 +674,37 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
       }
 
       toast.success(`Started ${started} dubbing job${started === 1 ? '' : 's'}`);
+      void refetchMediaFiles();
+      if (startedJobIds.length > 0) {
+        void (async () => {
+          const pendingJobIds = new Set(startedJobIds);
+          const maxPolls = 45; // ~6 minutes @ 8s
+          for (let i = 0; i < maxPolls && pendingJobIds.size > 0; i += 1) {
+            await new Promise((resolve) => setTimeout(resolve, 8000));
+            const pollToken = await getToken({ template: 'wryda-backend' });
+            if (!pollToken) break;
+
+            for (const jobId of Array.from(pendingJobIds)) {
+              try {
+                const statusRes = await fetch(`/api/workflows/${jobId}`, {
+                  headers: { Authorization: `Bearer ${pollToken}` },
+                  cache: 'no-store',
+                });
+                if (!statusRes.ok) continue;
+                const payload = await statusRes.json();
+                const status = String(payload?.data?.execution?.status || '').toLowerCase();
+                if (status === 'completed' || status === 'failed') {
+                  pendingJobIds.delete(jobId);
+                }
+              } catch {
+                // Best effort polling only.
+              }
+            }
+            void refetchMediaFiles();
+          }
+          void refetchMediaFiles();
+        })();
+      }
       setDubDialogOpen(false);
       setDubReading(null);
       setSelectedSceneFileIds([]);
@@ -803,6 +847,7 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
               <div className="max-h-36 overflow-y-auto rounded border border-[#3F3F46] p-2 space-y-1">
                 {(dubReading?.sceneAudios || []).map((file) => {
                   const checked = selectedSceneFileIds.includes(file.id);
+                  const fileLanguageLabel = getFileLanguageLabel(file);
                   return (
                     <label key={file.id} className="flex items-center gap-2 text-xs text-[#B3B3B3]">
                       <input
@@ -815,7 +860,11 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
                           );
                         }}
                       />
-                      <span>{file.metadata?.sceneNumber ? `Scene ${file.metadata.sceneNumber}: ` : ''}{file.fileName}</span>
+                      <span>
+                        {file.metadata?.sceneNumber ? `Scene ${file.metadata.sceneNumber}: ` : ''}
+                        {file.fileName}
+                        {fileLanguageLabel ? ` (${fileLanguageLabel})` : ''}
+                      </span>
                     </label>
                   );
                 })}
@@ -1095,6 +1144,11 @@ function ReadingCard({
   const date = new Date(reading.date);
   const sceneCount = reading.sceneAudios.length;
   const totalDuration = reading.combinedAudio?.metadata?.totalDuration as number | undefined;
+  const primaryLanguageLabel =
+    String(reading.combinedAudio?.metadata?.targetLanguageName || '').trim() ||
+    (String(reading.combinedAudio?.metadata?.targetLanguageCode || '').trim()
+      ? String(reading.combinedAudio?.metadata?.targetLanguageCode || '').trim().toUpperCase()
+      : '');
   const avgDurationPerScene = totalDuration && sceneCount > 0 
     ? totalDuration / sceneCount 
     : undefined;
@@ -1126,6 +1180,15 @@ function ReadingCard({
               <>
                 <span>•</span>
                 <span>Avg: {formatDuration(avgDurationPerScene)}/scene</span>
+              </>
+            )}
+            {primaryLanguageLabel && (
+              <>
+                <span>•</span>
+                <span className="inline-flex items-center gap-1 text-blue-300">
+                  <Globe className="w-3 h-3" />
+                  {primaryLanguageLabel}
+                </span>
               </>
             )}
           </div>
@@ -1244,7 +1307,7 @@ function ReadingCard({
         {/* Individual Scene Downloads */}
         {reading.sceneAudios.length > 0 && (
           <div className="border-t border-[#3F3F46] pt-2">
-            <div className="text-xs text-gray-400 mb-2 font-medium">Individual Scenes:</div>
+            <div className="text-xs text-gray-400 mb-2 font-medium">Scene and version files:</div>
             <div className="flex flex-col gap-1 max-h-32 overflow-y-auto">
               {reading.sceneAudios
                 .sort((a, b) => {
@@ -1276,9 +1339,14 @@ function ReadingCard({
                   // Use actual scene number from metadata (stored by backend)
                   const sceneNumber = sceneFile.metadata?.sceneNumber;
                   const sceneDuration = sceneFile.metadata?.duration as number | undefined;
+                  const languageLabel =
+                    String(sceneFile.metadata?.targetLanguageName || '').trim() ||
+                    (String(sceneFile.metadata?.targetLanguageCode || '').trim()
+                      ? String(sceneFile.metadata?.targetLanguageCode || '').trim().toUpperCase()
+                      : '');
                   const displayName = sceneNumber !== undefined
-                    ? `Scene ${sceneNumber}: ${sceneHeading}`
-                    : sceneHeading;
+                    ? `Scene ${sceneNumber}: ${sceneHeading}${languageLabel ? ` (${languageLabel})` : ''}`
+                    : `${sceneHeading}${languageLabel ? ` (${languageLabel})` : ''}`;
                   const durationText = sceneDuration ? ` (${formatDuration(sceneDuration)})` : '';
                   
                   const sceneId = `${reading.id}-${sceneFile.id}`;
