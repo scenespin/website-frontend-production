@@ -250,6 +250,17 @@ export function SceneReviewStep({
   const premiumShortLineSignature = premiumShortDialogueShots
     .map((s) => `${s.shotSlot}:${s.wordCount}:${s.dialogue}`)
     .join('|');
+  const selectedDialogueResolutions = Array.from(new Set(
+    selectedShots
+      .filter((shot: any) => shot.type === 'dialogue' && !!generateVideoForShot[shot.slot])
+      .map((shot: any) => ((selectedDialogueQualities?.[shot.slot] || 'reliable') === 'premium' ? '1080p' : '720p'))
+  ));
+  const selectedDialogueResolutionSummary =
+    selectedDialogueResolutions.length === 0
+      ? null
+      : selectedDialogueResolutions.length === 1
+        ? selectedDialogueResolutions[0]
+        : selectedDialogueResolutions.join(' + ');
 
   useEffect(() => {
     if (!hasPremiumShortLineRisk || !premiumShortLineSignature) return;
@@ -704,6 +715,9 @@ export function SceneReviewStep({
                               : isDialogueVideo
                                 ? (dialogueQuality === 'premium' ? 'Premium Dialogue' : 'Dialogue')
                                 : null;
+                            const selectedVideoResolution = isDialogueVideo
+                              ? (dialogueQuality === 'premium' ? '1080p' : '720p')
+                              : null;
 
                             return (
                               <div className="space-y-1">
@@ -733,6 +747,11 @@ export function SceneReviewStep({
                                 {videoWorkflowLabel && (
                                   <div className="text-[10px] text-[#808080]">
                                     Video workflow: <span className="text-[#FFFFFF]">{videoWorkflowLabel}</span>
+                                  </div>
+                                )}
+                                {selectedVideoResolution && (
+                                  <div className="text-[10px] text-[#808080]">
+                                    Selected video resolution: <span className="text-[#FFFFFF]">{selectedVideoResolution}</span>
                                   </div>
                                 )}
 
@@ -778,7 +797,11 @@ export function SceneReviewStep({
                 </div>
                 {hasAnyVideo && (
                   <div className="flex items-center justify-between">
-                    <span className="text-xs text-[#808080]">Video (720p or 1080p by workflow):</span>
+                    <span className="text-xs text-[#808080]">
+                      {selectedDialogueResolutionSummary
+                        ? `Video (${selectedDialogueResolutionSummary}):`
+                        : 'Video (720p or 1080p by workflow):'}
+                    </span>
                     <span className="text-sm font-medium text-[#FFFFFF]">
                       {pricing.totalHdPrice} credits
                     </span>
