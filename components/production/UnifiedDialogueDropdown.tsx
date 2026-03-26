@@ -145,6 +145,8 @@ const AVAILABLE_WORKFLOWS = [
   { value: 'complete-scene', label: 'Complete Scene' },
 ];
 
+const SHOW_LTX_TEST_OPTION = process.env.NEXT_PUBLIC_ENABLE_DIALOGUE_LTX_TEST_OPTION === 'true';
+
 export function UnifiedDialogueDropdown({
   shot,
   selectedQuality,
@@ -194,68 +196,55 @@ export function UnifiedDialogueDropdown({
     });
   }, [showPremiumShortLineWarning, shot?.slot, dialogueText, currentWorkflow, currentQuality, dialogueWordCount]);
   
-  // Generate available options based on single vs multi-character
-  // Typed explicitly as UnifiedDialogueOption[] so option.isRecommended/costWarning are always valid (avoids build error)
-  const lipSyncOptions = useMemo((): UnifiedDialogueOption[] => {
-    if (isMultiCharacter) {
-      return [
-        {
-          quality: 'reliable' as DialogueQuality,
-          workflowType: 'first-frame-lipsync' as DialogueWorkflowType,
-          label: 'Wryda (Multi-Character)',
-          description: 'Single generation, all characters together. Faster & more cost-effective. Natural character interaction. Always generates successfully.',
-          isMultiCharacter: true,
-          isRecommended: true
-        },
-        {
-          quality: 'premium' as DialogueQuality,
-          workflowType: 'first-frame-lipsync' as DialogueWorkflowType,
-          label: 'Premium Lip Sync (Sequential Shots)',
-          description: '3 separate generations (~3x cost, slower). Highest quality per character. Can review/edit individual shots. Some content may be restricted.',
-          isMultiCharacter: true,
-          costWarning: '~3x cost, slower generation'
-        }
-      ];
+  const multiCharacterLipSyncOptions = useMemo((): UnifiedDialogueOption[] => ([
+    {
+      quality: 'reliable' as DialogueQuality,
+      workflowType: 'first-frame-lipsync' as DialogueWorkflowType,
+      label: 'Wryda (Multi-Character)',
+      description: 'Single generation, all characters together. Faster & more cost-effective. Natural character interaction. Always generates successfully.',
+      isMultiCharacter: true,
+      isRecommended: true
+    },
+    {
+      quality: 'premium' as DialogueQuality,
+      workflowType: 'first-frame-lipsync' as DialogueWorkflowType,
+      label: 'Premium Lip Sync (Sequential Shots)',
+      description: '3 separate generations (~3x cost, slower). Highest quality per character. Can review/edit individual shots. Some content may be restricted.',
+      isMultiCharacter: true,
+      costWarning: '~3x cost, slower generation'
     }
-    return [
-      {
-        quality: 'reliable' as DialogueQuality,
-        workflowType: 'first-frame-lipsync' as DialogueWorkflowType,
-        label: 'Dialogue',
-        description: 'Most standard shots.',
-      },
-      {
-        quality: 'reliable' as DialogueQuality,
-        workflowType: 'extreme-closeup' as DialogueWorkflowType,
-        label: 'Extreme Close-Up - Face',
-        description: 'Extreme close-up framing focusing on the face.',
-      },
-      {
-        quality: 'reliable' as DialogueQuality,
-        workflowType: 'extreme-closeup-mouth' as DialogueWorkflowType,
-        label: 'Extreme Close-Up - Mouth',
-        description: 'Extreme close-up framing focusing on the mouth.',
-      },
-      {
-        quality: 'premium' as DialogueQuality,
-        workflowType: 'first-frame-lipsync' as DialogueWorkflowType,
-        label: 'Premium Dialogue',
-        description: 'Higher quality output. Some content may be restricted by content safety filters. Best with 4+ words.',
-      },
-      {
-        quality: 'premium' as DialogueQuality,
-        workflowType: 'extreme-closeup' as DialogueWorkflowType,
-        label: 'Premium (Extreme Close-Up - Face)',
-        description: 'Extreme close-up framing focusing on the face.',
-      },
-      {
-        quality: 'premium' as DialogueQuality,
-        workflowType: 'extreme-closeup-mouth' as DialogueWorkflowType,
-        label: 'Premium (Extreme Close-Up - Mouth)',
-        description: 'Extreme close-up framing focusing on the mouth.',
-      }
-    ];
-  }, [isMultiCharacter]);
+  ]), []);
+
+  const qualityOptions = useMemo(() => ([
+    {
+      quality: 'reliable' as DialogueQuality,
+      label: 'Reliable',
+      helper: 'Grok (720p)'
+    },
+    {
+      quality: 'premium' as DialogueQuality,
+      label: 'Premium',
+      helper: 'VEO (1080p)'
+    }
+  ]), []);
+
+  const framingOptions = useMemo(() => ([
+    {
+      workflowType: 'first-frame-lipsync' as DialogueWorkflowType,
+      label: 'Standard',
+      description: 'Most standard shots.'
+    },
+    {
+      workflowType: 'extreme-closeup' as DialogueWorkflowType,
+      label: 'Extreme Close-Up - Face',
+      description: 'Extreme close-up framing focusing on the face.'
+    },
+    {
+      workflowType: 'extreme-closeup-mouth' as DialogueWorkflowType,
+      label: 'Extreme Close-Up - Mouth',
+      description: 'Extreme close-up framing focusing on the mouth.'
+    }
+  ]), []);
   
   const voiceoverOptions = useMemo(() => [
     {
@@ -278,59 +267,116 @@ export function UnifiedDialogueDropdown({
     onPremiumProviderExperimentChange?.('veo');
   };
   
-  const isVoiceoverWorkflow = currentWorkflow === 'off-frame-voiceover' || currentWorkflow === 'scene-voiceover';
-  
   return (
     <div className="space-y-4">
       {/* Lip Sync Options */}
       <div>
-        <div className="space-y-2">
-          {lipSyncOptions.map((option, idx) => {
-            const isSelected = premiumProviderExperiment !== 'ltx' &&
-                              currentQuality === option.quality &&
-                              currentWorkflow === option.workflowType;
-            return (
-              <label
-                key={idx}
-                className={`block p-3 rounded border cursor-pointer transition-colors ${
-                  isSelected
-                    ? 'bg-[#DC143C]/20 border-[#DC143C]'
-                    : 'bg-[#1A1A1A] border-[#3F3F46] hover:border-[#808080]'
-                }`}
-              >
-                <div className="flex items-start gap-3">
-                  <input
-                    type="radio"
-                    name={`dialogue-${shot.slot}`}
-                    checked={isSelected}
-                    onChange={() => handleQualityWorkflowChange(option.quality, option.workflowType)}
-                    className="mt-1 w-3.5 h-3.5 text-[#DC143C] border-[#3F3F46] focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer"
-                  />
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="text-xs font-medium text-[#FFFFFF]">
-                        {option.label}
-                      </span>
-                      {option.isRecommended && (
-                        <span className="text-[10px] px-1.5 py-0.5 bg-[#DC143C]/20 text-[#DC143C] rounded">
-                          ⭐ Recommended
+        {isMultiCharacter ? (
+          <div className="space-y-2">
+            {multiCharacterLipSyncOptions.map((option, idx) => {
+              const isSelected = premiumProviderExperiment !== 'ltx' &&
+                currentQuality === option.quality &&
+                currentWorkflow === option.workflowType;
+              return (
+                <label
+                  key={idx}
+                  className={`block p-3 rounded border cursor-pointer transition-colors ${
+                    isSelected
+                      ? 'bg-[#DC143C]/20 border-[#DC143C]'
+                      : 'bg-[#1A1A1A] border-[#3F3F46] hover:border-[#808080]'
+                  }`}
+                >
+                  <div className="flex items-start gap-3">
+                    <input
+                      type="radio"
+                      name={`dialogue-${shot.slot}`}
+                      checked={isSelected}
+                      onChange={() => handleQualityWorkflowChange(option.quality, option.workflowType)}
+                      className="mt-1 w-3.5 h-3.5 text-[#DC143C] border-[#3F3F46] focus:ring-[#DC143C] focus:ring-offset-0 cursor-pointer"
+                    />
+                    <div className="flex-1">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-xs font-medium text-[#FFFFFF]">
+                          {option.label}
                         </span>
-                      )}
-                      {option.costWarning && (
-                        <span className="text-[10px] px-1.5 py-0.5 bg-yellow-500/20 text-yellow-400 rounded">
-                          ⚠️ {option.costWarning}
-                        </span>
-                      )}
-                    </div>
-                    <div className="text-[10px] text-[#808080] leading-relaxed">
-                      {option.description}
+                        {option.isRecommended && (
+                          <span className="text-[10px] px-1.5 py-0.5 bg-[#DC143C]/20 text-[#DC143C] rounded">
+                            ⭐ Recommended
+                          </span>
+                        )}
+                        {option.costWarning && (
+                          <span className="text-[10px] px-1.5 py-0.5 bg-yellow-500/20 text-yellow-400 rounded">
+                            ⚠️ {option.costWarning}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[10px] text-[#808080] leading-relaxed">
+                        {option.description}
+                      </div>
                     </div>
                   </div>
-                </div>
-              </label>
-            );
-          })}
-        </div>
+                </label>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <div>
+              <div className="text-[10px] font-medium text-[#808080] mb-1.5">Quality</div>
+              <div className="grid grid-cols-2 gap-2">
+                {qualityOptions.map((option) => {
+                  const isSelected = premiumProviderExperiment !== 'ltx' && currentQuality === option.quality;
+                  return (
+                    <button
+                      key={option.quality}
+                      type="button"
+                      onClick={() => {
+                        const nextWorkflow = (
+                          currentWorkflow === 'first-frame-lipsync' ||
+                          currentWorkflow === 'extreme-closeup' ||
+                          currentWorkflow === 'extreme-closeup-mouth'
+                        ) ? currentWorkflow : 'first-frame-lipsync';
+                        handleQualityWorkflowChange(option.quality, nextWorkflow as DialogueWorkflowType);
+                      }}
+                      className={`p-2 rounded border text-left transition-colors ${
+                        isSelected
+                          ? 'bg-[#DC143C]/20 border-[#DC143C]'
+                          : 'bg-[#1A1A1A] border-[#3F3F46] hover:border-[#808080]'
+                      }`}
+                    >
+                      <div className="text-xs font-medium text-[#FFFFFF]">{option.label}</div>
+                      <div className="text-[10px] text-[#808080] mt-0.5">{option.helper}</div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div>
+              <div className="text-[10px] font-medium text-[#808080] mb-1.5">Framing</div>
+              <div className="space-y-2">
+                {framingOptions.map((option) => {
+                  const isSelected = premiumProviderExperiment !== 'ltx' && currentWorkflow === option.workflowType;
+                  return (
+                    <button
+                      key={option.workflowType}
+                      type="button"
+                      onClick={() => handleQualityWorkflowChange(currentQuality, option.workflowType)}
+                      className={`w-full p-2.5 rounded border text-left transition-colors ${
+                        isSelected
+                          ? 'bg-[#DC143C]/20 border-[#DC143C]'
+                          : 'bg-[#1A1A1A] border-[#3F3F46] hover:border-[#808080]'
+                      }`}
+                    >
+                      <div className="text-xs font-medium text-[#FFFFFF]">{option.label}</div>
+                      <div className="text-[10px] text-[#808080] mt-0.5">{option.description}</div>
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {showPremiumShortLineWarning && (
@@ -339,11 +385,11 @@ export function UnifiedDialogueDropdown({
         </div>
       )}
 
-      {showOnlyLipSync && (
+      {showOnlyLipSync && SHOW_LTX_TEST_OPTION && (
         <div className="border-t border-[#3F3F46] my-4"></div>
       )}
 
-      {showOnlyLipSync && (
+      {showOnlyLipSync && SHOW_LTX_TEST_OPTION && (
         <div>
           <div className="text-xs font-medium text-[#FFFFFF] mb-2">TEST</div>
           <label
