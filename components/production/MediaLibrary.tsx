@@ -330,7 +330,21 @@ export default function MediaLibrary({
                 fileName: file.fileName,
                 fileUrl,                            // Use presigned URL if available
                 fileType: detectFileType(file.fileType),  // Convert MIME type to enum
-                fileSize: file.fileSize,
+                fileSize: (() => {
+                  const direct = Number(file?.fileSize);
+                  if (Number.isFinite(direct) && direct > 0) return direct;
+                  const candidates = [
+                    file?.metadata?.fileSizeBytes,
+                    file?.metadata?.fileSize,
+                    file?.metadata?.contentLength,
+                    file?.metadata?.sourceFileSize,
+                  ];
+                  for (const candidate of candidates) {
+                    const parsed = Number(candidate);
+                    if (Number.isFinite(parsed) && parsed > 0) return parsed;
+                  }
+                  return 0;
+                })(),
                 storageType,                        // Preserve backend storage source
                 uploadedAt: file.createdAt,         // Map createdAt → uploadedAt
                 expiresAt: undefined,               // Not applicable for S3 files

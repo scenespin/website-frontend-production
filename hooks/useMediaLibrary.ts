@@ -58,6 +58,21 @@ const FETCH_ALL_MAX_MS = 8000;
  * Exported for use in MediaLibrary optimistic display from register response.
  */
 export function mapBackendFileToMediaFile(file: any): MediaFile {
+  const resolvedFileSize = (() => {
+    const direct = Number(file?.fileSize);
+    if (Number.isFinite(direct) && direct > 0) return direct;
+    const metadataSizeCandidates = [
+      file?.metadata?.fileSizeBytes,
+      file?.metadata?.fileSize,
+      file?.metadata?.contentLength,
+      file?.metadata?.sourceFileSize,
+    ];
+    for (const candidate of metadataSizeCandidates) {
+      const parsed = Number(candidate);
+      if (Number.isFinite(parsed) && parsed > 0) return parsed;
+    }
+    return 0;
+  })();
   const rawFileType = typeof file.fileType === 'string' && file.fileType.trim().length > 0
     ? file.fileType
     : 'application/octet-stream';
@@ -67,7 +82,7 @@ export function mapBackendFileToMediaFile(file: any): MediaFile {
     s3Key: file.s3Key,
     fileType: detectFileType(rawFileType),
     mediaFileType: file.mediaFileType,
-    fileSize: file.fileSize,
+    fileSize: resolvedFileSize,
     storageType: (file.storageType || 'local') as 'local' | 'google-drive' | 'dropbox' | 'wryda-temp',
     uploadedAt: file.createdAt,
     expiresAt: undefined,
@@ -267,12 +282,27 @@ export function useStandaloneVideosPaginated(screenplayId: string, enabled: bool
       );
 
       const files: MediaFile[] = backendFiles.map((file: any) => ({
+        // Some older rows have fileSize=0; prefer metadata fallback when present.
+        fileSize: (() => {
+          const direct = Number(file?.fileSize);
+          if (Number.isFinite(direct) && direct > 0) return direct;
+          const candidates = [
+            file?.metadata?.fileSizeBytes,
+            file?.metadata?.fileSize,
+            file?.metadata?.contentLength,
+            file?.metadata?.sourceFileSize,
+          ];
+          for (const candidate of candidates) {
+            const parsed = Number(candidate);
+            if (Number.isFinite(parsed) && parsed > 0) return parsed;
+          }
+          return 0;
+        })(),
         id: file.fileId,
         fileName: file.fileName,
         s3Key: file.s3Key,
         fileType: detectFileType(file.fileType),
         mediaFileType: file.mediaFileType,
-        fileSize: file.fileSize,
         storageType: (file.storageType || 'local') as 'local' | 'google-drive' | 'dropbox' | 'wryda-temp',
         uploadedAt: file.createdAt,
         expiresAt: undefined,
