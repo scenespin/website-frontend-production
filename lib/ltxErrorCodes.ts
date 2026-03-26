@@ -1,7 +1,10 @@
 export const LTX_ERROR_CODES = {
   EXPERIMENT_DISABLED: 'LTX_EXPERIMENT_DISABLED',
+  HIRES_DISABLED: 'LTX_HIRES_DISABLED',
   MULTI_CHARACTER_UNSUPPORTED: 'LTX_MULTI_CHARACTER_UNSUPPORTED',
   UNSUPPORTED_ASPECT_RATIO: 'LTX_UNSUPPORTED_ASPECT_RATIO',
+  UNSUPPORTED_RESOLUTION: 'LTX_UNSUPPORTED_RESOLUTION',
+  UNSUPPORTED_DURATION: 'LTX_UNSUPPORTED_DURATION',
   CONFIG_MISSING_API_KEY: 'LTX_CONFIG_MISSING_API_KEY',
   FIRST_FRAME_REQUIRED: 'LTX_FIRST_FRAME_REQUIRED',
   DIALOGUE_REQUIRED: 'LTX_DIALOGUE_REQUIRED',
@@ -22,8 +25,11 @@ export type LtxErrorCode = (typeof LTX_ERROR_CODES)[keyof typeof LTX_ERROR_CODES
 
 const LTX_ERROR_MESSAGE_MAP: Record<LtxErrorCode, string> = {
   [LTX_ERROR_CODES.EXPERIMENT_DISABLED]: 'LTX test is currently disabled in this environment.',
+  [LTX_ERROR_CODES.HIRES_DISABLED]: 'LTX hi-res output is currently disabled in this environment.',
   [LTX_ERROR_CODES.MULTI_CHARACTER_UNSUPPORTED]: 'LTX test currently supports single-character dialogue shots only.',
   [LTX_ERROR_CODES.UNSUPPORTED_ASPECT_RATIO]: 'LTX test currently supports only 16:9 or 9:16.',
+  [LTX_ERROR_CODES.UNSUPPORTED_RESOLUTION]: 'LTX supports 1080p, 1440p, and 4K in this workflow.',
+  [LTX_ERROR_CODES.UNSUPPORTED_DURATION]: 'Selected LTX duration is not available for this model/resolution combination.',
   [LTX_ERROR_CODES.CONFIG_MISSING_API_KEY]: 'LTX is not configured yet. Please contact support.',
   [LTX_ERROR_CODES.FIRST_FRAME_REQUIRED]: 'LTX test requires a first frame image.',
   [LTX_ERROR_CODES.DIALOGUE_REQUIRED]: 'LTX test requires dialogue text.',

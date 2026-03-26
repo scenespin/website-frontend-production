@@ -34,6 +34,7 @@ interface VideoModel {
   provider: string;
   durations: number[];
   creditsMap: Record<number, number>;
+  creditsByResolution?: Record<string, Record<number, number>>;
   aspectRatios?: string[];
   resolutions?: string[];
   requiresSourceVideo?: boolean;
@@ -679,34 +680,46 @@ export function VideoGenerationTools({
   }, [activeMode, displayModels, selectedModel]);
 
   const selectedModelInfo = selectedModel ? models.find((m) => m.id === selectedModel) : null;
+  const normalizedResolution = selectedResolution.toLowerCase();
+  const resolutionCreditsMap = selectedModelInfo?.creditsByResolution?.[normalizedResolution];
+  const resolutionDurationOptions = resolutionCreditsMap
+    ? Object.keys(resolutionCreditsMap).map(Number).sort((a, b) => a - b)
+    : [];
   const aspectRatioOptions = selectedModelInfo?.aspectRatios?.length
     ? selectedModelInfo.aspectRatios
     : DEFAULT_ASPECT_RATIOS;
-  const durationOptions = selectedModelInfo?.durations?.length
+  const durationOptions = resolutionDurationOptions.length
+    ? resolutionDurationOptions
+    : selectedModelInfo?.durations?.length
     ? selectedModelInfo.durations
     : [5, 10];
   const resolutionOptions = selectedModelInfo?.resolutions?.length
     ? selectedModelInfo.resolutions
     : ['1080p'];
 
-  // When model changes, clamp duration, aspect ratio, and resolution to model's supported values
+  // When model or resolution changes, clamp duration/aspect ratio/resolution to supported values.
   useEffect(() => {
     if (!selectedModel) return;
     const info = models.find((m) => m.id === selectedModel);
-    if (info?.durations?.length && !info.durations.includes(selectedDuration)) {
-      setSelectedDuration(info.durations[0]);
-    }
     if (info?.aspectRatios?.length && !info.aspectRatios.includes(aspectRatio)) {
       setAspectRatio(info.aspectRatios[0]);
     }
     if (info?.resolutions?.length && !info.resolutions.includes(selectedResolution)) {
       setSelectedResolution(info.resolutions[0]);
     }
-  }, [selectedModel]);
+    const normalized = (info?.resolutions?.includes(selectedResolution) ? selectedResolution : info?.resolutions?.[0] || selectedResolution).toLowerCase();
+    const byResolution = info?.creditsByResolution?.[normalized];
+    const supportedDurations = byResolution
+      ? Object.keys(byResolution).map(Number).sort((a, b) => a - b)
+      : (info?.durations || []);
+    if (supportedDurations.length && !supportedDurations.includes(selectedDuration)) {
+      setSelectedDuration(supportedDurations[0]);
+    }
+  }, [selectedModel, selectedResolution, models, selectedDuration, aspectRatio]);
 
-  // Credits: use selected model's creditsMap from API (same source as backend charge). Fallback only when map missing or duration not in map.
+  // Credits: prefer selected resolution's pricing map (exact backend charge path).
   const getTotalCredits = (): number => {
-    const map = selectedModelInfo?.creditsMap;
+    const map = resolutionCreditsMap || selectedModelInfo?.creditsMap;
     if (map && typeof map[selectedDuration] === 'number') {
       return map[selectedDuration];
     }
