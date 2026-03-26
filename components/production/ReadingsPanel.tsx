@@ -222,15 +222,11 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
     );
   }, [allFiles]);
 
-  // Update readings when groupedReadings changes (only if actually different)
+  // Keep rendered readings in sync with grouped media updates.
+  // This must update even when group IDs stay the same (e.g. new dubbed variants in an existing card).
   useEffect(() => {
-    // Only update if the array reference or content actually changed
-    const currentIds = readings.map(r => r.id).sort().join(',');
-    const newIds = groupedReadings.map(r => r.id).sort().join(',');
-    if (currentIds !== newIds) {
-      setReadings(groupedReadings);
-    }
-  }, [groupedReadings]); // eslint-disable-line react-hooks/exhaustive-deps
+    setReadings(groupedReadings);
+  }, [groupedReadings]);
 
   /**
    * Helper function for downloading audio files via blob (matches JobsDrawer exactly)
