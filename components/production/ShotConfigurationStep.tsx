@@ -410,6 +410,8 @@ export function ShotConfigurationStep({
   const isSceneVoiceover = finalSelectedDialogueWorkflow === 'scene-voiceover';
   const isActionElementsMode = shot.type === 'action' && !!state.useElementsForVideo?.[shot.slot];
   const isOverrideAllowed = !isDialogueShot || isSceneVoiceover;
+  const selectedDialogueResolution =
+    (finalSelectedDialogueQuality || 'reliable') === 'premium' ? '1080p' : '720p';
   
   // Auto-enable checkboxes if override data exists (preserves state on navigation)
   // First frame: enabled if prompt override exists OR uploaded first frame exists
@@ -2330,7 +2332,11 @@ export function ShotConfigurationStep({
                   {((isDialogueShot && videoOptInForThisShot) || !!state.useElementsForVideo?.[shot.slot]) && (
                     <>
                       <div className="flex items-center justify-between text-xs">
-                        <span className="text-[#808080]">Video (720p or 1080p by workflow):</span>
+                        <span className="text-[#808080]">
+                          {isDialogueShot && videoOptInForThisShot
+                            ? `Video (${selectedDialogueResolution}):`
+                            : 'Video:'}
+                        </span>
                         <span className="text-[#FFFFFF] font-medium">{pricing.hdPrice} credits</span>
                       </div>
                       <div className="pt-2 border-t border-[#3F3F46]">
@@ -2356,9 +2362,11 @@ export function ShotConfigurationStep({
                       )}
                     </div>
                   )}
-                  <div className="text-[10px] text-[#808080] italic mt-1">
-                    Final resolution selected on review page
-                  </div>
+                  {isDialogueShot && videoOptInForThisShot && (
+                    <div className="text-[10px] text-[#808080] italic mt-1">
+                      Selected video resolution: {selectedDialogueResolution}
+                    </div>
+                  )}
                 </div>
               </div>
             )}
