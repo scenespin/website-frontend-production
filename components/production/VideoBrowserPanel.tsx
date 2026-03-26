@@ -257,6 +257,7 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
   const [targetLanguage, setTargetLanguage] = useState('es');
   const [languageOptions, setLanguageOptions] = useState<Array<{ code: string; name: string }>>([]);
   const [estimatedCredits, setEstimatedCredits] = useState<number | null>(null);
+  const [estimateHasRuntime, setEstimateHasRuntime] = useState(false);
   const [estimating, setEstimating] = useState(false);
   const [dubbing, setDubbing] = useState(false);
 
@@ -530,10 +531,14 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
         });
         if (!res.ok) throw new Error('Failed to estimate dubbing cost');
         const data = await res.json();
-        if (!cancelled) setEstimatedCredits(Number(data?.estimatedCredits || 0));
+        if (!cancelled) {
+          setEstimatedCredits(Number(data?.estimatedCredits || 0));
+          setEstimateHasRuntime(Number(data?.estimatedDurationSec || 0) > 0);
+        }
       } catch (err: any) {
         if (!cancelled) {
           setEstimatedCredits(null);
+          setEstimateHasRuntime(false);
           toast.error(err?.message || 'Failed to estimate dubbing');
         }
       } finally {
@@ -914,7 +919,11 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
               </Select>
             </div>
             <div className="text-xs text-[#808080]">
-              {estimating ? 'Estimating cost...' : `Estimated cost: ${estimatedCredits ?? '—'} credits`}
+              {estimating
+                ? 'Estimating cost...'
+                : estimateHasRuntime && estimatedCredits
+                  ? `Estimated cost: ${estimatedCredits} credits`
+                  : 'Final charge is calculated from runtime after processing'}
             </div>
             <div className="flex justify-end gap-2 pt-2">
               <button
@@ -928,10 +937,14 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
               <button
                 type="button"
                 onClick={handleConfirmDub}
-                disabled={dubbing || estimating || !estimatedCredits}
+                disabled={dubbing || estimating}
                 className="px-3 py-1.5 text-xs rounded bg-[#DC143C] text-white hover:bg-[#B0111E] disabled:opacity-50"
               >
-                {dubbing ? 'Starting...' : `Charge ${estimatedCredits ?? 0} & Start`}
+                {dubbing
+                  ? 'Starting...'
+                  : estimateHasRuntime && estimatedCredits
+                    ? `Charge ${estimatedCredits} & Start`
+                    : 'Start Dubbing'}
               </button>
             </div>
           </div>

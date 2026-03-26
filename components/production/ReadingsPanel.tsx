@@ -99,6 +99,7 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
   const [targetLanguage, setTargetLanguage] = useState('es');
   const [languageOptions, setLanguageOptions] = useState<Array<{ code: string; name: string }>>([]);
   const [estimatedCredits, setEstimatedCredits] = useState<number | null>(null);
+  const [estimateHasRuntime, setEstimateHasRuntime] = useState(false);
   const [estimatingDub, setEstimatingDub] = useState(false);
   const [startingDub, setStartingDub] = useState(false);
   const audioRefs = useRef<Map<string, HTMLAudioElement>>(new Map()); // Track audio elements for pause
@@ -115,6 +116,20 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
     const parenMatch = name.match(/\(([^)]+)\)(?:\.[^.]+)?$/);
     if (parenMatch && parenMatch[1]) return parenMatch[1].trim();
     return null;
+  };
+  const getFileDurationSec = (file?: MediaFile): number | null => {
+    if (!file) return null;
+    const raw = Number(
+      file.metadata?.durationSec ??
+      file.metadata?.videoDurationSec ??
+      file.metadata?.mediaDurationSec ??
+      file.metadata?.audioDurationSec ??
+      file.metadata?.duration ??
+      file.metadata?.media_metadata?.duration
+    );
+    if (!Number.isFinite(raw) || raw <= 0) return null;
+    const normalized = raw > 6 * 3600 ? raw / 1000 : raw;
+    return Number.isFinite(normalized) && normalized > 0 ? normalized : null;
   };
   const filesToDub = useMemo<MediaFile[]>(() => {
     if (!dubReading) return [];
@@ -568,6 +583,7 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
   useEffect(() => {
     if (!dubDialogOpen || filesToDub.length === 0) {
       setEstimatedCredits(null);
+      setEstimateHasRuntime(false);
       return;
     }
     let cancelled = false;
@@ -591,21 +607,28 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
                 screenplayId,
                 sourceS3Key: file.s3Key,
                 sourceFileId: file.id,
+                sourceDurationSec: getFileDurationSec(file),
               }),
             });
             if (!res.ok) throw new Error('Failed to estimate dubbing');
             const data = await res.json();
-            return Number(data?.estimatedCredits || 0);
+            return {
+              credits: Number(data?.estimatedCredits || 0),
+              hasRuntime: Number(data?.estimatedDurationSec || 0) > 0,
+            };
           })
         );
 
         if (!cancelled) {
-          const totalEstimate = estimates.reduce((sum, credits) => sum + credits, 0);
+          const totalEstimate = estimates.reduce((sum, estimate) => sum + estimate.credits, 0);
+          const allHaveRuntime = estimates.length > 0 && estimates.every((estimate) => estimate.hasRuntime);
           setEstimatedCredits(totalEstimate > 0 ? totalEstimate : null);
+          setEstimateHasRuntime(allHaveRuntime);
         }
       } catch (err: any) {
         if (!cancelled) {
           setEstimatedCredits(null);
+          setEstimateHasRuntime(false);
           toast.error(err?.message || 'Failed to estimate dubbing');
         }
       } finally {
@@ -896,7 +919,11 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
               </div>
             </div>
             <div className="text-xs text-[#808080]">
-              {estimatingDub ? 'Estimating cost...' : `Estimated cost: ${estimatedCredits ?? '—'} credits total`}
+              {estimatingDub
+                ? 'Estimating cost...'
+                : estimateHasRuntime && estimatedCredits
+                  ? `Estimated cost: ${estimatedCredits} credits total`
+                  : 'Final charge is calculated from runtime after processing'}
             </div>
             <div className="flex justify-end gap-2 pt-2">
               <button
@@ -910,10 +937,14 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
               <button
                 type="button"
                 onClick={startDubbing}
-                disabled={startingDub || estimatingDub || !estimatedCredits}
+                disabled={startingDub || estimatingDub}
                 className="px-3 py-1.5 text-xs rounded bg-[#DC143C] text-white hover:bg-[#B0111E] disabled:opacity-50"
               >
-                {startingDub ? 'Starting...' : `Charge ${estimatedCredits ?? 0} & Start`}
+                {startingDub
+                  ? 'Starting...'
+                  : estimateHasRuntime && estimatedCredits
+                    ? `Charge ${estimatedCredits} & Start`
+                    : 'Start Dubbing'}
               </button>
             </div>
           </div>
