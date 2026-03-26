@@ -51,6 +51,8 @@ export interface VideoBrowserEntry {
   folderId?: string | null;
   /** Source media row id for backend lookup fallback */
   sourceFileId?: string | null;
+  /** Duration hint in seconds for dubbing estimate fallback */
+  sourceDurationSec?: number | null;
   /** Dubbing metadata */
   isDubbed?: boolean;
   dubbedLanguage?: string | null;
@@ -136,6 +138,7 @@ function buildVideoEntries(
         const metadata = (variation.video as any).metadata || {};
         const videoTimestamp = metadata.timestamp || variation.timestamp;
         const aspectRatio = getVideoAspectRatio(metadata);
+        const sourceDurationSec = extractDurationSec(metadata);
         const mediaContext = mediaContextByS3Key.get(variation.video.s3Key);
         entries.push({
           sceneNumber: scene.sceneNumber,
@@ -151,6 +154,7 @@ function buildVideoEntries(
           videoProvider: metadata.videoProvider ?? metadata.videoModel ?? null,
           providerDisplayLabel: metadata.providerDisplayLabel ?? null,
           aspectRatio,
+          sourceDurationSec,
           folderId: mediaContext?.folderId ?? null,
           sourceFileId: mediaContext?.sourceFileId ?? null,
           isDubbed: metadata.isDubbed === true,
@@ -173,6 +177,7 @@ function buildStandaloneEntries(
       const metadata = (file as any).metadata || {};
       const timestamp = metadata.timestamp || (file as any).uploadedAt || (file as any).createdAt || '';
       const aspectRatio = getVideoAspectRatio(metadata);
+      const sourceDurationSec = extractDurationSec(metadata);
       return {
         sceneNumber: metadata.sceneNumber != null ? Number(metadata.sceneNumber) : null,
         sceneHeading: metadata.heading || null,
@@ -187,6 +192,7 @@ function buildStandaloneEntries(
         videoProvider: metadata.videoProvider ?? metadata.videoModel ?? null,
         providerDisplayLabel: metadata.providerDisplayLabel ?? null,
         aspectRatio,
+        sourceDurationSec,
         folderId: (file as any).folderId || null,
         sourceFileId: (file as any).fileId || (file as any).id || null,
         isDubbed: metadata.isDubbed === true,
@@ -199,6 +205,23 @@ function buildStandaloneEntries(
 function isDubbedSceneLinkedVideo(file: MediaFile): boolean {
   const metadata = (file as any).metadata || {};
   return metadata.isDubbed === true && !!metadata.sceneId;
+}
+
+function extractDurationSec(metadata: Record<string, any>): number | null {
+  const raw = Number(
+    metadata?.durationSec ??
+    metadata?.videoDurationSec ??
+    metadata?.mediaDurationSec ??
+    metadata?.audioDurationSec ??
+    metadata?.duration ??
+    metadata?.media_metadata?.duration
+  );
+  if (!Number.isFinite(raw) || raw <= 0) return null;
+
+  // Some providers emit ms; normalize obvious millisecond values.
+  const normalized = raw > 6 * 3600 ? raw / 1000 : raw;
+  if (!Number.isFinite(normalized) || normalized <= 0) return null;
+  return normalized;
 }
 
 function getVideoAspectRatio(metadata: Record<string, any>): string | null {
@@ -502,6 +525,7 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
             screenplayId,
             sourceS3Key: dubDialogEntry.videoS3Key,
             sourceFileId: dubDialogEntry.sourceFileId,
+            sourceDurationSec: dubDialogEntry.sourceDurationSec,
           }),
         });
         if (!res.ok) throw new Error('Failed to estimate dubbing cost');
