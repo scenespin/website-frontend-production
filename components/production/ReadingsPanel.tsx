@@ -110,6 +110,10 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
     if (targetLanguageName) return targetLanguageName;
     const targetLanguageCode = String(file.metadata?.targetLanguageCode || '').trim();
     if (targetLanguageCode) return targetLanguageCode.toUpperCase();
+    // Fallback: infer language from filename suffix, e.g. "... (Czech).mp3"
+    const name = String(file.fileName || '').trim();
+    const parenMatch = name.match(/\(([^)]+)\)(?:\.[^.]+)?$/);
+    if (parenMatch && parenMatch[1]) return parenMatch[1].trim();
     return null;
   };
   const filesToDub = useMemo<MediaFile[]>(() => {
@@ -150,12 +154,10 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
     const sessions: ReadingSession[] = [];
     
     for (const [groupId, files] of groups.entries()) {
-      // Find combined/master audio variants and use newest as primary.
-      const combinedAudioCandidates = files
-        .filter((f) => f.metadata?.isCombined === true && f.fileType === 'audio')
-        .sort((a, b) => new Date(b.uploadedAt || 0).getTime() - new Date(a.uploadedAt || 0).getTime());
-      const combinedAudio = combinedAudioCandidates[0];
-      const additionalCombinedAudios = combinedAudioCandidates.slice(1);
+      // Find combined audio
+      const combinedAudio = files.find(
+        f => f.metadata?.isCombined === true && f.fileType === 'audio'
+      );
 
       // Find scene audio files (not combined, not subtitle)
       const sceneAudios = files.filter(
@@ -163,7 +165,6 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
              !f.metadata?.isSubtitle && 
              f.fileType === 'audio'
       );
-      const visibleAudios = [...sceneAudios, ...additionalCombinedAudios];
 
       // Find subtitle files
       const subtitles = files.filter(
@@ -191,7 +192,7 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
         title,
         date: combinedAudio?.uploadedAt || files[0]?.uploadedAt || new Date().toISOString(),
         combinedAudio,
-        sceneAudios: visibleAudios,
+        sceneAudios,
         subtitles,
         metadata: combinedAudio?.metadata || files[0]?.metadata
       });
@@ -848,6 +849,7 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
                 {(dubReading?.sceneAudios || []).map((file) => {
                   const checked = selectedSceneFileIds.includes(file.id);
                   const fileLanguageLabel = getFileLanguageLabel(file);
+                  const fileLabel = `${file.metadata?.sceneNumber ? `Scene ${file.metadata.sceneNumber}: ` : ''}${file.fileName}`;
                   return (
                     <label key={file.id} className="flex items-center gap-2 text-xs text-[#B3B3B3]">
                       <input
@@ -861,9 +863,8 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
                         }}
                       />
                       <span>
-                        {file.metadata?.sceneNumber ? `Scene ${file.metadata.sceneNumber}: ` : ''}
-                        {file.fileName}
-                        {fileLanguageLabel ? ` (${fileLanguageLabel})` : ''}
+                        {fileLanguageLabel ? `${fileLanguageLabel} · ` : ''}
+                        {fileLabel}
                       </span>
                     </label>
                   );
@@ -1307,7 +1308,7 @@ function ReadingCard({
         {/* Individual Scene Downloads */}
         {reading.sceneAudios.length > 0 && (
           <div className="border-t border-[#3F3F46] pt-2">
-            <div className="text-xs text-gray-400 mb-2 font-medium">Scene and version files:</div>
+            <div className="text-xs text-gray-400 mb-2 font-medium">Individual Scenes:</div>
             <div className="flex flex-col gap-1 max-h-32 overflow-y-auto">
               {reading.sceneAudios
                 .sort((a, b) => {
@@ -1343,10 +1344,15 @@ function ReadingCard({
                     String(sceneFile.metadata?.targetLanguageName || '').trim() ||
                     (String(sceneFile.metadata?.targetLanguageCode || '').trim()
                       ? String(sceneFile.metadata?.targetLanguageCode || '').trim().toUpperCase()
-                      : '');
+                      : '') ||
+                    (() => {
+                      const name = String(sceneFile.fileName || '').trim();
+                      const parenMatch = name.match(/\(([^)]+)\)(?:\.[^.]+)?$/);
+                      return parenMatch && parenMatch[1] ? parenMatch[1].trim() : '';
+                    })();
                   const displayName = sceneNumber !== undefined
-                    ? `Scene ${sceneNumber}: ${sceneHeading}${languageLabel ? ` (${languageLabel})` : ''}`
-                    : `${sceneHeading}${languageLabel ? ` (${languageLabel})` : ''}`;
+                    ? `${languageLabel ? `${languageLabel} · ` : ''}Scene ${sceneNumber}: ${sceneHeading}`
+                    : `${languageLabel ? `${languageLabel} · ` : ''}${sceneHeading}`;
                   const durationText = sceneDuration ? ` (${formatDuration(sceneDuration)})` : '';
                   
                   const sceneId = `${reading.id}-${sceneFile.id}`;
