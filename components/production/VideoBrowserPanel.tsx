@@ -589,6 +589,7 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
           audioUrl: sourceUrl,
           sourceS3Key: dubDialogEntry.videoS3Key,
           sourceFileId: dubDialogEntry.sourceFileId,
+          sourceDurationSec: dubDialogEntry.sourceDurationSec,
           sourceFileName: dubDialogEntry.videoFileName,
           sourceProviderDisplayLabel: dubDialogEntry.providerDisplayLabel,
           folderId: dubDialogEntry.folderId,

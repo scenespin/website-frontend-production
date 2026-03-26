@@ -671,6 +671,7 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
             audioUrl: sourceUrl,
             sourceS3Key: file.s3Key,
             sourceFileId: file.id,
+            sourceDurationSec: getFileDurationSec(file),
             sourceFileName: file.fileName,
             sourceProviderDisplayLabel: 'Screenplay Reading',
             sceneId: file.metadata?.sceneId,
