@@ -120,12 +120,15 @@ export function ReadingsPanel({ className = '' }: ReadingsPanelProps) {
   const getFileDurationSec = (file?: MediaFile): number | null => {
     if (!file) return null;
     const raw = Number(
+      file.metadata?.totalDuration ??
+      file.metadata?.durationSeconds ??
       file.metadata?.durationSec ??
       file.metadata?.videoDurationSec ??
       file.metadata?.mediaDurationSec ??
       file.metadata?.audioDurationSec ??
       file.metadata?.duration ??
-      file.metadata?.media_metadata?.duration
+      file.metadata?.media_metadata?.duration ??
+      file.metadata?.media_metadata?.duration_sec
     );
     if (!Number.isFinite(raw) || raw <= 0) return null;
     const normalized = raw > 6 * 3600 ? raw / 1000 : raw;
