@@ -93,24 +93,26 @@ function getAvailableModesForPage(pathname) {
 }
 
 
-// LLM Models (Text Generation) - User Choice for Creative Style
-// Curated list: 8 models across 3 providers (latest flagship + fast option + premium option per provider)
+// LLM Models (Text Generation)
+// Ordered for Unified Chat Panel: Fast -> Balanced -> Pro.
+const DEFAULT_CHAT_MODEL_ID = 'gpt-4o';
+const MODEL_TIER_ORDER = ['Fast', 'Balanced', 'Pro'];
 const LLM_MODELS = [
-  // Claude (Anthropic) - Best for Creative Writing
-  { id: 'claude-sonnet-4-6', name: 'Claude Sonnet 4.6', shortName: 'Sonnet 4.6', provider: 'Anthropic', description: '⭐ Best for creative writing & screenplays', recommended: true },
-  { id: 'claude-opus-4-6', name: 'Claude Opus 4.6', shortName: 'Opus 4.6', provider: 'Anthropic', description: 'Most powerful - Enhanced coding & reasoning' },
-  { id: 'claude-haiku-4-5', name: 'Claude Haiku 4.5', shortName: 'Haiku 4.5', provider: 'Anthropic', description: 'Fast & economical' },
-  // GPT (OpenAI) - Good for Creative Writing
-  { id: 'gpt-5.1', name: 'GPT-5.1', shortName: 'GPT-5.1', provider: 'OpenAI', description: 'Latest - Excellent for creative writing' },
-  { id: 'gpt-4o', name: 'GPT-4o', shortName: 'GPT-4o', provider: 'OpenAI', description: 'Balanced - Good for dialogue & scenes' },
-  { id: 'o3', name: 'O3', provider: 'OpenAI', description: 'Reasoning model - Best for analysis' },
-  // Gemini (Google) - Good for Complex Narratives
-  { id: 'gemini-3-pro-preview', name: 'Gemini 3 Pro', shortName: 'Gemini 3 Pro', provider: 'Google', description: 'Latest - Most intelligent, advanced reasoning' },
-  { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', shortName: 'Gemini 2.5', provider: 'Google', description: 'Fast & efficient' },
-  // Grok (xAI) - Strong Reasoning & Creative
-  { id: 'grok-4-0709', name: 'Grok 4', shortName: 'Grok 4', provider: 'xAI', description: 'Flagship - Deep reasoning & analysis' },
-  { id: 'grok-4-1-fast-reasoning', name: 'Grok 4.1 Fast', shortName: 'Grok 4.1', provider: 'xAI', description: 'Fast with reasoning capabilities' },
-  { id: 'grok-4-1-fast-non-reasoning', name: 'Grok 4.1 Fast Lite', shortName: 'Grok 4.1 Lite', provider: 'xAI', description: 'Ultra-fast & economical' },
+  // Fast (budget + speed)
+  { id: 'grok-4-1-fast-non-reasoning', name: 'Grok 4.1 Fast Lite', shortName: 'Grok 4.1 Lite', tier: 'Fast', badges: '$ ⚡' },
+  { id: 'grok-4-1-fast-reasoning', name: 'Grok 4.1 Fast', shortName: 'Grok 4.1', tier: 'Fast', badges: '$ ⚡ 🧠' },
+  { id: 'claude-haiku-4-5', name: 'Claude Haiku 4.5', shortName: 'Haiku 4.5', tier: 'Fast', badges: '$$ ⚡ ✍️' },
+  // Balanced
+  { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', shortName: 'Gemini 2.5', tier: 'Balanced', badges: '$$ ⚡ 🧠' },
+  { id: 'gpt-4o', name: 'GPT-4o', shortName: 'GPT-4o', tier: 'Balanced', badges: '$$ ⚡' },
+  // Pro (quality / hard prompts)
+  { id: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro', shortName: 'Gemini 2.5 Pro', tier: 'Pro', badges: '$$$ 🧠' },
+  { id: 'gemini-3-pro-preview', name: 'Gemini 3 Pro', shortName: 'Gemini 3 Pro', tier: 'Pro', badges: '$$$ 🧠' },
+  { id: 'gpt-5.1', name: 'GPT-5.1', shortName: 'GPT-5.1', tier: 'Pro', badges: '$$$ 🧠 ✍️' },
+  { id: 'claude-sonnet-4-6', name: 'Claude Sonnet 4.6', shortName: 'Sonnet 4.6', tier: 'Pro', badges: '$$$ 🧠 ✍️' },
+  { id: 'grok-4-0709', name: 'Grok 4', shortName: 'Grok 4', tier: 'Pro', badges: '$$$ 🧠' },
+  { id: 'o3', name: 'O3', shortName: 'O3', tier: 'Pro', badges: '$$$$ 🧠' },
+  { id: 'claude-opus-4-6', name: 'Claude Opus 4.6', shortName: 'Opus 4.6', tier: 'Pro', badges: '$$$$ 🧠 ✍️' },
 ];
 
 // ============================================================================
@@ -263,7 +265,7 @@ function LLMModelSelector() {
   const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0 });
   
   // Use context state, fallback to default if not set
-  const selectedModel = state.selectedModel || 'claude-sonnet-4-6';
+  const selectedModel = state.selectedModel || DEFAULT_CHAT_MODEL_ID;
   const currentModel = LLM_MODELS.find(m => m.id === selectedModel) || LLM_MODELS[0];
   
   const handleModelChange = (modelId) => {
@@ -308,28 +310,23 @@ function LLMModelSelector() {
     };
   }, [isOpen]);
   
-  // Dynamically group models by provider (same approach as modals - automatic, no hardcoding)
-  // Preserve provider order: Anthropic, OpenAI, Google, xAI
+  // Group by tier while preserving explicit model order.
   const groupedModels = useMemo(() => {
     const grouped = LLM_MODELS.reduce((acc, model) => {
-      if (!acc[model.provider]) acc[model.provider] = [];
-      acc[model.provider].push(model);
+      if (!acc[model.tier]) acc[model.tier] = [];
+      acc[model.tier].push(model);
       return acc;
     }, {});
-    
-    // Ensure consistent order (xAI should be last)
-    const providerOrder = ['Anthropic', 'OpenAI', 'Google', 'xAI'];
+
     const ordered = {};
-    providerOrder.forEach(provider => {
-      if (grouped[provider]) {
-        ordered[provider] = grouped[provider];
+    MODEL_TIER_ORDER.forEach((tier) => {
+      if (grouped[tier]) {
+        ordered[tier] = grouped[tier];
       }
     });
-    
-    // Debug: Log grouped models to console
+
     console.log('[LLMModelSelector] Grouped models:', ordered);
-    console.log('[LLMModelSelector] All providers:', Object.keys(ordered));
-    console.log('[LLMModelSelector] xAI models:', ordered['xAI']);
+    console.log('[LLMModelSelector] All tiers:', Object.keys(ordered));
     console.log('[LLMModelSelector] Object.entries result:', Object.entries(ordered));
     
     return ordered;
@@ -357,16 +354,12 @@ function LLMModelSelector() {
       onClick={(e) => e.stopPropagation()}
       onMouseDown={(e) => e.stopPropagation()}
     >
-      {Object.entries(groupedModels).map(([provider, providerModels]) => {
-        // Debug: Log each provider being rendered
-        if (provider === 'xAI') {
-          console.log('[LLMModelSelector] Rendering xAI provider with', providerModels.length, 'models');
-        }
+      {Object.entries(groupedModels).map(([tier, tierModels]) => {
         return (
-          <li key={provider} className="menu-title">
-            <span className="text-xs font-bold text-base-content/60">{provider}</span>
+          <li key={tier} className="menu-title">
+            <span className="text-xs font-bold text-base-content/60">{tier}</span>
             <ul className="ml-0">
-              {providerModels.map((model) => {
+              {tierModels.map((model) => {
                 const isActive = selectedModel === model.id;
                 return (
                   <li key={model.id}>
@@ -379,9 +372,12 @@ function LLMModelSelector() {
                       }}
                       className={`flex items-center justify-between gap-2 w-full text-left px-2 py-1.5 rounded hover:bg-base-300 ${isActive ? 'active bg-cinema-red/20' : ''}`}
                     >
-                      <span className="flex items-center gap-1.5">
+                      <span className="flex items-center gap-2">
                         <span className="text-xs text-white">{model.name}</span>
-                        {model.recommended && <span className="text-yellow-400 text-xs">⭐</span>}
+                        {model.id === DEFAULT_CHAT_MODEL_ID && (
+                          <span className="text-[10px] text-base-content/50">(Default)</span>
+                        )}
+                        <span className="text-[10px] text-base-content/60 grayscale">{model.badges}</span>
                       </span>
                     </button>
                   </li>
@@ -407,7 +403,6 @@ function LLMModelSelector() {
         }}
       >
         <span className="truncate max-w-[90px] sm:max-w-[140px]">{currentModel.shortName || currentModel.name}</span>
-        {currentModel.recommended && <span className="text-yellow-400">⭐</span>}
         <ChevronDown className={cn("w-3.5 h-3.5 transition-transform flex-shrink-0", isOpen && "rotate-180")} />
       </label>
       {/* 🔥 PORTAL: Render dropdown in document.body to escape drawer overflow clipping */}
@@ -1214,14 +1209,14 @@ function UnifiedChatPanelInner({
             editorContentLength: editorContent?.length || 0,
             cursorPosition,
             messageLength: message?.length || 0,
-            modelId: state.selectedModel || 'claude-sonnet-4-6'
+            modelId: state.selectedModel || DEFAULT_CHAT_MODEL_ID
           });
           
           const contextData = buildStoryAdvisorContext(
             editorContent,
             cursorPosition,
             message,
-            state.selectedModel || 'claude-sonnet-4-6',
+            state.selectedModel || DEFAULT_CHAT_MODEL_ID,
             conversationHistory,
             systemPromptBase
           );
@@ -1389,7 +1384,7 @@ function UnifiedChatPanelInner({
           hasPitchDeckContext: Boolean(pitchDeckChatContext.pitchDeckContext),
           contextSnapshot,
           conversationHistoryLength: conversationHistory.length,
-          modelId: state.selectedModel || 'claude-sonnet-4-6'
+          modelId: state.selectedModel || DEFAULT_CHAT_MODEL_ID
         });
         
         // Call streaming chat API
@@ -1397,7 +1392,7 @@ function UnifiedChatPanelInner({
           {
             userPrompt: finalUserPrompt, // Use built prompt (rewrite or original)
             systemPrompt: boundedSystemPrompt,
-            desiredModelId: state.selectedModel || 'claude-sonnet-4-6',
+            desiredModelId: state.selectedModel || DEFAULT_CHAT_MODEL_ID,
             screenplayId: typeof screenplayId === 'string' && screenplayId.trim() ? screenplayId.trim() : undefined,
             conversationHistory,
             sceneContext: apiSceneContext,
@@ -1460,16 +1455,16 @@ function UnifiedChatPanelInner({
             } else if (errorMessage.includes('not_found') || errorMessage.includes('404') || errorMessage.includes('model:')) {
               // Model not found - fallback to default
               errorMessage = 'The selected AI model is not available. Switching to default model.';
-              userMessage = '⚠️ The selected model is unavailable. I\'ve switched to Claude Sonnet 4.6. Please try again.';
+              userMessage = '⚠️ The selected model is unavailable. I\'ve switched to GPT-4o. Please try again.';
               shouldFallbackModel = true;
             }
             
             // Fallback to default model if model not found
             if (shouldFallbackModel) {
-              const defaultModel = 'claude-sonnet-4-6';
+              const defaultModel = DEFAULT_CHAT_MODEL_ID;
               if (state.selectedModel !== defaultModel) {
                 setModel(defaultModel);
-                toast.info('Switched to Claude Sonnet 4.6');
+                toast.info('Switched to GPT-4o');
               }
             }
             
@@ -1521,16 +1516,16 @@ function UnifiedChatPanelInner({
         } else if (errorMessage.includes('not_found') || errorMessage.includes('404') || errorMessage.includes('model:')) {
           // Model not found - fallback to default
           errorMessage = 'The selected AI model is not available. Switching to default model.';
-          userMessage = '⚠️ The selected model is unavailable. I\'ve switched to Claude Sonnet 4.6. Please try again.';
+          userMessage = '⚠️ The selected model is unavailable. I\'ve switched to GPT-4o. Please try again.';
           shouldFallbackModel = true;
         }
         
         // Fallback to default model if model not found
         if (shouldFallbackModel) {
-          const defaultModel = 'claude-sonnet-4-6';
+          const defaultModel = DEFAULT_CHAT_MODEL_ID;
           if (state.selectedModel !== defaultModel) {
             setModel(defaultModel);
-            toast.info('Switched to Claude Sonnet 4.6');
+            toast.info('Switched to GPT-4o');
           }
         }
         

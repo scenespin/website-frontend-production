@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useReducer, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useUser } from '@clerk/nextjs';
-import { ANTHROPIC_MODELS, normalizeAnthropicModelId } from '../utils/anthropicModels';
+import { normalizeAnthropicModelId } from '../utils/anthropicModels';
 
 // ============================================================================
 // TYPES
@@ -22,7 +22,7 @@ const initialState = {
   
   // Mode
   activeMode: 'chat',
-  selectedModel: ANTHROPIC_MODELS.sonnet,
+  selectedModel: 'gpt-4o',
   
   // Input
   input: '',
