@@ -606,7 +606,7 @@ Rules:
                             <optgroup key={tier} label={tier}>
                               {models.map((model) => (
                                 <option key={model.id} value={model.id}>
-                                  {model.name}
+                                  {(model.shortName || model.name) + (model.badges ? ` ${model.badges}` : '')}
                                 </option>
                               ))}
                             </optgroup>
@@ -652,7 +652,7 @@ Rules:
                           <optgroup key={tier} label={tier}>
                             {models.map((model) => (
                               <option key={model.id} value={model.id}>
-                                {model.name}
+                                {(model.shortName || model.name) + (model.badges ? ` ${model.badges}` : '')}
                               </option>
                             ))}
                           </optgroup>
