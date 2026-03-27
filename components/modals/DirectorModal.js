@@ -600,7 +600,7 @@ Rules:
                         value={selectedModel}
                         onChange={(e) => handleModelChange(e.target.value)}
                         disabled={isLoading}
-                        className="select select-bordered select-sm max-w-[140px] cinema-modal-select"
+                        className="select select-bordered select-sm max-w-[140px] cinema-modal-select grayscale text-[13px]"
                       >
                         {getLlmModelGroupsByTier().map(({ tier, models }) => (
                             <optgroup key={tier} label={tier}>
@@ -646,7 +646,7 @@ Rules:
                       value={selectedModel}
                       onChange={(e) => handleModelChange(e.target.value)}
                       disabled={isLoading}
-                      className="select select-bordered select-sm w-full cinema-modal-select"
+                      className="select select-bordered select-sm w-full cinema-modal-select grayscale text-[13px]"
                     >
                       {getLlmModelGroupsByTier().map(({ tier, models }) => (
                           <optgroup key={tier} label={tier}>
