@@ -50,8 +50,12 @@ async function getAuthToken(getToken: (options?: { template?: string }) => Promi
 /** Page size when fetching all pages (shot board / link library). Backend max is 200. */
 const MEDIA_LIST_PAGE_SIZE = 100;
 /** Guardrails for fetchAllPages loops to prevent runaway pagination in degraded backends. */
-const FETCH_ALL_MAX_PAGES = 20;
-const FETCH_ALL_MAX_MS = 8000;
+const FETCH_ALL_DEFAULT_MAX_PAGES = 20;
+const FETCH_ALL_DEFAULT_MAX_MS = 8000;
+// Shots/Videos tabs require complete scene/standalone sets to avoid split-brain rendering where
+// one tab shows only a first frame or only a video during high-volume pagination windows.
+const FETCH_ALL_SCENE_MAX_PAGES = 120;
+const FETCH_ALL_SCENE_MAX_MS = 30000;
 
 /**
  * Map backend file shape to frontend MediaFile (single place for consistency).
@@ -147,20 +151,26 @@ export function useMediaFiles(
       let pagesFetched = 0;
       const startedAt = Date.now();
 
+      const isSceneLikeEntity = entityType === 'scene' || entityType === 'standalone-video';
+      const maxPages = isSceneLikeEntity ? FETCH_ALL_SCENE_MAX_PAGES : FETCH_ALL_DEFAULT_MAX_PAGES;
+      const maxMs = isSceneLikeEntity ? FETCH_ALL_SCENE_MAX_MS : FETCH_ALL_DEFAULT_MAX_MS;
+
       do {
-        if (fetchAllPages && pagesFetched >= FETCH_ALL_MAX_PAGES) {
+        if (fetchAllPages && pagesFetched >= maxPages) {
           console.warn('[useMediaFiles] fetchAllPages page budget reached - returning partial results', {
             screenplayId,
             entityType,
             pagesFetched,
+            maxPages,
             filesCollected: allBackendFiles.length,
           });
           break;
         }
-        if (fetchAllPages && Date.now() - startedAt >= FETCH_ALL_MAX_MS) {
+        if (fetchAllPages && Date.now() - startedAt >= maxMs) {
           console.warn('[useMediaFiles] fetchAllPages time budget reached - returning partial results', {
             screenplayId,
             entityType,
+            maxMs,
             elapsedMs: Date.now() - startedAt,
             filesCollected: allBackendFiles.length,
           });
