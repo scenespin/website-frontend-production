@@ -372,12 +372,12 @@ function LLMModelSelector() {
                       }}
                       className={`flex items-center justify-between gap-2 w-full text-left px-2 py-1.5 rounded hover:bg-base-300 ${isActive ? 'active bg-cinema-red/20' : ''}`}
                     >
-                      <span className="flex items-center gap-2">
-                        <span className="text-xs text-white">{model.name}</span>
+                      <span className="flex items-center gap-1.5 whitespace-nowrap overflow-hidden">
+                        <span className="text-xs text-white truncate">{model.shortName || model.name}</span>
                         {model.id === DEFAULT_CHAT_MODEL_ID && (
-                          <span className="text-[10px] text-base-content/50">(Default)</span>
+                          <span className="text-[9px] text-base-content/50">(Default)</span>
                         )}
-                        <span className="text-[10px] text-base-content/60 grayscale">{model.badges}</span>
+                        <span className="text-[9px] text-base-content/60 grayscale">{model.badges}</span>
                       </span>
                     </button>
                   </li>
