@@ -264,7 +264,7 @@ function LLMModelSelector() {
   const [isOpen, setIsOpen] = useState(false);
   const dropdownRef = useRef(null);
   const buttonRef = useRef(null);
-  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0 });
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, right: 0, maxHeight: 320, maxWidth: 260 });
   
   // Use context state, fallback to default if not set
   const selectedModel = state.selectedModel || DEFAULT_CHAT_MODEL_ID;
@@ -280,10 +280,17 @@ function LLMModelSelector() {
   useEffect(() => {
     if (isOpen && buttonRef.current) {
       const buttonRect = buttonRef.current.getBoundingClientRect();
-      // Position above the button, aligned to right edge
+      const viewportPadding = 8;
+      const gap = 8;
+      // Keep dropdown fully visible above the trigger with internal scrolling.
+      const availableAbove = Math.max(180, Math.floor(buttonRect.top - viewportPadding - gap));
+      const maxHeight = Math.min(520, availableAbove);
+      const maxWidth = Math.min(320, Math.floor(window.innerWidth - (viewportPadding * 2)));
       setDropdownPosition({
-        top: buttonRect.top - 8, // 8px gap (mb-1 = 4px, plus some spacing)
-        right: window.innerWidth - buttonRect.right
+        top: buttonRect.top - gap,
+        right: Math.max(viewportPadding, window.innerWidth - buttonRect.right),
+        maxHeight,
+        maxWidth
       });
     }
   }, [isOpen]);
@@ -342,54 +349,52 @@ function LLMModelSelector() {
   // 🔥 PORTAL IMPLEMENTATION: Render dropdown outside drawer DOM to prevent clipping
   // REVERT: To revert, remove createPortal wrapper and change className from "fixed" back to "absolute bottom-full right-0"
   const dropdownContent = isOpen ? (
-    <ul 
+    <div
       ref={dropdownRef}
       tabIndex={0} 
-      className="fixed menu p-2 shadow-lg bg-base-200 rounded-box border border-base-300 z-[9999] max-h-[500px] overflow-y-auto pointer-events-auto"
+      className="fixed p-2 shadow-lg bg-base-200 rounded-box border border-base-300 z-[9999] overflow-y-auto pointer-events-auto"
       style={{ 
         top: `${dropdownPosition.top}px`,
         right: `${dropdownPosition.right}px`,
-        minWidth: `${Math.max(180, maxModelNameLength * 8 + 40)}px`,
-        maxWidth: '220px',
+        minWidth: `${Math.min(Math.max(180, maxModelNameLength * 8 + 40), dropdownPosition.maxWidth)}px`,
+        maxWidth: `${dropdownPosition.maxWidth}px`,
+        maxHeight: `${dropdownPosition.maxHeight}px`,
         transform: 'translateY(-100%)' // Position above the calculated top position
       }}
       onClick={(e) => e.stopPropagation()}
       onMouseDown={(e) => e.stopPropagation()}
     >
-      {Object.entries(groupedModels).map(([tier, tierModels]) => {
-        return (
-          <li key={tier} className="menu-title">
-            <span className="text-xs font-bold text-base-content/60">{tier}</span>
-            <ul className="ml-0">
-              {tierModels.map((model) => {
-                const isActive = selectedModel === model.id;
-                return (
-                  <li key={model.id}>
-                    <button
-                      type="button"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        e.stopPropagation();
-                        handleModelChange(model.id);
-                      }}
-                      className={`flex items-center justify-between gap-2 w-full text-left px-2 py-1.5 rounded hover:bg-base-300 ${isActive ? 'active bg-cinema-red/20' : ''}`}
-                    >
-                      <span className="flex items-center gap-1.5 whitespace-nowrap overflow-hidden">
-                        <span className="text-xs text-white truncate">{model.shortName || model.name}</span>
-                        {model.id === DEFAULT_CHAT_MODEL_ID && (
-                          <span className="text-[9px] text-base-content/50">(Default)</span>
-                        )}
-                        <span className="text-[9px] text-base-content/60 grayscale">{model.badges}</span>
-                      </span>
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
-          </li>
-        );
-      })}
-    </ul>
+      {Object.entries(groupedModels).map(([tier, tierModels]) => (
+        <div key={tier} className="mb-1 last:mb-0">
+          <div className="px-2 py-1 text-xs font-bold text-base-content/60">{tier}</div>
+          <div className="space-y-0.5">
+            {tierModels.map((model) => {
+              const isActive = selectedModel === model.id;
+              return (
+                <button
+                  key={model.id}
+                  type="button"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    handleModelChange(model.id);
+                  }}
+                  className={`flex items-center justify-between gap-2 w-full text-left px-2 py-1.5 rounded hover:bg-base-300 ${isActive ? 'active bg-cinema-red/20' : ''}`}
+                >
+                  <span className="flex items-center gap-1.5 whitespace-nowrap overflow-hidden">
+                    <span className="text-xs text-white truncate">{model.shortName || model.name}</span>
+                    {model.id === DEFAULT_CHAT_MODEL_ID && (
+                      <span className="hidden sm:inline text-[9px] text-base-content/50">(Default)</span>
+                    )}
+                    <span className="text-[9px] text-base-content/60 grayscale">{model.badges}</span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
+    </div>
   ) : null;
   
   return (
