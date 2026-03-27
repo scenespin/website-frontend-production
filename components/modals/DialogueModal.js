@@ -41,8 +41,10 @@ const LLM_MODELS = [
   // Gemini (Google) - Good for Complex Narratives
   { id: 'gemini-3-pro-preview', name: 'Gemini 3 Pro', provider: 'Google', description: 'Latest - Most intelligent, advanced reasoning' },
   { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'Google', description: 'Fast & efficient' },
-  // Grok (xAI) - Strong Reasoning & Creative
-  { id: 'grok-4-0709', name: 'Grok 4', provider: 'xAI', description: 'Flagship - Deep reasoning & analysis' },
+  // Grok (xAI) - Updated lineup
+  { id: 'grok-4.20-0309-reasoning', name: 'Grok 4.20 Reasoning', provider: 'xAI', description: 'Deep reasoning and planning (2M context)' },
+  { id: 'grok-4.20-0309-non-reasoning', name: 'Grok 4.20', provider: 'xAI', description: 'General-purpose non-reasoning model (2M context)' },
+  { id: 'grok-4.20-multi-agent-0309', name: 'Grok 4.20 Multi-Agent', provider: 'xAI', description: 'Complex task coordination and multi-agent style workflows' },
   { id: 'grok-4-1-fast-reasoning', name: 'Grok 4.1 Fast', provider: 'xAI', description: 'Fast with reasoning capabilities' },
   { id: 'grok-4-1-fast-non-reasoning', name: 'Grok 4.1 Fast Lite', provider: 'xAI', description: 'Ultra-fast & economical' },
 ];

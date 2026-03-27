@@ -23,7 +23,9 @@ const AUTO_DRAFT_LLM_MODELS = [
   { id: 'o3', name: 'O3', provider: 'OpenAI' },
   { id: 'gemini-3-pro-preview', name: 'Gemini 3 Pro', provider: 'Google' },
   { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'Google' },
-  { id: 'grok-4-0709', name: 'Grok 4', provider: 'xAI' },
+  { id: 'grok-4.20-0309-reasoning', name: 'Grok 4.20 Reasoning', provider: 'xAI' },
+  { id: 'grok-4.20-0309-non-reasoning', name: 'Grok 4.20', provider: 'xAI' },
+  { id: 'grok-4.20-multi-agent-0309', name: 'Grok 4.20 Multi-Agent', provider: 'xAI' },
   { id: 'grok-4-1-fast-reasoning', name: 'Grok 4.1 Fast', provider: 'xAI' },
   { id: 'grok-4-1-fast-non-reasoning', name: 'Grok 4.1 Fast Lite', provider: 'xAI' },
 ] as const;
