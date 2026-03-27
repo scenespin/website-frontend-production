@@ -14,6 +14,7 @@ import { getCharactersInScene, buildCharacterSummaries } from '@/utils/character
 import { getTimingMessage } from '@/utils/modelTiming';
 import { createClientLogger } from '@/utils/clientLogger';
 import { extractCreditError, getCreditErrorDisplayMessage, syncCreditsFromError } from '@/utils/creditGuard';
+import { LLM_MODELS, getLlmModelGroupsByTier } from '@/lib/llmModelConfig';
 import { AGENT_BADGE_THEMES } from './editorAgentBadgeThemes';
 import toast from 'react-hot-toast';
 // ModelSelect removed - using DaisyUI select instead
@@ -25,29 +26,6 @@ const logger = createClientLogger('DirectorModal', {
   debugEnabled: ENABLE_EDITOR_AGENT_DEBUG_LOGS,
   warnEnabled: ENABLE_EDITOR_AGENT_DEBUG_LOGS
 });
-
-// LLM Models - Same order and list as UnifiedChatPanel for consistency
-// Curated list: 8 models across 3 providers (latest flagship + fast option + premium option per provider)
-// Order: Anthropic (Claude) → OpenAI (GPT) → Google (Gemini)
-const LLM_MODELS = [
-  // Claude (Anthropic) - Best for Creative Writing
-  { id: 'claude-sonnet-4-6', name: 'Claude Sonnet 4.6', provider: 'Anthropic', description: '⭐ Best for creative writing & screenplays', recommended: true },
-  { id: 'claude-opus-4-6', name: 'Claude Opus 4.6', provider: 'Anthropic', description: 'Most powerful - Enhanced coding & reasoning' },
-  { id: 'claude-haiku-4-5', name: 'Claude Haiku 4.5', provider: 'Anthropic', description: 'Fast & economical' },
-  // GPT (OpenAI) - Good for Creative Writing
-  { id: 'gpt-5.1', name: 'GPT-5.1', provider: 'OpenAI', description: 'Latest - Excellent for creative writing' },
-  { id: 'gpt-4o', name: 'GPT-4o', provider: 'OpenAI', description: 'Balanced - Good for dialogue & scenes' },
-  { id: 'o3', name: 'O3', provider: 'OpenAI', description: 'Reasoning model - Best for analysis' },
-  // Gemini (Google) - Good for Complex Narratives
-  { id: 'gemini-3-pro-preview', name: 'Gemini 3 Pro', provider: 'Google', description: 'Latest - Most intelligent, advanced reasoning' },
-  { id: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash', provider: 'Google', description: 'Fast & efficient' },
-  // Grok (xAI) - Updated lineup
-  { id: 'grok-4.20-0309-reasoning', name: 'Grok 4.20 Reasoning', provider: 'xAI', description: 'Deep reasoning and planning (2M context)' },
-  { id: 'grok-4.20-0309-non-reasoning', name: 'Grok 4.20', provider: 'xAI', description: 'General-purpose non-reasoning model (2M context)' },
-  { id: 'grok-4.20-multi-agent-0309', name: 'Grok 4.20 Multi-Agent', provider: 'xAI', description: 'Complex task coordination and multi-agent style workflows' },
-  { id: 'grok-4-1-fast-reasoning', name: 'Grok 4.1 Fast', provider: 'xAI', description: 'Fast with reasoning capabilities' },
-  { id: 'grok-4-1-fast-non-reasoning', name: 'Grok 4.1 Fast Lite', provider: 'xAI', description: 'Ultra-fast & economical' },
-];
 
 export default function DirectorModal({
   isOpen,
@@ -624,22 +602,15 @@ Rules:
                         disabled={isLoading}
                         className="select select-bordered select-sm max-w-[140px] cinema-modal-select"
                       >
-                        {(() => {
-                          const grouped = LLM_MODELS.reduce((acc, model) => {
-                            if (!acc[model.provider]) acc[model.provider] = [];
-                            acc[model.provider].push(model);
-                            return acc;
-                          }, {});
-                          return Object.entries(grouped).map(([provider, models]) => (
-                            <optgroup key={provider} label={provider}>
+                        {getLlmModelGroupsByTier().map(({ tier, models }) => (
+                            <optgroup key={tier} label={tier}>
                               {models.map((model) => (
                                 <option key={model.id} value={model.id}>
                                   {model.name}
                                 </option>
                               ))}
                             </optgroup>
-                          ));
-                        })()}
+                          ))}
                       </select>
                       <button
                         onClick={onClose}
@@ -677,22 +648,15 @@ Rules:
                       disabled={isLoading}
                       className="select select-bordered select-sm w-full cinema-modal-select"
                     >
-                      {(() => {
-                        const grouped = LLM_MODELS.reduce((acc, model) => {
-                          if (!acc[model.provider]) acc[model.provider] = [];
-                          acc[model.provider].push(model);
-                          return acc;
-                        }, {});
-                        return Object.entries(grouped).map(([provider, models]) => (
-                          <optgroup key={provider} label={provider}>
+                      {getLlmModelGroupsByTier().map(({ tier, models }) => (
+                          <optgroup key={tier} label={tier}>
                             {models.map((model) => (
                               <option key={model.id} value={model.id}>
                                 {model.name}
                               </option>
                             ))}
                           </optgroup>
-                        ));
-                      })()}
+                        ))}
                     </select>
                   </div>
                 </div>
