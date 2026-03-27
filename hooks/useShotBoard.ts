@@ -12,6 +12,7 @@
 import React from 'react';
 import { useMediaFiles, useBulkPresignedUrls } from './useMediaLibrary';
 import type { MediaFile } from '@/types/media';
+import { stripFountainInlineStyleMarkers } from '@/utils/stripFountainInlineStyleMarkers';
 
 // ============================================================================
 // TYPES
@@ -89,6 +90,23 @@ export interface UseShotBoardOptions {
   activeSceneNumbers?: number[];
   /** Include legacy/orphaned scene media from older scene IDs (e.g. pre-rescan assets). */
   includeArchivedSceneAssets?: boolean;
+}
+
+function normalizeShotBoardLineText(text: string): string {
+  if (!text || typeof text !== 'string') return '';
+
+  let normalized = stripFountainInlineStyleMarkers(text);
+  normalized = normalized
+    .replace(/\\n/g, ' ')
+    .replace(/\\"/g, '"')
+    .replace(/\\'/g, "'")
+    .replace(/`/g, "'")
+    .replace(/---/g, '')
+    .replace(/"{2,}/g, '"')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  return normalized;
 }
 
 // ============================================================================
@@ -249,7 +267,10 @@ export function useShotBoard(
       }
       if (firstFrameMeta.isUserFirstFrame === true) firstFrameMetadata.isUserFirstFrame = true;
       if (typeof firstFrameMeta.lineText === 'string' && firstFrameMeta.lineText.trim().length > 0) {
-        firstFrameMetadata.lineText = firstFrameMeta.lineText.trim();
+        const normalizedLineText = normalizeShotBoardLineText(firstFrameMeta.lineText);
+        if (normalizedLineText.length > 0) {
+          firstFrameMetadata.lineText = normalizedLineText;
+        }
       }
       if (typeof firstFrameMeta.lineType === 'string' && firstFrameMeta.lineType.trim().length > 0) {
         firstFrameMetadata.lineType = firstFrameMeta.lineType.trim();
