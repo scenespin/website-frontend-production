@@ -175,7 +175,13 @@ export async function updateProviderPrice(
 
 export async function seedMissingRuntimeKeys(
   token?: string,
-  options?: { operationTypes?: string[]; providerPrefix?: string; dryRun?: boolean }
+  options?: {
+    operationTypes?: string[];
+    providerPrefix?: string;
+    dryRun?: boolean;
+    overwriteExisting?: boolean;
+    exemptProviderIds?: string[];
+  }
 ): Promise<{ success: boolean; result?: any; error?: string }> {
   try {
     const headers: Record<string, string> = {
