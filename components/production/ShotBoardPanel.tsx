@@ -85,6 +85,26 @@ function ShotCell({
   const aspectRatioLabel = currentVariation.firstFrame.metadata?.aspectRatio;
   const lineText = currentVariation.firstFrame.metadata?.lineText;
   const lineType = currentVariation.firstFrame.metadata?.lineType;
+  // Option 2: show all videos generated for this shot (newest first), independent of first-frame variation cycling.
+  const shotVideos = useMemo(() => {
+    const candidates = shot.variations.filter((v) => !!v.video?.s3Key);
+    candidates.sort((a, b) => String(b.timestamp || '').localeCompare(String(a.timestamp || ''), undefined, { numeric: true }));
+    const byS3Key = new Set<string>();
+    const deduped: Array<{ timestamp: string; s3Key: string; fileName: string; providerLabel?: string }> = [];
+    for (const v of candidates) {
+      const s3Key = v.video?.s3Key;
+      if (!s3Key || byS3Key.has(s3Key)) continue;
+      byS3Key.add(s3Key);
+      const metadata = (v.video?.metadata || {}) as Record<string, any>;
+      deduped.push({
+        timestamp: String(v.timestamp || ''),
+        s3Key,
+        fileName: String(v.video?.fileName || ''),
+        providerLabel: typeof metadata.providerDisplayLabel === 'string' ? metadata.providerDisplayLabel : undefined,
+      });
+    }
+    return deduped;
+  }, [shot.variations]);
 
   const handlePrev = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -283,6 +303,43 @@ function ShotCell({
           title={lineText}
         >
           {lineType ? `${lineType}: ` : ''}{lineText}
+        </div>
+      ) : null}
+      {shotVideos.length > 0 ? (
+        <div className="px-2 py-2 border-t border-[#3F3F46] bg-[#101010]">
+          <div className="text-[10px] font-medium text-[#A1A1AA] mb-1.5">
+            Videos ({shotVideos.length})
+          </div>
+          <div className="space-y-1.5 max-h-24 overflow-y-auto pr-1">
+            {shotVideos.map((video, idx) => {
+              const videoUrl = presignedUrls.get(video.s3Key);
+              const fallbackLabel = video.fileName || `Video ${idx + 1}`;
+              const itemLabel = fallbackLabel.length > 44 ? `${fallbackLabel.slice(0, 44)}...` : fallbackLabel;
+              return (
+                <div key={video.s3Key} className="flex items-center justify-between gap-2">
+                  <span
+                    className="text-[10px] text-[#B3B3B3] truncate"
+                    title={video.fileName || video.s3Key}
+                  >
+                    {idx + 1}. {itemLabel}
+                    {video.providerLabel ? ` (${video.providerLabel})` : ''}
+                  </span>
+                  <a
+                    href={videoUrl || '#'}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => {
+                      if (!videoUrl) e.preventDefault();
+                    }}
+                    className={`text-[10px] font-medium ${videoUrl ? 'text-[#60A5FA] hover:text-[#93C5FD]' : 'text-[#52525B] cursor-not-allowed'} whitespace-nowrap`}
+                    title={videoUrl ? 'Open video in new tab' : 'Video URL unavailable'}
+                  >
+                    Open
+                  </a>
+                </div>
+              );
+            })}
+          </div>
         </div>
       ) : null}
     </div>
