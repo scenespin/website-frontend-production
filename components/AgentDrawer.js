@@ -12,6 +12,8 @@ import { X, GripHorizontal, ChevronRight } from 'lucide-react';
 import { useDrawer } from '@/contexts/DrawerContext';
 import { useChatContext } from '@/contexts/ChatContext';
 
+const MOBILE_SNAP_POINTS = [0.5, 0.7, 0.9];
+
 export default function AgentDrawer({ children }) {
   const { isDrawerOpen, closeDrawer, openDrawer } = useDrawer();
   const { state } = useChatContext();
@@ -20,10 +22,22 @@ export default function AgentDrawer({ children }) {
   const dragStartHeight = useRef(0);
   const previousMessageCount = useRef(0);
   
-  // Calculate default height: 60% of screen
+  // Calculate default height: 90% of screen (initial snap point)
   const getDefaultHeight = () => {
     if (typeof window === 'undefined') return 400;
-    return Math.floor(window.innerHeight * 0.6);
+    return Math.floor(window.innerHeight * 0.9);
+  };
+
+  const getSnapHeights = () => {
+    if (typeof window === 'undefined') return [400];
+    return MOBILE_SNAP_POINTS.map((point) => Math.floor(window.innerHeight * point));
+  };
+
+  const getNearestSnapHeight = (targetHeight) => {
+    const snapHeights = getSnapHeights();
+    return snapHeights.reduce((closest, current) => {
+      return Math.abs(current - targetHeight) < Math.abs(closest - targetHeight) ? current : closest;
+    });
   };
   
   // Initialize height to 60% of screen
@@ -83,7 +97,10 @@ export default function AgentDrawer({ children }) {
 
     const handleMove = (clientY) => {
       const deltaY = dragStartY.current - clientY;
-      const newHeight = Math.max(300, Math.min(window.innerHeight * 0.9, dragStartHeight.current + deltaY));
+      const snapHeights = getSnapHeights();
+      const minHeight = Math.min(...snapHeights);
+      const maxHeight = Math.max(...snapHeights);
+      const newHeight = Math.max(minHeight, Math.min(maxHeight, dragStartHeight.current + deltaY));
 
       // If swiping down significantly, close the drawer
       if (deltaY < -100 && clientY > dragStartY.current) {
@@ -107,6 +124,7 @@ export default function AgentDrawer({ children }) {
     };
 
     const handleEnd = () => {
+      setHeight((prevHeight) => getNearestSnapHeight(prevHeight));
       setIsDragging(false);
     };
 
