@@ -129,6 +129,16 @@
     "dompurify": "3.3.2",
     "minimatch@3.1.2": "3.1.4",
     "minimatch@9.0.1": "9.0.7",
-    "minimatch@9.0.5": "9.0.7"
+    "minimatch@9.0.5": "9.0.7",
+    "brace-expansion": "1.1.13",
+    "micromatch": {
+      "picomatch": "2.3.2"
+    },
+    "tinyglobby": {
+      "picomatch": "4.0.4"
+    },
+    "fdir": {
+      "picomatch": "4.0.4"
+    }
   }
 }
