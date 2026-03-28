@@ -1628,6 +1628,9 @@ export function ShotConfigurationPanel({
           return (
             <div className="pb-3 border-b border-[#3F3F46]">
               <div className="text-xs font-medium text-[#FFFFFF] mb-2">Character(s)</div>
+              {isDialogueShot && (
+                <p className="text-[10px] text-[#808080] mb-2">Voice is controlled in Production Hub &gt; Characters.</p>
+              )}
               <div className="mb-3 p-2 bg-[#3F3F46]/30 border border-[#808080]/30 rounded text-[10px] text-[#808080]">
                 Character&apos;s face or mouth won&apos;t be visible (e.g. off-screen, back turned, side profile). Their voice will be used for this shot.
               </div>
@@ -1681,6 +1684,9 @@ export function ShotConfigurationPanel({
         return (
         <div className="pb-3 border-b border-[#3F3F46]">
           <div className="text-xs font-medium text-[#FFFFFF] mb-2">Character(s)</div>
+          {isDialogueShot && (
+            <p className="text-[10px] text-[#808080] mb-2">Voice is controlled in Production Hub &gt; Characters.</p>
+          )}
           {/* Show message for Narrate Shot (scene-voiceover) */}
           {currentWorkflow === 'scene-voiceover' && (
             <div className="mb-3 p-2 bg-[#3F3F46]/30 border border-[#808080]/30 rounded text-[10px] text-[#808080]">

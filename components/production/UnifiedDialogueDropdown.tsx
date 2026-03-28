@@ -218,13 +218,13 @@ export function UnifiedDialogueDropdown({
   const qualityOptions = useMemo(() => ([
     {
       quality: 'reliable' as DialogueQuality,
-      label: 'Standard',
-      helper: '720p'
+      label: 'Standard (AI-ADR)',
+      helper: '720p • Faster • Lower cost'
     },
     {
       quality: 'premium' as DialogueQuality,
-      label: 'Enhanced',
-      helper: '1080p'
+      label: 'Enhanced (AI-ADR)',
+      helper: '1080p • Higher fidelity lip-sync'
     }
   ]), []);
 
