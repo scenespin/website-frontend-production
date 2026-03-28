@@ -21,6 +21,7 @@ import { cn } from '@/lib/utils';
 import { detectCurrentScene, extractSelectionContext } from '@/utils/sceneDetection';
 import { buildRewritePrompt } from '@/utils/promptBuilders';
 import { buildStoryAdvisorContext, buildContextPromptString } from '@/utils/screenplayContextBuilder';
+import { stripFountainInlineStyleMarkers } from '@/utils/stripFountainInlineStyleMarkers';
 import { extractCreditError, getCreditErrorDisplayMessage, syncCreditsFromError } from '@/utils/creditGuard';
 import { api } from '@/lib/api';
 import { DEFAULT_CHAT_MODEL_ID, LLM_MODELS, LLM_MODEL_TIER_ORDER } from '@/lib/llmModelConfig';
@@ -1320,6 +1321,7 @@ function UnifiedChatPanelInner({
           
           // Add scene context to system prompt (for non-chat modes)
           if (currentSceneContext) {
+            const normalizedSceneContent = stripFountainInlineStyleMarkers(currentSceneContext.content || '');
             systemPrompt += `\n\n[SCENE CONTEXT - Use this to provide contextual responses]\n`;
             systemPrompt += `Current Scene: ${currentSceneContext.heading}\n`;
             systemPrompt += `Act: ${currentSceneContext.act}\n`;
@@ -1327,7 +1329,7 @@ function UnifiedChatPanelInner({
             if (currentSceneContext.characters && currentSceneContext.characters.length > 0) {
               systemPrompt += `Characters in scene: ${currentSceneContext.characters.join(', ')}\n`;
             }
-            systemPrompt += `\nScene Content:\n${currentSceneContext.content?.substring(0, 1000) || ''}${currentSceneContext.content && currentSceneContext.content.length > 1000 ? '...' : ''}\n`;
+            systemPrompt += `\nScene Content:\n${normalizedSceneContent.substring(0, 1000)}${normalizedSceneContent.length > 1000 ? '...' : ''}\n`;
             systemPrompt += `\nIMPORTANT: Use this scene context to provide relevant, contextual responses. Reference the scene, characters, and content when appropriate.`;
           }
         }

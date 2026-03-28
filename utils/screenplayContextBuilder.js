@@ -10,6 +10,7 @@
 
 import { detectCurrentScene } from './sceneDetection';
 import { calculateMaxContentChars, getModelContextWindow, estimateTokens } from './tokenCalculator';
+import { stripFountainInlineStyleMarkers } from './stripFountainInlineStyleMarkers';
 
 // Constants
 const CHARS_PER_PAGE = 2000; // Rough estimate: ~2000 chars per page
@@ -19,6 +20,11 @@ const RETRIEVAL_HEADINGS_PREVIEW_COUNT = 6;
 const MAX_RELEVANT_SCENES_IN_PROMPT = 2;
 const MAX_CURRENT_SCENE_CHARS = 3200;
 const MAX_RELEVANT_SCENE_CHARS = 2200;
+
+function normalizeAgentContextText(value) {
+  if (typeof value !== 'string') return '';
+  return stripFountainInlineStyleMarkers(value);
+}
 
 /**
  * Main function: Builds intelligent context for Story Advisor
@@ -411,11 +417,12 @@ export function buildContextPromptString(contextData) {
 
   if (contextData.type === 'full') {
     // Full screenplay content
-    contextString += `\n\nFULL SCREENPLAY CONTENT:\n${contextData.content}\n\n`;
+    const normalizedContent = normalizeAgentContextText(contextData.content || '');
+    contextString += `\n\nFULL SCREENPLAY CONTENT:\n${normalizedContent}\n\n`;
     contextString += `Use this complete screenplay to provide comprehensive analysis, identify plot holes, analyze character arcs, and provide structure feedback.`;
     
     if (contextData.currentScene) {
-      contextString += `\n\nYou are currently focused on: ${contextData.currentScene.heading} (Act ${contextData.currentScene.act}, Page ${contextData.currentScene.pageNumber})`;
+      contextString += `\n\nYou are currently focused on: ${normalizeAgentContextText(contextData.currentScene.heading || '')} (Act ${contextData.currentScene.act}, Page ${contextData.currentScene.pageNumber})`;
     }
   } else if (contextData.type === 'structured') {
     // Structured summary
@@ -429,28 +436,28 @@ export function buildContextPromptString(contextData) {
     if (structure.sceneHeadings.length > 0) {
       contextString += `SCENE HEADINGS:\n`;
       structure.sceneHeadings.forEach((scene, index) => {
-        contextString += `${index + 1}. ${scene.heading} (Page ${scene.pageNumber})\n`;
+        contextString += `${index + 1}. ${normalizeAgentContextText(scene.heading || '')} (Page ${scene.pageNumber})\n`;
       });
       contextString += `\n`;
     }
     
     // Character list
     if (structure.characters.length > 0) {
-      contextString += `CHARACTERS:\n${structure.characters.join(', ')}\n\n`;
+      contextString += `CHARACTERS:\n${structure.characters.map((character) => normalizeAgentContextText(String(character || ''))).filter(Boolean).join(', ')}\n\n`;
     }
     
     // Act summaries
     if (structure.actSummaries.length > 0) {
       contextString += `ACT SUMMARIES:\n`;
       structure.actSummaries.forEach(act => {
-        contextString += `Act ${act.act} (Pages ${act.pageRange}): ${act.sceneCount} scenes. Key scenes: ${act.keyScenes.join(', ')}\n`;
+        contextString += `Act ${act.act} (Pages ${act.pageRange}): ${act.sceneCount} scenes. Key scenes: ${act.keyScenes.map((scene) => normalizeAgentContextText(String(scene || ''))).join(', ')}\n`;
       });
       contextString += `\n`;
     }
     
     // Current scene in full
     if (contextData.currentScene && contextData.currentScene.content) {
-      contextString += `CURRENT SCENE (Full Detail):\n${contextData.currentScene.content}\n\n`;
+      contextString += `CURRENT SCENE (Full Detail):\n${normalizeAgentContextText(contextData.currentScene.content)}\n\n`;
     }
     
     contextString += `Use this structured overview and current scene context to provide specific, relevant advice about the screenplay.`;
@@ -468,15 +475,15 @@ export function buildContextPromptString(contextData) {
       // Show first 10 and last 10 for very long screenplays
       if (structure.sceneHeadings.length > (RETRIEVAL_HEADINGS_PREVIEW_COUNT * 2)) {
         structure.sceneHeadings.slice(0, RETRIEVAL_HEADINGS_PREVIEW_COUNT).forEach((scene, index) => {
-          contextString += `${index + 1}. ${scene.heading} (Page ${scene.pageNumber})\n`;
+          contextString += `${index + 1}. ${normalizeAgentContextText(scene.heading || '')} (Page ${scene.pageNumber})\n`;
         });
         contextString += `... (${structure.sceneHeadings.length - (RETRIEVAL_HEADINGS_PREVIEW_COUNT * 2)} scenes omitted for brevity) ...\n`;
         structure.sceneHeadings.slice(-RETRIEVAL_HEADINGS_PREVIEW_COUNT).forEach((scene, index) => {
-          contextString += `${structure.sceneHeadings.length - RETRIEVAL_HEADINGS_PREVIEW_COUNT + index + 1}. ${scene.heading} (Page ${scene.pageNumber})\n`;
+          contextString += `${structure.sceneHeadings.length - RETRIEVAL_HEADINGS_PREVIEW_COUNT + index + 1}. ${normalizeAgentContextText(scene.heading || '')} (Page ${scene.pageNumber})\n`;
         });
       } else {
         structure.sceneHeadings.forEach((scene, index) => {
-          contextString += `${index + 1}. ${scene.heading} (Page ${scene.pageNumber})\n`;
+          contextString += `${index + 1}. ${normalizeAgentContextText(scene.heading || '')} (Page ${scene.pageNumber})\n`;
         });
       }
       contextString += `\n`;
@@ -484,23 +491,24 @@ export function buildContextPromptString(contextData) {
     
     // Character list
     if (structure.characters.length > 0) {
-      contextString += `CHARACTERS:\n${structure.characters.join(', ')}\n\n`;
+      contextString += `CHARACTERS:\n${structure.characters.map((character) => normalizeAgentContextText(String(character || ''))).filter(Boolean).join(', ')}\n\n`;
     }
     
     // Act summaries
     if (structure.actSummaries.length > 0) {
       contextString += `ACT SUMMARIES:\n`;
       structure.actSummaries.forEach(act => {
-        contextString += `Act ${act.act} (Pages ${act.pageRange}): ${act.sceneCount} scenes. Key scenes: ${act.keyScenes.join(', ')}\n`;
+        contextString += `Act ${act.act} (Pages ${act.pageRange}): ${act.sceneCount} scenes. Key scenes: ${act.keyScenes.map((scene) => normalizeAgentContextText(String(scene || ''))).join(', ')}\n`;
       });
       contextString += `\n`;
     }
     
     // Current scene in full
     if (contextData.currentScene && contextData.currentScene.content) {
-      const currentSceneContent = contextData.currentScene.content.length > MAX_CURRENT_SCENE_CHARS
-        ? `${contextData.currentScene.content.slice(0, MAX_CURRENT_SCENE_CHARS)}\n\n[... current scene truncated ...]`
-        : contextData.currentScene.content;
+      const normalizedCurrentScene = normalizeAgentContextText(contextData.currentScene.content);
+      const currentSceneContent = normalizedCurrentScene.length > MAX_CURRENT_SCENE_CHARS
+        ? `${normalizedCurrentScene.slice(0, MAX_CURRENT_SCENE_CHARS)}\n\n[... current scene truncated ...]`
+        : normalizedCurrentScene;
       contextString += `CURRENT SCENE (Focused Detail):\n${currentSceneContent}\n\n`;
     }
     
@@ -508,10 +516,11 @@ export function buildContextPromptString(contextData) {
     if (contextData.relevantScenes && contextData.relevantScenes.length > 0) {
       contextString += `RELEVANT SCENES (Based on Your Query):\n`;
       contextData.relevantScenes.slice(0, MAX_RELEVANT_SCENES_IN_PROMPT).forEach((scene, index) => {
-        const sceneContent = scene.content.length > MAX_RELEVANT_SCENE_CHARS
-          ? `${scene.content.slice(0, MAX_RELEVANT_SCENE_CHARS)}\n\n[... relevant scene truncated ...]`
-          : scene.content;
-        contextString += `\n${index + 1}. ${scene.heading} (Page ${scene.pageNumber}):\n${sceneContent}\n`;
+        const normalizedSceneContent = normalizeAgentContextText(scene.content || '');
+        const sceneContent = normalizedSceneContent.length > MAX_RELEVANT_SCENE_CHARS
+          ? `${normalizedSceneContent.slice(0, MAX_RELEVANT_SCENE_CHARS)}\n\n[... relevant scene truncated ...]`
+          : normalizedSceneContent;
+        contextString += `\n${index + 1}. ${normalizeAgentContextText(scene.heading || '')} (Page ${scene.pageNumber}):\n${sceneContent}\n`;
       });
       contextString += `\n`;
     }

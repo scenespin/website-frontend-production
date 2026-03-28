@@ -6,6 +6,12 @@
  * - Full scene generation for Director (5-15+ lines)
  * - Comprehensive rewrite prompts with surrounding text
  */
+import { stripFountainInlineStyleMarkers } from './stripFountainInlineStyleMarkers';
+
+function normalizeAgentContextText(value) {
+  if (typeof value !== 'string') return '';
+  return stripFountainInlineStyleMarkers(value);
+}
 
 /**
  * Build context information string for AI prompts
@@ -16,15 +22,19 @@ export function buildContextInfo(sceneContext) {
   if (!sceneContext) return '';
   
   let contextInfo = '';
+  const normalizedHeading = normalizeAgentContextText(sceneContext.heading || '');
+  const normalizedCharacters = Array.isArray(sceneContext.characters)
+    ? sceneContext.characters.map((character) => normalizeAgentContextText(String(character || ''))).filter(Boolean)
+    : [];
   
-  if (sceneContext.heading) {
-    contextInfo += `SCREENPLAY CONTEXT:\nCurrent scene: ${sceneContext.heading}\n`;
+  if (normalizedHeading) {
+    contextInfo += `SCREENPLAY CONTEXT:\nCurrent scene: ${normalizedHeading}\n`;
   }
   if (sceneContext.act) {
     contextInfo += `Act: ${sceneContext.act}\n`;
   }
-  if (sceneContext.characters && sceneContext.characters.length > 0) {
-    contextInfo += `Characters in this scene: ${sceneContext.characters.join(', ')}\n`;
+  if (normalizedCharacters.length > 0) {
+    contextInfo += `Characters in this scene: ${normalizedCharacters.join(', ')}\n`;
   }
   
   if (contextInfo) {
@@ -82,7 +92,8 @@ export function buildChatContentPrompt(message, sceneContext, useJSON = true) {
   // 🔥 MINIMAL: Just add context if available, then user's request
   let continuationContext = '';
   if (sceneContext?.contextBeforeCursor) {
-    continuationContext = `\n\nContext: ${sceneContext.contextBeforeCursor.substring(0, 200)}...`;
+    const normalizedContextBeforeCursor = normalizeAgentContextText(sceneContext.contextBeforeCursor);
+    continuationContext = `\n\nContext: ${normalizedContextBeforeCursor.substring(0, 200)}...`;
   }
 
   // 🔥 CODE BLOCK APPROACH: Request Fountain format in code blocks (STRENGTHENED)
@@ -104,26 +115,30 @@ export function buildChatContentPrompt(message, sceneContext, useJSON = true) {
  */
 export function buildScreenwriterPrompt(userMessage, sceneContext, fullCurrentSceneUpToCursor = '', recentDialogue = [], characterSummaries = '', useJSON = true) {
   let prompt = userMessage;
+  const normalizedCurrentScene = normalizeAgentContextText(fullCurrentSceneUpToCursor);
+  const normalizedCharacterSummaries = normalizeAgentContextText(characterSummaries);
   
   // Enhanced context section
   let enhancedContext = '';
   
   // Full current scene up to cursor
-  if (fullCurrentSceneUpToCursor) {
-    enhancedContext += `\n\n[CURRENT SCENE - Full Content Up to Cursor]\n${fullCurrentSceneUpToCursor}\n`;
+  if (normalizedCurrentScene) {
+    enhancedContext += `\n\n[CURRENT SCENE - Full Content Up to Cursor]\n${normalizedCurrentScene}\n`;
   }
   
   // Recent dialogue for tone consistency
   if (recentDialogue && recentDialogue.length > 0) {
     enhancedContext += `\n\n[RECENT DIALOGUE - For Tone Consistency]\n`;
     recentDialogue.forEach(exchange => {
-      enhancedContext += `${exchange.character}\n${exchange.line}\n\n`;
+      const character = normalizeAgentContextText(exchange.character || '');
+      const line = normalizeAgentContextText(exchange.line || '');
+      enhancedContext += `${character}\n${line}\n\n`;
     });
   }
   
   // Character summaries
-  if (characterSummaries) {
-    enhancedContext += `\n\n[CHARACTERS IN SCENE]\n${characterSummaries}\n`;
+  if (normalizedCharacterSummaries) {
+    enhancedContext += `\n\n[CHARACTERS IN SCENE]\n${normalizedCharacterSummaries}\n`;
   }
   
   // Add enhanced context
@@ -190,15 +205,17 @@ Note: The user is asking for advice or discussion. Keep your response concise an
  */
 export function buildDirectorModalPrompt(sceneDirections, sceneContext, fullCurrentScene = '', previousScene = null, characterSummaries = '', useJSON = true) {
   const contextInfo = buildContextInfo(sceneContext);
+  const normalizedCurrentScene = normalizeAgentContextText(fullCurrentScene);
+  const normalizedCharacterSummaries = normalizeAgentContextText(characterSummaries);
   
   // Build scene direction prompts
   let scenePrompts = '';
   sceneDirections.forEach((scene, index) => {
     scenePrompts += `Scene ${index + 1}:\n`;
-    scenePrompts += `Location: ${scene.location}\n`;
-    scenePrompts += `Scenario: ${scene.scenario}\n`;
+    scenePrompts += `Location: ${normalizeAgentContextText(scene.location || '')}\n`;
+    scenePrompts += `Scenario: ${normalizeAgentContextText(scene.scenario || '')}\n`;
     if (scene.direction && scene.direction.trim()) {
-      scenePrompts += `Direction: ${scene.direction}\n`;
+      scenePrompts += `Direction: ${normalizeAgentContextText(scene.direction)}\n`;
     }
     scenePrompts += '\n';
   });
@@ -207,23 +224,23 @@ export function buildDirectorModalPrompt(sceneDirections, sceneContext, fullCurr
   let contextSection = '';
   
   // Full current scene
-  if (fullCurrentScene) {
-    contextSection += `\n\n[CURRENT SCENE - Full Content]\n${fullCurrentScene}\n`;
+  if (normalizedCurrentScene) {
+    contextSection += `\n\n[CURRENT SCENE - Full Content]\n${normalizedCurrentScene}\n`;
   }
   
   // Previous scene for continuity
   if (previousScene && previousScene.content) {
-    contextSection += `\n\n[PREVIOUS SCENE - For Continuity]\n${previousScene.heading}\n${previousScene.content}\n`;
+    contextSection += `\n\n[PREVIOUS SCENE - For Continuity]\n${normalizeAgentContextText(previousScene.heading || '')}\n${normalizeAgentContextText(previousScene.content)}\n`;
   }
   
   // Character summaries
-  if (characterSummaries) {
-    contextSection += `\n\n[CHARACTERS IN SCENE]\n${characterSummaries}\n`;
+  if (normalizedCharacterSummaries) {
+    contextSection += `\n\n[CHARACTERS IN SCENE]\n${normalizedCharacterSummaries}\n`;
   }
   
   // Scene metadata
   if (sceneContext?.heading) {
-    contextSection += `\nCurrent scene: ${sceneContext.heading}\n`;
+    contextSection += `\nCurrent scene: ${normalizeAgentContextText(sceneContext.heading)}\n`;
   }
 
   if (useJSON) {
@@ -473,18 +490,23 @@ Output: ${generationLength === 'multiple' ? 'Multiple complete, cinematic scenes
  */
 export function buildRewritePrompt(message, selectedText, sceneContext, surroundingText = null, fullCurrentScene = '', characterSummaries = '', useJSON = false) {
   let contextInfo = '';
+  const normalizedSelectedText = normalizeAgentContextText(selectedText);
+  const normalizedCurrentScene = normalizeAgentContextText(fullCurrentScene);
+  const normalizedCharacterSummaries = normalizeAgentContextText(characterSummaries);
+  const normalizedBefore = normalizeAgentContextText(surroundingText?.before || '');
+  const normalizedAfter = normalizeAgentContextText(surroundingText?.after || '');
   
   // Enhanced context section
   let enhancedContext = '';
   
   // Full current scene for broader context
-  if (fullCurrentScene) {
-    enhancedContext += `\n\n[CURRENT SCENE - Full Content for Context]\n${fullCurrentScene}\n`;
+  if (normalizedCurrentScene) {
+    enhancedContext += `\n\n[CURRENT SCENE - Full Content for Context]\n${normalizedCurrentScene}\n`;
   }
   
   // Character summaries if characters appear in selection
-  if (characterSummaries) {
-    enhancedContext += `\n\n[CHARACTERS IN SELECTION]\n${characterSummaries}\n`;
+  if (normalizedCharacterSummaries) {
+    enhancedContext += `\n\n[CHARACTERS IN SELECTION]\n${normalizedCharacterSummaries}\n`;
   }
   
   // Add enhanced context
@@ -493,23 +515,23 @@ export function buildRewritePrompt(message, selectedText, sceneContext, surround
   }
   
   // Add surrounding text for seamless integration
-  if (surroundingText?.before) {
-    contextInfo += `\n\nText BEFORE the selected section (maintain continuity with this):\n"${surroundingText.before}"\n\n`;
+  if (normalizedBefore) {
+    contextInfo += `\n\nText BEFORE the selected section (maintain continuity with this):\n"${normalizedBefore}"\n\n`;
   }
   
-  contextInfo += `Selected text to rewrite:\n"${selectedText}"\n\n`;
+  contextInfo += `Selected text to rewrite:\n"${normalizedSelectedText}"\n\n`;
   
-  if (surroundingText?.after) {
-    contextInfo += `Text AFTER the selected section (maintain continuity with this):\n"${surroundingText.after}"\n\n`;
+  if (normalizedAfter) {
+    contextInfo += `Text AFTER the selected section (maintain continuity with this):\n"${normalizedAfter}"\n\n`;
   }
   
   // Add scene context if available
   if (sceneContext) {
     if (sceneContext.heading) {
-      contextInfo += `Current scene: ${sceneContext.heading}\n`;
+      contextInfo += `Current scene: ${normalizeAgentContextText(sceneContext.heading)}\n`;
     }
     if (sceneContext.characters && sceneContext.characters.length > 0) {
-      contextInfo += `Characters in scene: ${sceneContext.characters.join(', ')}\n`;
+      contextInfo += `Characters in scene: ${sceneContext.characters.map((character) => normalizeAgentContextText(String(character || ''))).filter(Boolean).join(', ')}\n`;
     }
     contextInfo += '\n';
   }
@@ -564,8 +586,8 @@ Output: 3 distinct rewrite options in the format above.`;
   if (useJSON) {
     return `${contextInfo}Rewrite the selected text: "${message}"
 
-${surroundingText?.before ? `Context before: "${surroundingText.before}"` : ''}
-${surroundingText?.after ? `Context after: "${surroundingText.after}"` : ''}
+${normalizedBefore ? `Context before: "${normalizedBefore}"` : ''}
+${normalizedAfter ? `Context after: "${normalizedAfter}"` : ''}
 
 Respond with JSON:
 {
@@ -593,8 +615,8 @@ CRITICAL SPACING RULES (Fountain.io spec):
   // Fallback: Simplified text format (primary reliable path)
   return `${contextInfo}Rewrite the selected text: "${message}"
 
-${surroundingText?.before ? `Context before: "${surroundingText.before}"` : ''}
-${surroundingText?.after ? `Context after: "${surroundingText.after}"` : ''}
+${normalizedBefore ? `Context before: "${normalizedBefore}"` : ''}
+${normalizedAfter ? `Context after: "${normalizedAfter}"` : ''}
 
 Rules:
 - Write what the user requested
@@ -629,31 +651,35 @@ CRITICAL SPACING RULES (Fountain.io spec):
  */
 export function buildDialoguePrompt(formData, sceneContext, fullCurrentScene = '', recentDialogue = [], sceneAction = [], characterSummaries = '', useJSON = true) {
   const contextInfo = buildContextInfo(sceneContext);
+  const normalizedCurrentScene = normalizeAgentContextText(fullCurrentScene);
+  const normalizedCharacterSummaries = normalizeAgentContextText(characterSummaries);
   
   // Enhanced context section
   let enhancedContext = '';
   
   // Full current scene
-  if (fullCurrentScene) {
-    enhancedContext += `\n\n[CURRENT SCENE - Full Content]\n${fullCurrentScene}\n`;
+  if (normalizedCurrentScene) {
+    enhancedContext += `\n\n[CURRENT SCENE - Full Content]\n${normalizedCurrentScene}\n`;
   }
   
   // Recent dialogue for tone/pattern consistency
   if (recentDialogue && recentDialogue.length > 0) {
     enhancedContext += `\n\n[RECENT DIALOGUE - For Tone Consistency]\n`;
     recentDialogue.forEach(exchange => {
-      enhancedContext += `${exchange.character}\n${exchange.line}\n\n`;
+      const character = normalizeAgentContextText(exchange.character || '');
+      const line = normalizeAgentContextText(exchange.line || '');
+      enhancedContext += `${character}\n${line}\n\n`;
     });
   }
   
   // Scene action context
   if (sceneAction && sceneAction.length > 0) {
-    enhancedContext += `\n\n[SCENE ACTION - What's Happening]\n${sceneAction.join('\n')}\n`;
+    enhancedContext += `\n\n[SCENE ACTION - What's Happening]\n${sceneAction.map((line) => normalizeAgentContextText(line || '')).join('\n')}\n`;
   }
   
   // Character summaries
-  if (characterSummaries) {
-    enhancedContext += `\n\n[CHARACTERS]\n${characterSummaries}\n`;
+  if (normalizedCharacterSummaries) {
+    enhancedContext += `\n\n[CHARACTERS]\n${normalizedCharacterSummaries}\n`;
   }
   
   // Build prompt from form data
