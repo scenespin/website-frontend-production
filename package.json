@@ -131,6 +131,27 @@
     "minimatch@9.0.1": "9.0.7",
     "minimatch@9.0.5": "9.0.7",
     "brace-expansion": "1.1.13",
+    "flatted": "3.4.2",
+    "underscore": "1.13.8",
+    "ajv": "6.14.0",
+    "flat-cache": {
+      "flatted": "3.4.2"
+    },
+    "eslint": {
+      "ajv": "6.14.0"
+    },
+    "@eslint/eslintrc": {
+      "ajv": "6.14.0"
+    },
+    "mammoth": {
+      "underscore": "1.13.8"
+    },
+    "lop": {
+      "underscore": "1.13.8"
+    },
+    "duck": {
+      "underscore": "1.13.8"
+    },
     "micromatch": {
       "picomatch": "2.3.2"
     },
