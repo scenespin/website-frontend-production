@@ -10,6 +10,10 @@ import {
 } from '@/lib/modelCatalog';
 
 function ModelTable({ title, subtitle, rows }) {
+  const sortedRows = [...rows].sort((a, b) =>
+    a.name.localeCompare(b.name, undefined, { sensitivity: 'base', numeric: true })
+  );
+
   return (
     <section className="bg-[#111111] border border-[#2A2A2A] rounded-xl p-4 sm:p-6">
       <div className="mb-4">
@@ -27,7 +31,7 @@ function ModelTable({ title, subtitle, rows }) {
             </tr>
           </thead>
           <tbody>
-            {rows.map((row) => (
+            {sortedRows.map((row) => (
               <tr key={row.id} className="border-b border-[#1E1E1E]">
                 <td className="py-2 pr-4 text-white">{row.name}</td>
                 <td className="py-2 pr-4 text-gray-300">{row.provider}</td>
