@@ -163,6 +163,50 @@ function ShotCell({
     });
   };
 
+  const handleDownloadShotVideo = async (
+    e: React.MouseEvent,
+    s3Key: string,
+    fileName: string,
+    fallbackIndex: number
+  ) => {
+    e.stopPropagation();
+    if (!s3Key) return;
+
+    const safeFileName = (() => {
+      const trimmed = String(fileName || '').trim();
+      if (trimmed.length > 0) return trimmed;
+      return `shot-${shot.shotNumber}-video-${fallbackIndex + 1}.mp4`;
+    })();
+
+    try {
+      const token = await getToken({ template: 'wryda-backend' });
+      if (!token) {
+        toast.error('Please sign in to download');
+        return;
+      }
+
+      const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+      const proxyUrl = `${BACKEND_API_URL}/api/media/file?key=${encodeURIComponent(s3Key)}`;
+      const response = await fetch(proxyUrl, {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!response.ok) throw new Error(response.statusText);
+
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = safeFileName;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      setTimeout(() => URL.revokeObjectURL(blobUrl), 100);
+    } catch (err) {
+      console.error('[ShotBoard] Failed to download shot video:', err);
+      toast.error('Failed to download video');
+    }
+  };
+
   return (
     <div
       className="relative flex-shrink-0 w-72 rounded-lg border border-[#3F3F46] overflow-hidden bg-[#1A1A1A] group flex flex-col"
@@ -336,6 +380,15 @@ function ShotCell({
                   >
                     Open
                   </a>
+                  <button
+                    type="button"
+                    onClick={(e) => handleDownloadShotVideo(e, video.s3Key, video.fileName, idx)}
+                    className="text-[10px] font-medium text-[#A1A1AA] hover:text-white whitespace-nowrap"
+                    title="Download video"
+                    aria-label="Download video"
+                  >
+                    Download
+                  </button>
                 </div>
               );
             })}
