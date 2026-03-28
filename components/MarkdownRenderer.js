@@ -157,7 +157,7 @@ export function MarkdownRenderer({ content, className = '' }) {
       <style dangerouslySetInnerHTML={{ __html: `
         .markdown-chat-content {
           color: inherit;
-          font-size: 0.75rem;
+          font-size: 0.9375rem;
           line-height: 1.5;
           user-select: text;
           -webkit-user-select: text;
@@ -166,7 +166,7 @@ export function MarkdownRenderer({ content, className = '' }) {
         }
         @media (min-width: 640px) {
           .markdown-chat-content {
-            font-size: 0.8125rem;
+            font-size: 0.9375rem;
           }
         }
         .markdown-chat-content h1,
