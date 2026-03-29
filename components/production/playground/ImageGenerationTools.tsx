@@ -108,7 +108,7 @@ const DIRECT_HUB_ALLOWED_REFERENCE_MODELS = new Set([
   'nano-banana-pro-2k',
   'gemini-3.1-flash-image-4k',
   'gemini-3.1-flash-image-2k',
-  'grok-imagine-image',      // xAI: up to 3 reference images
+  'grok-imagine-image',      // xAI: up to 5 reference images
   'grok-imagine-image-pro',  // xAI: max 1 reference image
 ]);
 
@@ -335,8 +335,8 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
     }
     if (modelId === 'grok-imagine-image' || modelId === 'grok-imagine-image-pro') {
       return {
-        promptHint: 'Grok Imagine (xAI): Great for style transfer and image editing. Describe the desired aesthetic (oil painting, pencil sketch, anime, etc.). Standard: up to 3 refs; Pro: 1 ref, higher quality.',
-        referenceHint: 'Standard: 1–3 refs for style transfer. Pro: 1 ref only. Clear, well-lit images produce best results.'
+        promptHint: 'Grok Imagine (xAI): Great for style transfer and image editing. Describe the desired aesthetic (oil painting, pencil sketch, anime, etc.). Standard: up to 5 refs; Pro: 1 ref, higher quality.',
+        referenceHint: 'Standard: 1-5 refs for style transfer. Pro: 1 ref only. Clear, well-lit images produce best results.'
       };
     }
     if (modelId.includes('flux2')) {
@@ -376,7 +376,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
       selectedModelInfo.id === 'gemini-3.1-flash-image-2k'
     ) return 14;
     if (selectedModelInfo.id.includes('flux2')) return 8;
-    if (selectedModelInfo.id === 'grok-imagine-image') return 3;
+    if (selectedModelInfo.id === 'grok-imagine-image') return 5;
     if (selectedModelInfo.id === 'grok-imagine-image-pro') return 1; // xAI: Pro supports max 1 ref
     return 0;
   };
