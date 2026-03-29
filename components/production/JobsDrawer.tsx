@@ -555,6 +555,7 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   const processedJobIdsForEntityRefresh = useRef<Set<string>>(new Set());
   // Track terminal jobs already used for immediate refetch.
   const processedTerminalRefreshJobIds = useRef<Set<string>>(new Set());
+  const mediaTerminalRefetchRetryTimers = useRef<Set<string>>(new Set());
   // Track previous jobs state to prevent infinite loops
   const previousJobsHash = useRef<string>('');
   // GSI eventual consistency: retry counter when initial load returns 0 jobs (max 3 retries with exponential backoff)
@@ -1351,6 +1352,20 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
           queryClient.refetchQueries({ queryKey: ['assets', screenplayId, 'production-hub'] });
           queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] });
           queryClient.refetchQueries({ queryKey: ['media', 'presigned-urls'], exact: false });
+          // Delayed retries mitigate eventual-consistency windows where scene/video rows land after terminal state.
+          // Keep this lightweight and non-blocking (single job-keyed schedule).
+          if (!mediaTerminalRefetchRetryTimers.current.has(updated.jobId)) {
+            mediaTerminalRefetchRetryTimers.current.add(updated.jobId);
+            setTimeout(() => {
+              queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] });
+              queryClient.refetchQueries({ queryKey: ['media', 'presigned-urls'], exact: false });
+            }, 2500);
+            setTimeout(() => {
+              queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId] });
+              queryClient.refetchQueries({ queryKey: ['media', 'presigned-urls'], exact: false });
+              mediaTerminalRefetchRetryTimers.current.delete(updated.jobId);
+            }, 7000);
+          }
         }
         if (isTerminal || changed) updates.push(updated);
       }

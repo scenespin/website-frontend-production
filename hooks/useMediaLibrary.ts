@@ -54,8 +54,8 @@ const FETCH_ALL_DEFAULT_MAX_PAGES = 20;
 const FETCH_ALL_DEFAULT_MAX_MS = 8000;
 // Shots/Videos tabs require complete scene/standalone sets to avoid split-brain rendering where
 // one tab shows only a first frame or only a video during high-volume pagination windows.
-const FETCH_ALL_SCENE_MAX_PAGES = 120;
-const FETCH_ALL_SCENE_MAX_MS = 30000;
+const FETCH_ALL_SCENE_MAX_PAGES = 240;
+const FETCH_ALL_SCENE_MAX_MS = 60000;
 
 /**
  * Map backend file shape to frontend MediaFile (single place for consistency).
