@@ -144,7 +144,12 @@ export function SceneReviewStep({
   elementsVideoAspectRatios = {}
 }: SceneReviewStepProps) {
   const { getToken } = useAuth();
-  const [pricing, setPricing] = useState<{ totalHdPrice: number; totalK4Price: number; totalFirstFramePrice: number } | null>(null);
+  const [pricing, setPricing] = useState<{
+    shots: Array<{ shotSlot: number; hdPrice: number; k4Price: number; firstFramePrice: number }>;
+    totalHdPrice: number;
+    totalK4Price: number;
+    totalFirstFramePrice: number;
+  } | null>(null);
   const [isLoadingPricing, setIsLoadingPricing] = useState(false);
   const reviewWarningEventSentRef = useRef<Set<string>>(new Set());
   const effectiveUseElementsForVideo = useMemo(
@@ -210,6 +215,7 @@ export function SceneReviewStep({
         );
         
         setPricing({
+          shots: pricingResult.shots || [],
           totalHdPrice: pricingResult.totalHdPrice,
           totalK4Price: pricingResult.totalK4Price,
           totalFirstFramePrice: pricingResult.totalFirstFramePrice
@@ -363,6 +369,20 @@ export function SceneReviewStep({
   }, 0);
 
   const hasAnyVideo = totalDuration > 0;
+  const perShotPricingEntries = selectedShots
+    .map((shot: any) => {
+      const breakdown = pricing?.shots?.find((entry) => entry.shotSlot === shot.slot);
+      if (!breakdown) return null;
+      const firstFrame = Number.isFinite(Number(breakdown.firstFramePrice)) ? Number(breakdown.firstFramePrice) : 0;
+      const video = Number.isFinite(Number(breakdown.hdPrice)) ? Number(breakdown.hdPrice) : 0;
+      return {
+        shotSlot: shot.slot,
+        firstFrame,
+        video,
+        total: firstFrame + video
+      };
+    })
+    .filter((entry): entry is { shotSlot: number; firstFrame: number; video: number; total: number } => Boolean(entry));
   const minutes = Math.floor(totalDuration / 60);
   const seconds = totalDuration % 60;
   const durationText = hasAnyVideo
@@ -400,6 +420,20 @@ export function SceneReviewStep({
                     <span className="text-sm font-medium text-[#FFFFFF]">
                       {hasAnyVideo ? pricing.totalFirstFramePrice + pricing.totalHdPrice : pricing.totalFirstFramePrice} credits
                     </span>
+                  </div>
+                )}
+                {pricing && selectedShots.length > 1 && perShotPricingEntries.length > 0 && (
+                  <div className="pt-2 border-t border-[#3F3F46] space-y-1.5">
+                    <div className="text-[10px] uppercase tracking-wide text-[#808080]">Per-shot breakdown</div>
+                    {perShotPricingEntries.map((entry) => (
+                      <div key={entry.shotSlot} className="flex items-center justify-between text-[11px]">
+                        <span className="text-[#A1A1AA]">
+                          Shot {entry.shotSlot}
+                          <span className="text-[#6B7280]"> ({entry.firstFrame} + {entry.video})</span>
+                        </span>
+                        <span className="text-[#FFFFFF] font-medium">{entry.total} credits</span>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>

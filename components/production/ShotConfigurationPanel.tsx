@@ -41,6 +41,7 @@ import {
   getElementsVideoModelMessage,
 } from '@/lib/elementsWorkflowUtils';
 import type { DialogueCompositionType } from '@/contexts/SceneBuilderContext';
+import { stripFountainInlineStyleMarkers } from '@/utils/stripFountainInlineStyleMarkers';
 
 const INTERIOR_PROP_PROMPT_HELPERS: Array<{ id: string; label: string; template: string }> = [
   {
@@ -775,10 +776,11 @@ export function ShotConfigurationPanel({
     }
     const contextStr = contextParts.length > 0 ? `${contextParts.join(' ')}.` : 'Keep the environment grounded and coherent with the references.';
 
-    const actionLine = (shot as { narrationBlock?: { text?: string }; description?: string }).narrationBlock?.text
+    const rawActionLine = (shot as { narrationBlock?: { text?: string }; description?: string }).narrationBlock?.text
       || (shot as { description?: string }).description
       || '';
-    const actionWithNames = replacePronounsWithCharacterNames(actionLine.trim(), shotMappings || {}, allCharacters);
+    const normalizedActionLine = stripFountainInlineStyleMarkers(rawActionLine).trim();
+    const actionWithNames = replacePronounsWithCharacterNames(normalizedActionLine, shotMappings || {}, allCharacters);
     const visualAction = toVisualOnlyAction(actionWithNames);
     const actionSentence = visualAction
       ? `${capAtSentenceBoundary(visualAction, 700)}.`
