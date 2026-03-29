@@ -571,7 +571,9 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
   // Poll-by-ID until completion (industry-standard pattern)
   const POLL_BY_ID_INTERVAL_MS = 4000;
   const MAX_POLL_PER_TICK = 20;
+  const FORCE_TRACK_WINDOW_MS = 2 * 60 * 1000;
   const directFetchInProgressRef = useRef<Set<string>>(new Set());
+  const forceTrackJobIdsRef = useRef<Map<string, number>>(new Map());
   const playOpenInFlightRef = useRef<Set<string>>(new Set());
   // Direct-fetched jobs: re-insert in merge if list didn't include them (stale state edge case)
   const directFetchedJobsRef = useRef<Map<string, WorkflowJob>>(new Map());
@@ -959,6 +961,7 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
       }
       
       const apiJobIds = new Set(jobList.map((j: WorkflowJob) => j.jobId));
+      apiJobIds.forEach((id) => forceTrackJobIdsRef.current.delete(id));
 
       // Recover last-created job after refresh: if list didn't return it (GSI delay or timing), fetch by ID and add it
       try {
@@ -1172,7 +1175,12 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
         try {
           sessionStorage.setItem(`wryda:last-job:${eventScreenplayId}`, JSON.stringify({ jobId, ts: Date.now() }));
           addRecentJobId(eventScreenplayId.trim(), jobId);
+          if (screenplayId?.trim() && screenplayId.trim() !== eventScreenplayId.trim()) {
+            sessionStorage.setItem(`wryda:last-job:${screenplayId.trim()}`, JSON.stringify({ jobId, ts: Date.now() }));
+            addRecentJobId(screenplayId.trim(), jobId);
+          }
         } catch (_) { /* ignore */ }
+        forceTrackJobIdsRef.current.set(jobId, Date.now() + FORCE_TRACK_WINDOW_MS);
       }
       setJobs(prev => {
         const now = Date.now();
@@ -1307,17 +1315,31 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
     const pollRunningJobsById = async () => {
       if (cancelled) return;
       const currentJobs = jobsRef.current;
-      const toPoll = currentJobs
+      const runningQueuedJobs = currentJobs
         .filter((j) => (j.status === 'running' || j.status === 'queued') && j.jobId)
         .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
         .slice(0, MAX_POLL_PER_TICK);
-      if (toPoll.length === 0) return;
+      const nowMs = Date.now();
+      const forcedIds: string[] = [];
+      forceTrackJobIdsRef.current.forEach((expiresAt, jobId) => {
+        if (expiresAt <= nowMs) {
+          forceTrackJobIdsRef.current.delete(jobId);
+          return;
+        }
+        forcedIds.push(jobId);
+      });
+      const toPollIds = new Set<string>(runningQueuedJobs.map((j) => j.jobId));
+      forcedIds.forEach((id) => toPollIds.add(id));
+      if (toPollIds.size === 0) return;
+      const idsToPoll = Array.from(toPollIds).slice(0, MAX_POLL_PER_TICK);
+      const currentJobMap = new Map(currentJobs.map((j) => [j.jobId, j]));
 
       const updates: WorkflowJob[] = [];
-      for (const job of toPoll) {
+      for (const jobId of idsToPoll) {
         if (cancelled) break;
-        const updated = await fetchJobDirectly(job.jobId, { silent: true });
+        const updated = await fetchJobDirectly(jobId, { silent: true });
         if (!updated || cancelled) continue;
+        const existingJob = currentJobMap.get(updated.jobId);
         if (diagnosticJobIdsRef.current.has(updated.jobId)) {
           console.log('[JobsDrawer] [DEBUG] poll_by_id', {
             jobId: updated.jobId.slice(-12),
@@ -1329,11 +1351,16 @@ export function JobsDrawer({ isOpen, onClose, onOpen, onToggle, autoOpen = false
         optimisticPlaceholdersRef.current.delete(updated.jobId);
         trackedJobIdsRef.current.add(updated.jobId);
         const isTerminal = updated.status === 'completed' || updated.status === 'failed';
+        if (isTerminal) forceTrackJobIdsRef.current.delete(updated.jobId);
+        if (!existingJob) {
+          updates.push(updated);
+          continue;
+        }
         const changed =
-          updated.status !== job.status ||
-          updated.progress !== job.progress ||
-          (updated.results && !job.results);
-        const progressAdvanced = updated.progress !== job.progress;
+          updated.status !== existingJob.status ||
+          updated.progress !== existingJob.progress ||
+          (updated.results && !existingJob.results);
+        const progressAdvanced = updated.progress !== existingJob.progress;
         const isRunningOrQueued = updated.status === 'running' || updated.status === 'queued';
         if (progressAdvanced && isRunningOrQueued && (updated.jobType === 'image-generation' || updated.jobType === 'pose-generation')) {
           // Mid-run refresh so partial checkpointed images can appear in open modals

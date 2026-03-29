@@ -3619,9 +3619,10 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
       // Register for completion polling (runs even when Jobs drawer closed - Videos tab auto-updates)
       useInFlightWorkflowJobsStore.getState().addJob(executionId);
       // So parent-owned JobsDrawer surfaces it immediately and stores recent job IDs.
-      if (typeof window !== 'undefined' && projectId) {
+      const canonicalScreenplayId = String(workflowRequest.screenplayId || projectId || '').trim();
+      if (typeof window !== 'undefined' && canonicalScreenplayId) {
         window.dispatchEvent(new CustomEvent('wryda:optimistic-job', {
-          detail: { jobId: executionId, screenplayId: projectId, jobType: 'workflow-execution' }
+          detail: { jobId: executionId, screenplayId: canonicalScreenplayId, jobType: 'workflow-execution' }
         }));
       }
         
