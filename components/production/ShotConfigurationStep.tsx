@@ -1576,7 +1576,7 @@ export function ShotConfigurationStep({
                               placeholder="Adds performance/motion direction to the dialogue video prompt. Does not replace defaults."
                               rows={2}
                               maxLength={160}
-                              className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none"
+                              className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-y"
                             />
                             <div className="mt-1 flex items-center justify-between text-[10px] text-[#808080]">
                               <span>Adds to video prompt only; first-frame prompt is unchanged.</span>

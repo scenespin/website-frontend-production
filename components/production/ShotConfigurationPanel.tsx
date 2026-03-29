@@ -2425,7 +2425,7 @@ export function ShotConfigurationPanel({
             onChange={(e) => onMotionDirectionChange?.(e.target.value)}
             placeholder="Add motion/expression direction (e.g., 'tilts head', 'rolls eyes', 'smirks', 'leans forward')"
             rows={2}
-            className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none"
+            className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-y"
           />
           <div className="text-[10px] text-[#808080] italic mt-1">
             This will be added to the auto-generated first frame prompt, not replace it.
@@ -2501,7 +2501,7 @@ export function ShotConfigurationPanel({
                         placeholder="Adds performance/motion direction to the dialogue video prompt. Does not replace defaults."
                         rows={2}
                         maxLength={lipSyncVideoPromptMaxChars}
-                        className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-none"
+                        className="w-full px-3 py-2 bg-[#1A1A1A] border border-[#3F3F46] rounded text-xs text-[#FFFFFF] placeholder-[#808080] hover:border-[#808080] focus:border-[#DC143C] focus:outline-none transition-colors resize-y"
                       />
                       <div className="mt-1 flex items-center justify-between text-[10px] text-[#808080]">
                         <span>Adds to video prompt only; first-frame prompt is unchanged.</span>
