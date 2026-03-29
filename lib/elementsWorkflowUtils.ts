@@ -14,29 +14,48 @@ export interface ShotForValidation {
   type: string;
 }
 
-export type ElementsVideoModelId = 'veo-3.1';
-export type ElementsVideoDurationSeconds = 4 | 6 | 8;
+export type ElementsVideoModelId = 'veo-3.1' | 'grok-imagine-video';
+export type ElementsVideoDurationSeconds = 5 | 8 | 10;
 export type ElementsVideoAspectRatio = '16:9' | '9:16';
 
 /** Elements-to-video duration capabilities per model. */
 export const ELEMENTS_VIDEO_DURATIONS_BY_MODEL: Record<ElementsVideoModelId, { options: readonly ElementsVideoDurationSeconds[] }> = {
-  'veo-3.1': { options: [8] }, // reference_to_video currently supports only 8s
+  'veo-3.1': { options: [8] }, // Veo reference_to_video currently supports only 8s in this flow
+  'grok-imagine-video': { options: [5, 10] }, // Grok reference-images mode capped to 10s
 };
 /** Elements-to-video aspect ratio capabilities per model. */
 export const ELEMENTS_VIDEO_ASPECT_RATIOS_BY_MODEL: Record<ElementsVideoModelId, { options: readonly ElementsVideoAspectRatio[] }> = {
-  'veo-3.1': { options: ['16:9', '9:16'] }, // VEO supports landscape/portrait
+  'veo-3.1': { options: ['16:9', '9:16'] },
+  'grok-imagine-video': { options: ['16:9', '9:16'] },
+};
+/** Elements-to-video max references per model. */
+export const ELEMENTS_VIDEO_MAX_REFERENCES_BY_MODEL: Record<ElementsVideoModelId, number> = {
+  'veo-3.1': 3,
+  'grok-imagine-video': 7,
 };
 
 export const DEFAULT_ELEMENTS_VIDEO_MODEL: ElementsVideoModelId = 'veo-3.1';
+export const ELEMENTS_VIDEO_MODEL_OPTIONS: ReadonlyArray<{ id: ElementsVideoModelId; label: string }> = [
+  { id: 'veo-3.1', label: 'Veo 3.1' },
+  { id: 'grok-imagine-video', label: 'Grok' },
+];
 
 export const ELEMENTS_VIDEO_MODEL_MESSAGE_BY_MODEL: Record<ElementsVideoModelId, string> = {
-  'veo-3.1': 'Currently VEO 3.1, 8s; more models coming soon.',
+  'veo-3.1': 'Veo Elements: up to 3 refs, 8s.',
+  'grok-imagine-video': 'Grok Elements: up to 7 refs, 5s or 10s.',
 };
+
+export function getEffectiveElementsVideoModel(
+  rawModelId: string | undefined
+): ElementsVideoModelId {
+  if (rawModelId === 'grok-imagine-video') return 'grok-imagine-video';
+  return DEFAULT_ELEMENTS_VIDEO_MODEL;
+}
 
 export function getElementsVideoDurationOptions(
   modelId: ElementsVideoModelId = DEFAULT_ELEMENTS_VIDEO_MODEL
 ): readonly ElementsVideoDurationSeconds[] {
-  return ELEMENTS_VIDEO_DURATIONS_BY_MODEL[modelId]?.options ?? [8];
+  return ELEMENTS_VIDEO_DURATIONS_BY_MODEL[modelId]?.options ?? ELEMENTS_VIDEO_DURATIONS_BY_MODEL[DEFAULT_ELEMENTS_VIDEO_MODEL].options;
 }
 
 export function getDefaultElementsVideoDuration(
@@ -60,6 +79,12 @@ export function getElementsVideoModelMessage(
   modelId: ElementsVideoModelId = DEFAULT_ELEMENTS_VIDEO_MODEL
 ): string {
   return ELEMENTS_VIDEO_MODEL_MESSAGE_BY_MODEL[modelId] || ELEMENTS_VIDEO_MODEL_MESSAGE_BY_MODEL[DEFAULT_ELEMENTS_VIDEO_MODEL];
+}
+
+export function getElementsVideoMaxReferences(
+  modelId: ElementsVideoModelId = DEFAULT_ELEMENTS_VIDEO_MODEL
+): number {
+  return ELEMENTS_VIDEO_MAX_REFERENCES_BY_MODEL[modelId] ?? ELEMENTS_VIDEO_MAX_REFERENCES_BY_MODEL[DEFAULT_ELEMENTS_VIDEO_MODEL];
 }
 
 export function getElementsVideoAspectRatioOptions(
@@ -136,13 +161,33 @@ export function buildSelectedElementsForVideoPayload(
 }
 
 /**
+ * Builds normalized elementsVideoModels payload for shots where Elements is enabled.
+ * Falls back to DEFAULT model when value is invalid/missing.
+ */
+export function buildElementsVideoModelsPayload(
+  elementsVideoModels: Record<number, string> | undefined,
+  useElementsForVideo: Record<number, boolean> | undefined
+): Record<number, ElementsVideoModelId> | undefined {
+  if (!useElementsForVideo || typeof useElementsForVideo !== 'object') return undefined;
+  const entries = Object.entries(useElementsForVideo).filter(([, enabled]) => !!enabled);
+  if (entries.length === 0) return undefined;
+
+  const normalized: Record<number, ElementsVideoModelId> = {};
+  for (const [slot] of entries) {
+    const slotNum = parseInt(slot, 10);
+    normalized[slotNum] = getEffectiveElementsVideoModel(elementsVideoModels?.[slotNum]);
+  }
+  return normalized;
+}
+
+/**
  * Builds normalized elementsVideoDurations payload for shots where Elements is enabled.
  * Values are normalized against the active model capabilities.
  */
 export function buildElementsVideoDurationsPayload(
   elementsVideoDurations: Record<number, number> | undefined,
   useElementsForVideo: Record<number, boolean> | undefined,
-  modelId: ElementsVideoModelId = DEFAULT_ELEMENTS_VIDEO_MODEL
+  elementsVideoModels?: Record<number, string>
 ): Record<number, ElementsVideoDurationSeconds> | undefined {
   if (!useElementsForVideo || typeof useElementsForVideo !== 'object') return undefined;
   const entries = Object.entries(useElementsForVideo).filter(([, enabled]) => !!enabled);
@@ -152,6 +197,7 @@ export function buildElementsVideoDurationsPayload(
   for (const [slot] of entries) {
     const slotNum = parseInt(slot, 10);
     const raw = elementsVideoDurations?.[slotNum];
+    const modelId = getEffectiveElementsVideoModel(elementsVideoModels?.[slotNum]);
     normalized[slotNum] = getEffectiveElementsVideoDuration(raw, modelId);
   }
   return normalized;

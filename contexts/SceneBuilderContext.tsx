@@ -19,7 +19,13 @@ import { filterValidCharacterIds } from '@/components/production/utils/character
 import { getCharactersFromActionShot } from '@/components/production/utils/sceneBuilderUtils';
 import { useCharacters } from '@/hooks/useCharacterBank';
 import { useBulkPresignedUrls } from '@/hooks/useMediaLibrary';
-import { getDefaultElementsVideoDuration, getDefaultElementsVideoAspectRatio } from '@/lib/elementsWorkflowUtils';
+import {
+  type ElementsVideoModelId,
+  getDefaultElementsVideoDuration,
+  getDefaultElementsVideoAspectRatio,
+  getElementsVideoMaxReferences,
+  getEffectiveElementsVideoModel
+} from '@/lib/elementsWorkflowUtils';
 
 // ============================================================================
 // Types
@@ -168,8 +174,10 @@ export interface SceneBuilderState {
   useElementsForVideo: Record<number, boolean>;
   /** Feature 0259: Per-shot selected element ids for video (max 3 for VEO). Ids: character:${id} | location | prop:${id}. */
   selectedElementsForVideo: Record<number, string[]>;
-  /** Feature 0262/0259: Per-shot VEO duration in seconds (4, 6, or 8) when Elements to Video is on. */
-  elementsVideoDurations: Record<number, 4 | 6 | 8>;
+  /** Feature 0262/0259: Per-shot Elements duration in seconds (provider-specific). */
+  elementsVideoDurations: Record<number, 5 | 8 | 10>;
+  /** Elements-to-video provider per shot (Veo or Grok). */
+  elementsVideoModels: Record<number, ElementsVideoModelId>;
   /** Feature 0264: Per-shot VEO aspect ratio (16:9 or 9:16) when Elements to Video is on. */
   elementsVideoAspectRatios: Record<number, '16:9' | '9:16'>;
 
@@ -303,11 +311,13 @@ export interface SceneBuilderActions {
   /** Feature 0259: Elements option on/off (UI). When on, show ref list + prompt. */
   setUseElementsForVideo: (byShot: Record<number, boolean>) => void;
   updateUseElementsForVideo: (shotSlot: number, enabled: boolean) => void;
-  /** Feature 0259: Elements for video — select up to VEO_MAX_ELEMENTS per shot. */
+  /** Feature 0259: Elements for video — selection is capped by active Elements provider. */
   setSelectedElementsForVideo: (byShot: Record<number, string[]>) => void;
   updateSelectedElementsForShot: (shotSlot: number, elementIds: string[]) => void;
-  /** Feature 0262/0259: Set VEO duration (4, 6, or 8 sec) for Elements shot. */
-  updateElementsVideoDuration: (shotSlot: number, seconds: 4 | 6 | 8) => void;
+  /** Feature 0262/0259: Set Elements duration for Elements shot (provider-specific buckets). */
+  updateElementsVideoDuration: (shotSlot: number, seconds: 5 | 8 | 10) => void;
+  setElementsVideoModels: (byShot: Record<number, ElementsVideoModelId>) => void;
+  updateElementsVideoModel: (shotSlot: number, model: ElementsVideoModelId) => void;
   /** Feature 0264: Set VEO aspect ratio (16:9 or 9:16) for Elements shot. */
   updateElementsVideoAspectRatio: (shotSlot: number, value: '16:9' | '9:16') => void;
 
@@ -415,6 +425,7 @@ function getInitialSceneBuilderState(): SceneBuilderState {
   useElementsForVideo: {},
   selectedElementsForVideo: {},
   elementsVideoDurations: {},
+  elementsVideoModels: {},
   elementsVideoAspectRatios: {},
   globalResolution: '4k',
     wizardStep: 'analysis',
@@ -1441,14 +1452,18 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
     }, []),
     updateUseElementsForVideo: useCallback((shotSlot, enabled) => {
       setState(prev => {
+        const modelForShot = getEffectiveElementsVideoModel(prev.elementsVideoModels[shotSlot]);
         const next: SceneBuilderState = {
           ...prev,
           useElementsForVideo: { ...prev.useElementsForVideo, [shotSlot]: enabled }
         };
         if (enabled) {
+          if (prev.elementsVideoModels[shotSlot] === undefined) {
+            next.elementsVideoModels = { ...prev.elementsVideoModels, [shotSlot]: modelForShot };
+          }
           if (prev.elementsVideoDurations[shotSlot] === undefined) {
             // Default from Elements model capability helper.
-            next.elementsVideoDurations = { ...prev.elementsVideoDurations, [shotSlot]: getDefaultElementsVideoDuration() };
+            next.elementsVideoDurations = { ...prev.elementsVideoDurations, [shotSlot]: getDefaultElementsVideoDuration(modelForShot) };
           }
           if (prev.elementsVideoAspectRatios[shotSlot] === undefined) {
             next.elementsVideoAspectRatios = { ...prev.elementsVideoAspectRatios, [shotSlot]: getDefaultElementsVideoAspectRatio() };
@@ -1465,14 +1480,41 @@ export function SceneBuilderProvider({ children, projectId }: SceneBuilderProvid
       setState(prev => ({ ...prev, selectedElementsForVideo: byShot }));
     }, []),
     updateSelectedElementsForShot: useCallback((shotSlot, elementIds) => {
-      const capped = elementIds.slice(0, VEO_MAX_ELEMENTS);
-      setState(prev => ({
-        ...prev,
-        selectedElementsForVideo: {
-          ...prev.selectedElementsForVideo,
-          [shotSlot]: capped
-        }
-      }));
+      setState(prev => {
+        const modelForShot = getEffectiveElementsVideoModel(prev.elementsVideoModels?.[shotSlot]);
+        const maxRefs = getElementsVideoMaxReferences(modelForShot);
+        const capped = elementIds.slice(0, maxRefs);
+        return {
+          ...prev,
+          selectedElementsForVideo: {
+            ...prev.selectedElementsForVideo,
+            [shotSlot]: capped
+          }
+        };
+      });
+    }, []),
+    setElementsVideoModels: useCallback((byShot) => {
+      setState(prev => ({ ...prev, elementsVideoModels: byShot }));
+    }, []),
+    updateElementsVideoModel: useCallback((shotSlot, model) => {
+      const normalizedModel = getEffectiveElementsVideoModel(model);
+      setState(prev => {
+        const maxRefs = getElementsVideoMaxReferences(normalizedModel);
+        const currentElements = prev.selectedElementsForVideo?.[shotSlot] || [];
+        const nextElements = currentElements.slice(0, maxRefs);
+        return {
+          ...prev,
+          elementsVideoModels: { ...prev.elementsVideoModels, [shotSlot]: normalizedModel },
+          selectedElementsForVideo: {
+            ...prev.selectedElementsForVideo,
+            [shotSlot]: nextElements
+          },
+          elementsVideoDurations: {
+            ...prev.elementsVideoDurations,
+            [shotSlot]: getDefaultElementsVideoDuration(normalizedModel)
+          }
+        };
+      });
     }, []),
     updateElementsVideoDuration: useCallback((shotSlot, seconds) => {
       setState(prev => ({

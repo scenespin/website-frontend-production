@@ -26,7 +26,7 @@ import type { Resolution, CameraAngle } from './ShotConfigurationPanel';
 import { SceneBuilderService } from '@/services/SceneBuilderService';
 import { useAuth } from '@clerk/nextjs';
 import { getCharacterName, getCharacterSource } from './utils/sceneBuilderUtils';
-import { DEFAULT_ELEMENTS_VIDEO_MODEL, getEffectiveElementsVideoDuration } from '@/lib/elementsWorkflowUtils';
+import { getEffectiveElementsVideoDuration, getEffectiveElementsVideoModel } from '@/lib/elementsWorkflowUtils';
 import { isValidImageUrl } from './utils/imageUrlResolver';
 import { formatImageModelLabel } from '@/utils/providerLabels';
 import { stripFountainInlineStyleMarkers } from '@/utils/stripFountainInlineStyleMarkers';
@@ -88,9 +88,10 @@ interface SceneReviewStepProps {
   uploadedFirstFrames?: Record<number, string>;
   // Feature 0234: Per-shot video opt-in state
   generateVideoForShot?: Record<number, boolean>;
-  // Feature 0262/0259: Per-shot Elements to Video (pricing: first frame = 0, video = VEO)
+  // Feature 0262/0259: Per-shot Elements to Video (pricing: first frame = 0, video by selected Elements provider)
   useElementsForVideo?: Record<number, boolean>;
-  elementsVideoDurations?: Record<number, 4 | 6 | 8>;
+  elementsVideoModels?: Record<number, 'veo-3.1' | 'grok-imagine-video'>;
+  elementsVideoDurations?: Record<number, 5 | 8 | 10>;
   elementsVideoAspectRatios?: Record<number, '16:9' | '9:16'>;
 }
 
@@ -136,6 +137,7 @@ export function SceneReviewStep({
   uploadedFirstFrames = {},
   generateVideoForShot = {},
   useElementsForVideo = {},
+  elementsVideoModels = {},
   elementsVideoDurations = {},
   elementsVideoAspectRatios = {}
 }: SceneReviewStepProps) {
@@ -196,6 +198,7 @@ export function SceneReviewStep({
           voiceoverBaseWorkflows,
           generateVideoForShot,
           useElementsForVideo,
+          elementsVideoModels,
           elementsVideoDurations,
           uploadedFirstFrames
         );
@@ -214,7 +217,7 @@ export function SceneReviewStep({
     };
     
     fetchPricing();
-  }, [sceneAnalysisResult?.shotBreakdown?.shots, enabledShots, shotDurations, selectedReferenceShotModels, selectedDialogueQualities, selectedDialogueWorkflows, voiceoverBaseWorkflows, generateVideoForShot, useElementsForVideo, elementsVideoDurations, uploadedFirstFrames, getToken]);
+  }, [sceneAnalysisResult?.shotBreakdown?.shots, enabledShots, shotDurations, selectedReferenceShotModels, selectedDialogueQualities, selectedDialogueWorkflows, voiceoverBaseWorkflows, generateVideoForShot, useElementsForVideo, elementsVideoModels, elementsVideoDurations, uploadedFirstFrames, getToken]);
   
   if (!sceneAnalysisResult) {
     return (
@@ -346,7 +349,8 @@ export function SceneReviewStep({
     }
     // Feature 0259: Elements duration is normalized from model capabilities.
     if (useElementsForVideo[shot.slot]) {
-      const sec = getEffectiveElementsVideoDuration(elementsVideoDurations[shot.slot], DEFAULT_ELEMENTS_VIDEO_MODEL);
+      const modelId = getEffectiveElementsVideoModel(elementsVideoModels[shot.slot]);
+      const sec = getEffectiveElementsVideoDuration(elementsVideoDurations[shot.slot], modelId);
       return total + sec;
     }
     return total;

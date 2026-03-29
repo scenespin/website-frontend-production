@@ -26,7 +26,7 @@ import { ReferenceShotSelector } from './ReferenceShotSelector';
 import { VideoGenerationSelector } from './VideoGenerationSelector';
 import { UnifiedDialogueDropdown, type DialogueWorkflowType, type PremiumProviderExperiment } from './UnifiedDialogueDropdown';
 import { getAvailablePropImages, getSelectedPropImageUrl } from './utils/propImageUtils';
-import { useSceneBuilderState, useSceneBuilderActions, VideoType, DEFAULT_REFERENCE_SHOT_MODEL, VEO_MAX_ELEMENTS, type DialogueCompositionType } from '@/contexts/SceneBuilderContext';
+import { useSceneBuilderState, useSceneBuilderActions, VideoType, DEFAULT_REFERENCE_SHOT_MODEL, type DialogueCompositionType } from '@/contexts/SceneBuilderContext';
 import { useBulkPresignedUrls } from '@/hooks/useMediaLibrary';
 import { cn } from '@/lib/utils';
 import { resolveLocationImageUrl } from './utils/imageUrlResolver';
@@ -36,7 +36,8 @@ import type { OffFrameShotType } from '@/types/offFrame';
 import {
   getElementsVideoAspectRatioOptions,
   getEffectiveElementsVideoAspectRatio,
-  DEFAULT_ELEMENTS_VIDEO_MODEL,
+  getElementsVideoMaxReferences,
+  getEffectiveElementsVideoModel,
 } from '@/lib/elementsWorkflowUtils';
 
 // Aspect Ratio Selector Component (Custom DaisyUI Dropdown)
@@ -348,6 +349,8 @@ export function ShotConfigurationStep({
   const shotSlot = shot.slot;
   const selectedReferenceShotModels = state.selectedReferenceShotModels;
   const selectedVideoTypes = state.selectedVideoTypes;
+  const elementsVideoModelForShot = getEffectiveElementsVideoModel(state.elementsVideoModels?.[shotSlot]);
+  const elementsMaxSelectForShot = getElementsVideoMaxReferences(elementsVideoModelForShot);
   const generateVideoForShot = state.generateVideoForShot ?? {};
   const videoOptInForThisShot = !!generateVideoForShot[shotSlot];
   
@@ -1071,8 +1074,9 @@ export function ShotConfigurationStep({
             : undefined,
           undefined, // voiceoverBaseWorkflows
           generateVideoForShot, // 🔥 FIX Issue 3: Pass generateVideoForShot to ensure correct pricing
-          state.useElementsForVideo, // Feature 0262/0259: Elements on → firstFramePrice=0, hdPrice=VEO for action
-          state.elementsVideoDurations, // 4/6/8 sec when Elements on
+          state.useElementsForVideo, // Elements on → firstFramePrice=0, hdPrice from provider-specific Elements pricing
+          state.elementsVideoModels,
+          state.elementsVideoDurations,
           uploadedFirstFrameUrl ? { [shot.slot]: uploadedFirstFrameUrl } : undefined // Feature 0211: uploaded first frame → firstFramePrice=0
         );
         
@@ -1094,7 +1098,7 @@ export function ShotConfigurationStep({
     };
     
     fetchPricing();
-  }, [shot?.slot, shot?.credits, shot?.type, shotDuration, selectedReferenceShotModels, selectedVideoTypes, videoOptInForThisShot, generateVideoForShot, getToken, isDialogueShot, finalSelectedDialogueQuality, finalSelectedDialogueWorkflow, state.useElementsForVideo, state.elementsVideoDurations, uploadedFirstFrameUrl]);
+  }, [shot?.slot, shot?.credits, shot?.type, shotDuration, selectedReferenceShotModels, selectedVideoTypes, videoOptInForThisShot, generateVideoForShot, getToken, isDialogueShot, finalSelectedDialogueQuality, finalSelectedDialogueWorkflow, state.useElementsForVideo, state.elementsVideoModels, state.elementsVideoDurations, uploadedFirstFrameUrl]);
 
   // Validate shot completion before allowing next
   const handleNext = () => {
@@ -1674,7 +1678,9 @@ export function ShotConfigurationStep({
                   showMotionDirection={isDialogueShot && !isSceneVoiceover}
                   selectedElementsForVideo={state.selectedElementsForVideo[shotSlot] || []}
                   onSelectedElementsForShotChange={(elementIds) => actions.updateSelectedElementsForShot(shotSlot, elementIds)}
-                  elementsMaxSelect={VEO_MAX_ELEMENTS}
+                  elementsMaxSelect={elementsMaxSelectForShot}
+                  elementsVideoModel={elementsVideoModelForShot}
+                  onElementsVideoModelChange={(model) => actions.updateElementsVideoModel(shotSlot, model)}
                   renderBeforeDialogueVideo={isDialogueShot && !isOverrideAllowed ? (
                     <div className="py-3 border-b border-[#3F3F46]">
                       {onAspectRatioChange && (
@@ -1906,7 +1912,9 @@ export function ShotConfigurationStep({
                   onUseElementsForVideoChange={(enabled) => actions.updateUseElementsForVideo(shot.slot, enabled)}
                   selectedElementsForVideo={state.selectedElementsForVideo[shot.slot] || []}
                   onSelectedElementsForShotChange={(elementIds) => actions.updateSelectedElementsForShot(shot.slot, elementIds)}
-                  elementsMaxSelect={VEO_MAX_ELEMENTS}
+                  elementsMaxSelect={elementsMaxSelectForShot}
+                  elementsVideoModel={elementsVideoModelForShot}
+                  onElementsVideoModelChange={(model) => actions.updateElementsVideoModel(shot.slot, model)}
                   motionDirectionPrompt={state.motionDirectionPrompt[shotSlot] || ''}
                   onMotionDirectionChange={(value) => actions.updateMotionDirectionPrompt(shotSlot, value)}
                   showMotionDirection={shot.type === 'action'}
@@ -2298,10 +2306,10 @@ export function ShotConfigurationStep({
               <div className="pt-2">
                 <label className="block text-[10px] text-[#808080] mb-1.5">Elements video aspect ratio</label>
                 {(() => {
-                  const options = getElementsVideoAspectRatioOptions(DEFAULT_ELEMENTS_VIDEO_MODEL);
+                  const options = getElementsVideoAspectRatioOptions(elementsVideoModelForShot);
                   const displayValue = getEffectiveElementsVideoAspectRatio(
                     state.elementsVideoAspectRatios?.[shot.slot],
-                    DEFAULT_ELEMENTS_VIDEO_MODEL
+                    elementsVideoModelForShot
                   );
                   return (
                     <select

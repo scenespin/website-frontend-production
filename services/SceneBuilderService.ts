@@ -826,7 +826,8 @@ export class SceneBuilderService {
     voiceoverBaseWorkflows?: Record<number, string>,
     generateVideoForShot?: Record<number, boolean>,
     useElementsForVideo?: Record<number, boolean>,
-    elementsVideoDurations?: Record<number, 4 | 6 | 8>,
+    elementsVideoModels?: Record<number, 'veo-3.1' | 'grok-imagine-video'>,
+    elementsVideoDurations?: Record<number, 5 | 8 | 10>,
     uploadedFirstFrames?: Record<number, string>
   ): Promise<ScenePricingResult> {
     if (!getTokenFn) {
@@ -851,6 +852,7 @@ export class SceneBuilderService {
         voiceoverBaseWorkflows,
         generateVideoForShot,
         useElementsForVideo,
+        elementsVideoModels,
         elementsVideoDurations,
         uploadedFirstFrames
       })

@@ -30,9 +30,13 @@ import { getAvailablePropImages } from './utils/propImageUtils';
 import { PropImageSelector } from './PropImageSelector';
 import { cn } from '@/lib/utils';
 import {
+  type ElementsVideoModelId,
   DEFAULT_ELEMENTS_VIDEO_MODEL,
+  ELEMENTS_VIDEO_MODEL_OPTIONS,
   getDefaultElementsVideoDuration,
+  getEffectiveElementsVideoModel,
   getEffectiveElementsVideoDuration,
+  getElementsVideoMaxReferences,
   getElementsVideoDurationOptions,
   getElementsVideoModelMessage,
 } from '@/lib/elementsWorkflowUtils';
@@ -398,14 +402,16 @@ interface ShotConfigurationPanelProps {
   /** Feature 0259: Selected element ids for video (character:id | location | prop:id). Max 3. */
   selectedElementsForVideo?: string[];
   onSelectedElementsForShotChange?: (elementIds: string[]) => void;
-  /** Max elements selectable (VEO = 3). */
+  /** Max elements selectable by active Elements provider. */
   elementsMaxSelect?: number;
+  elementsVideoModel?: ElementsVideoModelId;
+  onElementsVideoModelChange?: (model: ElementsVideoModelId) => void;
   /** Feature 0259: Video prompt for Elements path. Prefilled with best practice + chosen refs; user can edit. */
   elementsVideoPrompt?: string;
   onElementsVideoPromptChange?: (value: string) => void;
-  /** Feature 0262/0259: VEO duration in seconds (4, 6, or 8) when Elements on. Model-specific. */
-  elementsVideoDuration?: 4 | 6 | 8;
-  onElementsVideoDurationChange?: (seconds: 4 | 6 | 8) => void;
+  /** Feature 0262/0259: Elements duration in seconds. Model-specific. */
+  elementsVideoDuration?: 5 | 8 | 10;
+  onElementsVideoDurationChange?: (seconds: 5 | 8 | 10) => void;
 }
 
 export function ShotConfigurationPanel({
@@ -501,10 +507,12 @@ export function ShotConfigurationPanel({
   onUseElementsForVideoChange,
   selectedElementsForVideo = [],
   onSelectedElementsForShotChange,
-  elementsMaxSelect = 3,
+  elementsMaxSelect = getElementsVideoMaxReferences(DEFAULT_ELEMENTS_VIDEO_MODEL),
+  elementsVideoModel = DEFAULT_ELEMENTS_VIDEO_MODEL,
+  onElementsVideoModelChange,
   elementsVideoPrompt = '',
   onElementsVideoPromptChange,
-  elementsVideoDuration = getDefaultElementsVideoDuration(),
+  elementsVideoDuration = getDefaultElementsVideoDuration(elementsVideoModel),
   onElementsVideoDurationChange
 }: ShotConfigurationPanelProps) {
   const [showAllFirstFramePromptHelpers, setShowAllFirstFramePromptHelpers] = useState(false);
@@ -732,13 +740,17 @@ export function ShotConfigurationPanel({
   // Ref list and context are built from selected elements (generic for N items; UI caps selection per model, e.g. 3 for VEO).
   const elementsVideoPromptSuggestion = React.useMemo(() => {
     if (selectedElementsForVideo.length === 0) return '';
+    const elementsModelId = getEffectiveElementsVideoModel(elementsVideoModel);
+    const isGrokElements = elementsModelId === 'grok-imagine-video';
     const locationName = sceneAnalysisResult?.location?.name || 'the setting';
-    const labels = selectedElementsForVideo
+    const selectedEntries = selectedElementsForVideo
       .map((id) => {
         if (id === 'location') return locationName;
         return elementsListForShot.find((el) => el.id === id)?.label;
       })
-      .filter(Boolean) as string[];
+      .map((label, index) => ({ label, id: selectedElementsForVideo[index] }))
+      .filter((item): item is { label: string; id: string } => Boolean(item.label));
+    const labels = selectedEntries.map((entry) => entry.label);
     if (labels.length === 0) return '';
     const refList = labels.length > 1
       ? `${labels.slice(0, -1).join(', ')}, and ${labels[labels.length - 1]}`
@@ -800,6 +812,47 @@ export function ShotConfigurationPanel({
     const sceneContext = weatherGuardrail ? `${contextStr} ${weatherGuardrail}` : contextStr;
     const negativePrompt = 'speech, talking, dialogue, lip-sync, vocalization, singing, subtitles, captions, on-screen text, watermark';
 
+    // xAI Grok reference-images best practice:
+    // Use explicit <IMAGE_n> placeholders that deterministically map to the selected reference order.
+    if (isGrokElements) {
+      const imageMapLines = selectedEntries.map((entry, index) => `<IMAGE_${index + 1}> = ${entry.label}`);
+      const primaryTag = '<IMAGE_1>';
+      const locationTagIndex = selectedEntries.findIndex((entry) => entry.id === 'location');
+      const locationTag = locationTagIndex >= 0 ? `<IMAGE_${locationTagIndex + 1}>` : undefined;
+      const propTagIndices = selectedEntries
+        .map((entry, index) => ({ id: entry.id, index }))
+        .filter((entry) => entry.id.startsWith('prop:'))
+        .map((entry) => `<IMAGE_${entry.index + 1}>`);
+      const propTagPhrase = propTagIndices.length === 0
+        ? ''
+        : propTagIndices.length === 1
+        ? `, interacting with ${propTagIndices[0]}`
+        : `, interacting with ${propTagIndices.slice(0, -1).join(', ')} and ${propTagIndices[propTagIndices.length - 1]}`;
+      const motionInstruction = locationTag
+        ? `The subject from ${primaryTag} moves through the space in ${locationTag}${propTagPhrase}.`
+        : `The subject from ${primaryTag} performs the action naturally${propTagPhrase}.`;
+      const xaiGuidance = [
+        'Use the mapped reference placeholders exactly as listed.',
+        'Maintain identity consistency from each referenced image.',
+        'Blend references naturally while preserving scene coherence.',
+      ].join(' ');
+
+      return [
+        `Using the provided reference images for ${refList}.`,
+        'Reference Mapping:',
+        imageMapLines.join('\n'),
+        '',
+        'Prompt Instructions:',
+        motionInstruction,
+        actionSentence,
+        sceneContext,
+        cinematography,
+        style,
+        xaiGuidance,
+        `Negative prompt: ${negativePrompt}`,
+      ].join('\n');
+    }
+
     return [
       intro,
       hardRules,
@@ -810,7 +863,7 @@ export function ShotConfigurationPanel({
       `Style & Ambiance:\n${style}`,
       `Negative prompt:\n${negativePrompt}`,
     ].join('\n\n');
-  }, [selectedElementsForVideo, elementsListForShot, shot, shotMappings, allCharacters, sceneAnalysisResult, replacePronounsWithCharacterNames, toVisualOnlyAction, inferInteriorScene, capAtSentenceBoundary]);
+  }, [selectedElementsForVideo, elementsVideoModel, elementsListForShot, shot, shotMappings, allCharacters, sceneAnalysisResult, replacePronounsWithCharacterNames, toVisualOnlyAction, inferInteriorScene, capAtSentenceBoundary]);
 
   // When Elements selection changes, update stored prompt to the new suggestion (so prefill stays in sync with refs).
   const prevSuggestionRef = React.useRef('');
@@ -2509,23 +2562,37 @@ export function ShotConfigurationPanel({
               <div className="flex flex-wrap items-center gap-2 gap-y-1">
                 <span className="text-[10px] font-medium text-[#808080]">Duration:</span>
                 {(() => {
-                  const options = getElementsVideoDurationOptions(DEFAULT_ELEMENTS_VIDEO_MODEL);
-                  const displayValue = getEffectiveElementsVideoDuration(elementsVideoDuration, DEFAULT_ELEMENTS_VIDEO_MODEL);
+                  const modelId = getEffectiveElementsVideoModel(elementsVideoModel);
+                  const options = getElementsVideoDurationOptions(modelId);
+                  const displayValue = getEffectiveElementsVideoDuration(elementsVideoDuration, modelId);
                   return (
-                    <select
-                      value={displayValue}
-                      onChange={(e) => onElementsVideoDurationChange?.(Number(e.target.value) as 4 | 6 | 8)}
-                      className="text-xs bg-[#0A0A0A] border border-[#3F3F46] rounded px-2 py-1 text-[#E5E7EB] focus:outline-none focus:ring-2 focus:ring-[#DC143C]"
-                      aria-describedby="elements-video-model-message"
-                    >
-                      {options.map((sec) => (
-                        <option key={sec} value={sec}>{sec}s</option>
-                      ))}
-                    </select>
+                    <>
+                      <span className="text-[10px] font-medium text-[#808080] ml-2">Provider:</span>
+                      <select
+                        value={modelId}
+                        onChange={(e) => onElementsVideoModelChange?.(e.target.value as ElementsVideoModelId)}
+                        className="text-xs bg-[#0A0A0A] border border-[#3F3F46] rounded px-2 py-1 text-[#E5E7EB] focus:outline-none focus:ring-2 focus:ring-[#DC143C]"
+                        aria-label="Elements video provider"
+                      >
+                        {ELEMENTS_VIDEO_MODEL_OPTIONS.map((model) => (
+                          <option key={model.id} value={model.id}>{model.label}</option>
+                        ))}
+                      </select>
+                      <select
+                        value={displayValue}
+                        onChange={(e) => onElementsVideoDurationChange?.(Number(e.target.value) as 5 | 8 | 10)}
+                        className="text-xs bg-[#0A0A0A] border border-[#3F3F46] rounded px-2 py-1 text-[#E5E7EB] focus:outline-none focus:ring-2 focus:ring-[#DC143C]"
+                        aria-describedby="elements-video-model-message"
+                      >
+                        {options.map((sec) => (
+                          <option key={sec} value={sec}>{sec}s</option>
+                        ))}
+                      </select>
+                    </>
                   );
                 })()}
                 <span id="elements-video-model-message" className="text-[10px] text-[#808080]">
-                  {getElementsVideoModelMessage(DEFAULT_ELEMENTS_VIDEO_MODEL)}
+                  {getElementsVideoModelMessage(elementsVideoModel)}
                 </span>
               </div>
               <p className="text-[10px] text-[#808080] mb-1">Choose up to {elementsMaxSelect} references (character, location, or prop):</p>

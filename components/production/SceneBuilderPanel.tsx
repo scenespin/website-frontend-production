@@ -79,6 +79,7 @@ import { useInFlightWorkflowJobsStore } from '@/lib/inFlightWorkflowJobsStore';
 import {
   validateElementsForShots,
   buildSelectedElementsForVideoPayload,
+  buildElementsVideoModelsPayload,
   buildElementsVideoDurationsPayload,
   buildElementsVideoAspectRatiosPayload,
 } from '@/lib/elementsWorkflowUtils';
@@ -723,6 +724,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
           voiceoverBaseWorkflows,
           generateVideoForShot,
           contextState.useElementsForVideo,
+          contextState.elementsVideoModels,
           contextState.elementsVideoDurations,
           contextState.uploadedFirstFrames
         );
@@ -747,7 +749,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     };
     run();
     return () => { cancelled = true; };
-  }, [currentStep, wizardStep, sceneAnalysisResult?.shotBreakdown?.shots, enabledShots, generateVideoForShot, selectedReferenceShotModels, selectedVideoTypes, shotDurations, selectedDialogueQualities, selectedDialogueWorkflows, voiceoverBaseWorkflows, contextState.uploadedFirstFrames, contextState.useElementsForVideo, contextState.elementsVideoDurations, getToken]);
+  }, [currentStep, wizardStep, sceneAnalysisResult?.shotBreakdown?.shots, enabledShots, generateVideoForShot, selectedReferenceShotModels, selectedVideoTypes, shotDurations, selectedDialogueQualities, selectedDialogueWorkflows, voiceoverBaseWorkflows, contextState.uploadedFirstFrames, contextState.useElementsForVideo, contextState.elementsVideoModels, contextState.elementsVideoDurations, getToken]);
   
   // 🔥 NEW: Map Media Library files to character headshot structure
   // NOTE: This useEffect is moved to after sceneAnalysisResult declaration to avoid build error
@@ -3365,9 +3367,14 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
           contextState.selectedElementsForVideo,
           contextState.useElementsForVideo
         ), // Feature 0259: Per-shot element ids when Elements option is on (character:id | location | prop:id), max 3
+        elementsVideoModels: buildElementsVideoModelsPayload(
+          contextState.elementsVideoModels,
+          contextState.useElementsForVideo
+        ), // Elements provider per shot (Veo or Grok) for Elements-enabled shots
         elementsVideoDurations: buildElementsVideoDurationsPayload(
           contextState.elementsVideoDurations,
-          contextState.useElementsForVideo
+          contextState.useElementsForVideo,
+          contextState.elementsVideoModels
         ), // Feature 0262/0259: normalized by model capabilities for Elements-enabled shots
         elementsVideoAspectRatios: buildElementsVideoAspectRatiosPayload(
           contextState.elementsVideoAspectRatios,
@@ -3550,6 +3557,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
             voiceoverBaseWorkflows,
             generateVideoForShot,
             contextState.useElementsForVideo,
+            contextState.elementsVideoModels,
             contextState.elementsVideoDurations,
             contextState.uploadedFirstFrames
           );
@@ -5255,6 +5263,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                 uploadedFirstFrames={contextState.uploadedFirstFrames}
                 generateVideoForShot={generateVideoForShot}
                 useElementsForVideo={contextState.useElementsForVideo}
+                elementsVideoModels={contextState.elementsVideoModels}
                 elementsVideoDurations={contextState.elementsVideoDurations}
                 elementsVideoAspectRatios={contextState.elementsVideoAspectRatios}
               />
