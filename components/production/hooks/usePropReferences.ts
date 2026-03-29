@@ -132,32 +132,9 @@ export function usePropReferences(
     payloadPropS3Keys.length > 0 ? payloadPropS3Keys : [],
     enabled && propIds.length > 0 && payloadPropS3Keys.length > 0
   );
-  // Media Library rows are the authoritative source for current prop assets.
-  // Only use payload-first when ML has no rows yet (e.g., transient consistency window).
-  const usePayloadForProps =
-    initialProps.length > 0 &&
-    payloadPropS3Keys.length > 0 &&
-    propMediaFiles.length === 0;
-
-  // Enrich props: payload-first when API provided refs, else Media Library as source of truth
+  // Enrich props using Media Library first, with payload/initial fallback for resiliency.
+  // This prevents transient partial media reads from collapsing prop options in Scene Builder.
   const enrichedProps = useMemo(() => {
-    if (usePayloadForProps) {
-      return initialProps.map((prop) => ({
-        ...prop,
-        angleReferences: (prop.angleReferences || []).map((ref) => ({
-          ...ref,
-          imageUrl: payloadPropUrls.get(ref.s3Key) || ref.imageUrl || ''
-        })),
-        images: (prop.images || []).map((img) => ({
-          ...img,
-          url: payloadPropUrls.get(img.s3Key || '') || img.url || ''
-        })),
-        baseReference:
-          prop.baseReference?.s3Key != null
-            ? { ...prop.baseReference, imageUrl: payloadPropUrls.get(prop.baseReference.s3Key) || prop.baseReference.imageUrl || '' }
-            : prop.baseReference
-      }));
-    }
     // If initialProps is empty but Media Library has files, create props from Media Library
     if (initialProps.length === 0 && propMediaFiles.length > 0) {
       // Group Media Library files by entityId to create props
@@ -234,15 +211,9 @@ export function usePropReferences(
       
       return createdProps;
     }
-    
-    if (initialProps.length === 0 || propMediaFiles.length === 0) {
-      // No Media Library files found - use empty arrays (don't use old database references)
-      return initialProps.map(prop => ({
-        ...prop,
-        angleReferences: [], // Media Library is source of truth - if no files, no angleReferences
-        images: [], // Media Library is source of truth - if no files, no images
-        baseReference: prop.baseReference // Preserve baseReference for fallback when all images are deleted
-      }));
+
+    if (initialProps.length === 0) {
+      return [];
     }
 
     return initialProps.map(prop => {
@@ -263,17 +234,6 @@ export function usePropReferences(
         }))
       });
       
-      if (propMediaFilesForProp.length === 0) {
-        // No Media Library files found for this prop - use empty arrays
-        console.log('[PropImageDebug] usePropReferences: No Media Library files for prop', prop.id, '- returning empty arrays');
-        return {
-          ...prop,
-          angleReferences: [],
-          images: [],
-          baseReference: prop.baseReference
-        };
-      }
-      
       const { angleReferences: mlAngleReferences, images: mlImages } = mapMediaFilesToPropStructure(
         propMediaFilesForProp as any[],
         prop.id
@@ -293,16 +253,57 @@ export function usePropReferences(
           s3Key: img.s3Key
         }))
       });
-      
-      // Use Media Library data as source of truth - only use what exists in Media Library
+
+      // Fallback to payload/initial refs for completeness when media reads are partial.
+      const angleByS3 = new Set(
+        (mlAngleReferences || [])
+          .map((ref: any) => ref.s3Key)
+          .filter((s3Key: string | undefined): s3Key is string => !!s3Key)
+      );
+      const imageByS3 = new Set(
+        (mlImages || [])
+          .map((img: any) => img.s3Key || img.url)
+          .filter((s3Key: string | undefined): s3Key is string => !!s3Key)
+      );
+
+      const fallbackAngleReferences = (prop.angleReferences || [])
+        .filter((ref: any) => !!ref?.s3Key && !angleByS3.has(ref.s3Key))
+        .map((ref: any) => ({
+          ...ref,
+          imageUrl: payloadPropUrls.get(ref.s3Key) || ref.imageUrl || ''
+        }));
+
+      const fallbackImages = (prop.images || [])
+        .filter((img: any) => !!img?.s3Key && !imageByS3.has(img.s3Key) && !angleByS3.has(img.s3Key))
+        .map((img: any) => ({
+          ...img,
+          url: payloadPropUrls.get(img.s3Key || '') || img.url || ''
+        }));
+
+      if (prop.baseReference?.s3Key) {
+        const baseS3Key = prop.baseReference.s3Key;
+        if (!angleByS3.has(baseS3Key) && !imageByS3.has(baseS3Key)) {
+          fallbackImages.push({
+            url: payloadPropUrls.get(baseS3Key) || prop.baseReference.imageUrl || baseS3Key,
+            s3Key: baseS3Key
+          });
+        }
+      }
+
+      const mergedAngleReferences = [...mlAngleReferences, ...fallbackAngleReferences];
+      const mergedImages = [...mlImages, ...fallbackImages];
+
       return {
         ...prop,
-        angleReferences: mlAngleReferences, // Only Media Library files
-        images: mlImages, // Only Media Library files
-        baseReference: prop.baseReference // Preserve baseReference for fallback when all images are deleted
+        angleReferences: mergedAngleReferences,
+        images: mergedImages,
+        baseReference:
+          prop.baseReference?.s3Key != null
+            ? { ...prop.baseReference, imageUrl: payloadPropUrls.get(prop.baseReference.s3Key) || prop.baseReference.imageUrl || '' }
+            : prop.baseReference
       };
     });
-  }, [initialProps, propMediaFiles, payloadPropUrls, usePayloadForProps]);
+  }, [initialProps, propMediaFiles, payloadPropUrls]);
 
   // Collect all prop image thumbnail S3 keys
   const propThumbnailS3Keys = useMemo(() => {

@@ -52,6 +52,8 @@ const MEDIA_LIST_PAGE_SIZE = 100;
 /** Guardrails for fetchAllPages loops to prevent runaway pagination in degraded backends. */
 const FETCH_ALL_DEFAULT_MAX_PAGES = 20;
 const FETCH_ALL_DEFAULT_MAX_MS = 8000;
+const FETCH_ALL_ASSET_MAX_PAGES = 120;
+const FETCH_ALL_ASSET_MAX_MS = 30000;
 // Shots/Videos tabs require complete scene/standalone sets to avoid split-brain rendering where
 // one tab shows only a first frame or only a video during high-volume pagination windows.
 const FETCH_ALL_SCENE_MAX_PAGES = 240;
@@ -152,8 +154,17 @@ export function useMediaFiles(
       const startedAt = Date.now();
 
       const isSceneLikeEntity = entityType === 'scene' || entityType === 'standalone-video';
-      const maxPages = isSceneLikeEntity ? FETCH_ALL_SCENE_MAX_PAGES : FETCH_ALL_DEFAULT_MAX_PAGES;
-      const maxMs = isSceneLikeEntity ? FETCH_ALL_SCENE_MAX_MS : FETCH_ALL_DEFAULT_MAX_MS;
+      const isAssetEntity = entityType === 'asset';
+      const maxPages = isSceneLikeEntity
+        ? FETCH_ALL_SCENE_MAX_PAGES
+        : isAssetEntity
+          ? FETCH_ALL_ASSET_MAX_PAGES
+          : FETCH_ALL_DEFAULT_MAX_PAGES;
+      const maxMs = isSceneLikeEntity
+        ? FETCH_ALL_SCENE_MAX_MS
+        : isAssetEntity
+          ? FETCH_ALL_ASSET_MAX_MS
+          : FETCH_ALL_DEFAULT_MAX_MS;
 
       do {
         if (fetchAllPages && pagesFetched >= maxPages) {
