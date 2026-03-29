@@ -80,6 +80,7 @@ export interface BillingUsageHistoryItem {
     agentMode?: string | null;
     interactionSubtype?: string | null;
     provider: string | null;
+    model?: string | null;
     creditsDeducted: number;
     tokensConsumed: number;
 }

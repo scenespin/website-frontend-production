@@ -521,6 +521,7 @@ export default function AccountPage() {
                           <th className="text-left px-4 py-3 font-medium">Date</th>
                           <th className="text-left px-4 py-3 font-medium">Activity</th>
                           <th className="text-left px-4 py-3 font-medium">Provider</th>
+                          <th className="text-left px-4 py-3 font-medium">Model</th>
                           <th className="text-right px-4 py-3 font-medium">Credits</th>
                         </tr>
                       </thead>
@@ -532,6 +533,7 @@ export default function AccountPage() {
                             </td>
                             <td className="px-4 py-3 text-base-content">{item.eventLabel}</td>
                             <td className="px-4 py-3 text-base-content/70">{item.provider || '-'}</td>
+                            <td className="px-4 py-3 text-base-content/70">{item.model || '-'}</td>
                             <td className="px-4 py-3 text-right font-medium text-base-content">
                               {Number(item.creditsDeducted || 0).toLocaleString()}
                             </td>
