@@ -18,7 +18,7 @@ const MODEL_CONTEXT_WINDOWS = {
   'claude-3-7-sonnet-20250219': 200000,
   
   // GPT (OpenAI)
-  'gpt-5.1': 128000,  // Latest GPT (Nov 2025)
+  'gpt-5.4': 128000,  // Latest GPT-5.4 family
   'o3': 200000,  // Reasoning model, larger context
   'o1': 200000,  // Reasoning model, larger context
   'gpt-5': 128000,

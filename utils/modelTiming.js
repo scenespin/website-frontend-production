@@ -28,8 +28,8 @@ export const MODEL_TIMING = {
   },
   
   // OpenAI (GPT)
-  'gpt-5.1': {
-    name: 'GPT-5.1',
+  'gpt-5.4': {
+    name: 'GPT-5.4',
     provider: 'OpenAI',
     typicalTime: '15-20s',
     typicalTimeSeconds: 17,
