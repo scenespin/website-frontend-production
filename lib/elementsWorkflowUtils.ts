@@ -143,6 +143,29 @@ export function validateElementsForShots(
 }
 
 /**
+ * Builds an effective useElementsForVideo map for pricing/rendering.
+ * A shot is considered Elements-active only when:
+ * - Elements mode is enabled, and
+ * - at least one element reference is selected for that shot.
+ */
+export function buildEffectiveUseElementsForVideoPayload(
+  useElementsForVideo: Record<number, boolean> | undefined,
+  selectedElementsForVideo: Record<number, string[]> | undefined
+): Record<number, boolean> | undefined {
+  if (!useElementsForVideo || typeof useElementsForVideo !== 'object') return undefined;
+
+  const entries = Object.entries(useElementsForVideo).filter(([slot, enabled]) => {
+    if (!enabled) return false;
+    const slotNum = parseInt(slot, 10);
+    const selected = selectedElementsForVideo?.[slotNum];
+    return Array.isArray(selected) && selected.length > 0;
+  });
+
+  if (entries.length === 0) return undefined;
+  return Object.fromEntries(entries.map(([slot]) => [parseInt(slot, 10), true]));
+}
+
+/**
  * Builds the selectedElementsForVideo payload: only shots where useElementsForVideo is true
  * and the ref list is non-empty. Returns undefined if no such shots.
  */

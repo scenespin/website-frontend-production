@@ -78,6 +78,7 @@ import { useContextStore } from '@/lib/contextStore';
 import { useInFlightWorkflowJobsStore } from '@/lib/inFlightWorkflowJobsStore';
 import {
   validateElementsForShots,
+  buildEffectiveUseElementsForVideoPayload,
   buildSelectedElementsForVideoPayload,
   buildElementsVideoModelsPayload,
   buildElementsVideoDurationsPayload,
@@ -199,6 +200,13 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
   // Get context state and actions
   const contextState = useSceneBuilderState();
   const contextActions = useSceneBuilderActions();
+  const effectiveUseElementsForVideo = useMemo(
+    () => buildEffectiveUseElementsForVideoPayload(
+      contextState.useElementsForVideo,
+      contextState.selectedElementsForVideo
+    ),
+    [contextState.useElementsForVideo, contextState.selectedElementsForVideo]
+  );
   
   // Track what changed between renders (after contextState is declared)
   const prevContextStateRef = useRef<any>(null);
@@ -723,7 +731,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
           selectedDialogueWorkflows,
           voiceoverBaseWorkflows,
           generateVideoForShot,
-          contextState.useElementsForVideo,
+          effectiveUseElementsForVideo,
           contextState.elementsVideoModels,
           contextState.elementsVideoDurations,
           contextState.uploadedFirstFrames
@@ -749,7 +757,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     };
     run();
     return () => { cancelled = true; };
-  }, [currentStep, wizardStep, sceneAnalysisResult?.shotBreakdown?.shots, enabledShots, generateVideoForShot, selectedReferenceShotModels, selectedVideoTypes, shotDurations, selectedDialogueQualities, selectedDialogueWorkflows, voiceoverBaseWorkflows, contextState.uploadedFirstFrames, contextState.useElementsForVideo, contextState.elementsVideoModels, contextState.elementsVideoDurations, getToken]);
+  }, [currentStep, wizardStep, sceneAnalysisResult?.shotBreakdown?.shots, enabledShots, generateVideoForShot, selectedReferenceShotModels, selectedVideoTypes, shotDurations, selectedDialogueQualities, selectedDialogueWorkflows, voiceoverBaseWorkflows, contextState.uploadedFirstFrames, effectiveUseElementsForVideo, contextState.elementsVideoModels, contextState.elementsVideoDurations, getToken]);
   
   // 🔥 NEW: Map Media Library files to character headshot structure
   // NOTE: This useEffect is moved to after sceneAnalysisResult declaration to avoid build error
@@ -3556,7 +3564,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
             selectedDialogueWorkflows,
             voiceoverBaseWorkflows,
             generateVideoForShot,
-            contextState.useElementsForVideo,
+            effectiveUseElementsForVideo,
             contextState.elementsVideoModels,
             contextState.elementsVideoDurations,
             contextState.uploadedFirstFrames
@@ -5263,6 +5271,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
                 uploadedFirstFrames={contextState.uploadedFirstFrames}
                 generateVideoForShot={generateVideoForShot}
                 useElementsForVideo={contextState.useElementsForVideo}
+                selectedElementsForVideo={contextState.selectedElementsForVideo}
                 elementsVideoModels={contextState.elementsVideoModels}
                 elementsVideoDurations={contextState.elementsVideoDurations}
                 elementsVideoAspectRatios={contextState.elementsVideoAspectRatios}

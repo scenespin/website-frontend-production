@@ -26,7 +26,7 @@ import type { Resolution, CameraAngle } from './ShotConfigurationPanel';
 import { SceneBuilderService } from '@/services/SceneBuilderService';
 import { useAuth } from '@clerk/nextjs';
 import { getCharacterName, getCharacterSource } from './utils/sceneBuilderUtils';
-import { getEffectiveElementsVideoDuration, getEffectiveElementsVideoModel } from '@/lib/elementsWorkflowUtils';
+import { getEffectiveElementsVideoDuration, getEffectiveElementsVideoModel, buildEffectiveUseElementsForVideoPayload } from '@/lib/elementsWorkflowUtils';
 import { isValidImageUrl } from './utils/imageUrlResolver';
 import { formatImageModelLabel } from '@/utils/providerLabels';
 import { stripFountainInlineStyleMarkers } from '@/utils/stripFountainInlineStyleMarkers';
@@ -90,6 +90,7 @@ interface SceneReviewStepProps {
   generateVideoForShot?: Record<number, boolean>;
   // Feature 0262/0259: Per-shot Elements to Video (pricing: first frame = 0, video by selected Elements provider)
   useElementsForVideo?: Record<number, boolean>;
+  selectedElementsForVideo?: Record<number, string[]>;
   elementsVideoModels?: Record<number, 'veo-3.1' | 'grok-imagine-video'>;
   elementsVideoDurations?: Record<number, 5 | 8 | 10>;
   elementsVideoAspectRatios?: Record<number, '16:9' | '9:16'>;
@@ -137,6 +138,7 @@ export function SceneReviewStep({
   uploadedFirstFrames = {},
   generateVideoForShot = {},
   useElementsForVideo = {},
+  selectedElementsForVideo = {},
   elementsVideoModels = {},
   elementsVideoDurations = {},
   elementsVideoAspectRatios = {}
@@ -145,6 +147,10 @@ export function SceneReviewStep({
   const [pricing, setPricing] = useState<{ totalHdPrice: number; totalK4Price: number; totalFirstFramePrice: number } | null>(null);
   const [isLoadingPricing, setIsLoadingPricing] = useState(false);
   const reviewWarningEventSentRef = useRef<Set<string>>(new Set());
+  const effectiveUseElementsForVideo = useMemo(
+    () => buildEffectiveUseElementsForVideoPayload(useElementsForVideo, selectedElementsForVideo),
+    [useElementsForVideo, selectedElementsForVideo]
+  );
 
   const resolveDialogueVideoAspectRatio = (
     firstFrameRatio: '16:9' | '9:16' | '1:1' | '21:9' | '9:21',
@@ -197,7 +203,7 @@ export function SceneReviewStep({
           selectedDialogueWorkflows,
           voiceoverBaseWorkflows,
           generateVideoForShot,
-          useElementsForVideo,
+          effectiveUseElementsForVideo,
           elementsVideoModels,
           elementsVideoDurations,
           uploadedFirstFrames
@@ -217,7 +223,7 @@ export function SceneReviewStep({
     };
     
     fetchPricing();
-  }, [sceneAnalysisResult?.shotBreakdown?.shots, enabledShots, shotDurations, selectedReferenceShotModels, selectedDialogueQualities, selectedDialogueWorkflows, voiceoverBaseWorkflows, generateVideoForShot, useElementsForVideo, elementsVideoModels, elementsVideoDurations, uploadedFirstFrames, getToken]);
+  }, [sceneAnalysisResult?.shotBreakdown?.shots, enabledShots, shotDurations, selectedReferenceShotModels, selectedDialogueQualities, selectedDialogueWorkflows, voiceoverBaseWorkflows, generateVideoForShot, effectiveUseElementsForVideo, elementsVideoModels, elementsVideoDurations, uploadedFirstFrames, getToken]);
   
   if (!sceneAnalysisResult) {
     return (
@@ -348,7 +354,7 @@ export function SceneReviewStep({
       return total + seconds;
     }
     // Feature 0259: Elements duration is normalized from model capabilities.
-    if (useElementsForVideo[shot.slot]) {
+    if (effectiveUseElementsForVideo?.[shot.slot]) {
       const modelId = getEffectiveElementsVideoModel(elementsVideoModels[shot.slot]);
       const sec = getEffectiveElementsVideoDuration(elementsVideoDurations[shot.slot], modelId);
       return total + sec;
@@ -700,7 +706,7 @@ export function SceneReviewStep({
                         <div className="mt-4 pt-2 border-t border-[#3F3F46]">
                           {(() => {
                             const hasUploadedFirstFrame = !!uploadedFirstFrames[shot.slot];
-                            const isElementsVideo = !!useElementsForVideo[shot.slot];
+                            const isElementsVideo = !!effectiveUseElementsForVideo?.[shot.slot];
                             const isDialogueVideo = shot.type === 'dialogue' && !!generateVideoForShot[shot.slot];
                             const hasVideoForShot = isElementsVideo || isDialogueVideo;
                             const hasFirstFrameForShot = !isElementsVideo && !hasUploadedFirstFrame;

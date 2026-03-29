@@ -38,6 +38,7 @@ import {
   getEffectiveElementsVideoAspectRatio,
   getElementsVideoMaxReferences,
   getEffectiveElementsVideoModel,
+  buildEffectiveUseElementsForVideoPayload,
 } from '@/lib/elementsWorkflowUtils';
 
 // Aspect Ratio Selector Component (Custom DaisyUI Dropdown)
@@ -1029,6 +1030,10 @@ export function ShotConfigurationStep({
   const [isLoadingPricing, setIsLoadingPricing] = useState(false);
   const [activeTab, setActiveTab] = useState<string>('basic');
   const firstFrameTextareaRef = useRef<HTMLTextAreaElement>(null);
+  const effectiveUseElementsForVideo = useMemo(
+    () => buildEffectiveUseElementsForVideoPayload(state.useElementsForVideo, state.selectedElementsForVideo),
+    [state.useElementsForVideo, state.selectedElementsForVideo]
+  );
   
   // NOTE: We do NOT clear character references when switching to non-lip-sync. Hidden Mouth (off-frame)
   // needs the speaker's character image for voice and first-frame reference; Narrate Shot uses the
@@ -1074,7 +1079,7 @@ export function ShotConfigurationStep({
             : undefined,
           undefined, // voiceoverBaseWorkflows
           generateVideoForShot, // 🔥 FIX Issue 3: Pass generateVideoForShot to ensure correct pricing
-          state.useElementsForVideo, // Elements on → firstFramePrice=0, hdPrice from provider-specific Elements pricing
+          effectiveUseElementsForVideo, // Elements pricing only when refs are selected for the shot
           state.elementsVideoModels,
           state.elementsVideoDurations,
           uploadedFirstFrameUrl ? { [shot.slot]: uploadedFirstFrameUrl } : undefined // Feature 0211: uploaded first frame → firstFramePrice=0
@@ -1098,7 +1103,7 @@ export function ShotConfigurationStep({
     };
     
     fetchPricing();
-  }, [shot?.slot, shot?.credits, shot?.type, shotDuration, selectedReferenceShotModels, selectedVideoTypes, videoOptInForThisShot, generateVideoForShot, getToken, isDialogueShot, finalSelectedDialogueQuality, finalSelectedDialogueWorkflow, state.useElementsForVideo, state.elementsVideoModels, state.elementsVideoDurations, uploadedFirstFrameUrl]);
+  }, [shot?.slot, shot?.credits, shot?.type, shotDuration, selectedReferenceShotModels, selectedVideoTypes, videoOptInForThisShot, generateVideoForShot, getToken, isDialogueShot, finalSelectedDialogueQuality, finalSelectedDialogueWorkflow, effectiveUseElementsForVideo, state.elementsVideoModels, state.elementsVideoDurations, uploadedFirstFrameUrl]);
 
   // Validate shot completion before allowing next
   const handleNext = () => {
@@ -2337,7 +2342,7 @@ export function ShotConfigurationStep({
                     <span className="text-[#808080]">Reference Shot (first frame):</span>
                     <span className="text-[#FFFFFF] font-medium">{pricing.firstFramePrice} credits</span>
                   </div>
-                  {((isDialogueShot && videoOptInForThisShot) || !!state.useElementsForVideo?.[shot.slot]) && (
+                  {(pricing.hdPrice > 0) && (
                     <>
                       <div className="flex items-center justify-between text-xs">
                         <span className="text-[#808080]">
@@ -2357,7 +2362,7 @@ export function ShotConfigurationStep({
                       </div>
                     </>
                   )}
-                  {(!isDialogueShot || !videoOptInForThisShot) && !state.useElementsForVideo?.[shot.slot] && (
+                  {(pricing.hdPrice <= 0) && (
                     <div className="pt-2 border-t border-[#3F3F46]">
                       <div className="flex items-center justify-between text-xs font-medium">
                         <span className="text-[#FFFFFF]">Charged: First frame only</span>
