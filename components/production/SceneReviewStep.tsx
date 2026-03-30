@@ -440,18 +440,18 @@ export function SceneReviewStep({
               
               <div className="pt-3 border-t border-[#3F3F46]">
                 <p className="text-xs text-[#FFFFFF] leading-relaxed mb-2">
-                  You're about to generate <span className="text-[#DC143C] font-medium">{selectedShots.length} {selectedShots.length === 1 ? 'shot' : 'shots'}</span>
+                  Generation summary: <span className="text-[#DC143C] font-medium">{selectedShots.length} {selectedShots.length === 1 ? 'shot' : 'shots'}</span>
                   {hasAnyVideo ? (
-                    <> totaling <span className="text-[#DC143C] font-medium">{durationText}</span> of professional video content.</>
+                    <>, <span className="text-[#DC143C] font-medium">{durationText}</span> total.</>
                   ) : (
-                    <> as first frame images (no video).</>
+                    <> total.</>
                   )}
                 </p>
                 <p className="text-xs text-[#808080] leading-relaxed">
-                  Each shot has been carefully configured with your selected characters, locations, props, and creative direction. Our AI will bring your vision to life with cinematic quality and precision.
+                  All selected shot parameters and references will be applied as configured in this review step.
                 </p>
                 <p className="text-xs text-[#FFFFFF] leading-relaxed mt-2">
-                  Ready to bring your scene to the screen? Click generate to start production.
+                  Click Generate to begin execution.
                 </p>
               </div>
             </CardContent>
