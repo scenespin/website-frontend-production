@@ -9,11 +9,10 @@
 
 import { useState, useEffect, useMemo } from 'react';
 import { useAuth } from '@clerk/nextjs';
-import { Package, Car, Armchair, Box, Film, X, Loader2 } from 'lucide-react';
+import { Package, Car, Armchair, Box, Loader2 } from 'lucide-react';
 import { Asset, AssetCategory, ASSET_CATEGORY_METADATA } from '@/types/asset';
 import AssetUploadModal from './AssetUploadModal';
 import AssetDetailModal from './AssetDetailModal';
-import { useEditorContext, useContextStore } from '@/lib/contextStore';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { toast } from 'sonner';
 import { CinemaCard, type CinemaCardImage } from './CinemaCard';
@@ -34,7 +33,6 @@ interface AssetBankPanelProps {
 export default function AssetBankPanel({ className = '', isMobile = false, screenplayIdForJobs: screenplayIdForJobsProp, entityToOpen, onEntityOpened }: AssetBankPanelProps) {
   const screenplay = useScreenplay();
   const screenplayId = screenplay.screenplayId; // 🔥 MATCH MODALS: Use context directly (same as AssetDetailModal)
-  const editorContext = useEditorContext();
   const { getToken } = useAuth();
   const queryClient = useQueryClient();
 
@@ -236,30 +234,6 @@ export default function AssetBankPanel({ className = '', isMobile = false, scree
 
   return (
     <div className={`flex flex-col h-full bg-[#0A0A0A] ${className}`}>
-      {/* Context Indicator Banner */}
-      {editorContext.currentSceneName && (
-        <div className="bg-[#1F1F1F] border-b border-[#3F3F46] px-4 py-2">
-          <div className="text-sm flex items-center justify-between gap-2">
-            <div className="flex items-center gap-2 flex-1 min-w-0">
-              <Film className="w-4 h-4 text-[#808080] flex-shrink-0" />
-              <span className="text-[#808080]">Managing assets for scene:</span>
-              <span className="font-semibold text-[#FFFFFF] truncate">{editorContext.currentSceneName}</span>
-            </div>
-            <button
-              onClick={() => {
-                const { clearContext } = useContextStore.getState();
-                clearContext();
-                toast.success('Context cleared');
-              }}
-              className="p-1 rounded hover:bg-[#1F1F1F] text-[#808080] hover:text-[#FFFFFF] flex-shrink-0 transition-colors"
-              title="Clear context"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      )}
-
       {/* Category Filters */}
       <div className="flex gap-2 p-4 border-b border-[#3F3F46] overflow-x-auto">
         <button
