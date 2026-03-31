@@ -60,13 +60,19 @@ export async function GET(request: NextRequest) {
     if (path) backendParams.set('path', path);
 
     const backendUrl = `${BACKEND_API_URL}/api/media/file?${backendParams.toString()}`;
+    const rangeHeader = request.headers.get('range');
 
     // Forward request to backend with authentication
+    const upstreamHeaders: Record<string, string> = {
+      'Authorization': `Bearer ${token}`,
+    };
+    if (rangeHeader) {
+      upstreamHeaders.Range = rangeHeader;
+    }
+
     const response = await fetch(backendUrl, {
       method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${token}`,
-      },
+      headers: upstreamHeaders,
       // Don't cache - let backend set Cache-Control headers
       cache: 'no-store',
     });
@@ -112,14 +118,36 @@ export async function GET(request: NextRequest) {
       },
     });
 
+    const responseHeaders = new Headers();
+    responseHeaders.set('Content-Type', contentType);
+    responseHeaders.set('Cache-Control', cacheControl);
+    responseHeaders.set('Accept-Ranges', response.headers.get('accept-ranges') || 'bytes');
+
+    const contentRange = response.headers.get('content-range');
+    if (contentRange) {
+      responseHeaders.set('Content-Range', contentRange);
+    }
+    const contentLength = response.headers.get('content-length');
+    if (contentLength) {
+      responseHeaders.set('Content-Length', contentLength);
+    }
+    const contentDisposition = response.headers.get('content-disposition');
+    if (contentDisposition) {
+      responseHeaders.set('Content-Disposition', contentDisposition);
+    }
+    const eTag = response.headers.get('etag');
+    if (eTag) {
+      responseHeaders.set('ETag', eTag);
+    }
+    const lastModified = response.headers.get('last-modified');
+    if (lastModified) {
+      responseHeaders.set('Last-Modified', lastModified);
+    }
+
     return new NextResponse(stream, {
-      status: 200,
-      headers: {
-        'Content-Type': contentType,
-        'Cache-Control': cacheControl,
-        // Important for video playback: allow range requests for seeking
-        'Accept-Ranges': 'bytes',
-      },
+      // Preserve upstream status, including 206 for byte-range responses.
+      status: response.status,
+      headers: responseHeaders,
     });
   } catch (error: any) {
     console.error('[Media File Proxy] Error:', error);
