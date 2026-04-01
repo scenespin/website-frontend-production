@@ -21,6 +21,14 @@ const RESEND_AUDIENCE_NAME = "Wryda Newsletter";
 const BATCH_SIZE = 30;
 const DELAY_MS = 150;
 
+function getErrorMessage(err, fallback = "Unknown error") {
+  if (!err) return fallback;
+  if (typeof err === "string") return err;
+  if (typeof err.message === "string" && err.message.trim()) return err.message;
+  if (typeof err.name === "string" && err.name.trim()) return err.name;
+  return fallback;
+}
+
 async function isAdmin(userId) {
   const user = await currentUser();
   if (
@@ -64,7 +72,10 @@ export async function POST() {
     const apiKey = process.env.RESEND_API_KEY;
     if (!apiKey) {
       return NextResponse.json(
-        { error: "RESEND_API_KEY not set" },
+        {
+          error: "RESEND_API_KEY not set",
+          details: "Set RESEND_API_KEY in the frontend runtime environment and redeploy.",
+        },
         { status: 500 }
       );
     }
@@ -73,7 +84,16 @@ export async function POST() {
     let audienceId = process.env.RESEND_AUDIENCE_ID;
 
     if (!audienceId) {
-      const { data: listData } = await resend.audiences.list();
+      const { data: listData, error: listErr } = await resend.audiences.list();
+      if (listErr) {
+        const details = getErrorMessage(listErr, "Unable to list audiences");
+        console.error("[Sync Resend] List audiences failed:", details);
+        return NextResponse.json(
+          { error: "Failed to list Resend audiences", details },
+          { status: 500 }
+        );
+      }
+
       const audiences = listData?.data ?? [];
       const existing = audiences.find((a) => a.name === RESEND_AUDIENCE_NAME);
       if (existing) {
@@ -83,9 +103,13 @@ export async function POST() {
           name: RESEND_AUDIENCE_NAME,
         });
         if (createErr || !createData?.id) {
-          console.error("[Sync Resend] Create audience failed:", createErr || createData);
+          const details = getErrorMessage(
+            createErr,
+            "Audience create returned no id"
+          );
+          console.error("[Sync Resend] Create audience failed:", details);
           return NextResponse.json(
-            { error: "Failed to create Resend audience", details: createErr?.message },
+            { error: "Failed to create Resend audience", details },
             { status: 500 }
           );
         }
@@ -113,7 +137,10 @@ export async function POST() {
           unsubscribed: !!sub.unsubscribed_at,
         });
         if (error) {
-          errors.push({ email: sub.email, message: error.message });
+          errors.push({
+            email: sub.email,
+            message: getErrorMessage(error, "Failed to sync contact"),
+          });
           continue;
         }
         synced++;
@@ -134,7 +161,7 @@ export async function POST() {
   } catch (e) {
     console.error("[Sync Resend]", e);
     return NextResponse.json(
-      { error: "Sync failed", details: e.message },
+      { error: "Sync failed", details: getErrorMessage(e) },
       { status: 500 }
     );
   }

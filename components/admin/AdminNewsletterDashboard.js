@@ -140,8 +140,16 @@ export default function AdminNewsletterDashboard() {
             setSyncing(true);
             try {
               const res = await fetch('/api/admin/newsletter/sync-resend', { method: 'POST' });
-              const json = await res.json();
-              if (!res.ok) throw new Error(json.error || 'Sync failed');
+              let json = null;
+              try {
+                json = await res.json();
+              } catch {
+                json = null;
+              }
+              if (!res.ok) {
+                const msg = [json?.error, json?.details].filter(Boolean).join(': ');
+                throw new Error(msg || `Sync failed (${res.status})`);
+              }
               toast.success(`Synced ${json.synced} of ${json.total} to Resend${json.errorCount ? ` (${json.errorCount} errors)` : ''}`);
             } catch (e) {
               toast.error(e.message || 'Sync failed');
