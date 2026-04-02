@@ -3,6 +3,7 @@
 import { createContext, useContext, useReducer, useCallback, useMemo, useEffect, useRef } from 'react';
 import { useUser } from '@clerk/nextjs';
 import { normalizeAnthropicModelId } from '../utils/anthropicModels';
+import { useScreenplay } from './ScreenplayContext';
 
 // ============================================================================
 // TYPES
@@ -226,9 +227,11 @@ function chatReducer(state, action) {
 // ============================================================================
 
 const ChatContext = createContext(undefined);
+const STORY_ADVISOR_CONTEXT_SWITCH_EVENT = 'story-advisor:context-switched';
 
-export function ChatProvider({ children, initialContext = null }) {
+export function ChatProvider({ children, initialContext = null, emitStoryAdvisorSwitchEvents = false }) {
   const { user, isSignedIn } = useUser();
+  const { screenplayId } = useScreenplay();
   
   // Load saved model selection from localStorage on initialization
   const getInitialModel = () => {
@@ -244,53 +247,93 @@ export function ChatProvider({ children, initialContext = null }) {
     selectedModel: getInitialModel(),
     sceneContext: initialContext || null
   });
-  const hasLoadedFromStorage = useRef(false);
+  const loadedStorageKeyRef = useRef(null);
+  const messagesRef = useRef(state.messages);
   
-  // Session storage key for Story Advisor chat history
+  useEffect(() => {
+    messagesRef.current = state.messages;
+  }, [state.messages]);
+  
+  // Session storage key for Story Advisor chat history (scoped by screenplay)
+  // Phase 1 contract:
+  // - screenplayId required for persistence
+  // - if screenplayId is missing, Story Advisor stays in-memory only
   const getStorageKey = () => {
-    if (!user?.id) return null;
-    return `story-advisor-chat-history-${user.id}`;
+    if (!user?.id || !screenplayId || typeof screenplayId !== 'string') return null;
+    const trimmedScreenplayId = screenplayId.trim();
+    if (!trimmedScreenplayId) return null;
+    return `story-advisor-chat-history-${user.id}-${trimmedScreenplayId}`;
   };
   
-  // Load chat history from sessionStorage on mount (only for logged-in users)
+  // Load Story Advisor chat history when storage key changes.
+  // This auto-switches thread context between screenplays and prevents cross-script bleed.
   useEffect(() => {
-    if (!isSignedIn || !user?.id || hasLoadedFromStorage.current) return;
-    
+    if (!isSignedIn || !user?.id) {
+      loadedStorageKeyRef.current = null;
+      return;
+    }
+
+    const previousStorageKey = loadedStorageKeyRef.current;
     const storageKey = getStorageKey();
-    if (!storageKey) return;
-    
+
+    // No change to active key, nothing to do.
+    if (loadedStorageKeyRef.current === storageKey) {
+      return;
+    }
+
+    const nonChatMessages = (messagesRef.current || []).filter(m => m.mode !== 'chat');
+    let loadedChatMessages = [];
+
     try {
-      const savedHistory = sessionStorage.getItem(storageKey);
-      if (savedHistory) {
-        const parsedMessages = JSON.parse(savedHistory);
-        // Only load messages for 'chat' mode (Story Advisor)
-        if (Array.isArray(parsedMessages) && parsedMessages.length > 0) {
-          console.log('[ChatContext] Loading chat history from sessionStorage:', parsedMessages.length, 'messages');
-          dispatch({ type: 'SET_MESSAGES', payload: parsedMessages });
+      if (storageKey) {
+        const savedHistory = sessionStorage.getItem(storageKey);
+        if (savedHistory) {
+          const parsedMessages = JSON.parse(savedHistory);
+          if (Array.isArray(parsedMessages) && parsedMessages.length > 0) {
+            loadedChatMessages = parsedMessages
+              .filter((message) => message && typeof message === 'object')
+              .map((message) => ({
+                ...message,
+                mode: 'chat'
+              }));
+            console.log('[ChatContext] Loading screenplay-scoped chat history:', loadedChatMessages.length, 'messages');
+          }
         }
       }
-      // Mark as loaded even if no history exists, so new messages can be saved
-      hasLoadedFromStorage.current = true;
+
+      dispatch({ type: 'SET_MESSAGES', payload: [...nonChatMessages, ...loadedChatMessages] });
+      if (
+        emitStoryAdvisorSwitchEvents &&
+        typeof window !== 'undefined' &&
+        previousStorageKey &&
+        previousStorageKey !== storageKey
+      ) {
+        window.dispatchEvent(new CustomEvent(STORY_ADVISOR_CONTEXT_SWITCH_EVENT, {
+          detail: {
+            screenplayId: typeof screenplayId === 'string' ? screenplayId.trim() : null,
+            restored: loadedChatMessages.length > 0,
+            messageCount: loadedChatMessages.length
+          }
+        }));
+      }
+      loadedStorageKeyRef.current = storageKey;
     } catch (error) {
-      console.error('[ChatContext] Error loading chat history from sessionStorage:', error);
-      // Clear corrupted data
-      sessionStorage.removeItem(storageKey);
-      // Still mark as loaded so new messages can be saved
-      hasLoadedFromStorage.current = true;
+      console.error('[ChatContext] Error loading screenplay-scoped chat history:', error);
+      if (storageKey) {
+        sessionStorage.removeItem(storageKey);
+      }
+      dispatch({ type: 'SET_MESSAGES', payload: nonChatMessages });
+      loadedStorageKeyRef.current = storageKey;
     }
-  }, [isSignedIn, user?.id]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isSignedIn, user?.id, screenplayId]);
   
   // Save chat history to sessionStorage whenever messages change (only for logged-in users)
   useEffect(() => {
     if (!isSignedIn || !user?.id) return;
-    
-    // If we haven't loaded from storage yet, mark as loaded so we can start saving
-    // This handles the case where user sends a message before history loads
-    if (!hasLoadedFromStorage.current) {
-      hasLoadedFromStorage.current = true;
-    }
-    
+
     const storageKey = getStorageKey();
+    // no-id screenplay mode: keep in-memory only, do not persist
     if (!storageKey) return;
     
     try {
@@ -319,13 +362,12 @@ export function ChatProvider({ children, initialContext = null }) {
         }
       }
     }
-  }, [state.messages, isSignedIn, user?.id]);
+  }, [state.messages, isSignedIn, user?.id, screenplayId]);
   
-  // Clear storage when user signs out
+  // Reset loaded key when user signs out
   useEffect(() => {
-    if (!isSignedIn && hasLoadedFromStorage.current) {
-      // User signed out - clear the loaded flag so history can be loaded again if they sign back in
-      hasLoadedFromStorage.current = false;
+    if (!isSignedIn) {
+      loadedStorageKeyRef.current = null;
     }
   }, [isSignedIn]);
   

@@ -41,6 +41,7 @@ const MODE_ORDER = ['chat'];
 const MAX_CHAT_HISTORY_MESSAGES = 6;
 const MAX_CHAT_HISTORY_MESSAGE_CHARS = 1500;
 const MAX_SYSTEM_PROMPT_CHARS = 90000;
+const STORY_ADVISOR_CONTEXT_SWITCH_EVENT = 'story-advisor:context-switched';
 
 function clampPromptText(value, maxChars) {
   if (typeof value !== 'string') return '';
@@ -908,6 +909,28 @@ function UnifiedChatPanelInner({
     window.addEventListener('chat:close-blocked', onCloseBlocked);
     return () => window.removeEventListener('chat:close-blocked', onCloseBlocked);
   }, []);
+
+  // Surface screenplay thread switches with a lightweight non-blocking cue.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handleStoryAdvisorContextSwitch = (event) => {
+      if (!isDrawerOpen) return;
+      const detail = event?.detail || {};
+      const restored = Boolean(detail.restored);
+      toast(
+        restored
+          ? 'Switched Story Advisor context. Previous thread restored for this screenplay.'
+          : 'Switched Story Advisor context. Starting a new thread for this screenplay.',
+        { icon: '🧠' }
+      );
+    };
+
+    window.addEventListener(STORY_ADVISOR_CONTEXT_SWITCH_EVENT, handleStoryAdvisorContextSwitch);
+    return () => {
+      window.removeEventListener(STORY_ADVISOR_CONTEXT_SWITCH_EVENT, handleStoryAdvisorContextSwitch);
+    };
+  }, [isDrawerOpen]);
 
   /**
    * Render the active mode panel
@@ -1790,7 +1813,7 @@ const UnifiedChatPanelInnerMemo = memo(UnifiedChatPanelInner, (prevProps, nextPr
 
 export default function UnifiedChatPanel(props) {
   return (
-    <ChatProvider initialContext={props.sceneContext}>
+    <ChatProvider initialContext={props.sceneContext} emitStoryAdvisorSwitchEvents>
       <UnifiedChatPanelInnerMemo {...props} />
     </ChatProvider>
   );
