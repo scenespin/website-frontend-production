@@ -7,6 +7,30 @@ import { useEffect, useState } from 'react'
 import config from '@/config'
 import { CheckCircle, Shield, Zap, Sparkles, Video, FileText, Image, Film } from 'lucide-react'
 
+const AUTH_ROUTE_PATHS = new Set(['/sign-in', '/sign-up', '/signin', '/signup'])
+
+function sanitizeAuthRedirectUrl(rawRedirectUrl, fallbackPath) {
+  if (!rawRedirectUrl) return fallbackPath
+
+  try {
+    const parsed = new URL(rawRedirectUrl, 'https://wryda.ai')
+    const normalizedPath = (parsed.pathname || '/').toLowerCase()
+
+    if (AUTH_ROUTE_PATHS.has(normalizedPath)) {
+      return fallbackPath
+    }
+
+    // Prevent open redirects to other origins.
+    if (/^https?:\/\//i.test(rawRedirectUrl) && parsed.origin !== 'https://wryda.ai') {
+      return fallbackPath
+    }
+
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`
+  } catch {
+    return fallbackPath
+  }
+}
+
 export default function SignUpPage() {
   const searchParams = useSearchParams()
   const planParam = searchParams?.get('plan') || 'free'
@@ -27,7 +51,11 @@ export default function SignUpPage() {
   
   // Determine if it's a paid plan
   const isPaidPlan = selectedPlan.price > 0
-  const authRedirectUrl = redirectUrlParam || (isPaidPlan ? `/dashboard?plan=${planParam}` : '/dashboard')
+  const defaultRedirectPath = isPaidPlan ? `/dashboard?plan=${planParam}` : '/dashboard'
+  const authRedirectUrl = sanitizeAuthRedirectUrl(redirectUrlParam, defaultRedirectPath)
+  const signInUrl = isPartnerFlow
+    ? `/sign-in?partner=1&redirect_url=${encodeURIComponent(authRedirectUrl)}`
+    : `/sign-in?redirect_url=${encodeURIComponent(authRedirectUrl)}`
 
   useEffect(() => {
     const normalizedRef = String(refParam || '').trim()
@@ -410,6 +438,9 @@ export default function SignUpPage() {
               </div>
 
               <SignUp 
+                routing="path"
+                path="/sign-up"
+                signInUrl={signInUrl}
                 fallbackRedirectUrl={authRedirectUrl}
                 forceRedirectUrl={isPartnerFlow ? authRedirectUrl : (isPaidPlan ? `/dashboard?plan=${planParam}` : undefined)}
                 appearance={{

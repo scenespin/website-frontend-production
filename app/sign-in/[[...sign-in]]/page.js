@@ -5,10 +5,35 @@ import Link from 'next/link'
 import config from '@/config'
 import { useSearchParams } from 'next/navigation'
 
+const AUTH_ROUTE_PATHS = new Set(['/sign-in', '/sign-up', '/signin', '/signup'])
+
+function sanitizeAuthRedirectUrl(rawRedirectUrl, fallbackPath = '/dashboard') {
+  if (!rawRedirectUrl) return fallbackPath
+
+  try {
+    const parsed = new URL(rawRedirectUrl, 'https://wryda.ai')
+    const normalizedPath = (parsed.pathname || '/').toLowerCase()
+
+    if (AUTH_ROUTE_PATHS.has(normalizedPath)) {
+      return fallbackPath
+    }
+
+    // Prevent open redirects to other origins.
+    if (/^https?:\/\//i.test(rawRedirectUrl) && parsed.origin !== 'https://wryda.ai') {
+      return fallbackPath
+    }
+
+    return `${parsed.pathname}${parsed.search}${parsed.hash}`
+  } catch {
+    return fallbackPath
+  }
+}
+
 export default function SignInPage() {
   const searchParams = useSearchParams()
   // Get redirect_url from query params
-  const redirectUrl = searchParams?.get('redirect_url') || searchParams?.get('redirectUrl') || '/'
+  const rawRedirectUrl = searchParams?.get('redirect_url') || searchParams?.get('redirectUrl')
+  const redirectUrl = sanitizeAuthRedirectUrl(rawRedirectUrl)
   const isPartnerFlow = searchParams?.get('partner') === '1'
   const signUpLink = isPartnerFlow
     ? `/sign-up?partner=1&redirect_url=${encodeURIComponent(redirectUrl)}`
@@ -42,6 +67,7 @@ export default function SignInPage() {
             <SignIn 
               routing="path"
               path="/sign-in"
+              signUpUrl={signUpLink}
               fallbackRedirectUrl={redirectUrl}
               appearance={{
                 baseTheme: undefined,
