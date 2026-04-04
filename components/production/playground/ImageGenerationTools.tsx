@@ -225,8 +225,13 @@ const extractImageUrlFromExecutionLike = (execution: any): string | undefined =>
 export function ImageGenerationTools({ className = '' }: ImageGenerationToolsProps) {
   const screenplay = useScreenplay();
   const screenplayId = screenplay.screenplayId;
+  const { canAccessProductionHub, canGenerateAssets, permissionsLoading, currentUserRole } = screenplay;
   const { getToken } = useAuth();
   const addInFlightJob = useInFlightWorkflowJobsStore((state) => state.addJob);
+  const canUseImageGeneration = !permissionsLoading && canAccessProductionHub && canGenerateAssets;
+  const imageGenerationDeniedReason = permissionsLoading
+    ? 'Loading screenplay permissions...'
+    : `Image generation requires Director or Producer access. Your role: ${currentUserRole || 'unknown'}.`;
   
   const [prompt, setPrompt] = useState('');
   const [selectedModel, setSelectedModel] = useState<string>('');
@@ -457,6 +462,10 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
   ];
 
   const handleReferenceImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (!canUseImageGeneration) {
+      toast.error(imageGenerationDeniedReason);
+      return;
+    }
     const files = e.target.files;
     if (!files || files.length === 0) return;
 
@@ -1012,6 +1021,10 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
   }, [screenplayId, prompt, referenceImages, draftHydrated]);
 
   const handleSelectReferenceImagesFromLibrary = (images: MediaFile[]) => {
+    if (!canUseImageGeneration) {
+      toast.error(imageGenerationDeniedReason);
+      return;
+    }
     const limit = getReferenceLimit();
     if (limit <= 0) {
       toast.error('Selected model does not support reference images');
@@ -1049,6 +1062,10 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
   };
 
   const handleGenerate = async () => {
+    if (!canUseImageGeneration) {
+      toast.error(imageGenerationDeniedReason);
+      return;
+    }
     if (!prompt.trim() || !selectedModel) return;
     const requestModelId = selectedModel;
     const requestAspectRatio = aspectRatio;
@@ -1314,6 +1331,11 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
       {/* Left Panel - Form Controls */}
       <div className="w-full md:w-1/2 flex flex-col">
         <div className="flex flex-col gap-6 p-4 md:p-6">
+          {!canUseImageGeneration && (
+            <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+              {imageGenerationDeniedReason}
+            </div>
+          )}
           {/* Prompt Input */}
           <div className="flex-shrink-0">
           <label className="block text-sm font-medium text-white mb-2">
@@ -1330,6 +1352,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
                 "placeholder:text-[#4A4A4A]"
               )}
               rows={4}
+              disabled={!canUseImageGeneration}
             />
           </div>
           {selectedModel && (
@@ -1355,14 +1378,14 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
                 multiple
                 onChange={handleReferenceImageUpload}
                 className="hidden"
-                disabled={isUploading || referenceImages.length >= getReferenceLimit()}
+                disabled={!canUseImageGeneration || isUploading || referenceImages.length >= getReferenceLimit()}
               />
               <div className="space-y-3">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
                   <button
                     type="button"
                     onClick={() => fileInputRef.current?.click()}
-                    disabled={isUploading || referenceImages.length >= getReferenceLimit()}
+                    disabled={!canUseImageGeneration || isUploading || referenceImages.length >= getReferenceLimit()}
                     className={cn(
                       "px-4 py-3 border-2 border-dashed rounded-lg",
                       "flex items-center justify-center gap-2 text-sm font-medium transition-colors",
@@ -1386,11 +1409,11 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
                   <button
                     type="button"
                     onClick={() => setShowMediaLibraryBrowser(true)}
-                    disabled={!screenplayId}
+                    disabled={!canUseImageGeneration || !screenplayId}
                     className={cn(
                       "px-4 py-3 border rounded-lg",
                       "flex items-center justify-center gap-2 text-sm font-medium transition-colors",
-                      !screenplayId
+                      !canUseImageGeneration || !screenplayId
                         ? "border-[#3F3F46] text-[#808080] cursor-not-allowed"
                         : "border-[#3F3F46] text-[#B3B3B3] hover:border-cinema-red hover:text-cinema-red"
                     )}
@@ -1419,6 +1442,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
                           <button
                             type="button"
                             onClick={() => setPrimaryReferenceImage(index)}
+                            disabled={!canUseImageGeneration}
                             className="absolute bottom-1 left-1 rounded bg-black/70 border border-white/20 px-2 py-0.5 text-[10px] text-white opacity-0 group-hover:opacity-100 transition-opacity hover:border-cinema-red hover:text-cinema-red"
                             title="Set as primary reference"
                           >
@@ -1428,6 +1452,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
                         <button
                           type="button"
                           onClick={() => removeReferenceImage(index)}
+                          disabled={!canUseImageGeneration}
                           className="absolute -top-2 -right-2 w-6 h-6 bg-cinema-red rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
                         >
                           <X className="w-4 h-4 text-white" />
@@ -1466,6 +1491,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
               value={selectedModel}
               onChange={(e) => setSelectedModel(e.target.value)}
               className="w-full px-4 py-2.5 bg-[#1F1F1F] border border-[#3F3F46] rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cinema-red focus:border-transparent"
+              disabled={!canUseImageGeneration}
             >
               {models.map((model) => (
                 <option key={model.id} value={model.id}>
@@ -1490,6 +1516,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
             value={selectedCameraAngle}
             onChange={(e) => setSelectedCameraAngle(e.target.value)}
             className="w-full px-4 py-2.5 bg-[#1F1F1F] border border-[#3F3F46] rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cinema-red focus:border-transparent"
+            disabled={!canUseImageGeneration}
           >
             {cameraAngles.map((angle) => (
               <option key={angle.id} value={angle.id}>
@@ -1513,6 +1540,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
               value={aspectRatio}
               onChange={(e) => setAspectRatio(e.target.value)}
               className="w-full px-4 py-2.5 bg-[#1F1F1F] border border-[#3F3F46] rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cinema-red focus:border-transparent"
+              disabled={!canUseImageGeneration}
             >
               {aspectRatios.map((ratio) => (
                 <option key={ratio.value} value={ratio.value}>
@@ -1529,7 +1557,7 @@ export function ImageGenerationTools({ className = '' }: ImageGenerationToolsPro
           <div className="space-y-2">
             <button
               onClick={handleGenerate}
-              disabled={!prompt.trim() || !selectedModel || isSubmittingGenerateRequest}
+              disabled={!canUseImageGeneration || !prompt.trim() || !selectedModel || isSubmittingGenerateRequest}
               className={cn(
                 "w-full px-6 py-3 rounded-lg font-medium text-white transition-colors",
                 "bg-cinema-red hover:bg-red-700 disabled:bg-[#3F3F46] disabled:text-[#808080] disabled:cursor-not-allowed",

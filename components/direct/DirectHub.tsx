@@ -4,9 +4,10 @@
  * Direct Hub - Scene Builder | Shots | Videos | Video Gen | Image Gen
  */
 
-import React, { useState, useEffect, useCallback, useRef } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
+import { toast } from 'sonner';
 import { SceneBuilderPanel } from '@/components/production/SceneBuilderPanel';
 import { ShotBoardPanel } from '@/components/production/ShotBoardPanel';
 import { VideoBrowserPanel } from '@/components/production/VideoBrowserPanel';
@@ -22,9 +23,38 @@ const VALID_TABS: DirectTab[] = ['scene-builder', 'shots', 'videos', 'video-gen'
 
 export function DirectHub() {
   const screenplay = useScreenplay();
+  const { canAccessProductionHub, canGenerateAssets, permissionsLoading } = screenplay;
   const router = useRouter();
   const searchParams = useSearchParams();
   const screenplayId = screenplay.screenplayId;
+  const disabledTabs = useMemo<Partial<Record<DirectTab, string>>>(() => {
+    const tabs: Partial<Record<DirectTab, string>> = {};
+    const productionHubDeniedReason = 'Production Hub access is limited to Director/Producer collaborators.';
+    const generationDeniedReason = 'Asset generation is limited to Director/Producer collaborators.';
+
+    if (permissionsLoading) {
+      tabs['scene-builder'] = 'Loading screenplay permissions...';
+      tabs['shots'] = 'Loading screenplay permissions...';
+      tabs['video-gen'] = 'Loading screenplay permissions...';
+      tabs['image-gen'] = 'Loading screenplay permissions...';
+      return tabs;
+    }
+
+    if (!canAccessProductionHub) {
+      tabs['scene-builder'] = productionHubDeniedReason;
+      tabs['shots'] = productionHubDeniedReason;
+      tabs['video-gen'] = productionHubDeniedReason;
+      tabs['image-gen'] = productionHubDeniedReason;
+      return tabs;
+    }
+
+    if (!canGenerateAssets) {
+      tabs['video-gen'] = generationDeniedReason;
+      tabs['image-gen'] = generationDeniedReason;
+    }
+
+    return tabs;
+  }, [permissionsLoading, canAccessProductionHub, canGenerateAssets]);
 
   const [activeTab, setActiveTab] = useState<DirectTab>('scene-builder');
   const [videoGenPreFill, setVideoGenPreFill] = useState<GenerateVideoContext | null>(null);
@@ -50,6 +80,11 @@ export function DirectHub() {
 
   const handleTabChange = useCallback(
     (tab: DirectTab) => {
+      const disabledReason = disabledTabs[tab];
+      if (disabledReason) {
+        toast.error(disabledReason);
+        return;
+      }
       setActiveTab(tab);
       if (tab !== 'video-gen') {
         setVideoGenPreFill(null);
@@ -58,18 +93,32 @@ export function DirectHub() {
       newUrl.searchParams.set('tab', tab);
       router.push(newUrl.pathname + newUrl.search, { scroll: false });
     },
-    [router]
+    [router, disabledTabs]
   );
+
+  useEffect(() => {
+    const activeTabDeniedReason = disabledTabs[activeTab];
+    if (!activeTabDeniedReason) return;
+    setActiveTab('videos');
+    const newUrl = new URL(window.location.href);
+    newUrl.searchParams.set('tab', 'videos');
+    router.replace(newUrl.pathname + newUrl.search, { scroll: false });
+  }, [activeTab, disabledTabs, router]);
 
   const handleGenerateVideoFromShots = useCallback(
     (context: GenerateVideoContext) => {
+      const disabledReason = disabledTabs['video-gen'];
+      if (disabledReason) {
+        toast.error(disabledReason);
+        return;
+      }
       setVideoGenPreFill(context);
       setActiveTab('video-gen');
       const newUrl = new URL(window.location.href);
       newUrl.searchParams.set('tab', 'video-gen');
       router.push(newUrl.pathname + newUrl.search, { scroll: false });
     },
-    [router]
+    [router, disabledTabs]
   );
 
   // Jobs drawer is intentionally hidden on Scene Builder.
@@ -131,6 +180,7 @@ export function DirectHub() {
         <DirectTabBar
           activeTab={activeTab}
           onTabChange={handleTabChange}
+          disabledTabs={disabledTabs}
         />
       </div>
 

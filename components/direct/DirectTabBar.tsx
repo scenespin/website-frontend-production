@@ -13,7 +13,9 @@ export type DirectTab = 'scene-builder' | 'shots' | 'videos' | 'video-gen' | 'im
 
 interface DirectTabBarProps {
   activeTab: DirectTab;
-  onTabChange: (tab: DirectTab) => void;
+  // eslint-disable-next-line no-unused-vars
+  onTabChange(tab: DirectTab): void;
+  disabledTabs?: Partial<Record<DirectTab, string>>;
 }
 
 const DIRECT_TABS = [
@@ -47,22 +49,27 @@ const DIRECT_TABS = [
 export function DirectTabBar({
   activeTab,
   onTabChange,
+  disabledTabs = {},
 }: DirectTabBarProps) {
   return (
     <div className="border-b border-white/10 bg-[#0A0A0A] w-full pb-2">
       <div className="flex gap-1 px-4">
         {DIRECT_TABS.map((tab) => {
           const isActive = activeTab === tab.id;
+          const disabledReason = disabledTabs[tab.id];
+          const isDisabled = typeof disabledReason === 'string' && disabledReason.trim().length > 0;
 
           return (
             <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
+              disabled={isDisabled}
               className={cn(
                 "relative flex items-center gap-2 px-4 py-3 font-medium text-sm",
                 "transition-colors duration-200",
                 "border-b-2 -mb-[2px]",
                 "whitespace-nowrap",
+                isDisabled && "opacity-50 cursor-not-allowed hover:bg-transparent hover:text-base-content/60",
                 isActive
                   ? cn(
                       "border-cinema-red",
@@ -77,7 +84,7 @@ export function DirectTabBar({
                     )
               )}
               aria-current={isActive ? 'page' : undefined}
-              title={tab.description}
+              title={isDisabled ? disabledReason : tab.description}
             >
               <span>{tab.label}</span>
             </button>

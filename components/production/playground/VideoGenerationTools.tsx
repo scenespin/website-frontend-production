@@ -143,8 +143,13 @@ export function VideoGenerationTools({
   shotNumber: propShotNumber,
 }: VideoGenerationToolsProps) {
   const screenplay = useScreenplay();
+  const { canAccessProductionHub, canGenerateAssets, permissionsLoading, currentUserRole } = screenplay;
   const screenplayId = propScreenplayId || screenplay.screenplayId;
   const { getToken } = useAuth();
+  const canUseVideoGeneration = !permissionsLoading && canAccessProductionHub && canGenerateAssets;
+  const videoGenerationDeniedReason = permissionsLoading
+    ? 'Loading screenplay permissions...'
+    : `Video generation requires Director or Producer access. Your role: ${currentUserRole || 'unknown'}.`;
 
   const [activeMode, setActiveMode] = useState<VideoMode>('starting-frame');
   const [prompt, setPrompt] = useState('');
@@ -192,6 +197,10 @@ export function VideoGenerationTools({
 
   // When switching to Frame to Frame, carry over the current starting frame into Frame 1 so it persists
   const handleSwitchToFrameToFrame = () => {
+    if (!canUseVideoGeneration) {
+      toast.error(videoGenerationDeniedReason);
+      return;
+    }
     setActiveMode('frame-to-frame');
     if (startImage) {
       setFrame1({ file: startImage.file, preview: startImage.preview, s3Key: startImage.s3Key });
@@ -783,6 +792,10 @@ export function VideoGenerationTools({
     e: React.ChangeEvent<HTMLInputElement>,
     setter: (value: { file: File; preview: string; s3Key?: string } | null) => void
   ) => {
+    if (!canUseVideoGeneration) {
+      toast.error(videoGenerationDeniedReason);
+      return;
+    }
     const file = e.target.files?.[0];
     if (!file) return;
 
@@ -807,6 +820,10 @@ export function VideoGenerationTools({
   };
 
   const handleGenerate = async () => {
+    if (!canUseVideoGeneration) {
+      toast.error(videoGenerationDeniedReason);
+      return;
+    }
     if (!prompt.trim() || isGenerating) {
       toast.error('Please fill in all required fields');
       return;
@@ -1097,7 +1114,7 @@ export function VideoGenerationTools({
             <button
               type="button"
               onClick={() => startImageInputRef.current?.click()}
-              disabled={isUploading || isGenerating}
+              disabled={!canUseVideoGeneration || isUploading || isGenerating}
               className={cn(
                 "w-full h-full min-h-[200px] flex flex-col items-center justify-center gap-2 text-sm font-medium transition-colors",
                 isUploading || isGenerating
@@ -1148,7 +1165,7 @@ export function VideoGenerationTools({
                 <button
                   type="button"
                   onClick={() => frame1InputRef.current?.click()}
-                  disabled={isUploading || isGenerating}
+                  disabled={!canUseVideoGeneration || isUploading || isGenerating}
                   className={cn(
                     "w-full h-full min-h-[160px] flex flex-col items-center justify-center gap-2 text-sm font-medium transition-colors",
                     isUploading || isGenerating
@@ -1184,7 +1201,7 @@ export function VideoGenerationTools({
                 <button
                   type="button"
                   onClick={() => frame2InputRef.current?.click()}
-                  disabled={isUploading || isGenerating}
+                  disabled={!canUseVideoGeneration || isUploading || isGenerating}
                   className={cn(
                     "w-full h-full min-h-[160px] flex flex-col items-center justify-center gap-2 text-sm font-medium transition-colors",
                     isUploading || isGenerating
@@ -1227,7 +1244,7 @@ export function VideoGenerationTools({
         accept="image/*"
         onChange={(e) => handleImageSelect(e, setStartImage)}
         className="hidden"
-        disabled={isUploading || isGenerating}
+        disabled={!canUseVideoGeneration || isUploading || isGenerating}
         aria-hidden
       />
       <input
@@ -1236,7 +1253,7 @@ export function VideoGenerationTools({
         accept="image/*"
         onChange={(e) => handleImageSelect(e, setFrame1)}
         className="hidden"
-        disabled={isUploading || isGenerating}
+        disabled={!canUseVideoGeneration || isUploading || isGenerating}
         aria-hidden
       />
       <input
@@ -1245,18 +1262,24 @@ export function VideoGenerationTools({
         accept="image/*"
         onChange={(e) => handleImageSelect(e, setFrame2)}
         className="hidden"
-        disabled={isUploading || isGenerating}
+        disabled={!canUseVideoGeneration || isUploading || isGenerating}
         aria-hidden
       />
 
       {/* Left Panel - Form Controls (no inner scroll; whole page scrolls) */}
       <div className="w-full md:w-1/2 flex flex-col">
         <div className="flex flex-col gap-6 p-4 md:p-6">
+        {!canUseVideoGeneration && (
+          <div className="rounded-lg border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-xs text-amber-200">
+            {videoGenerationDeniedReason}
+          </div>
+        )}
         {/* Mode Tabs */}
         <div className="flex-shrink-0 mb-6">
         <div className="flex gap-2 flex-wrap">
           <button
             onClick={() => setActiveMode('text-to-video')}
+            disabled={!canUseVideoGeneration}
             className={cn(
               "flex items-center gap-2 px-3 md:px-4 py-2.5 rounded-lg text-sm font-medium transition-colors",
               activeMode === 'text-to-video'
@@ -1270,6 +1293,7 @@ export function VideoGenerationTools({
 
           <button
             onClick={() => setActiveMode('starting-frame')}
+            disabled={!canUseVideoGeneration}
             className={cn(
               "flex items-center gap-2 px-3 md:px-4 py-2.5 rounded-lg text-sm font-medium transition-colors",
               activeMode === 'starting-frame'
@@ -1283,6 +1307,7 @@ export function VideoGenerationTools({
 
           <button
             onClick={handleSwitchToFrameToFrame}
+            disabled={!canUseVideoGeneration}
             className={cn(
               "flex items-center gap-2 px-3 md:px-4 py-2.5 rounded-lg text-sm font-medium transition-colors",
               activeMode === 'frame-to-frame'
@@ -1312,7 +1337,7 @@ export function VideoGenerationTools({
             value={selectedCameraAngle}
             onChange={(e) => setSelectedCameraAngle(e.target.value)}
             className="w-full px-4 py-2.5 bg-[#1F1F1F] border border-[#3F3F46] rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cinema-red focus:border-transparent"
-            disabled={isGenerating}
+            disabled={!canUseVideoGeneration || isGenerating}
           >
             {cameraAngles.map((angle) => (
               <option key={angle.id || 'none'} value={angle.id}>
@@ -1337,7 +1362,7 @@ export function VideoGenerationTools({
               <button
                 type="button"
                 onClick={() => setPrompt(lineContextText)}
-                disabled={isGenerating}
+                disabled={!canUseVideoGeneration || isGenerating}
                 className="text-xs px-2 py-1 rounded border border-[#3F3F46] bg-[#1F1F1F] text-[#B3B3B3] hover:text-white hover:border-[#52525B] transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                 title="Replace prompt with selected line context"
               >
@@ -1361,7 +1386,7 @@ export function VideoGenerationTools({
             }
             className="w-full px-4 py-3 bg-[#1F1F1F] border border-[#3F3F46] rounded-lg text-white placeholder-[#808080] focus:outline-none focus:ring-2 focus:ring-cinema-red focus:border-transparent resize-none"
             rows={4}
-            disabled={isGenerating}
+            disabled={!canUseVideoGeneration || isGenerating}
           />
         </div>
 
@@ -1374,7 +1399,7 @@ export function VideoGenerationTools({
             value={resolutionOptions.includes(selectedResolution) ? selectedResolution : resolutionOptions[0] ?? '1080p'}
             onChange={(e) => setSelectedResolution(e.target.value)}
             className="w-full px-4 py-2.5 bg-[#1F1F1F] border border-[#3F3F46] rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cinema-red focus:border-transparent"
-            disabled={isGenerating}
+            disabled={!canUseVideoGeneration || isGenerating}
           >
             {resolutionOptions.map((res) => (
               <option key={res} value={res}>{res === '4k' ? '4K' : res}</option>
@@ -1406,8 +1431,8 @@ export function VideoGenerationTools({
             <>
               <button
                 type="button"
-                onClick={() => !isGenerating && setVideoModelDropdownOpen((o) => !o)}
-                disabled={isGenerating}
+                onClick={() => !isGenerating && canUseVideoGeneration && setVideoModelDropdownOpen((o) => !o)}
+                disabled={!canUseVideoGeneration || isGenerating}
                 ref={videoModelTriggerRef}
                 className={cn(
                   "w-full px-4 py-2.5 bg-[#1F1F1F] border border-[#3F3F46] rounded-lg text-left text-white focus:outline-none focus:ring-2 focus:ring-cinema-red focus:border-transparent flex items-center justify-between",
@@ -1465,7 +1490,7 @@ export function VideoGenerationTools({
             value={aspectRatio}
             onChange={(e) => setAspectRatio(e.target.value)}
             className="w-full px-4 py-2.5 bg-[#1F1F1F] border border-[#3F3F46] rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cinema-red focus:border-transparent"
-            disabled={isGenerating}
+            disabled={!canUseVideoGeneration || isGenerating}
           >
             {aspectRatioOptions.map((ar) => (
               <option key={ar} value={ar}>{ar}</option>
@@ -1482,7 +1507,7 @@ export function VideoGenerationTools({
             value={durationOptions.includes(selectedDuration) ? selectedDuration : durationOptions[0] ?? 5}
             onChange={(e) => setSelectedDuration(Number(e.target.value))}
             className="w-full px-4 py-2.5 bg-[#1F1F1F] border border-[#3F3F46] rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-cinema-red focus:border-transparent"
-            disabled={isGenerating}
+            disabled={!canUseVideoGeneration || isGenerating}
           >
             {durationOptions.map((d) => (
               <option key={d} value={d}>{d} seconds</option>
@@ -1495,7 +1520,7 @@ export function VideoGenerationTools({
         <div className="flex-shrink-0 border-t border-white/10 p-4 md:p-6 bg-[#0A0A0A]">
           <button
             onClick={handleGenerate}
-            disabled={!prompt.trim() || isGenerating || displayModels.length === 0 || !selectedModel ||
+            disabled={!canUseVideoGeneration || !prompt.trim() || isGenerating || displayModels.length === 0 || !selectedModel ||
               (activeMode === 'starting-frame' && !startImage && !startImageUrlFromProp) ||
               (activeMode === 'frame-to-frame' && (!frame1 || !frame2))}
             className={cn(
