@@ -42,7 +42,6 @@ export function DirectHub() {
 
     if (!canAccessProductionHub) {
       tabs['scene-builder'] = productionHubDeniedReason;
-      tabs['shots'] = productionHubDeniedReason;
       tabs['video-gen'] = productionHubDeniedReason;
       tabs['image-gen'] = productionHubDeniedReason;
       return tabs;
@@ -179,8 +178,8 @@ export function DirectHub() {
   return (
     <div className="flex flex-col h-screen bg-[#0A0A0A]">
       <WorkflowCompletionPoller jobIdsKey={jobIdsKey} />
-      {/* Tab Navigation - Hidden on mobile, shown on desktop */}
-      <div className="hidden md:block">
+      {/* Tab Navigation */}
+      <div className="overflow-x-auto">
         <DirectTabBar
           activeTab={activeTab}
           onTabChange={handleTabChange}
