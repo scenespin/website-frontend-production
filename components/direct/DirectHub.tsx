@@ -23,7 +23,7 @@ const VALID_TABS: DirectTab[] = ['scene-builder', 'shots', 'videos', 'video-gen'
 
 export function DirectHub() {
   const screenplay = useScreenplay();
-  const { canAccessProductionHub, canGenerateAssets, permissionsLoading } = screenplay;
+  const { canAccessProductionHub, canGenerateAssets, permissionsLoading, currentUserRole } = screenplay;
   const router = useRouter();
   const searchParams = useSearchParams();
   const screenplayId = screenplay.screenplayId;
@@ -53,8 +53,12 @@ export function DirectHub() {
       tabs['image-gen'] = generationDeniedReason;
     }
 
+    if (currentUserRole === 'producer') {
+      tabs['scene-builder'] = 'Scene Builder is limited to Director collaborators.';
+    }
+
     return tabs;
-  }, [permissionsLoading, canAccessProductionHub, canGenerateAssets]);
+  }, [permissionsLoading, canAccessProductionHub, canGenerateAssets, currentUserRole]);
 
   const [activeTab, setActiveTab] = useState<DirectTab>('scene-builder');
   const [videoGenPreFill, setVideoGenPreFill] = useState<GenerateVideoContext | null>(null);

@@ -71,20 +71,6 @@ function ShotCell({
   const variations = shot.variations.filter((v) => v.firstFrame?.s3Key);
   const hasMultipleVariations = variations.length > 1;
   const currentIndex = Math.min(Math.max(0, variationIndex), variations.length - 1);
-  const currentVariation = variations[currentIndex];
-
-  if (!currentVariation) {
-    return (
-      <div className="relative flex-shrink-0 w-72 rounded-lg border border-[#3F3F46] overflow-hidden bg-[#1A1A1A] flex items-center justify-center aspect-video">
-        <span className="text-[10px] text-[#808080]">No data</span>
-      </div>
-    );
-  }
-
-  const firstFrameUrl = presignedUrls.get(currentVariation.firstFrame.s3Key);
-  const aspectRatioLabel = currentVariation.firstFrame.metadata?.aspectRatio;
-  const lineText = currentVariation.firstFrame.metadata?.lineText;
-  const lineType = currentVariation.firstFrame.metadata?.lineType;
   // Option 2: show all videos generated for this shot (newest first), independent of first-frame variation cycling.
   const shotVideos = useMemo(() => {
     const candidates = shot.variations.filter((v) => !!v.video?.s3Key);
@@ -105,6 +91,20 @@ function ShotCell({
     }
     return deduped;
   }, [shot.variations]);
+  const currentVariation = variations[currentIndex];
+
+  if (!currentVariation) {
+    return (
+      <div className="relative flex-shrink-0 w-72 rounded-lg border border-[#3F3F46] overflow-hidden bg-[#1A1A1A] flex items-center justify-center aspect-video">
+        <span className="text-[10px] text-[#808080]">No data</span>
+      </div>
+    );
+  }
+
+  const firstFrameUrl = presignedUrls.get(currentVariation.firstFrame.s3Key);
+  const aspectRatioLabel = currentVariation.firstFrame.metadata?.aspectRatio;
+  const lineText = currentVariation.firstFrame.metadata?.lineText;
+  const lineType = currentVariation.firstFrame.metadata?.lineType;
 
   const handlePrev = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -490,6 +490,7 @@ function SceneRow({
 export function ShotBoardPanel({ className = '', onNavigateToSceneBuilder, onGenerateVideo: onGenerateVideoProp }: ShotBoardPanelProps) {
   const screenplay = useScreenplay();
   const screenplayId = screenplay.screenplayId;
+  const canManageAssets = screenplay.canManageAssets;
   const queryClient = useQueryClient();
   const { getToken } = useAuth();
   const [showArchivedSceneAssets, setShowArchivedSceneAssets] = useState(false);
@@ -612,7 +613,7 @@ export function ShotBoardPanel({ className = '', onNavigateToSceneBuilder, onGen
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ s3Key }),
+          body: JSON.stringify({ s3Key, screenplayId }),
         });
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
@@ -736,7 +737,7 @@ export function ShotBoardPanel({ className = '', onNavigateToSceneBuilder, onGen
                 presignedUrls={presignedUrls}
                 onGenerateVideo={handleGenerateVideo}
                 onFrameClick={allFirstFrameImages.length > 0 ? handleFrameClick : undefined}
-                onDeleteFirstFrame={handleDeleteFirstFrame}
+                onDeleteFirstFrame={canManageAssets ? handleDeleteFirstFrame : undefined}
                 viewerIndexByShot={viewerIndexByShot}
                 variationIndexByShot={variationIndexByShot}
                 onVariationChange={handleVariationChange}

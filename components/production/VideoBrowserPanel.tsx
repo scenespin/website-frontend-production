@@ -244,6 +244,7 @@ interface VideoBrowserPanelProps {
 export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
   const screenplay = useScreenplay();
   const screenplayId = screenplay.screenplayId ?? '';
+  const canManageAssets = screenplay.canManageAssets;
   const queryClient = useQueryClient();
   const { getToken } = useAuth();
   const [currentSection, setCurrentSection] = useState<VideoSection>('scene');
@@ -462,7 +463,7 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
             Authorization: `Bearer ${token}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ s3Key: entry.videoS3Key }),
+          body: JSON.stringify({ s3Key: entry.videoS3Key, screenplayId }),
         });
         if (!res.ok) {
           const err = await res.json().catch(() => ({}));
@@ -830,20 +831,22 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
                     >
                       <Download className="w-3.5 h-3.5" />
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteVideo(entry)}
-                      disabled={deletingKey === entry.entryKey}
-                      className="p-1.5 text-[#DC143C]/90 hover:text-[#DC143C] hover:bg-[#DC143C]/10 rounded transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
-                      aria-label="Delete video"
-                      title="Delete"
-                    >
-                      {deletingKey === entry.entryKey ? (
-                        <Loader2 className="w-3.5 h-3.5 animate-spin" />
-                      ) : (
-                        <Trash2 className="w-3.5 h-3.5" />
-                      )}
-                    </button>
+                    {canManageAssets && (
+                      <button
+                        type="button"
+                        onClick={() => handleDeleteVideo(entry)}
+                        disabled={deletingKey === entry.entryKey}
+                        className="p-1.5 text-[#DC143C]/90 hover:text-[#DC143C] hover:bg-[#DC143C]/10 rounded transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                        aria-label="Delete video"
+                        title="Delete"
+                      >
+                        {deletingKey === entry.entryKey ? (
+                          <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-3.5 h-3.5" />
+                        )}
+                      </button>
+                    )}
                   </div>
                 </li>
               ))}
