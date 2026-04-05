@@ -42,6 +42,7 @@ import { formatProviderTag } from '@/utils/providerLabels';
 import { uploadToObjectStorage } from '@/lib/objectStorageUpload';
 import { useLiveEntityRefresh } from './hooks/useLiveEntityRefresh';
 import { EntityImageCropModal } from './EntityImageCropModal';
+import { deleteMediaByS3KeyWithPolicy } from './utils/mediaDeletePolicy';
 
 /**
  * Returns only Creation-section images (excludes Production Hub / angle-generated).
@@ -1437,19 +1438,18 @@ export default function AssetDetailModal({
                                           
                                           // 🔥 FIX: Delete from Media Library first (source of truth) - EXACT same pattern as location backgrounds
                                           const token = await getToken({ template: 'wryda-backend' });
-                                          try {
-                                            const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
-                                            await fetch(`${BACKEND_API_URL}/api/media/delete-by-s3-key`, {
-                                              method: 'POST',
-                                              headers: {
-                                                'Authorization': `Bearer ${token}`,
-                                                'Content-Type': 'application/json',
-                                              },
-                                              body: JSON.stringify({ s3Key: img.s3Key }),
-                                            });
-                                          } catch (mediaError: any) {
-                                            console.warn('[AssetDetailModal] Failed to delete from Media Library (non-fatal):', mediaError);
-                                            // Continue with asset update even if Media Library deletion fails
+                                          const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+                                          const deleteResult = await deleteMediaByS3KeyWithPolicy({
+                                            token,
+                                            s3Key: img.s3Key,
+                                            screenplayId,
+                                            backendApiUrl: BACKEND_API_URL,
+                                          });
+                                          if (deleteResult.kind === 'blocked') {
+                                            throw new Error(deleteResult.message || 'Failed to delete media file');
+                                          }
+                                          if (deleteResult.kind === 'transient') {
+                                            toast.warning(deleteResult.message);
                                           }
                                           
                                           // 🔥 DEFENSIVE FIX: Remove from BOTH angleReferences AND images arrays
@@ -1740,18 +1740,17 @@ export default function AssetDetailModal({
                   const token = await getToken({ template: 'wryda-backend' });
                   const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
                   for (const s3Key of s3KeysToDelete) {
-                    try {
-                      await fetch(`${BACKEND_API_URL}/api/media/delete-by-s3-key`, {
-                        method: 'POST',
-                        headers: {
-                          'Authorization': `Bearer ${token}`,
-                          'Content-Type': 'application/json',
-                        },
-                        body: JSON.stringify({ s3Key }),
-                      });
-                    } catch (mediaError: any) {
-                      console.warn('[AssetDetailModal] Failed to delete from Media Library (non-fatal):', mediaError);
-                      // Continue with asset update even if Media Library deletion fails
+                    const deleteResult = await deleteMediaByS3KeyWithPolicy({
+                      token,
+                      s3Key,
+                      screenplayId,
+                      backendApiUrl: BACKEND_API_URL,
+                    });
+                    if (deleteResult.kind === 'blocked') {
+                      throw new Error(deleteResult.message || 'Failed to delete media file');
+                    }
+                    if (deleteResult.kind === 'transient') {
+                      toast.warning(deleteResult.message);
                     }
                   }
                   

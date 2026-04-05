@@ -176,7 +176,7 @@ export function VideoSoundscapePanel({ projectId, className }: VideoSoundscapePa
 
     // Get presigned upload URL
     const uploadUrlResponse = await fetch(
-      `${BACKEND_API_URL}/api/s3/upload-url?fileName=${encodeURIComponent(file.name)}&entityType=scene&entityId=video-soundscape-${Date.now()}&contentType=${file.type}`,
+      `${BACKEND_API_URL}/api/s3/upload-url?fileName=${encodeURIComponent(file.name)}&entityType=scene&entityId=video-soundscape-${Date.now()}&screenplayId=${encodeURIComponent(projectId)}&contentType=${file.type}`,
       {
         headers: {
           'Authorization': `Bearer ${token}`,

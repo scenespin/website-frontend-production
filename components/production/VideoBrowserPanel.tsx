@@ -19,6 +19,7 @@ import {
 } from '@/hooks/useShotBoard';
 import { useMediaFiles, useBulkPresignedUrls, useStandaloneVideosPaginated, type StandaloneVideosPage } from '@/hooks/useMediaLibrary';
 import type { MediaFile } from '@/types/media';
+import { deleteMediaByS3KeyWithPolicy } from './utils/mediaDeletePolicy';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
@@ -457,22 +458,22 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
       try {
         const token = await getToken({ template: 'wryda-backend' });
         const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
-        const res = await fetch(`${BACKEND_API_URL}/api/media/delete-by-s3-key`, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ s3Key: entry.videoS3Key, screenplayId }),
+        const deleteResult = await deleteMediaByS3KeyWithPolicy({
+          token,
+          s3Key: entry.videoS3Key,
+          screenplayId,
+          backendApiUrl: BACKEND_API_URL,
         });
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err?.message || res.statusText || 'Delete failed');
+        if (deleteResult.kind === 'blocked') {
+          throw new Error(deleteResult.message || 'Delete failed');
+        }
+        if (deleteResult.kind === 'transient') {
+          toast.warning(deleteResult.message);
         }
         queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
         queryClient.invalidateQueries({ queryKey: ['media', 'presigned-urls'], exact: false });
         await refetch();
-        toast.success('Video deleted');
+        toast.success(deleteResult.kind === 'confirmed' ? 'Video deleted' : 'Delete queued; syncing...');
       } catch (err: any) {
         console.error('[VideoBrowserPanel] Delete video failed:', err);
         toast.error(err?.message || 'Failed to delete video');

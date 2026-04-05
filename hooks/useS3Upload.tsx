@@ -7,6 +7,7 @@ export interface S3UploadOptions {
     file: File;
     entityType: 'character' | 'location' | 'scene' | 'storybeat';
     entityId: string;
+    screenplayId?: string;
     metadata?: Record<string, any>;
     onProgress?: (progress: number) => void;
     onSuccess?: (data: { downloadUrl: string; s3Key: string; imageAsset: any }) => void;
@@ -40,6 +41,7 @@ export function useS3Upload() {
         file,
         entityType,
         entityId,
+        screenplayId,
         metadata,
         onProgress,
         onSuccess,
@@ -51,8 +53,17 @@ export function useS3Upload() {
             // Step 1: Get presigned upload URL from backend
             console.log('[S3Upload] Requesting upload URL for:', file.name, entityType, entityId);
             
+            const resolvedScreenplayId =
+                screenplayId ||
+                (typeof metadata?.screenplayId === 'string' ? metadata.screenplayId : undefined) ||
+                (typeof metadata?.projectId === 'string' ? metadata.projectId : undefined);
+
+            if (!resolvedScreenplayId) {
+                throw new Error('screenplayId is required for uploads');
+            }
+
             const uploadUrlResponse: any = await secureFetch(
-                `/api/s3/upload-url?fileName=${encodeURIComponent(file.name)}&entityType=${entityType}&entityId=${entityId}&contentType=${encodeURIComponent(file.type)}`,
+                `/api/s3/upload-url?fileName=${encodeURIComponent(file.name)}&entityType=${entityType}&entityId=${entityId}&screenplayId=${encodeURIComponent(resolvedScreenplayId)}&contentType=${encodeURIComponent(file.type)}`,
                 {
                     method: 'GET'
                 }

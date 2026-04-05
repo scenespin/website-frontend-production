@@ -38,6 +38,7 @@ import { getMediaFileDisplayUrl } from './utils/imageUrlResolver';
 import { useThumbnailMapping } from '@/hooks/useThumbnailMapping';
 import { useIsMobile } from '@/hooks/use-mobile';
 import { formatProviderTag } from '@/utils/providerLabels';
+import { deleteMediaByS3KeyWithPolicy } from './utils/mediaDeletePolicy';
 import { useLiveEntityRefresh } from './hooks/useLiveEntityRefresh';
 
 // Location Profile from Location Bank API (Feature 0142: Unified storage)
@@ -445,16 +446,19 @@ export function LocationDetailModal({
   async function handleDeleteBackground(background: LocationBackground) {
     if (!confirm('Delete this background image? This action cannot be undone.')) return;
     try {
-      try {
-        const token = await getToken({ template: 'wryda-backend' });
-        const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
-        await fetch(`${BACKEND_API_URL}/api/media/delete-by-s3-key`, {
-          method: 'POST',
-          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-          body: JSON.stringify({ s3Key: background.s3Key, screenplayId })
-        });
-      } catch {
-        /* non-fatal */
+      const token = await getToken({ template: 'wryda-backend' });
+      const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+      const deleteResult = await deleteMediaByS3KeyWithPolicy({
+        token,
+        s3Key: background.s3Key,
+        screenplayId,
+        backendApiUrl: BACKEND_API_URL,
+      });
+      if (deleteResult.kind === 'blocked') {
+        throw new Error(deleteResult.message || 'Failed to delete media file');
+      }
+      if (deleteResult.kind === 'transient') {
+        toast.warning(deleteResult.message);
       }
       const updatedBackgrounds = backgrounds.filter((b) => b.s3Key !== background.s3Key) as LocationBackground[];
       await onUpdate(location.locationId, { backgrounds: updatedBackgrounds });
@@ -467,7 +471,7 @@ export function LocationDetailModal({
         queryClient.refetchQueries({ queryKey: ['media', 'files', screenplayId], exact: false });
         queryClient.refetchQueries({ queryKey: ['media', 'presigned-urls'], exact: false });
       }, 2000);
-      toast.success('Background image deleted');
+      toast.success(deleteResult.kind === 'confirmed' ? 'Background image deleted' : 'Delete queued; syncing...');
     } catch (err: any) {
       toast.error(`Failed to delete image: ${err.message}`);
     }
@@ -1638,23 +1642,22 @@ export function LocationDetailModal({
                                             }
                                             
                                             // 🔥 FIX: Delete from Media Library first (source of truth) - EXACT same pattern as backgrounds
-                                            try {
-                                              const token = await getToken({ template: 'wryda-backend' });
-                                              const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
-                                              console.log('[LocationDetailModal] 🗑️ Deleting angle from Media Library:', variation.s3Key);
-                                              await fetch(`${BACKEND_API_URL}/api/media/delete-by-s3-key`, {
-                                                method: 'POST',
-                                                headers: {
-                                                  'Authorization': `Bearer ${token}`,
-                                                  'Content-Type': 'application/json',
-                                                },
-                                                body: JSON.stringify({ s3Key: variation.s3Key, screenplayId }),
-                                              });
-                                              console.log('[LocationDetailModal] ✅ Media Library deletion successful');
-                                            } catch (mediaError: any) {
-                                              console.warn('[LocationDetailModal] Failed to delete from Media Library (non-fatal):', mediaError);
-                                              // Continue with location update even if Media Library deletion fails
+                                            const token = await getToken({ template: 'wryda-backend' });
+                                            const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+                                            console.log('[LocationDetailModal] 🗑️ Deleting angle from Media Library:', variation.s3Key);
+                                            const deleteResult = await deleteMediaByS3KeyWithPolicy({
+                                              token,
+                                              s3Key: variation.s3Key,
+                                              screenplayId,
+                                              backendApiUrl: BACKEND_API_URL,
+                                            });
+                                            if (deleteResult.kind === 'blocked') {
+                                              throw new Error(deleteResult.message || 'Failed to delete media file');
                                             }
+                                            if (deleteResult.kind === 'transient') {
+                                              toast.warning(deleteResult.message);
+                                            }
+                                            console.log('[LocationDetailModal] ✅ Media Library deletion successful');
                                             
                                             // 🔥 FIX: Base update on server state so we only remove this one item.
                                             // Using UI-derived angleVariations could be a subset of DynamoDB; sending it would
@@ -1968,23 +1971,22 @@ export function LocationDetailModal({
                                                           });
                                                           
                                                           // 🔥 FIX: Delete from Media Library first (source of truth)
-                                                          try {
-                                                            const token = await getToken({ template: 'wryda-backend' });
-                                                            const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
-                                                            console.log('[LocationDetailModal] 🗑️ Deleting from Media Library:', background.s3Key);
-                                                            await fetch(`${BACKEND_API_URL}/api/media/delete-by-s3-key`, {
-                                                              method: 'POST',
-                                                              headers: {
-                                                                'Authorization': `Bearer ${token}`,
-                                                                'Content-Type': 'application/json',
-                                                              },
-                                                              body: JSON.stringify({ s3Key: background.s3Key }),
-                                                            });
-                                                            console.log('[LocationDetailModal] ✅ Media Library deletion successful');
-                                                          } catch (mediaError: any) {
-                                                            console.warn('[LocationDetailModal] Failed to delete from Media Library (non-fatal):', mediaError);
-                                                            // Continue with location update even if Media Library deletion fails
+                                                          const token = await getToken({ template: 'wryda-backend' });
+                                                          const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
+                                                          console.log('[LocationDetailModal] 🗑️ Deleting from Media Library:', background.s3Key);
+                                                          const deleteResult = await deleteMediaByS3KeyWithPolicy({
+                                                            token,
+                                                            s3Key: background.s3Key,
+                                                            screenplayId,
+                                                            backendApiUrl: BACKEND_API_URL,
+                                                          });
+                                                          if (deleteResult.kind === 'blocked') {
+                                                            throw new Error(deleteResult.message || 'Failed to delete media file');
                                                           }
+                                                          if (deleteResult.kind === 'transient') {
+                                                            toast.warning(deleteResult.message);
+                                                          }
+                                                          console.log('[LocationDetailModal] ✅ Media Library deletion successful');
                                                           
                                                           // 🔥 FIX: Base update on server state so we only remove this one item (same as angles).
                                                           const updatedBackgrounds = (latestLocation.backgrounds || []).filter(
@@ -2417,14 +2419,17 @@ export function LocationDetailModal({
                     const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
                     const allS3KeysToDelete = [...angleS3KeysToDelete, ...backgroundS3KeysToDelete];
                     for (const s3Key of allS3KeysToDelete) {
-                      try {
-                        await fetch(`${BACKEND_API_URL}/api/media/delete-by-s3-key`, {
-                          method: 'POST',
-                          headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
-                          body: JSON.stringify({ s3Key }),
-                        });
-                      } catch {
-                        /* non-fatal */
+                      const deleteResult = await deleteMediaByS3KeyWithPolicy({
+                        token,
+                        s3Key,
+                        screenplayId,
+                        backendApiUrl: BACKEND_API_URL,
+                      });
+                      if (deleteResult.kind === 'blocked') {
+                        throw new Error(deleteResult.message || 'Failed to delete media file');
+                      }
+                      if (deleteResult.kind === 'transient') {
+                        toast.warning(deleteResult.message);
                       }
                     }
 

@@ -16,6 +16,7 @@ import { useQueryClient } from '@tanstack/react-query';
 import { useShotBoard, type ShotBoardScene, type ShotBoardShot, getTotalShotCount } from '@/hooks/useShotBoard';
 import { formatProviderTag } from '@/utils/providerLabels';
 import { ImageViewer, type ImageItem } from './ImageViewer';
+import { deleteMediaByS3KeyWithPolicy } from './utils/mediaDeletePolicy';
 
 interface ShotBoardPanelProps {
   className?: string;
@@ -607,22 +608,22 @@ export function ShotBoardPanel({ className = '', onNavigateToSceneBuilder, onGen
       try {
         const token = await getToken({ template: 'wryda-backend' });
         const BACKEND_API_URL = process.env.NEXT_PUBLIC_API_URL || 'https://api.wryda.ai';
-        const res = await fetch(`${BACKEND_API_URL}/api/media/delete-by-s3-key`, {
-          method: 'POST',
-          headers: {
-            Authorization: `Bearer ${token}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({ s3Key, screenplayId }),
+        const deleteResult = await deleteMediaByS3KeyWithPolicy({
+          token,
+          s3Key,
+          screenplayId,
+          backendApiUrl: BACKEND_API_URL,
         });
-        if (!res.ok) {
-          const err = await res.json().catch(() => ({}));
-          throw new Error(err?.message || res.statusText || 'Delete failed');
+        if (deleteResult.kind === 'blocked') {
+          throw new Error(deleteResult.message || 'Delete failed');
+        }
+        if (deleteResult.kind === 'transient') {
+          toast.warning(deleteResult.message);
         }
         queryClient.invalidateQueries({ queryKey: ['media', 'files', screenplayId] });
         queryClient.invalidateQueries({ queryKey: ['media', 'presigned-urls'], exact: false });
         await refetch();
-        toast.success('First frame deleted');
+        toast.success(deleteResult.kind === 'confirmed' ? 'First frame deleted' : 'Delete queued; syncing...');
       } catch (err: any) {
         console.error('[ShotBoard] Delete first frame failed:', err);
         toast.error(err?.message || 'Failed to delete first frame');
