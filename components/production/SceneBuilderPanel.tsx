@@ -1393,7 +1393,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
     'production-hub',
     !!projectId
   );
-  
+
   // 🔥 NEW: Get fresh location metadata from Location Bank if available
   const locationMetadata = React.useMemo(() => {
     if (!locationId || allLocations.length === 0) return null;
@@ -1669,7 +1669,7 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
         
         if (fetchedPropIds.length > 0) {
           sceneBuilderLogger.debug('Fetching props for scene:', selectedSceneId, 'Prop IDs:', fetchedPropIds);
-          const props = await SceneBuilderService.fetchSceneProps(fetchedPropIds, getToken);
+          const props = await SceneBuilderService.fetchSceneProps(fetchedPropIds, projectId, getToken);
           sceneBuilderLogger.debug('Fetched props:', props);
           // 🔥 FIX: Store base props in state to break circular dependency
           // The enrichment hook will use these, and we'll sync enriched props separately

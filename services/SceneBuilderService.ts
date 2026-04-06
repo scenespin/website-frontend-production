@@ -137,6 +137,7 @@ export class SceneBuilderService {
    */
   static async fetchSceneProps(
     propIds: string[],
+    screenplayId: string,
     getTokenFn: (options: { template: string }) => Promise<string | null>
   ): Promise<ScenePropsResponse[]> {
     if (propIds.length === 0) return [];
@@ -144,9 +145,12 @@ export class SceneBuilderService {
     const token = await this.getToken(getTokenFn);
     
     try {
-      const response = await fetch(`/api/assets?ids=${propIds.join(',')}`, {
+      const response = await fetch(
+        `/api/assets?screenplayId=${encodeURIComponent(screenplayId)}&ids=${encodeURIComponent(propIds.join(','))}`,
+        {
         headers: { Authorization: `Bearer ${token}` }
-      });
+        }
+      );
       
       if (!response.ok) {
         // If 404 or other error, log but don't throw - return empty array instead

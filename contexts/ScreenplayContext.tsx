@@ -364,6 +364,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     const [canEditTimeline, setCanEditTimeline] = useState(false);
     const [canViewComposition, setCanViewComposition] = useState(false);
     const [canViewTimeline, setCanViewTimeline] = useState(false);
+    const collaboratorEntityRecoveryRef = useRef<string | null>(null);
     const [collaborators, setCollaborators] = useState<Array<{
         user_id?: string;
         email: string;
@@ -1327,6 +1328,44 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         
         previousUserIdRef.current = currentUserId;
     }, [user?.id]);
+
+    // Collaborator recovery: if Create entities load empty while scenes exist,
+    // trigger one guarded structure reload instead of requiring a hard browser refresh.
+    useEffect(() => {
+        if (!screenplayId || permissionsLoading || isOwner) return;
+        if (!hasInitializedFromDynamoDB) return;
+
+        const shouldRecover =
+            scenes.length > 0 &&
+            characters.length === 0 &&
+            locations.length === 0 &&
+            assets.length === 0;
+
+        if (!shouldRecover) return;
+
+        const recoveryKey = `${screenplayId}:${currentUserRole || 'unknown'}`;
+        if (collaboratorEntityRecoveryRef.current === recoveryKey) return;
+        collaboratorEntityRecoveryRef.current = recoveryKey;
+
+        console.warn('[ScreenplayContext] Auto-recovering collaborator Create entities without hard refresh', {
+            screenplayId,
+            role: currentUserRole,
+            scenes: scenes.length,
+        });
+
+        forceReloadRef.current = true;
+        setReloadTrigger(prev => prev + 1);
+    }, [
+        screenplayId,
+        permissionsLoading,
+        isOwner,
+        hasInitializedFromDynamoDB,
+        scenes.length,
+        characters.length,
+        locations.length,
+        assets.length,
+        currentUserRole
+    ]);
 
     // Load structure data from DynamoDB when screenplay_id is available
     useEffect(() => {
