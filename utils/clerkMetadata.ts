@@ -34,7 +34,11 @@ interface UserResourceWithUpdate extends UserResource {
  * @param user - Clerk user object (from useUser() hook)
  * @returns screenplay_id or null if not found
  */
-export function getCurrentScreenplayId(user: UserResource | null | undefined): string | null {
+export function getCurrentScreenplayId(
+  user: UserResource | null | undefined,
+  options?: { allowLocalStorageFallback?: boolean }
+): string | null {
+  const allowLocalStorageFallback = options?.allowLocalStorageFallback !== false;
   // Priority 1: Read from Clerk unsafeMetadata (frontend-writable)
   if (user?.unsafeMetadata?.current_screenplay_id) {
     const screenplayId = user.unsafeMetadata.current_screenplay_id as string;
@@ -44,7 +48,7 @@ export function getCurrentScreenplayId(user: UserResource | null | undefined): s
   }
 
   // Priority 2: Fallback to localStorage (backward compatibility)
-  if (typeof window !== 'undefined') {
+  if (allowLocalStorageFallback && typeof window !== 'undefined') {
     const stored = localStorage.getItem('current_screenplay_id');
     if (stored && stored.length > 0) {
       return stored;
