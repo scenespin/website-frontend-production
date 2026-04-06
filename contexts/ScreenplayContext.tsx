@@ -912,7 +912,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     // Feature 0119: Use Clerk metadata instead of localStorage
     // ========================================================================
     const { getToken } = useAuth();
-    const { user, isLoaded: isUserLoaded, isSignedIn } = useUser(); // Feature 0119: Get user for Clerk metadata
+    const { user } = useUser(); // Feature 0119: Get user for Clerk metadata
     
     // Track current screenplay_id (from Clerk metadata, falls back to localStorage)
     // Initialize to null - useEffect will set it from Clerk metadata
@@ -1309,20 +1309,17 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         };
     }, [screenplayId]);
 
-    // Reset initialization guard/state when auth identity changes (logout/login/account switch).
+    // 🔥 FIX: Reset initialization guard when user changes (logout/login)
     const previousUserIdRef = useRef<string | null>(null);
     useEffect(() => {
         const currentUserId = user?.id || null;
         const previousUserId = previousUserIdRef.current;
         
-        if (currentUserId !== previousUserId) {
-            console.log('[ScreenplayContext] 🔄 Auth identity changed - resetting initialization state', {
-                previousUserId,
-                currentUserId
-            });
+        // If user changed (logout/login), reset initialization guard
+        if (previousUserId !== null && currentUserId !== previousUserId) {
+            console.log('[ScreenplayContext] 🔄 User changed (logout/login) - resetting initialization guard');
             hasInitializedRef.current = false;
             isInitializingRef.current = false;
-            setHasInitializedFromDynamoDB(false);
             // Clear state to force fresh load
             setCharacters([]);
             setLocations([]);
@@ -1390,20 +1387,10 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         if (process.env.NODE_ENV !== 'production') {
             console.log('[ScreenplayContext] 🔍 INIT EFFECT RUNNING - screenplayId:', screenplayId, 'hasInitializedRef:', hasInitializedRef.current, 'isInitializing:', isInitializingRef.current);
         }
-
-        // Gate initialization until Clerk auth settles to avoid transient unauthenticated loads.
-        if (!isUserLoaded) {
-            return;
-        }
-        if (!isSignedIn || !user?.id) {
-            setLoadPhase('resolving-id');
-            setIsLoading(true);
-            return;
-        }
         
         // 🔥 CRITICAL: Guard against duplicate initialization runs
         // This prevents the 26-beat bug caused by multiple effect executions
-        const initKey = `${screenplayId || 'no-id'}:${user.id}`;
+        const initKey = screenplayId || 'no-id';
         
         // 🔥 FIX: Prevent concurrent initialization runs
         if (isInitializingRef.current) {
@@ -2146,7 +2133,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         // eslint-disable-next-line react-hooks/exhaustive-deps
         // Note: transform functions and helpers are stable useCallbacks, so we don't need them in deps
         // Only screenplayId, reloadTrigger, and getToken can actually change
-    }, [screenplayId, reloadTrigger, getToken, isUserLoaded, isSignedIn, user?.id]);
+    }, [screenplayId, reloadTrigger, getToken]);
     
     // 🔥 NEW: Auto-build relationships when beats/scenes change
     // This ensures scene counts are always accurate
