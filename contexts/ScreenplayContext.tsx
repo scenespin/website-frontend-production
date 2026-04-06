@@ -366,6 +366,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     const [canViewTimeline, setCanViewTimeline] = useState(false);
     const collaboratorEntityRecoveryAttemptsRef = useRef<Record<string, number>>({});
     const structureInitRetryAttemptsRef = useRef<Record<string, number>>({});
+    const assetHydrationRecoveryAttemptsRef = useRef<Record<string, number>>({});
     const [collaborators, setCollaborators] = useState<Array<{
         user_id?: string;
         email: string;
@@ -1387,6 +1388,82 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         characters.length,
         locations.length,
         assets.length,
+        currentUserRole
+    ]);
+
+    // Asset hydration recovery: if scenes reference props but assets list is missing those IDs,
+    // retry a bounded assets-only reload to avoid users pressing Rescan.
+    useEffect(() => {
+        if (!screenplayId || !hasInitializedFromDynamoDB) return;
+
+        const taggedPropIds = Array.from(new Set(
+            scenes.flatMap(scene => scene.fountain?.tags?.props || [])
+        ));
+        const recoveryKey = `${screenplayId}:${currentUserRole || 'unknown'}:assets`;
+
+        if (taggedPropIds.length === 0) {
+            assetHydrationRecoveryAttemptsRef.current[recoveryKey] = 0;
+            return;
+        }
+
+        const loadedAssetIds = new Set(assets.map(asset => asset.id));
+        const missingTaggedProps = taggedPropIds.filter((assetId) => !loadedAssetIds.has(assetId));
+
+        if (missingTaggedProps.length === 0) {
+            assetHydrationRecoveryAttemptsRef.current[recoveryKey] = 0;
+            return;
+        }
+
+        const attempts = assetHydrationRecoveryAttemptsRef.current[recoveryKey] || 0;
+        const maxAttempts = 3;
+        if (attempts >= maxAttempts) return;
+
+        const nextAttempt = attempts + 1;
+        assetHydrationRecoveryAttemptsRef.current[recoveryKey] = nextAttempt;
+        const delayMs = nextAttempt === 1 ? 0 : 500 * Math.pow(2, nextAttempt - 1);
+
+        console.warn('[ScreenplayContext] Recovering missing tagged props via assets reload', {
+            screenplayId,
+            role: currentUserRole,
+            taggedPropIds: taggedPropIds.length,
+            missingTaggedProps: missingTaggedProps.length,
+            attempt: nextAttempt,
+            delayMs
+        });
+
+        let cancelled = false;
+        const timeoutId = setTimeout(async () => {
+            if (cancelled) return;
+            try {
+                const assetsResponse = await api.assetBank.list(screenplayId, 'creation');
+                if (cancelled) return;
+                const assetsRaw = assetsResponse.assets || assetsResponse.data?.assets || [];
+                const assetsList = Array.isArray(assetsRaw) ? assetsRaw : [];
+                const activeAssets = assetsList.filter((asset: any) => !asset.deleted_at);
+                const normalizedAssets = activeAssets.map((asset: any) => ({
+                    ...asset,
+                    images: asset.images || []
+                }));
+                assetsRef.current = normalizedAssets;
+                setAssets(normalizedAssets);
+            } catch (assetRecoveryError) {
+                console.warn('[ScreenplayContext] Asset hydration recovery attempt failed', {
+                    screenplayId,
+                    attempt: nextAttempt,
+                    error: assetRecoveryError
+                });
+            }
+        }, delayMs);
+
+        return () => {
+            cancelled = true;
+            clearTimeout(timeoutId);
+        };
+    }, [
+        screenplayId,
+        hasInitializedFromDynamoDB,
+        scenes,
+        assets,
         currentUserRole
     ]);
 
