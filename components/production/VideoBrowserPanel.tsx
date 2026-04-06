@@ -798,7 +798,7 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
                   <button type="button" onClick={() => handleSort('time')} className="flex items-center gap-1 w-24 sm:w-auto flex-shrink-0 text-left hover:text-[#B3B3B3]">
                     Time {sortKey === 'time' ? (sortDir === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />) : <ArrowUpDown className="w-3 h-3 opacity-50" />}
                   </button>
-                  <span className="flex-shrink-0 ml-auto w-20 sm:w-24 text-right">Act</span>
+                  <span className="flex-shrink-0 ml-0 sm:ml-auto w-20 sm:w-24 text-right">Act</span>
                 </div>
                 <ul className="space-y-1" role="list">
                   {videoEntries.map((entry) => (
@@ -873,7 +873,7 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
                     <span className="sm:hidden">{formatTimestampCompact(entry.timestamp)}</span>
                     <span className="hidden sm:inline">{formatTimestamp(entry.timestamp)}</span>
                   </span>
-                  <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0 ml-auto">
+                  <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0 ml-0 sm:ml-auto">
                     {entry.isDubbed ? (
                       <span
                         className="px-2 py-1 sm:px-2.5 sm:py-1.5 text-[10px] sm:text-xs font-medium text-sky-400 bg-sky-500/10 border border-sky-500/20 rounded"
