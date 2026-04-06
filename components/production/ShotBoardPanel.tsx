@@ -729,7 +729,7 @@ export function ShotBoardPanel({ className = '', onNavigateToSceneBuilder, onGen
       ) : (
         /* Scene List */
         <div className="flex-1 overflow-y-auto">
-          <div className="p-4 space-y-4">
+          <div className="px-4 pt-4 pb-24 sm:p-4 space-y-4">
             {visibleScenes.map((scene) => (
               <SceneRow
                 key={scene.sceneId}
