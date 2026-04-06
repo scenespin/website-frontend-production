@@ -125,6 +125,60 @@ function formatTimestamp(ts: string): string {
   return ts;
 }
 
+function formatTimestampCompact(ts: string): string {
+  if (!ts) return '—';
+  const match = ts.match(/^(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})$/);
+  if (match) {
+    const [, y, m, d, hh, mm, ss] = match;
+    const date = new Date(Date.UTC(Number(y), Number(m) - 1, Number(d), Number(hh), Number(mm), Number(ss || 0)));
+    if (!Number.isNaN(date.getTime())) {
+      return date
+        .toLocaleString(undefined, {
+          month: 'short',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit',
+        })
+        .replace(',', ' ·');
+    }
+  }
+  try {
+    const date = new Date(ts);
+    if (!Number.isNaN(date.getTime())) {
+      return date
+        .toLocaleString(undefined, {
+          month: 'short',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit',
+        })
+        .replace(',', ' ·');
+    }
+  } catch {
+    // ignore
+  }
+  return ts;
+}
+
+function getCompactProviderLabel(label: string): string {
+  const normalized = label.trim().toLowerCase();
+  if (!normalized) return '—';
+  if (normalized === 'premium dialogue') return 'Prem Dialog';
+  if (normalized === 'test dialogue') return 'Test Dialog';
+  if (normalized === 'dialogue') return 'Dialog';
+  if (normalized.startsWith('runway gen4')) return 'Runway G4';
+  if (normalized.startsWith('runway gen3a')) return 'Runway G3a';
+  if (normalized === 'luma ray flash 2') return 'Luma Flash 2';
+  if (normalized === 'luma ray 2') return 'Luma Ray 2';
+  if (normalized === 'luma ray 3') return 'Luma Ray 3';
+  if (normalized === 'veo 3.1 (quality)') return 'Veo 3.1 Q';
+  if (normalized === 'veo 3.1 fast') return 'Veo 3.1 F';
+  if (normalized === 'veo 3.0 fast') return 'Veo 3.0 F';
+  if (normalized === 'veo 2.0 fast') return 'Veo 2.0 F';
+  if (normalized.length <= 13) return label;
+  return `${label.slice(0, 12)}…`;
+}
+
 function buildVideoEntries(
   scenes: ShotBoardScene[],
   presignedUrls: Map<string, string>,
@@ -723,47 +777,65 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
         <div className="flex-1 overflow-y-auto">
           <div className="p-4">
             {/* Sortable column headers */}
-            <div className="flex items-center gap-4 px-4 py-2 text-xs font-medium text-[#808080] border-b border-[#3F3F46] mb-2">
-              <button type="button" onClick={() => handleSort('scene')} className="flex items-center gap-1 w-16 flex-shrink-0 text-left hover:text-[#B3B3B3]">
-                Scene {sortKey === 'scene' ? (sortDir === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />) : <ArrowUpDown className="w-3 h-3 opacity-50" />}
-              </button>
-              <span className="w-14 flex-shrink-0 text-left">Shot</span>
-              <button type="button" onClick={() => handleSort('type')} className="flex items-center gap-1 w-28 flex-shrink-0 text-left hover:text-[#B3B3B3]">
-                Type {sortKey === 'type' ? (sortDir === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />) : <ArrowUpDown className="w-3 h-3 opacity-50" />}
-              </button>
-              <button type="button" onClick={() => handleSort('provider')} className="flex items-center gap-1 w-24 sm:w-32 flex-shrink-0 text-left sm:whitespace-nowrap hover:text-[#B3B3B3]">
-                Provider {sortKey === 'provider' ? (sortDir === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />) : <ArrowUpDown className="w-3 h-3 opacity-50" />}
-              </button>
-              <span className="w-16 flex-shrink-0 text-left">Aspect Ratio</span>
-              <button type="button" onClick={() => handleSort('time')} className="flex items-center gap-1 flex-shrink-0 text-left hover:text-[#B3B3B3]">
-                Time {sortKey === 'time' ? (sortDir === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />) : <ArrowUpDown className="w-3 h-3 opacity-50" />}
-              </button>
-              <span className="flex-shrink-0 ml-auto w-24 text-right">Actions</span>
-            </div>
-            <ul className="space-y-1" role="list">
-              {videoEntries.map((entry) => (
-                <li
-                  key={entry.entryKey}
-                  className={cn(
-                    'flex items-center gap-4 px-4 py-3 rounded-lg border border-[#3F3F46] bg-[#141414]',
-                    'hover:bg-[#1A1A1A] transition-colors'
-                  )}
-                >
-                  <span className="text-xs text-[#808080] w-16 flex-shrink-0">
-                    {entry.sceneNumber != null ? `Scene ${entry.sceneNumber}` : '—'}
-                  </span>
-                  <span className="text-xs text-[#808080] w-14 flex-shrink-0">
-                    {entry.shotNumber != null ? `Shot #${entry.shotNumber}` : '—'}
-                  </span>
-                  <span className="text-xs text-[#B3B3B3] w-28 flex-shrink-0">
+            <div className="overflow-x-auto pb-1">
+              <div className="min-w-[760px]">
+                <div className="flex items-center gap-2 sm:gap-4 px-2 sm:px-4 py-2 text-[11px] sm:text-xs font-medium text-[#808080] border-b border-[#3F3F46] mb-2">
+                  <button type="button" onClick={() => handleSort('scene')} className="flex items-center gap-1 w-12 sm:w-16 flex-shrink-0 text-left hover:text-[#B3B3B3]">
+                    <span className="sm:hidden">Scn</span>
+                    <span className="hidden sm:inline">Scene</span>
+                    {sortKey === 'scene' ? (sortDir === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />) : <ArrowUpDown className="w-3 h-3 opacity-50" />}
+                  </button>
+                  <span className="w-10 sm:w-14 flex-shrink-0 text-left">Shot</span>
+                  <button type="button" onClick={() => handleSort('type')} className="flex items-center gap-1 w-16 sm:w-28 flex-shrink-0 text-left hover:text-[#B3B3B3]">
+                    Type {sortKey === 'type' ? (sortDir === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />) : <ArrowUpDown className="w-3 h-3 opacity-50" />}
+                  </button>
+                  <button type="button" onClick={() => handleSort('provider')} className="flex items-center gap-1 w-16 sm:w-32 flex-shrink-0 text-left whitespace-nowrap hover:text-[#B3B3B3]">
+                    <span className="sm:hidden">Prov</span>
+                    <span className="hidden sm:inline">Provider</span>
+                    {sortKey === 'provider' ? (sortDir === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />) : <ArrowUpDown className="w-3 h-3 opacity-50" />}
+                  </button>
+                  <span className="w-10 sm:w-16 flex-shrink-0 text-left">AR</span>
+                  <button type="button" onClick={() => handleSort('time')} className="flex items-center gap-1 w-24 sm:w-auto flex-shrink-0 text-left hover:text-[#B3B3B3]">
+                    Time {sortKey === 'time' ? (sortDir === 'asc' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />) : <ArrowUpDown className="w-3 h-3 opacity-50" />}
+                  </button>
+                  <span className="flex-shrink-0 ml-auto w-20 sm:w-24 text-right">Act</span>
+                </div>
+                <ul className="space-y-1" role="list">
+                  {videoEntries.map((entry) => (
+                    <li
+                      key={entry.entryKey}
+                      className={cn(
+                        'flex items-center gap-2 sm:gap-4 px-2 sm:px-4 py-2 sm:py-3 rounded-lg border border-[#3F3F46] bg-[#141414]',
+                        'hover:bg-[#1A1A1A] transition-colors'
+                      )}
+                    >
+                      <span className="text-[11px] sm:text-xs text-[#808080] w-12 sm:w-16 flex-shrink-0">
+                        {entry.sceneNumber != null ? (
+                          <>
+                            <span className="sm:hidden">S{entry.sceneNumber}</span>
+                            <span className="hidden sm:inline">{`Scene ${entry.sceneNumber}`}</span>
+                          </>
+                        ) : '—'}
+                      </span>
+                      <span className="text-[11px] sm:text-xs text-[#808080] w-10 sm:w-14 flex-shrink-0">
+                        {entry.shotNumber != null ? (
+                          <>
+                            <span className="sm:hidden">#{entry.shotNumber}</span>
+                            <span className="hidden sm:inline">{`Shot #${entry.shotNumber}`}</span>
+                          </>
+                        ) : '—'}
+                      </span>
+                      <span className="text-[11px] sm:text-xs text-[#B3B3B3] w-16 sm:w-28 flex-shrink-0">
                     {entry.videoMode === 'image-interpolation' && (
                       <span className="text-[10px] font-medium text-emerald-500/90 bg-emerald-500/10 px-2 py-0.5 rounded" title="Frame to frame">
-                        Frame to frame
+                        <span className="sm:hidden">F2F</span>
+                        <span className="hidden sm:inline">Frame to frame</span>
                       </span>
                     )}
                     {(entry.videoMode === 'image-start' || entry.providerDisplayLabel === 'Dialogue' || entry.providerDisplayLabel === 'Premium Dialogue' || entry.providerDisplayLabel === 'Test Dialogue') && (
                       <span className="text-[10px] font-medium text-sky-500/90 bg-sky-500/10 px-2 py-0.5 rounded" title="Image-to-video">
-                        Image-to-video
+                        <span className="sm:hidden">I2V</span>
+                        <span className="hidden sm:inline">Image-to-video</span>
                       </span>
                     )}
                     {entry.videoMode === 'reference-images' && (
@@ -773,7 +845,8 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
                     )}
                     {(entry.videoMode === 'text-only' || !entry.videoMode) && entry.providerDisplayLabel !== 'Dialogue' && entry.providerDisplayLabel !== 'Premium Dialogue' && entry.providerDisplayLabel !== 'Test Dialogue' && (
                       <span className="text-[10px] font-medium text-amber-500/90 bg-amber-500/10 px-2 py-0.5 rounded" title="Text-to-video">
-                        Text-to-video
+                        <span className="sm:hidden">T2V</span>
+                        <span className="hidden sm:inline">Text-to-video</span>
                       </span>
                     )}
                     {entry.videoMode && !['image-interpolation', 'image-start', 'reference-images', 'text-only'].includes(entry.videoMode) && entry.providerDisplayLabel !== 'Dialogue' && entry.providerDisplayLabel !== 'Premium Dialogue' && entry.providerDisplayLabel !== 'Test Dialogue' && (
@@ -783,21 +856,27 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
                     )}
                   </span>
                   <span
-                    className="text-xs text-[#808080] w-24 sm:w-32 flex-shrink-0 whitespace-normal break-words sm:whitespace-nowrap sm:overflow-hidden sm:text-ellipsis"
+                    className="text-[11px] sm:text-xs text-[#808080] w-16 sm:w-32 flex-shrink-0 whitespace-nowrap overflow-hidden text-ellipsis"
                     title={entry.providerDisplayLabel ?? getProviderLabel(entry.videoProvider)}
                   >
-                    {entry.providerDisplayLabel ?? getProviderLabel(entry.videoProvider)}
+                    <span className="sm:hidden">
+                      {getCompactProviderLabel(entry.providerDisplayLabel ?? getProviderLabel(entry.videoProvider))}
+                    </span>
+                    <span className="hidden sm:inline">
+                      {entry.providerDisplayLabel ?? getProviderLabel(entry.videoProvider)}
+                    </span>
                   </span>
-                  <span className="text-xs text-[#808080] w-16 flex-shrink-0">
+                  <span className="text-[11px] sm:text-xs text-[#808080] w-10 sm:w-16 flex-shrink-0">
                     {entry.aspectRatio || '—'}
                   </span>
-                  <span className="text-[10px] text-[#808080] flex-shrink-0">
-                    {formatTimestamp(entry.timestamp)}
+                  <span className="text-[10px] text-[#808080] flex-shrink-0 w-24 sm:w-auto whitespace-nowrap overflow-hidden text-ellipsis">
+                    <span className="sm:hidden">{formatTimestampCompact(entry.timestamp)}</span>
+                    <span className="hidden sm:inline">{formatTimestamp(entry.timestamp)}</span>
                   </span>
-                  <div className="flex items-center gap-2 flex-shrink-0 ml-auto">
+                  <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0 ml-auto">
                     {entry.isDubbed ? (
                       <span
-                        className="px-2.5 py-1.5 text-xs font-medium text-sky-400 bg-sky-500/10 border border-sky-500/20 rounded"
+                        className="px-2 py-1 sm:px-2.5 sm:py-1.5 text-[10px] sm:text-xs font-medium text-sky-400 bg-sky-500/10 border border-sky-500/20 rounded"
                         title={entry.dubbedLanguage ? `Dubbed: ${entry.dubbedLanguage}` : 'Already dubbed'}
                       >
                         {entry.dubbedLanguage || 'Dubbed'}
@@ -806,7 +885,7 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
                       <button
                         type="button"
                         onClick={() => handleOpenDubDialog(entry)}
-                        className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-white bg-[#1F1F1F] border border-[#3F3F46] hover:border-[#DC143C] hover:text-[#DC143C] rounded transition-colors"
+                        className="flex items-center gap-1 px-2 py-1 sm:px-2.5 sm:py-1.5 text-[10px] sm:text-xs text-white bg-[#1F1F1F] border border-[#3F3F46] hover:border-[#DC143C] hover:text-[#DC143C] rounded transition-colors"
                         aria-label="Dub video"
                       >
                         Dub
@@ -816,7 +895,7 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
                       type="button"
                       onClick={() => handlePlay(entry.videoUrl)}
                       disabled={!entry.videoUrl}
-                      className="flex items-center gap-1.5 px-2.5 py-1.5 text-xs text-white bg-[#DC143C] hover:bg-[#B0111E] rounded transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                      className="flex items-center gap-1 px-2 py-1 sm:px-2.5 sm:py-1.5 text-[10px] sm:text-xs text-white bg-[#DC143C] hover:bg-[#B0111E] rounded transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                       aria-label="Play video"
                     >
                       <Play className="w-3.5 h-3.5" fill="currentColor" />
@@ -826,7 +905,7 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
                       type="button"
                       onClick={() => handleDownload(entry)}
                       disabled={!entry.videoS3Key}
-                      className="p-1.5 text-[#808080] hover:text-white hover:bg-[#262626] rounded transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                      className="p-1 sm:p-1.5 text-[#808080] hover:text-white hover:bg-[#262626] rounded transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                       aria-label="Download video"
                       title="Download"
                     >
@@ -837,7 +916,7 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
                         type="button"
                         onClick={() => handleDeleteVideo(entry)}
                         disabled={deletingKey === entry.entryKey}
-                        className="p-1.5 text-[#DC143C]/90 hover:text-[#DC143C] hover:bg-[#DC143C]/10 rounded transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                        className="p-1 sm:p-1.5 text-[#DC143C]/90 hover:text-[#DC143C] hover:bg-[#DC143C]/10 rounded transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                         aria-label="Delete video"
                         title="Delete"
                       >
@@ -850,8 +929,10 @@ export function VideoBrowserPanel({ className = '' }: VideoBrowserPanelProps) {
                     )}
                   </div>
                 </li>
-              ))}
-            </ul>
+                  ))}
+                </ul>
+              </div>
+            </div>
             {currentSection === 'standalone' && hasMoreStandalone && (
               <div className="mt-4 flex justify-center">
                 <button
