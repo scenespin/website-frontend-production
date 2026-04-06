@@ -1309,30 +1309,22 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         };
     }, [screenplayId]);
 
-    // Reset initialization state when auth identity changes (logout/login or account switch).
-    // This must also trigger a structure reload, otherwise scene navigator can stay stale/empty
-    // until a manual reload button click.
+    // 🔥 FIX: Reset initialization guard when user changes (logout/login)
     const previousUserIdRef = useRef<string | null>(null);
     useEffect(() => {
         const currentUserId = user?.id || null;
         const previousUserId = previousUserIdRef.current;
         
-        // If identity changed in any direction (user->null, null->user, userA->userB), reset.
-        if (currentUserId !== previousUserId) {
-            console.log('[ScreenplayContext] 🔄 Auth identity changed - resetting structure initialization', {
-                previousUserId,
-                currentUserId
-            });
+        // If user changed (logout/login), reset initialization guard
+        if (previousUserId !== null && currentUserId !== previousUserId) {
+            console.log('[ScreenplayContext] 🔄 User changed (logout/login) - resetting initialization guard');
             hasInitializedRef.current = false;
             isInitializingRef.current = false;
-            forceReloadRef.current = true;
             // Clear state to force fresh load
             setCharacters([]);
             setLocations([]);
             setScenes([]);
             setBeats([]);
-            // Trigger initialization effect even when screenplayId doesn't change.
-            setReloadTrigger(prev => prev + 1);
         }
         
         previousUserIdRef.current = currentUserId;
