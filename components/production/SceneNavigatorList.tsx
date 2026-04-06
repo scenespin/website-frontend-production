@@ -46,6 +46,11 @@ export function SceneNavigatorList({
     });
   }, [screenplay.scenes]);
 
+  const requestStructureReload = () => {
+    window.dispatchEvent(new CustomEvent('refreshScenes'));
+    window.dispatchEvent(new CustomEvent('reloadScreenplayStructure'));
+  };
+
   // Get character names for a scene - Match editor pattern with fallback
   const getSceneCharacters = (scene: Scene): string[] => {
     // 🔥 FIX #2: Try relationships first (preferred source of truth)
@@ -231,9 +236,16 @@ export function SceneNavigatorList({
         <p className="text-sm font-medium text-[#808080] mb-2">
           No scenes available
         </p>
-        <p className="text-xs text-[#808080]">
+        <p className="text-xs text-[#808080] mb-3">
           Create scenes in the Editor to use them here
         </p>
+        <button
+          type="button"
+          className="btn btn-xs btn-outline"
+          onClick={requestStructureReload}
+        >
+          Reload Scene Data
+        </button>
       </div>
     );
   }

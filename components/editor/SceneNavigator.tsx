@@ -286,9 +286,16 @@ export default function SceneNavigator({ currentLine, onSceneClick, className = 
                 <p className="text-sm font-medium text-[#B3B3B3] mb-2">
                     No scenes yet
                 </p>
-                <p className="text-xs text-[#808080]">
+                <p className="text-xs text-[#808080] mb-3">
                     Import a script to get started
                 </p>
+                <button
+                    type="button"
+                    className="btn btn-xs btn-outline"
+                    onClick={requestStructureReload}
+                >
+                    Reload Scene Data
+                </button>
             </div>
         );
     }
