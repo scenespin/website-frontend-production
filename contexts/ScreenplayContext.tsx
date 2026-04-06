@@ -364,7 +364,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     const [canEditTimeline, setCanEditTimeline] = useState(false);
     const [canViewComposition, setCanViewComposition] = useState(false);
     const [canViewTimeline, setCanViewTimeline] = useState(false);
-    const collaboratorEntityRecoveryRef = useRef<string | null>(null);
+    const collaboratorEntityRecoveryAttemptsRef = useRef<Record<string, number>>({});
     const [collaborators, setCollaborators] = useState<Array<{
         user_id?: string;
         email: string;
@@ -1330,29 +1330,45 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     }, [user?.id]);
 
     // Collaborator recovery: if Create entities load empty while scenes exist,
-    // trigger one guarded structure reload instead of requiring a hard browser refresh.
+    // trigger bounded retry reloads instead of requiring a hard browser refresh.
     useEffect(() => {
         if (!screenplayId || permissionsLoading || isOwner) return;
         if (!hasInitializedFromDynamoDB) return;
 
+        const recoveryKey = `${screenplayId}:${currentUserRole || 'unknown'}`;
         const shouldRecover =
             scenes.length > 0 &&
             (characters.length === 0 || locations.length === 0);
 
-        if (!shouldRecover) return;
+        if (!shouldRecover) {
+            collaboratorEntityRecoveryAttemptsRef.current[recoveryKey] = 0;
+            return;
+        }
 
-        const recoveryKey = `${screenplayId}:${currentUserRole || 'unknown'}`;
-        if (collaboratorEntityRecoveryRef.current === recoveryKey) return;
-        collaboratorEntityRecoveryRef.current = recoveryKey;
+        const attempt = collaboratorEntityRecoveryAttemptsRef.current[recoveryKey] || 0;
+        const maxAttempts = 3;
+        if (attempt >= maxAttempts) return;
+
+        const nextAttempt = attempt + 1;
+        collaboratorEntityRecoveryAttemptsRef.current[recoveryKey] = nextAttempt;
+        const delayMs = nextAttempt === 1 ? 0 : 600 * Math.pow(2, nextAttempt - 2);
 
         console.warn('[ScreenplayContext] Auto-recovering collaborator Create entities without hard refresh', {
             screenplayId,
             role: currentUserRole,
             scenes: scenes.length,
+            characters: characters.length,
+            locations: locations.length,
+            attempt: nextAttempt,
+            delayMs
         });
 
-        forceReloadRef.current = true;
-        setReloadTrigger(prev => prev + 1);
+        const timeoutId = setTimeout(() => {
+            forceReloadRef.current = true;
+            setReloadTrigger(prev => prev + 1);
+        }, delayMs);
+
+        return () => clearTimeout(timeoutId);
     }, [
         screenplayId,
         permissionsLoading,
