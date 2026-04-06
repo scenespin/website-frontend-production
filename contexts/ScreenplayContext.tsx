@@ -1326,21 +1326,6 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                 previousUserId,
                 currentUserId
             });
-            // Clear identity-scoped query caches so stale prior-user data cannot render.
-            queryClient.removeQueries({
-                predicate: (query) => {
-                    const rootKey = Array.isArray(query.queryKey) ? query.queryKey[0] : query.queryKey;
-                    return (
-                        rootKey === 'screenplay' ||
-                        rootKey === 'screenplays' ||
-                        rootKey === 'scenes' ||
-                        rootKey === 'characters' ||
-                        rootKey === 'locations' ||
-                        rootKey === 'assets' ||
-                        rootKey === 'media'
-                    );
-                }
-            });
             hasInitializedRef.current = false;
             isInitializingRef.current = false;
             setHasInitializedFromDynamoDB(false);
@@ -1352,7 +1337,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
         }
         
         previousUserIdRef.current = currentUserId;
-    }, [user?.id, queryClient]);
+    }, [user?.id]);
 
     // Collaborator recovery: if Create entities load empty while scenes exist,
     // trigger bounded retry reloads instead of requiring a hard browser refresh.
