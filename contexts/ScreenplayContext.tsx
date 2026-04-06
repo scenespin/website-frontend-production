@@ -1005,19 +1005,13 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             });
         };
 
-        // Update from Clerk metadata (primary source).
-        // During signed-out/transitional states, ignore localStorage fallback to avoid stale cross-session IDs.
-        const idFromMetadata = getCurrentScreenplayId(user, {
-            allowLocalStorageFallback: !!(isUserLoaded && isSignedIn && user?.id)
-        });
+        // Update from Clerk metadata (primary source)
+        const idFromMetadata = getCurrentScreenplayId(user);
         syncScreenplayId(idFromMetadata, 'Clerk metadata');
         
         // Also listen to localStorage changes for backward compatibility
         // (EditorContext still triggers storage events when updating metadata)
         const handleStorageChange = () => {
-            if (!isUserLoaded || !isSignedIn || !user?.id) {
-                return;
-            }
             const id = localStorage.getItem('current_screenplay_id');
             syncScreenplayId(id, 'localStorage');
         };
@@ -1035,7 +1029,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
             window.removeEventListener('storage', handleStorageChange);
             window.removeEventListener('screenplay-id-updated', handleScreenplayIdUpdated as EventListener);
         };
-    }, [user, isUserLoaded, isSignedIn]); // Re-run when auth/metadata state changes
+    }, [user]); // Re-run when user object changes (e.g., after metadata update)
     
     // 🔥 NEW: Listen for character refresh events (e.g., when pose generation completes)
     useEffect(() => {
