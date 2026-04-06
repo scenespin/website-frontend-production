@@ -1808,6 +1808,15 @@ function SceneBuilderPanelInternal({ projectId, onVideoGenerated, isMobile = fal
             .join('\n');
 
           setFullSceneContent(prev => ({ ...prev, [selectedSceneId]: filteredPreviewText }));
+          // Keep analysis/shot context in sync with fetched scene text (not just scene synopsis),
+          // so collaborators get full script-derived details without manual refresh.
+          const analysisSeedText =
+            typeof data?.sceneContent === 'string' && data.sceneContent.trim().length > 0
+              ? data.sceneContent
+              : filteredPreviewText;
+          if (analysisSeedText && analysisSeedText.trim().length > 0) {
+            setSceneDescription(analysisSeedText.trim());
+          }
           loadedSceneContentKeyBySceneRef.current[selectedSceneId] = sceneContentKey;
         } else {
           // Fallback

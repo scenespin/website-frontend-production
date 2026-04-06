@@ -1337,9 +1337,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
 
         const shouldRecover =
             scenes.length > 0 &&
-            characters.length === 0 &&
-            locations.length === 0 &&
-            assets.length === 0;
+            (characters.length === 0 || locations.length === 0);
 
         if (!shouldRecover) return;
 
