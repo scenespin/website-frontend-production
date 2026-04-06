@@ -365,6 +365,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
     const [canViewComposition, setCanViewComposition] = useState(false);
     const [canViewTimeline, setCanViewTimeline] = useState(false);
     const collaboratorEntityRecoveryAttemptsRef = useRef<Record<string, number>>({});
+    const structureInitRetryAttemptsRef = useRef<Record<string, number>>({});
     const [collaborators, setCollaborators] = useState<Array<{
         user_id?: string;
         email: string;
@@ -1436,11 +1437,25 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         let attempt = 0;
                         while (true) {
                             try {
-                                return await listScenes(screenplayId, getToken);
+                                const scenes = await listScenes(screenplayId, getToken);
+                                // Collaboration/login race hardening:
+                                // first scene read can be temporarily empty right after login/switch.
+                                if (Array.isArray(scenes) && scenes.length === 0 && attempt < maxRetries) {
+                                    const delayMs = 350 * Math.pow(2, attempt) + Math.floor(Math.random() * 120);
+                                    console.warn('[ScreenplayContext] listScenes returned empty; retry scheduled', {
+                                        screenplayId,
+                                        attempt: attempt + 1,
+                                        delayMs
+                                    });
+                                    await new Promise((resolve) => setTimeout(resolve, delayMs));
+                                    attempt += 1;
+                                    continue;
+                                }
+                                return scenes;
                             } catch (error: any) {
                                 const statusCode = error?.statusCode || error?.response?.status;
                                 const shouldRetry =
-                                    statusCode !== 403 &&
+                                    // Retry auth/permission timing edges and backend hiccups.
                                     statusCode !== 404 &&
                                     attempt < maxRetries;
                                 if (!shouldRetry) {
@@ -1637,6 +1652,7 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                     setHasInitializedFromDynamoDB(true);
                     setIsLoading(false);
                     setLoadPhase('ready');
+                    structureInitRetryAttemptsRef.current[screenplayId] = 0;
 
                     // Secondary reconcile pass: screenplay switches can briefly surface partial entity reads.
                     // Re-check entities shortly after initial hydration and patch gaps automatically.
@@ -2043,9 +2059,43 @@ export function ScreenplayProvider({ children }: ScreenplayProviderProps) {
                         return;
                     }
                     console.error('[ScreenplayContext] Failed to load from DynamoDB:', err);
+                    const statusCode = (err as any)?.statusCode || (err as any)?.response?.status;
+                    const retryCount = structureInitRetryAttemptsRef.current[screenplayId] || 0;
+                    const maxStructureRetries = 3;
+                    const shouldAutoRetry =
+                        retryCount < maxStructureRetries &&
+                        (
+                            statusCode === 401 ||
+                            statusCode === 403 ||
+                            statusCode === 429 ||
+                            (typeof statusCode === 'number' && statusCode >= 500) ||
+                            statusCode === undefined
+                        );
+
+                    if (shouldAutoRetry) {
+                        const nextRetry = retryCount + 1;
+                        structureInitRetryAttemptsRef.current[screenplayId] = nextRetry;
+                        const delayMs = 500 * Math.pow(2, nextRetry - 1);
+                        console.warn('[ScreenplayContext] Auto-retrying structure initialization after transient failure', {
+                            screenplayId,
+                            statusCode,
+                            retry: nextRetry,
+                            delayMs
+                        });
+                        setLoadPhase('loading-structure');
+                        setError(null);
+                        setHasInitializedFromDynamoDB(false);
+                        setIsLoading(true);
+                        setTimeout(() => {
+                            forceReloadRef.current = true;
+                            setReloadTrigger(prev => prev + 1);
+                        }, delayMs);
+                        return;
+                    }
+
                     const message = err instanceof Error ? err.message : 'Failed to load scenes';
                     setError(message);
-                    // On error, mark as initialized immediately (no scenes to wait for)
+                    // Exhausted retries (or non-retryable failure) - surface stable state.
                     setHasInitializedFromDynamoDB(true);
                     setIsLoading(false);
                     setLoadPhase('error');
