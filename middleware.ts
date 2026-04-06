@@ -58,12 +58,14 @@ export default clerkMiddleware(async (auth, req) => {
   signInUrl.searchParams.set('redirect_url', req.url)
 
   try {
-    const { userId } = await auth()
-    if (!userId) {
+    const { userId, sessionId } = await auth()
+    if (!userId || !sessionId) {
       return NextResponse.redirect(signInUrl)
     }
   } catch {
-    return NextResponse.redirect(signInUrl)
+    // Avoid false redirects during transient auth handshake/cookie races.
+    // Protected API/page handlers still enforce auth server-side.
+    return NextResponse.next()
   }
 })
 
