@@ -4285,7 +4285,6 @@ export default function PitchDeckEditorPage() {
           editorContent={selectedSlidePrimaryText}
           onReplace={captureRewritePreview}
           title="Rewrite Slide"
-          subtitle="Choose model + preset, then review before applying."
           quickActions={PITCH_DECK_REWRITE_ACTIONS}
         />
       ) : null}

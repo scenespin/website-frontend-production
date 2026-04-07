@@ -211,7 +211,6 @@ export default function RewriteModal({
   editorContent,
   onReplace,
   title = 'Rewrite Selected Text',
-  subtitle = 'Rewrite selected text with AI assistance',
   quickActions = undefined,
   enablePreviewBeforeApply = false
 }) {
@@ -778,7 +777,6 @@ export default function RewriteModal({
                         <Dialog.Title as="h3" className="text-base font-semibold text-base-content">
                           {title}
                         </Dialog.Title>
-                        <p className="text-xs text-base-content/60">{subtitle}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
@@ -816,7 +814,6 @@ export default function RewriteModal({
                         <Dialog.Title as="h3" className="text-base font-semibold text-base-content">
                           {title}
                         </Dialog.Title>
-                        <p className="text-xs text-base-content/60">{subtitle}</p>
                       </div>
                       <button
                         onClick={onClose}
@@ -860,8 +857,8 @@ export default function RewriteModal({
                         />
                         <span className="space-y-1">
                           <span className="block font-medium text-base-content">Preview before insert</span>
-                          <span className="block text-[11px] leading-relaxed text-base-content/65">
-                            Keep rewritten text in this modal first so you can compare it to the original.
+                          <span className="block text-[11px] text-base-content/65 whitespace-nowrap">
+                            Preview rewrite here before inserting.
                           </span>
                         </span>
                       </label>
