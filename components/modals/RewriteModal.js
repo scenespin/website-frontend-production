@@ -27,6 +27,16 @@ const logger = createClientLogger('RewriteModal', {
   debugEnabled: ENABLE_REWRITE_DEBUG_LOGS,
   warnEnabled: ENABLE_REWRITE_DEBUG_LOGS
 });
+const REWRITE_PREVIEW_PREF_KEY = 'rewrite_preview_before_insert_enabled_v1';
+
+function getInitialPreviewPreference(enablePreviewBeforeApply) {
+  if (!enablePreviewBeforeApply) return false;
+  if (typeof window === 'undefined') return true;
+  const saved = window.localStorage.getItem(REWRITE_PREVIEW_PREF_KEY);
+  if (saved === 'true') return true;
+  if (saved === 'false') return false;
+  return true; // Default ON for first-time users
+}
 
 // Helper to clean AI output: strip markdown and remove writing notes
 // Same function as ChatModePanel for consistency
@@ -221,7 +231,9 @@ export default function RewriteModal({
   const [abortController, setAbortController] = useState(null);
   const [customPrompt, setCustomPrompt] = useState('');
   const [showCustomInput, setShowCustomInput] = useState(false);
-  const [previewBeforeApply, setPreviewBeforeApply] = useState(false);
+  const [previewBeforeApply, setPreviewBeforeApply] = useState(() =>
+    getInitialPreviewPreference(enablePreviewBeforeApply)
+  );
   const [rewritePreviewText, setRewritePreviewText] = useState('');
   const [selectedModel, setSelectedModel] = useState(() => {
     // Get from localStorage or default
@@ -246,13 +258,22 @@ export default function RewriteModal({
       localStorage.setItem('rewrite-selected-model', selectedModel);
     }
   }, [selectedModel]);
+
+  // Persist user preference for preview-before-insert toggle
+  useEffect(() => {
+    if (!enablePreviewBeforeApply || typeof window === 'undefined') return;
+    window.localStorage.setItem(
+      REWRITE_PREVIEW_PREF_KEY,
+      previewBeforeApply ? 'true' : 'false'
+    );
+  }, [previewBeforeApply, enablePreviewBeforeApply]);
   
   // Reset state when modal closes
   useEffect(() => {
     if (!isOpen) {
       setCustomPrompt('');
       setShowCustomInput(false);
-      setPreviewBeforeApply(false);
+      setPreviewBeforeApply(getInitialPreviewPreference(enablePreviewBeforeApply));
       setRewritePreviewText('');
       setIsLoading(false);
       setLoadingStage(null);
@@ -262,7 +283,7 @@ export default function RewriteModal({
         setAbortController(null);
       }
     }
-  }, [isOpen, abortController]);
+  }, [isOpen, abortController, enablePreviewBeforeApply]);
   
   // Handle Escape key to close modal
   useEffect(() => {
