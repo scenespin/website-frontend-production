@@ -756,7 +756,7 @@ export default function RewriteModal({
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className="cinema-modal-panel relative w-full max-w-md md:max-w-2xl transform overflow-hidden rounded-2xl transition-all">
+              <Dialog.Panel className="cinema-modal-panel relative w-full max-w-md transform overflow-hidden rounded-2xl transition-all">
                 {/* Header */}
                 <div className="cinema-modal-header border-b px-6 py-4">
                   {/* Desktop: Horizontal layout with icon */}
@@ -861,7 +861,7 @@ export default function RewriteModal({
                         <span className="space-y-1">
                           <span className="block font-medium text-base-content">Preview before insert</span>
                           <span className="block text-[11px] leading-relaxed text-base-content/65">
-                            Keep rewritten text in this modal first so you can compare it to the original, edit it, then apply only if you want.
+                            Keep rewritten text in this modal first so you can compare it to the original.
                           </span>
                         </span>
                       </label>
@@ -968,10 +968,7 @@ export default function RewriteModal({
                               <span>Rewriting...</span>
                             </>
                           ) : (
-                            <>
-                              <Wand2 className="h-4 w-4" />
-                              <span>Rewrite</span>
-                            </>
+                            <span>Rewrite</span>
                           )}
                         </button>
                         <button
