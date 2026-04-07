@@ -15,14 +15,11 @@ import {
   ChevronDown,
   Loader2,
   HardDrive,
-  Cloud,
-  Plus
+  Cloud
 } from 'lucide-react';
-import { useMediaFolderTree, useInitializeFolders } from '@/hooks/useMediaLibrary';
+import { useMediaFolderTree } from '@/hooks/useMediaLibrary';
 import { FolderTreeNode } from '@/types/media';
-import { toast } from 'sonner';
 import { FolderActionsMenu } from './FolderContextMenu';
-import { CreateFolderModal } from './CreateFolderModal';
 
 interface FolderReference {
   google_drive_folder_id?: string;
@@ -75,7 +72,6 @@ export function FolderTreeSidebar({
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set(['root']));
   const [cloudFolderStructure, setCloudFolderStructure] = useState<ScreenplayFolderStructure | null>(null);
   const [cloudLoading, setCloudLoading] = useState(true);
-  const [showCreateRootModal, setShowCreateRootModal] = useState(false);
   
   // Feature 0128: Load S3 folder tree
   const { 
@@ -85,26 +81,12 @@ export function FolderTreeSidebar({
     refetch: refetchS3Folders
   } = useMediaFolderTree(screenplayId, !!screenplayId);
   
-  // Initialize folders if they don't exist
-  const initializeFolders = useInitializeFolders(screenplayId);
-
   // Load cloud storage folder structure (existing logic)
   // Note: Cloud storage folder loading can be added later if needed
   // For now, we focus on S3 folders (Feature 0128)
   React.useEffect(() => {
     setCloudLoading(false); // Cloud folders not implemented yet
   }, [screenplayId]);
-
-  const handleInitializeFolders = async () => {
-    try {
-      await initializeFolders.mutateAsync();
-      toast.success('Folder structure initialized');
-      refetchS3Folders();
-    } catch (error) {
-      toast.error('Failed to initialize folders');
-      console.error('[FolderTreeSidebar] Initialize folders error:', error);
-    }
-  };
 
   const toggleFolder = (folderId: string) => {
     setExpandedFolders(prev => {
@@ -363,48 +345,20 @@ export function FolderTreeSidebar({
     <div className="w-64 bg-[#141414] border-r border-[#3F3F46] h-full overflow-y-auto flex flex-col">
       <div className="p-4 border-b border-[#3F3F46] flex items-center justify-between">
         <h3 className="text-sm font-semibold text-[#FFFFFF]">Folders</h3>
-        <div className="flex items-center gap-2">
-          {!hasNoFolders && (
-            <button
-              onClick={() => setShowCreateRootModal(true)}
-              className="p-1 hover:bg-[#1F1F1F] rounded transition-colors"
-              title="Create new folder"
-            >
-              <Plus className="w-4 h-4 text-[#808080] hover:text-[#FFFFFF]" />
-            </button>
-          )}
-          {hasNoFolders && (
-            <button
-              onClick={handleInitializeFolders}
-              disabled={initializeFolders.isPending}
-              className="p-1 hover:bg-[#1F1F1F] rounded transition-colors"
-              title="Initialize folder structure"
-            >
-              <Plus className="w-4 h-4 text-[#808080] hover:text-[#FFFFFF]" />
-            </button>
-          )}
-        </div>
       </div>
       <div className="flex-1 overflow-y-auto p-2 space-y-1">
         {folderTree.map(node => renderFolderNode(node))}
       </div>
       {hasNoFolders && (
         <div className="p-4 text-xs text-[#808080] border-t border-[#3F3F46]">
-          <p className="mb-2">No folders found. Click the + button to initialize folder structure.</p>
+          <p className="mb-2">No folders found yet. Folder structure initializes automatically.</p>
+          <button
+            onClick={() => refetchS3Folders()}
+            className="text-xs text-[#808080] hover:text-[#FFFFFF]"
+          >
+            Refresh
+          </button>
         </div>
-      )}
-
-      {/* Create Root Folder Modal */}
-      {showCreateRootModal && (
-        <CreateFolderModal
-          isOpen={showCreateRootModal}
-          onClose={() => setShowCreateRootModal(false)}
-          screenplayId={screenplayId}
-          onSuccess={() => {
-            refetchS3Folders();
-            setShowCreateRootModal(false);
-          }}
-        />
       )}
     </div>
   );

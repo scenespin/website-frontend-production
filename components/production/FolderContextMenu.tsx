@@ -14,8 +14,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { Edit, Trash2, FolderPlus, MoreVertical } from 'lucide-react';
-import { CreateFolderModal } from './CreateFolderModal';
+import { Edit, Trash2, MoreVertical } from 'lucide-react';
 import { RenameFolderModal } from './RenameFolderModal';
 import { DeleteFolderModal } from './DeleteFolderModal';
 import { MediaFolder } from '@/types/media';
@@ -35,18 +34,17 @@ export function FolderActionsMenu({
   onFolderDeleted,
   onFolderSynced,
 }: FolderActionsMenuProps) {
-  const [showCreateModal, setShowCreateModal] = useState(false);
   const [showRenameModal, setShowRenameModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [dropdownOpen, setDropdownOpen] = useState(false);
 
   // Close dropdown when any modal opens - use immediate effect
   useEffect(() => {
-    if (showCreateModal || showRenameModal || showDeleteModal) {
+    if (showRenameModal || showDeleteModal) {
       // Immediately close dropdown
       setDropdownOpen(false);
     }
-  }, [showCreateModal, showRenameModal, showDeleteModal]);
+  }, [showRenameModal, showDeleteModal]);
 
   // Also close dropdown when clicking menu items (before modal opens)
   const handleMenuItemClick = (modalSetter: () => void) => {
@@ -77,16 +75,6 @@ export function FolderActionsMenu({
           <DropdownMenuItem
             onClick={(e) => {
               e.stopPropagation();
-              handleMenuItemClick(() => setShowCreateModal(true));
-            }}
-            className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]"
-          >
-            <FolderPlus className="w-4 h-4 mr-2 text-[#808080]" />
-            Create Subfolder
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            onClick={(e) => {
-              e.stopPropagation();
               handleMenuItemClick(() => setShowRenameModal(true));
             }}
             className="text-[#FFFFFF] hover:bg-[#1F1F1F] hover:text-[#FFFFFF] cursor-pointer focus:bg-[#1F1F1F] focus:text-[#FFFFFF]"
@@ -108,20 +96,6 @@ export function FolderActionsMenu({
       </DropdownMenu>
 
       {/* Modals */}
-      {showCreateModal && (
-        <CreateFolderModal
-          isOpen={showCreateModal}
-          onClose={() => setShowCreateModal(false)}
-          screenplayId={screenplayId}
-          parentFolderId={folder.folderId}
-          parentFolderPath={folder.folderPath}
-          onSuccess={() => {
-            onFolderUpdated?.();
-            setShowCreateModal(false);
-          }}
-        />
-      )}
-
       {showRenameModal && (
         <RenameFolderModal
           isOpen={showRenameModal}
