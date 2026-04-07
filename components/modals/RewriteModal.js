@@ -212,7 +212,8 @@ export default function RewriteModal({
   onReplace,
   title = 'Rewrite Selected Text',
   subtitle = 'Rewrite selected text with AI assistance',
-  quickActions = undefined
+  quickActions = undefined,
+  enablePreviewBeforeApply = false
 }) {
   const { state: chatState } = useChatContext();
   const { characters, screenplayId } = useScreenplay();
@@ -221,6 +222,8 @@ export default function RewriteModal({
   const [abortController, setAbortController] = useState(null);
   const [customPrompt, setCustomPrompt] = useState('');
   const [showCustomInput, setShowCustomInput] = useState(false);
+  const [previewBeforeApply, setPreviewBeforeApply] = useState(false);
+  const [rewritePreviewText, setRewritePreviewText] = useState('');
   const [selectedModel, setSelectedModel] = useState(() => {
     // Get from localStorage or default
     if (typeof window !== 'undefined') {
@@ -249,6 +252,8 @@ export default function RewriteModal({
     if (!isOpen) {
       setCustomPrompt('');
       setShowCustomInput(false);
+      setPreviewBeforeApply(false);
+      setRewritePreviewText('');
       setIsLoading(false);
       setLoadingStage(null);
       // Cancel any ongoing request
@@ -443,6 +448,16 @@ export default function RewriteModal({
             logger.debug('Raw AI response length:', fullContent.length);
           }
           
+          let shouldAutoApply = true;
+          const deliverRewriteOutput = (rewrittenText) => {
+            if (enablePreviewBeforeApply && previewBeforeApply) {
+              setRewritePreviewText(rewrittenText);
+              shouldAutoApply = false;
+              return;
+            }
+            onReplace(rewrittenText);
+          };
+
           // 🔥 PHASE 4: Validate JSON for rewrite requests
           if (useJSONFormat) {
             const { validateRewriteContent } = await import('@/utils/jsonValidator');
@@ -494,8 +509,7 @@ export default function RewriteModal({
                 return;
               }
               
-              // Replace the selected text
-              onReplace(cleaned);
+              deliverRewriteOutput(cleaned);
             } else {
               logger.warn('JSON validation failed:', validation.errors);
               
@@ -540,8 +554,7 @@ export default function RewriteModal({
               
               logger.debug('Final cleaned text before onReplace, length/newline:', cleaned.length, cleaned.endsWith('\n'));
               
-              // Replace the selected text
-              onReplace(cleaned);
+              deliverRewriteOutput(cleaned);
             }
           } else {
             // Fallback: Original text format
@@ -585,47 +598,25 @@ export default function RewriteModal({
             
             logger.debug('Final text before onReplace (original format), length/newline:', cleaned.length, cleaned.endsWith('\n'));
             
-            // Replace the selected text
-            onReplace(cleaned);
+            deliverRewriteOutput(cleaned);
           }
           
           // Reset loading state
           setIsLoading(false);
           setLoadingStage(null);
           setAbortController(null);
-          
-          // Show success toast
-          toast.success('Text rewritten successfully');
 
           // Refresh credits immediately after Rewrite completes
           if (typeof window !== 'undefined' && window.refreshCredits) {
             window.refreshCredits();
           }
 
-          // Wait for state update to complete before closing modal (prevents mobile refresh issue)
-          // Use requestAnimationFrame to ensure DOM is ready
-          requestAnimationFrame(() => {
-            setTimeout(() => {
-              // Close modal after state update completes
-              onClose();
-
-              // Restore focus to editor (mobile-safe: only use focus, not click)
-              setTimeout(() => {
-                const textarea = document.querySelector('textarea[placeholder*="screenplay"]') || 
-                               document.querySelector('textarea');
-                if (textarea) {
-                  // On mobile, only use focus() - click() can cause page refresh
-                  const isMobile = window.innerWidth < 768;
-                  if (isMobile) {
-                    textarea.focus();
-                  } else {
-                    textarea.focus();
-                    textarea.click();
-                  }
-                }
-              }, 100);
-            }, 100);
-          });
+          if (shouldAutoApply) {
+            toast.success('Text rewritten successfully');
+            closeAndRestoreEditorFocus();
+          } else {
+            toast.success('Rewrite preview ready. Review and apply when ready.');
+          }
         },
         // onError
         (error) => {
@@ -696,6 +687,44 @@ export default function RewriteModal({
       return;
     }
     handleRewrite(customPrompt.trim());
+  };
+
+  const closeAndRestoreEditorFocus = () => {
+    // Wait for state update to complete before closing modal (prevents mobile refresh issue)
+    requestAnimationFrame(() => {
+      setTimeout(() => {
+        onClose();
+        setTimeout(() => {
+          const textarea = document.querySelector('textarea[placeholder*="screenplay"]') ||
+            document.querySelector('textarea');
+          if (textarea) {
+            const isMobile = window.innerWidth < 768;
+            if (isMobile) {
+              textarea.focus();
+            } else {
+              textarea.focus();
+              textarea.click();
+            }
+          }
+        }, 100);
+      }, 100);
+    });
+  };
+
+  const handleApplyPreview = () => {
+    if (!rewritePreviewText || rewritePreviewText.trim().length === 0) {
+      toast.error('No rewrite preview to apply');
+      return;
+    }
+    onReplace(rewritePreviewText);
+    toast.success('Rewrite applied');
+    setRewritePreviewText('');
+    closeAndRestoreEditorFocus();
+  };
+
+  const handleDismissPreview = () => {
+    setRewritePreviewText('');
+    toast('Rewrite preview dismissed');
   };
   
   if (!isOpen) return null;
@@ -818,6 +847,51 @@ export default function RewriteModal({
                 
                 {/* Content */}
                 <div className="px-6 py-6">
+                  {enablePreviewBeforeApply && (
+                    <div className="mb-4 rounded-lg border border-[#3F3F46] bg-[#111111] p-3">
+                      <label className="flex items-center gap-2 text-xs text-base-content/80">
+                        <input
+                          type="checkbox"
+                          className="checkbox checkbox-xs"
+                          checked={previewBeforeApply}
+                          onChange={(e) => setPreviewBeforeApply(e.target.checked)}
+                          disabled={isLoading}
+                        />
+                        Preview before insert
+                      </label>
+                    </div>
+                  )}
+
+                  {rewritePreviewText && (
+                    <div className="mb-4 space-y-3 rounded-lg border border-[#3F3F46] bg-[#111111] p-3">
+                      <p className="text-xs font-medium uppercase tracking-wide text-base-content/70">Rewrite Preview</p>
+                      <textarea
+                        value={rewritePreviewText}
+                        onChange={(e) => setRewritePreviewText(e.target.value)}
+                        className="textarea textarea-bordered w-full h-28 resize-y cinema-modal-textarea"
+                        style={{ fontSize: '16px' }}
+                      />
+                      <div className="flex justify-end gap-2">
+                        <button
+                          type="button"
+                          className="btn btn-ghost btn-sm"
+                          onClick={handleDismissPreview}
+                          disabled={isLoading}
+                        >
+                          Dismiss
+                        </button>
+                        <button
+                          type="button"
+                          className="btn cinema-modal-btn-primary btn-sm"
+                          onClick={handleApplyPreview}
+                          disabled={isLoading || !rewritePreviewText.trim()}
+                        >
+                          Apply Rewrite
+                        </button>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Quick Actions */}
                   {!showCustomInput && (
                     <div className="space-y-3">

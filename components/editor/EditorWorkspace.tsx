@@ -1155,6 +1155,7 @@ Tip:
                     selectionRange={selectionRange || { start: 0, end: 0 }}
                     editorContent={state.content}
                     onReplace={handleRewriteReplace}
+                    enablePreviewBeforeApply={true}
                 />
             )}
             
