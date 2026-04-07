@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment } from 'react';
-import { X, Loader2, Wand2, Zap, Minus, Plus, MessageSquare, Edit3 } from 'lucide-react';
+import { X, Loader2, Wand2, Zap, Minus, Plus, MessageSquare } from 'lucide-react';
 import { useChatContext } from '@/contexts/ChatContext';
 import { useScreenplay } from '@/contexts/ScreenplayContext';
 import { api } from '@/lib/api';
@@ -234,6 +234,7 @@ export default function RewriteModal({
   });
 
   const resolvedQuickActions = Array.isArray(quickActions) && quickActions.length > 0 ? quickActions : DEFAULT_QUICK_ACTIONS;
+  const hasPreviewResult = Boolean(enablePreviewBeforeApply && rewritePreviewText);
 
   // Simple handler - Headless UI doesn't have the infinite loop issues that Radix UI had
   const handleModelChange = (value) => {
@@ -755,7 +756,7 @@ export default function RewriteModal({
               leaveFrom="opacity-100 scale-100"
               leaveTo="opacity-0 scale-95"
             >
-              <Dialog.Panel className="cinema-modal-panel relative w-full max-w-md transform overflow-hidden rounded-2xl transition-all">
+              <Dialog.Panel className="cinema-modal-panel relative w-full max-w-md md:max-w-2xl transform overflow-hidden rounded-2xl transition-all">
                 {/* Header */}
                 <div className="cinema-modal-header border-b px-6 py-4">
                   {/* Desktop: Horizontal layout with icon */}
@@ -849,7 +850,7 @@ export default function RewriteModal({
                 <div className="px-6 py-6">
                   {enablePreviewBeforeApply && (
                     <div className="mb-4 rounded-lg border border-[#3F3F46] bg-[#111111] p-3">
-                      <label className="flex items-center gap-2 text-xs text-base-content/80">
+                      <label className="flex items-start gap-2 text-xs text-base-content/80">
                         <input
                           type="checkbox"
                           className="checkbox checkbox-xs"
@@ -857,13 +858,27 @@ export default function RewriteModal({
                           onChange={(e) => setPreviewBeforeApply(e.target.checked)}
                           disabled={isLoading}
                         />
-                        Preview before insert
+                        <span className="space-y-1">
+                          <span className="block font-medium text-base-content">Preview before insert</span>
+                          <span className="block text-[11px] leading-relaxed text-base-content/65">
+                            Keep rewritten text in this modal first so you can compare it to the original, edit it, then apply only if you want.
+                          </span>
+                        </span>
                       </label>
                     </div>
                   )}
 
                   {rewritePreviewText && (
                     <div className="mb-4 space-y-3 rounded-lg border border-[#3F3F46] bg-[#111111] p-3">
+                      <div className="space-y-2">
+                        <p className="text-xs font-medium uppercase tracking-wide text-base-content/70">Original Selection</p>
+                        <textarea
+                          value={selectedText || ''}
+                          readOnly
+                          className="textarea textarea-bordered w-full h-24 resize-y cinema-modal-textarea opacity-90"
+                          style={{ fontSize: '16px' }}
+                        />
+                      </div>
                       <p className="text-xs font-medium uppercase tracking-wide text-base-content/70">Rewrite Preview</p>
                       <textarea
                         value={rewritePreviewText}
@@ -893,7 +908,7 @@ export default function RewriteModal({
                   )}
 
                   {/* Quick Actions */}
-                  {!showCustomInput && (
+                  {!showCustomInput && !hasPreviewResult && (
                     <div className="space-y-3">
                       <p className="text-xs font-medium text-base-content/80">Quick Actions</p>
                       <div className="grid grid-cols-2 gap-3">
@@ -919,14 +934,13 @@ export default function RewriteModal({
                         disabled={isLoading}
                         className="btn btn-ghost btn-block gap-2 border border-[#3F3F46]"
                       >
-                        <Edit3 className="h-4 w-4" />
                         <span className="text-xs">Custom rewrite...</span>
                       </button>
                     </div>
                   )}
                   
                   {/* Custom Input */}
-                  {showCustomInput && (
+                  {showCustomInput && !hasPreviewResult && (
                     <form onSubmit={handleCustomSubmit} className="space-y-3">
                       <div>
                         <label className="label">
