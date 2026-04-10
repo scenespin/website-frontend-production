@@ -57,3 +57,9 @@ ORIGINAL_CONFIGS/
 
 # PowerShell Scripts
 *.ps1
+
+# Local test and audit artifacts
+playwright-report/
+test-results/
+*-audit-frontend.json
+wave-*-frontend-audit.json
