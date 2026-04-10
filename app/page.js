@@ -7,12 +7,18 @@ import Footer from "@/components/Footer";
 import logo from "@/app/icon.png";
 import { useUser } from "@clerk/nextjs";
 import { useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import ButtonSignin from "@/components/ButtonSignin";
+
+const HOMEPAGE_DEMO_VIDEO_ID = "yA8n650Dm9M";
 
 export default function Page() {
   const { user, isLoaded } = useUser();
   const router = useRouter();
+  const [isDemoLoaded, setIsDemoLoaded] = useState(false);
+  const hasDemoVideo = HOMEPAGE_DEMO_VIDEO_ID !== "REPLACE_WITH_YOUR_VIDEO_ID";
+  const youtubeEmbedUrl = `https://www.youtube.com/embed/${HOMEPAGE_DEMO_VIDEO_ID}?rel=0&modestbranding=1&playsinline=1&autoplay=1`;
+  const youtubePosterUrl = `https://i.ytimg.com/vi/${HOMEPAGE_DEMO_VIDEO_ID}/maxresdefault.jpg`;
 
   // Redirect logged-in users to dashboard
   useEffect(() => {
@@ -110,18 +116,61 @@ export default function Page() {
 
               {/* Demo Video Placeholder */}
               <div id="demo" className="mt-6 max-w-4xl mx-auto">
-                <div className="bg-[#141414] border border-[#3F3F46] rounded-lg overflow-hidden aspect-video flex items-center justify-center relative group cursor-pointer hover:border-[#DC143C]/50 transition-colors">
-                  <div className="absolute inset-0 bg-gradient-to-br from-[#0A0A0A] to-[#1F1F1F] opacity-50"></div>
-                  <div className="relative z-10 text-center p-8">
-                    <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-[#DC143C] flex items-center justify-center group-hover:scale-110 transition-transform">
-                      <svg className="w-10 h-10 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M8 5v14l11-7z" />
-                      </svg>
-                    </div>
-                    <h3 className="text-xl font-bold mb-2">Workflow Preview</h3>
-                    <p className="text-gray-400 text-sm">See how writing-first development carries from screenplay pages into production-ready workflows.</p>
+                {hasDemoVideo ? (
+                  <div className="bg-[#141414] border border-[#3F3F46] rounded-lg overflow-hidden aspect-video relative">
+                    {isDemoLoaded ? (
+                      <iframe
+                        className="absolute inset-0 w-full h-full"
+                        src={youtubeEmbedUrl}
+                        title="Wryda workflow demo video"
+                        loading="lazy"
+                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                        referrerPolicy="strict-origin-when-cross-origin"
+                        allowFullScreen
+                      />
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => setIsDemoLoaded(true)}
+                        className="absolute inset-0 w-full h-full text-left group cursor-pointer"
+                        style={{
+                          backgroundImage: `url(${youtubePosterUrl})`,
+                          backgroundSize: "cover",
+                          backgroundPosition: "center",
+                        }}
+                        aria-label="Play Wryda demo video"
+                      >
+                        <div className="absolute inset-0 bg-gradient-to-br from-[#0A0A0A]/70 to-[#1F1F1F]/60 group-hover:from-[#0A0A0A]/55 group-hover:to-[#1F1F1F]/50 transition-colors" />
+                        <div className="relative z-10 h-full w-full flex flex-col items-center justify-center p-8">
+                          <div className="w-20 h-20 rounded-full bg-[#DC143C] flex items-center justify-center group-hover:scale-110 transition-transform shadow-lg">
+                            <svg className="w-10 h-10 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
+                              <path d="M8 5v14l11-7z" />
+                            </svg>
+                          </div>
+                          <h3 className="text-xl font-bold mt-4 mb-2">Watch Workflow Demo</h3>
+                          <p className="text-gray-200 text-sm text-center max-w-xl">
+                            See how screenplay context carries from Create to Produce to Direct.
+                          </p>
+                        </div>
+                      </button>
+                    )}
                   </div>
-                </div>
+                ) : (
+                  <div className="bg-[#141414] border border-[#3F3F46] rounded-lg overflow-hidden aspect-video flex items-center justify-center relative">
+                    <div className="absolute inset-0 bg-gradient-to-br from-[#0A0A0A] to-[#1F1F1F] opacity-50"></div>
+                    <div className="relative z-10 text-center p-8">
+                      <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-[#DC143C] flex items-center justify-center">
+                        <svg className="w-10 h-10 text-white ml-1" fill="currentColor" viewBox="0 0 24 24">
+                          <path d="M8 5v14l11-7z" />
+                        </svg>
+                      </div>
+                      <h3 className="text-xl font-bold mb-2">Workflow Preview</h3>
+                      <p className="text-gray-400 text-sm">
+                        Add your YouTube video ID in <code>app/page.js</code> to enable the homepage demo player.
+                      </p>
+                    </div>
+                  </div>
+                )}
               </div>
 
               {/* Trust Strip */}
