@@ -12,6 +12,7 @@ import { api } from '@/lib/api';
 import { detectCurrentScene } from '@/utils/sceneDetection';
 import { calculateMaxContentChars, includeContentUpToLimit } from '@/utils/tokenCalculator';
 import { buildStoryAdvisorContext, buildContextPromptString } from '@/utils/screenplayContextBuilder';
+import { buildEnrichedAgentContext } from '@/utils/agentContextContract';
 import { extractCreditError, getCreditErrorDisplayMessage, syncCreditsFromError } from '@/utils/creditGuard';
 import toast from 'react-hot-toast';
 
@@ -43,7 +44,7 @@ function ChatModePanelInner({ onInsert, onWorkflowComplete, editorContent, curso
   console.log('[ChatModePanel] 🔄 RENDER', { hasEditorContent: !!editorContent, cursorPosition });
   const { state, addMessage, setInput, setStreaming, clearMessagesForMode, setSceneContext, setSelectedTextContext } = useChatContext();
   const pathname = usePathname();
-  const { screenplayId } = useScreenplay();
+  const { screenplayId, characters, locations, assets, scenes } = useScreenplay();
   const { closeDrawer } = useDrawer();
   const {
     activeWorkflow,
@@ -334,13 +335,24 @@ function ChatModePanelInner({ onInsert, onWorkflowComplete, editorContent, curso
       });
       
       // Build intelligent context using new context builder
+      const enrichedStoryAdvisorContext = buildEnrichedAgentContext({
+        lane: 'story_advisor',
+        sceneContext: editorContent && cursorPosition !== undefined
+          ? detectCurrentScene(editorContent, cursorPosition)
+          : state.sceneContext,
+        characters,
+        locations,
+        assets,
+        scenes
+      });
       const contextData = buildStoryAdvisorContext(
         editorContent,
         cursorPosition,
         prompt,
         selectedModel,
         conversationHistory,
-        systemPromptBase
+        systemPromptBase,
+        enrichedStoryAdvisorContext.text
       );
       
       console.log('[ChatModePanel] Context builder result:', {
@@ -431,6 +443,12 @@ function ChatModePanelInner({ onInsert, onWorkflowComplete, editorContent, curso
               ? pitchDeckContextPacket.screenplayId.trim()
               : undefined,
           conversationHistory,
+          promptMetrics: {
+            lane: 'story_advisor',
+            userPromptChars: builtPrompt.length,
+            systemPromptChars: systemPrompt.length,
+            enrichedContextChars: enrichedStoryAdvisorContext.metrics.totalChars
+          },
           sceneContext: contextData.currentScene ? {
             heading: contextData.currentScene.heading,
             act: contextData.currentScene.act,

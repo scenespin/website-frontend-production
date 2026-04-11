@@ -10,6 +10,7 @@ import { detectCurrentScene, extractRecentDialogue } from '@/utils/sceneDetectio
 import { buildScreenwriterPrompt } from '@/utils/promptBuilders';
 import { validateScreenwriterContent } from '@/utils/jsonValidator';
 import { getCharactersInScene, buildCharacterSummaries } from '@/utils/characterContextBuilder';
+import { buildEnrichedAgentContext } from '@/utils/agentContextContract';
 import { getTimingMessage } from '@/utils/modelTiming';
 import { createClientLogger } from '@/utils/clientLogger';
 import { extractCreditError, getCreditErrorDisplayMessage, syncCreditsFromError } from '@/utils/creditGuard';
@@ -35,7 +36,7 @@ export default function ScreenwriterModal({
   onInsert
 }) {
   const { state: chatState } = useChatContext();
-  const { characters, screenplayId } = useScreenplay();
+  const { characters, locations, assets, scenes, screenplayId } = useScreenplay();
   const [isLoading, setIsLoading] = useState(false);
   const [loadingStage, setLoadingStage] = useState(null); // 'building' | 'generating' | null
   const [abortController, setAbortController] = useState(null);
@@ -162,6 +163,14 @@ export default function ScreenwriterModal({
       // Get character summaries for characters in scene
       const sceneCharacters = getCharactersInScene(characters || [], sceneContext);
       const characterSummaries = buildCharacterSummaries(sceneCharacters, sceneContext);
+      const enrichedContext = buildEnrichedAgentContext({
+        lane: 'screenwriter',
+        sceneContext,
+        characters,
+        locations,
+        assets,
+        scenes
+      });
 
       // Build prompt with enhanced context
       const builtPrompt = buildScreenwriterPrompt(
@@ -170,7 +179,8 @@ export default function ScreenwriterModal({
         fullCurrentSceneUpToCursor,
         recentDialogue,
         characterSummaries,
-        true
+        true,
+        enrichedContext.text
       );
 
       // System prompt for screenwriter
@@ -255,6 +265,12 @@ CRITICAL SPACING RULES (Fountain.io spec):
             characters: sceneContext.characters,
             pageNumber: sceneContext.pageNumber
           } : null,
+          promptMetrics: {
+            lane: 'screenwriter',
+            userPromptChars: builtPrompt.length,
+            systemPromptChars: systemPrompt.length,
+            enrichedContextChars: enrichedContext.metrics.totalChars
+          },
           responseFormat: responseFormat // Structured output format (if supported)
         },
         // onChunk

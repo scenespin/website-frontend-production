@@ -11,6 +11,7 @@ import { detectCurrentScene, extractSelectionContext } from '@/utils/sceneDetect
 import { buildRewritePrompt } from '@/utils/promptBuilders';
 import { formatFountainSpacing } from '@/utils/fountainSpacing';
 import { buildCharacterSummaries } from '@/utils/characterContextBuilder';
+import { buildEnrichedAgentContext } from '@/utils/agentContextContract';
 import { getModelTiming, getTimingMessage } from '@/utils/modelTiming';
 import { createClientLogger } from '@/utils/clientLogger';
 import { extractCreditError, getCreditErrorDisplayMessage, syncCreditsFromError } from '@/utils/creditGuard';
@@ -225,7 +226,7 @@ export default function RewriteModal({
   enablePreviewBeforeApply = false
 }) {
   const { state: chatState } = useChatContext();
-  const { characters, screenplayId } = useScreenplay();
+  const { characters, locations, assets, scenes: screenplayScenes, screenplayId } = useScreenplay();
   const [isLoading, setIsLoading] = useState(false);
   const [loadingStage, setLoadingStage] = useState(null); // 'building' | 'generating' | null
   const [abortController, setAbortController] = useState(null);
@@ -364,6 +365,14 @@ export default function RewriteModal({
           characterSummaries = buildCharacterSummaries(charactersInSelection, sceneContext);
         }
       }
+      const enrichedContext = buildEnrichedAgentContext({
+        lane: 'rewrite',
+        sceneContext,
+        characters,
+        locations,
+        assets,
+        scenes: screenplayScenes
+      });
       
       // Build rewrite prompt with enhanced context
       const surroundingText = {
@@ -380,7 +389,8 @@ export default function RewriteModal({
         surroundingText, 
         fullCurrentScene,
         characterSummaries,
-        useJSONFormat
+        useJSONFormat,
+        enrichedContext.text
       );
       
       // System prompt for rewrite
@@ -443,6 +453,12 @@ export default function RewriteModal({
             characters: sceneContext.characters,
             pageNumber: sceneContext.pageNumber
           } : null,
+          promptMetrics: {
+            lane: 'rewrite',
+            userPromptChars: builtPrompt.length,
+            systemPromptChars: systemPrompt.length,
+            enrichedContextChars: enrichedContext.metrics.totalChars
+          },
           responseFormat: responseFormat // Structured output format (if supported and using JSON)
         },
         // onChunk

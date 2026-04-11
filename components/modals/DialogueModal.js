@@ -11,6 +11,7 @@ import { buildDialoguePrompt } from '@/utils/promptBuilders';
 import { buildCharacterSummaries } from '@/utils/characterContextBuilder';
 import { validateDialogueContent } from '@/utils/jsonValidator';
 import { formatFountainSpacing } from '@/utils/fountainSpacing';
+import { buildEnrichedAgentContext } from '@/utils/agentContextContract';
 import { getTimingMessage } from '@/utils/modelTiming';
 import { createClientLogger } from '@/utils/clientLogger';
 import { extractCreditError, getCreditErrorDisplayMessage, syncCreditsFromError } from '@/utils/creditGuard';
@@ -40,7 +41,7 @@ export default function DialogueModal({
   onInsert
 }) {
   const { state: chatState } = useChatContext();
-  const { characters, screenplayId } = useScreenplay();
+  const { characters, locations, assets, scenes: screenplayScenes, screenplayId } = useScreenplay();
   const [isLoading, setIsLoading] = useState(false);
   const [loadingStage, setLoadingStage] = useState(null); // 'building' | 'generating' | null
   const [abortController, setAbortController] = useState(null);
@@ -200,6 +201,14 @@ export default function DialogueModal({
         selectedCharacters.includes(char.name)
       );
       const characterSummaries = buildCharacterSummaries(selectedCharacterObjects, sceneContext);
+      const enrichedContext = buildEnrichedAgentContext({
+        lane: 'dialogue',
+        sceneContext,
+        characters,
+        locations,
+        assets,
+        scenes: screenplayScenes
+      });
 
       // Build form data
       const formData = {
@@ -222,7 +231,8 @@ export default function DialogueModal({
         recentDialogue,
         sceneAction,
         characterSummaries,
-        true
+        true,
+        enrichedContext.text
       );
 
       // System prompt for dialogue
@@ -298,6 +308,12 @@ Rules:
             characters: sceneContext.characters,
             pageNumber: sceneContext.pageNumber
           } : null,
+          promptMetrics: {
+            lane: 'dialogue',
+            userPromptChars: builtPrompt.length,
+            systemPromptChars: systemPrompt.length,
+            enrichedContextChars: enrichedContext.metrics.totalChars
+          },
           responseFormat: responseFormat // Structured output format (if supported)
         },
         // onChunk

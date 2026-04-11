@@ -21,6 +21,7 @@ import { cn } from '@/lib/utils';
 import { detectCurrentScene, extractSelectionContext } from '@/utils/sceneDetection';
 import { buildRewritePrompt } from '@/utils/promptBuilders';
 import { buildStoryAdvisorContext, buildContextPromptString } from '@/utils/screenplayContextBuilder';
+import { buildEnrichedAgentContext } from '@/utils/agentContextContract';
 import { stripFountainInlineStyleMarkers } from '@/utils/stripFountainInlineStyleMarkers';
 import { extractCreditError, getCreditErrorDisplayMessage, syncCreditsFromError } from '@/utils/creditGuard';
 import { api } from '@/lib/api';
@@ -458,7 +459,7 @@ function UnifiedChatPanelInner({
   const previousContextRef = useRef(null);
   const { startWorkflow } = useChatMode();
   const { getToken } = useAuth();
-  const { canUseAI, screenplayId } = useScreenplay();
+  const { canUseAI, screenplayId, characters, locations, assets, scenes } = useScreenplay();
   const pathname = usePathname(); // Get current page path for default mode
   const messagesEndRef = useRef(null);
   const textareaRef = useRef(null);
@@ -1147,6 +1148,7 @@ function UnifiedChatPanelInner({
         
         let contextSnapshot = { screenplay: false, pitchDeck: false, slideCount: 0 };
         // STORY ADVISOR MODE: Use new intelligent context builder
+        let lanePromptMetrics = null;
         if (state.activeMode === 'chat') {
           // Base system prompt for Story Advisor
           const systemPromptBase = `You are a professional screenplay consultant and screenwriter. Provide advice, analysis, creative guidance, and screenplay writing support.
@@ -1220,13 +1222,24 @@ function UnifiedChatPanelInner({
             modelId: state.selectedModel || DEFAULT_CHAT_MODEL_ID
           });
           
+          const enrichedStoryAdvisorContext = buildEnrichedAgentContext({
+            lane: 'story_advisor',
+            sceneContext: editorContent && cursorPosition !== undefined
+              ? detectCurrentScene(editorContent, cursorPosition)
+              : state.sceneContext,
+            characters,
+            locations,
+            assets,
+            scenes
+          });
           const contextData = buildStoryAdvisorContext(
             editorContent,
             cursorPosition,
             message,
             state.selectedModel || DEFAULT_CHAT_MODEL_ID,
             conversationHistory,
-            systemPromptBase
+            systemPromptBase,
+            enrichedStoryAdvisorContext.text
           );
           
           console.log('[UnifiedChatPanel] ✅ Context data received from builder:', {
@@ -1292,6 +1305,12 @@ function UnifiedChatPanelInner({
             totalLength: systemPrompt.length,
             estimatedTokens: Math.ceil(systemPrompt.length / 4) // Rough estimate: ~4 chars per token
           });
+          lanePromptMetrics = {
+            lane: 'story_advisor',
+            userPromptChars: message.length,
+            systemPromptChars: systemPrompt.length,
+            enrichedContextChars: enrichedStoryAdvisorContext.metrics.totalChars
+          };
           
         } else {
           // OTHER AGENT MODES: Use existing logic
@@ -1319,6 +1338,14 @@ function UnifiedChatPanelInner({
             if (selectionContext) {
               // 🔥 PHASE 4: Use JSON format for rewrite (structured output)
               const useJSONFormat = true;
+              const enrichedRewriteContext = buildEnrichedAgentContext({
+                lane: 'rewrite',
+                sceneContext: currentSceneContext,
+                characters,
+                locations,
+                assets,
+                scenes
+              });
               // Build rewrite prompt with surrounding text
               finalUserPrompt = buildRewritePrompt(
                 message,
@@ -1328,8 +1355,17 @@ function UnifiedChatPanelInner({
                   before: selectionContext.beforeContext,
                   after: selectionContext.afterContext
                 },
-                useJSONFormat
+                currentSceneContext?.content || '',
+                '',
+                useJSONFormat,
+                enrichedRewriteContext.text
               );
+              lanePromptMetrics = {
+                lane: 'rewrite',
+                userPromptChars: finalUserPrompt.length,
+                systemPromptChars: systemPrompt.length,
+                enrichedContextChars: enrichedRewriteContext.metrics.totalChars
+              };
               
               // System prompt for rewrite mode
               if (useJSONFormat) {
@@ -1413,6 +1449,7 @@ function UnifiedChatPanelInner({
                   contextMode: storyAdvisorContextMode,
                 }
               : {}),
+            ...(lanePromptMetrics ? { promptMetrics: lanePromptMetrics } : {}),
             ...pitchDeckChatContext,
             ...chatContextSnapshotPayload
             // attachments: attachedFiles.length > 0 ? attachedFiles : undefined // TODO: Re-enable when backend supports attachments

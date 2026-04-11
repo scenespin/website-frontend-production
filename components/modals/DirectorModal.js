@@ -11,6 +11,7 @@ import { buildDirectorModalPrompt } from '@/utils/promptBuilders';
 import { validateDirectorModalContent } from '@/utils/jsonValidator';
 import { formatFountainSpacing } from '@/utils/fountainSpacing';
 import { getCharactersInScene, buildCharacterSummaries } from '@/utils/characterContextBuilder';
+import { buildEnrichedAgentContext } from '@/utils/agentContextContract';
 import { getTimingMessage } from '@/utils/modelTiming';
 import { createClientLogger } from '@/utils/clientLogger';
 import { extractCreditError, getCreditErrorDisplayMessage, syncCreditsFromError } from '@/utils/creditGuard';
@@ -36,7 +37,7 @@ export default function DirectorModal({
   onInsert
 }) {
   const { state: chatState } = useChatContext();
-  const { characters, screenplayId } = useScreenplay();
+  const { characters, locations, assets, scenes: screenplayScenes, screenplayId } = useScreenplay();
   const [isLoading, setIsLoading] = useState(false);
   const [loadingStage, setLoadingStage] = useState(null); // 'building' | 'generating' | null
   const [abortController, setAbortController] = useState(null);
@@ -191,6 +192,14 @@ export default function DirectorModal({
       // Get character summaries for characters in scene
       const sceneCharacters = getCharactersInScene(characters || [], sceneContext);
       const characterSummaries = buildCharacterSummaries(sceneCharacters, sceneContext);
+      const enrichedContext = buildEnrichedAgentContext({
+        lane: 'director',
+        sceneContext,
+        characters,
+        locations,
+        assets,
+        scenes: screenplayScenes
+      });
 
       // Build prompt with enhanced context
       const builtPrompt = buildDirectorModalPrompt(
@@ -199,7 +208,8 @@ export default function DirectorModal({
         fullCurrentScene, 
         previousScene, 
         characterSummaries, 
-        true
+        true,
+        enrichedContext.text
       );
 
       // System prompt for director
@@ -279,6 +289,12 @@ Rules:
             characters: sceneContext.characters,
             pageNumber: sceneContext.pageNumber
           } : null,
+          promptMetrics: {
+            lane: 'director',
+            userPromptChars: builtPrompt.length,
+            systemPromptChars: systemPrompt.length,
+            enrichedContextChars: enrichedContext.metrics.totalChars
+          },
           responseFormat: responseFormat // Structured output format (if supported)
         },
         // onChunk

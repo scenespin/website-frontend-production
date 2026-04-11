@@ -111,12 +111,14 @@ export function buildChatContentPrompt(message, sceneContext, useJSON = true) {
  * @param {Array} recentDialogue - Array of recent dialogue exchanges {character, line}
  * @param {string} characterSummaries - Formatted character summaries string
  * @param {boolean} useJSON - Whether to request JSON format (default: true)
+ * @param {string} enrichedContext - Lane-bounded enriched entity context
  * @returns {string} Formatted prompt for screenwriter generation
  */
-export function buildScreenwriterPrompt(userMessage, sceneContext, fullCurrentSceneUpToCursor = '', recentDialogue = [], characterSummaries = '', useJSON = true) {
+export function buildScreenwriterPrompt(userMessage, sceneContext, fullCurrentSceneUpToCursor = '', recentDialogue = [], characterSummaries = '', useJSON = true, enrichedContext = '') {
   let prompt = userMessage;
   const normalizedCurrentScene = normalizeAgentContextText(fullCurrentSceneUpToCursor);
   const normalizedCharacterSummaries = normalizeAgentContextText(characterSummaries);
+  const normalizedEnrichedContext = normalizeAgentContextText(enrichedContext);
   
   // Enhanced context section
   let enhancedContext = '';
@@ -139,6 +141,10 @@ export function buildScreenwriterPrompt(userMessage, sceneContext, fullCurrentSc
   // Character summaries
   if (normalizedCharacterSummaries) {
     enhancedContext += `\n\n[CHARACTERS IN SCENE]\n${normalizedCharacterSummaries}\n`;
+  }
+
+  if (normalizedEnrichedContext) {
+    enhancedContext += `\n\n[ENRICHED AGENT CONTEXT]\n${normalizedEnrichedContext}\n`;
   }
   
   // Add enhanced context
@@ -201,12 +207,14 @@ Note: The user is asking for advice or discussion. Keep your response concise an
  * @param {Object} sceneContext - Scene context from detectCurrentScene
  * @param {string} contextBefore - Context text before cursor/selection
  * @param {boolean} useJSON - Whether to use JSON format (structured output)
+ * @param {string} enrichedContext - Lane-bounded enriched entity context
  * @returns {string} Formatted prompt for Director modal
  */
-export function buildDirectorModalPrompt(sceneDirections, sceneContext, fullCurrentScene = '', previousScene = null, characterSummaries = '', useJSON = true) {
+export function buildDirectorModalPrompt(sceneDirections, sceneContext, fullCurrentScene = '', previousScene = null, characterSummaries = '', useJSON = true, enrichedContext = '') {
   const contextInfo = buildContextInfo(sceneContext);
   const normalizedCurrentScene = normalizeAgentContextText(fullCurrentScene);
   const normalizedCharacterSummaries = normalizeAgentContextText(characterSummaries);
+  const normalizedEnrichedContext = normalizeAgentContextText(enrichedContext);
   
   // Build scene direction prompts
   let scenePrompts = '';
@@ -236,6 +244,10 @@ export function buildDirectorModalPrompt(sceneDirections, sceneContext, fullCurr
   // Character summaries
   if (normalizedCharacterSummaries) {
     contextSection += `\n\n[CHARACTERS IN SCENE]\n${normalizedCharacterSummaries}\n`;
+  }
+
+  if (normalizedEnrichedContext) {
+    contextSection += `\n\n[ENRICHED AGENT CONTEXT]\n${normalizedEnrichedContext}\n`;
   }
   
   // Scene metadata
@@ -486,13 +498,15 @@ Output: ${generationLength === 'multiple' ? 'Multiple complete, cinematic scenes
  * @param {string} fullCurrentScene - Full current scene content for broader context
  * @param {string} characterSummaries - Formatted character summaries string (if characters appear in selection)
  * @param {boolean} useJSON - Whether to use JSON format
+ * @param {string} enrichedContext - Lane-bounded enriched entity context
  * @returns {string} Formatted prompt for rewrite
  */
-export function buildRewritePrompt(message, selectedText, sceneContext, surroundingText = null, fullCurrentScene = '', characterSummaries = '', useJSON = false) {
+export function buildRewritePrompt(message, selectedText, sceneContext, surroundingText = null, fullCurrentScene = '', characterSummaries = '', useJSON = false, enrichedContext = '') {
   let contextInfo = '';
   const normalizedSelectedText = normalizeAgentContextText(selectedText);
   const normalizedCurrentScene = normalizeAgentContextText(fullCurrentScene);
   const normalizedCharacterSummaries = normalizeAgentContextText(characterSummaries);
+  const normalizedEnrichedContext = normalizeAgentContextText(enrichedContext);
   const normalizedBefore = normalizeAgentContextText(surroundingText?.before || '');
   const normalizedAfter = normalizeAgentContextText(surroundingText?.after || '');
   
@@ -507,6 +521,10 @@ export function buildRewritePrompt(message, selectedText, sceneContext, surround
   // Character summaries if characters appear in selection
   if (normalizedCharacterSummaries) {
     enhancedContext += `\n\n[CHARACTERS IN SELECTION]\n${normalizedCharacterSummaries}\n`;
+  }
+
+  if (normalizedEnrichedContext) {
+    enhancedContext += `\n\n[ENRICHED AGENT CONTEXT]\n${normalizedEnrichedContext}\n`;
   }
   
   // Add enhanced context
@@ -647,12 +665,14 @@ CRITICAL SPACING RULES (Fountain.io spec):
  * @param {Array} sceneAction - Array of action lines from scene
  * @param {string} characterSummaries - Formatted character summaries string
  * @param {boolean} useJSON - Whether to use JSON format (structured output)
+ * @param {string} enrichedContext - Lane-bounded enriched entity context
  * @returns {string} Formatted prompt for Dialogue modal
  */
-export function buildDialoguePrompt(formData, sceneContext, fullCurrentScene = '', recentDialogue = [], sceneAction = [], characterSummaries = '', useJSON = true) {
+export function buildDialoguePrompt(formData, sceneContext, fullCurrentScene = '', recentDialogue = [], sceneAction = [], characterSummaries = '', useJSON = true, enrichedContext = '') {
   const contextInfo = buildContextInfo(sceneContext);
   const normalizedCurrentScene = normalizeAgentContextText(fullCurrentScene);
   const normalizedCharacterSummaries = normalizeAgentContextText(characterSummaries);
+  const normalizedEnrichedContext = normalizeAgentContextText(enrichedContext);
   
   // Enhanced context section
   let enhancedContext = '';
@@ -680,6 +700,10 @@ export function buildDialoguePrompt(formData, sceneContext, fullCurrentScene = '
   // Character summaries
   if (normalizedCharacterSummaries) {
     enhancedContext += `\n\n[CHARACTERS]\n${normalizedCharacterSummaries}\n`;
+  }
+
+  if (normalizedEnrichedContext) {
+    enhancedContext += `\n\n[ENRICHED AGENT CONTEXT]\n${normalizedEnrichedContext}\n`;
   }
   
   // Build prompt from form data

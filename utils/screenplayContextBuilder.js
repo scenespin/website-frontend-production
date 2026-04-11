@@ -36,7 +36,7 @@ function normalizeAgentContextText(value) {
  * @param {string} systemPromptBase - Base system prompt (for token calculation)
  * @returns {Object} Context object with type and content
  */
-export function buildStoryAdvisorContext(editorContent, cursorPosition, query, modelId, conversationHistory, systemPromptBase) {
+export function buildStoryAdvisorContext(editorContent, cursorPosition, query, modelId, conversationHistory, systemPromptBase, enrichedContext = '') {
   console.log('[screenplayContextBuilder] buildStoryAdvisorContext called:', {
     hasEditorContent: !!editorContent,
     editorContentLength: editorContent?.length || 0,
@@ -45,12 +45,15 @@ export function buildStoryAdvisorContext(editorContent, cursorPosition, query, m
     conversationHistoryLength: conversationHistory?.length || 0
   });
   
+  const normalizedEnrichedContext = normalizeAgentContextText(enrichedContext);
+
   if (!editorContent || editorContent.length === 0) {
     console.warn('[screenplayContextBuilder] editorContent is empty!');
     return {
       type: 'empty',
       content: null,
-      currentScene: null
+      currentScene: null,
+      enrichedContext: normalizedEnrichedContext
     };
   }
 
@@ -94,7 +97,8 @@ export function buildStoryAdvisorContext(editorContent, cursorPosition, query, m
       type: 'full',
       content: editorContent,
       currentScene: currentScene,
-      estimatedPages: estimatedPages
+      estimatedPages: estimatedPages,
+      enrichedContext: normalizedEnrichedContext
     };
   } else if (estimatedPages < MEDIUM_SCREENPLAY_PAGES) {
     // Medium screenplay: structured summary + current scene
@@ -104,7 +108,8 @@ export function buildStoryAdvisorContext(editorContent, cursorPosition, query, m
       type: 'structured',
       content: structure,
       currentScene: currentScene,
-      estimatedPages: estimatedPages
+      estimatedPages: estimatedPages,
+      enrichedContext: normalizedEnrichedContext
     };
   } else {
     // Long screenplay: RAG-style retrieval
@@ -116,7 +121,8 @@ export function buildStoryAdvisorContext(editorContent, cursorPosition, query, m
       content: structure,
       currentScene: currentScene,
       relevantScenes: relevantScenes,
-      estimatedPages: estimatedPages
+      estimatedPages: estimatedPages,
+      enrichedContext: normalizedEnrichedContext
     };
   }
   
@@ -526,6 +532,11 @@ export function buildContextPromptString(contextData) {
     }
     
     contextString += `Use this structure overview, current scene, and relevant scenes to provide comprehensive analysis.`;
+  }
+
+  const normalizedEnrichedContext = normalizeAgentContextText(contextData.enrichedContext || '');
+  if (normalizedEnrichedContext) {
+    contextString += `\n\n[ENRICHED AGENT CONTEXT]\n${normalizedEnrichedContext}`;
   }
 
   return contextString;
