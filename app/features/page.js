@@ -32,24 +32,24 @@ export default function Features() {
               </span>
             </Link>
             <nav className="hidden md:flex items-center gap-6">
+              <Link href="/features" className="text-sm text-white font-medium">
+                Product
+              </Link>
               <Link href="/examples" className="text-sm text-gray-300 hover:text-white transition-colors">
                 Examples
               </Link>
-              <Link href="/compare" className="text-sm text-gray-300 hover:text-white transition-colors">
-                Compare
-              </Link>
               <Link href="/models" className="text-sm text-gray-300 hover:text-white transition-colors">
-                Models
+                Technology
               </Link>
-              <Link href="/pricing" className="text-sm text-gray-300 hover:text-white transition-colors">
-                Pricing
+              <Link href="/about" className="text-sm text-gray-300 hover:text-white transition-colors">
+                About
               </Link>
-              <Link href="/sign-in" className="text-sm text-gray-300 hover:text-white transition-colors">
-                Login
+              <Link href="/contact" className="text-sm text-gray-300 hover:text-white transition-colors">
+                Contact
               </Link>
             </nav>
-            <Link href="/sign-in" className="md:hidden text-sm text-gray-300 hover:text-white transition-colors">
-              Login
+            <Link href="/contact" className="md:hidden text-sm text-gray-300 hover:text-white transition-colors">
+              Contact
             </Link>
           </div>
         </div>
@@ -64,20 +64,20 @@ export default function Features() {
                 Feature depth across Create, Produce, and Direct
               </h1>
               <p className="text-lg md:text-xl text-gray-300 max-w-3xl mb-6">
-                Start with screenplay craft, then extend into visual coverage and shot execution using the same story context.
+                Explore the platform through product context, workflow architecture, and curated examples.
               </p>
               <div className="flex flex-col sm:flex-row gap-3">
                 <Link
-                  href="/sign-up"
+                  href="/contact"
                   className="inline-flex items-center justify-center px-6 py-3 bg-[#DC143C] text-white font-semibold rounded-lg hover:bg-[#B01030] transition-colors min-h-[44px]"
                 >
-                  Start Writing Free
+                  Request Demo
                 </Link>
                 <Link
                   href="/models"
                   className="inline-flex items-center justify-center px-6 py-3 bg-[#141414] border border-[#3F3F46] text-white font-semibold rounded-lg hover:bg-[#1F1F1F] transition-colors min-h-[44px]"
                 >
-                  View Models
+                  View Technology
                 </Link>
               </div>
             </div>
@@ -174,23 +174,23 @@ export default function Features() {
         <section className="py-20 bg-[#141414]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <h2 className="text-3xl md:text-4xl font-bold mb-4">
-              Start with pages, then expand with control
+              See the product in context, then request a walkthrough
             </h2>
             <p className="text-lg text-gray-300 mb-8 max-w-2xl mx-auto">
-              Wryda keeps screenplay craft at the center and extends into production only when your project needs it.
+              Wryda is currently presented through curated examples and private demos rather than open self-serve access.
             </p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-3">
               <Link
-                href="/sign-up"
+                href="/contact"
                 className="inline-flex items-center justify-center px-8 py-4 bg-[#DC143C] text-white font-semibold rounded-lg hover:bg-[#B01030] transition-colors text-lg"
               >
-                Start Writing Free
+                Request Demo
               </Link>
               <Link
                 href="/examples"
                 className="inline-flex items-center justify-center px-8 py-4 bg-[#0A0A0A] border border-[#3F3F46] text-white font-semibold rounded-lg hover:bg-[#1F1F1F] transition-colors text-lg"
               >
-                Explore Examples
+                View Examples
               </Link>
             </div>
           </div>

@@ -4,6 +4,8 @@ import { NextResponse } from 'next/server'
 // Public routes: no auth required. Uses Clerk's createRouteMatcher for reliable matching.
 const isPublicRoute = createRouteMatcher([
   '/',
+  '/about',
+  '/contact',
   '/features',
   '/features/editor',
   '/compare',
@@ -14,6 +16,7 @@ const isPublicRoute = createRouteMatcher([
   '/examples',
   '/provenance-ledger',
   '/how-it-works',
+  '/private-access',
   '/help',
   '/help/(.*)',
   '/help-archive/(.*)',
@@ -31,10 +34,6 @@ const isPublicRoute = createRouteMatcher([
   '/tos',
   '/privacy-policy',
   '/unsubscribe',
-  '/sign-in',
-  '/sign-in/(.*)',
-  '/sign-up',
-  '/sign-up/(.*)',
   '/api/gallery/(.*)',
   '/api/waitlist/(.*)',
   '/api/lead',
@@ -53,17 +52,16 @@ export default clerkMiddleware(async (auth, req) => {
     return
   }
 
-  // Redirect to local sign-in page instead of Clerk hosted page
-  const signInUrl = new URL('/sign-in', req.url)
-  signInUrl.searchParams.set('redirect_url', req.url)
+  const privateAccessUrl = new URL('/private-access', req.url)
+  privateAccessUrl.searchParams.set('redirect_url', req.url)
 
   try {
     const { userId } = await auth()
     if (!userId) {
-      return NextResponse.redirect(signInUrl)
+      return NextResponse.redirect(privateAccessUrl)
     }
   } catch {
-    return NextResponse.redirect(signInUrl)
+    return NextResponse.redirect(privateAccessUrl)
   }
 })
 

@@ -5,41 +5,15 @@ import Image from "next/image";
 import config from "@/config";
 import Footer from "@/components/Footer";
 import logo from "@/app/icon.png";
-import { useUser } from "@clerk/nextjs";
-import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import ButtonSignin from "@/components/ButtonSignin";
+import { useState } from "react";
 
 const HOMEPAGE_DEMO_VIDEO_ID = "yA8n650Dm9M";
 
 export default function Page() {
-  const { user, isLoaded } = useUser();
-  const router = useRouter();
   const [isDemoLoaded, setIsDemoLoaded] = useState(false);
   const hasDemoVideo = HOMEPAGE_DEMO_VIDEO_ID !== "REPLACE_WITH_YOUR_VIDEO_ID";
   const youtubeEmbedUrl = `https://www.youtube.com/embed/${HOMEPAGE_DEMO_VIDEO_ID}?rel=0&modestbranding=1&playsinline=1&autoplay=1`;
   const youtubePosterUrl = `https://i.ytimg.com/vi/${HOMEPAGE_DEMO_VIDEO_ID}/maxresdefault.jpg`;
-
-  // Redirect logged-in users to dashboard
-  useEffect(() => {
-    if (isLoaded && user) {
-      router.push('/dashboard');
-    }
-  }, [isLoaded, user, router]);
-
-  // Show loading while checking auth
-  if (!isLoaded) {
-    return (
-      <div className="min-h-screen bg-[#0A0A0A] flex items-center justify-center">
-        <div className="text-white">Loading...</div>
-      </div>
-    );
-  }
-
-  // Don't render homepage if user is logged in (will redirect)
-  if (user) {
-    return null;
-  }
 
   return (
     <>
@@ -61,24 +35,26 @@ export default function Page() {
               </span>
             </Link>
             <nav className="hidden md:flex items-center gap-6">
+              <Link href="/features" className="text-sm text-gray-300 hover:text-white transition-colors">
+                Product
+              </Link>
               <Link href="/examples" className="text-sm text-gray-300 hover:text-white transition-colors">
                 Examples
               </Link>
-              <Link href="/compare" className="text-sm text-gray-300 hover:text-white transition-colors">
-                Compare
-              </Link>
               <Link href="/models" className="text-sm text-gray-300 hover:text-white transition-colors">
-                Models
+                Technology
               </Link>
-              <Link href="/pricing" className="text-sm text-gray-300 hover:text-white transition-colors">
-                Pricing
+              <Link href="/about" className="text-sm text-gray-300 hover:text-white transition-colors">
+                About
               </Link>
-              <div className="flex items-center">
-                <ButtonSignin text="Login" extraStyle="!bg-transparent !border-none !text-gray-300 hover:!text-white !px-0 !min-h-0 !h-auto !text-sm !shadow-none !normal-case" />
-              </div>
+              <Link href="/contact" className="text-sm text-gray-300 hover:text-white transition-colors">
+                Contact
+              </Link>
             </nav>
             <div className="md:hidden">
-              <ButtonSignin text="Login" extraStyle="!bg-transparent !border-none !text-gray-300 hover:!text-white !px-0 !min-h-0 !h-auto !text-sm !shadow-none !normal-case" />
+              <Link href="/contact" className="text-sm text-gray-300 hover:text-white transition-colors">
+                Contact
+              </Link>
             </div>
           </div>
         </div>
@@ -91,26 +67,26 @@ export default function Page() {
             <div className="text-center">
               {/* Main Headline */}
               <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-7xl font-extrabold tracking-tight mb-4 md:mb-6 px-2">
-                Write the script only you can write.
+                Screenplay-first AI production for private demos and investor review.
               </h1>
 
               <p className="text-base sm:text-lg md:text-xl lg:text-2xl text-gray-300 max-w-4xl mx-auto mb-4 md:mb-5 px-4">
-                Write in a true screenplay environment, revise with full-context AI, and extend to production when it serves the story.
+                Wryda connects writing, visual planning, and shot-linked execution in one workflow, now presented through curated examples and private demos.
               </p>
 
               {/* CTAs */}
               <div className="flex flex-col sm:flex-row gap-4 justify-center mb-6">
                 <Link
-                  href="/sign-up"
+                  href="/contact"
                   className="inline-flex items-center justify-center px-6 py-3 md:px-8 md:py-4 bg-[#DC143C] text-white font-semibold rounded-lg hover:bg-[#B01030] transition-colors text-base md:text-lg min-h-[44px] w-full sm:w-auto"
                 >
-                  Start Writing Free
+                  Request Demo
                 </Link>
                 <Link
                   href="/examples"
                   className="inline-flex items-center justify-center px-6 py-3 md:px-8 md:py-4 bg-[#141414] border border-[#3F3F46] text-white font-semibold rounded-lg hover:bg-[#1F1F1F] transition-colors text-base md:text-lg min-h-[44px] w-full sm:w-auto"
                 >
-                  See Real Workflows
+                  View Examples
                 </Link>
               </div>
 
@@ -175,16 +151,16 @@ export default function Page() {
 
               {/* Trust Strip */}
               <div className="mt-5 flex flex-wrap justify-center gap-3 md:gap-4 text-xs sm:text-sm text-gray-400 px-4">
-                <span>Built for pro writers</span>
+                <span>Private demos available</span>
+                <span className="text-gray-600">•</span>
+                <span>Curated examples available now</span>
                 <span className="text-gray-600">•</span>
                 <span>AI assistance is optional and writer-directed</span>
                 <span className="text-gray-600">•</span>
-                <span>Wryda Provenance Ledger: lock and export timestamped, noneditable provenance bundles (PDF + JSON + SHA-256 hash) for WGA and studio policy submission workflows</span>
-                <span className="text-gray-600">•</span>
-                <span>Your screenplay data is not used to train AI models by Wryda or our AI API providers.</span>
+                <span>Screenplay context carries from Create to Produce to Direct</span>
               </div>
               <p className="text-xs text-gray-500 mt-4 px-4 max-w-4xl mx-auto">
-                Supports WGA and studio disclosure workflows; not a legal determination, legal advice, or certification of compliance.
+                Wryda is currently presented through curated examples and scheduled private demos rather than open self-serve access.
               </p>
             </div>
           </div>
@@ -319,41 +295,40 @@ export default function Page() {
           </div>
         </section>
 
-        {/* Pricing Section */}
-        <section id="pricing" className="py-20 bg-[#141414]">
+        {/* Access Section */}
+        <section className="py-20 bg-[#141414]">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="text-center mb-12 md:mb-16 px-4">
               <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold mb-3 md:mb-4">
-                Start Free. Scale When You Generate.
+                Explore the product, then request access when you want to go deeper.
               </h2>
               <p className="text-base sm:text-lg text-gray-300 max-w-2xl mx-auto">
-                Core writing features are available from day one. Credits apply when you run generation workflows.
+                The public site focuses on product context, examples, and investor-facing material. Live application access is handled through scheduled private demos.
               </p>
             </div>
 
             <div className="bg-[#0A0A0A] border border-[#3F3F46] rounded-lg p-6 md:p-8 mb-6 md:mb-8 mx-4 md:mx-0">
               <div className="text-center mb-6">
-                <h3 className="text-xl md:text-2xl font-bold mb-2">Free Tier</h3>
-                <p className="text-base md:text-lg text-gray-300">50 credits to start + 10 credits/month</p>
-                <p className="text-xs md:text-sm text-gray-400 mt-2">Everything unlocked</p>
-                <p className="text-xs md:text-sm text-gray-500 mt-1">Upgrade for volume, not access.</p>
+                <h3 className="text-xl md:text-2xl font-bold mb-2">Private Demo Access</h3>
+                <p className="text-base md:text-lg text-gray-300">See the platform through guided demos, curated examples, and direct conversations.</p>
+                <p className="text-xs md:text-sm text-gray-400 mt-2">The public site remains live while the full application is accessed selectively.</p>
               </div>
               <div className="flex justify-center">
                 <Link
-                  href="/sign-up"
+                  href="/contact"
                   className="inline-flex items-center justify-center px-6 py-3 bg-[#DC143C] text-white font-semibold rounded-lg hover:bg-[#B01030] transition-colors min-h-[44px] w-full sm:w-auto max-w-xs"
                 >
-                  Start Free
+                  Request Demo
                 </Link>
               </div>
             </div>
 
             <div className="text-center px-4">
               <Link
-                href="/pricing#subscriptions"
+                href="/private-access"
                 className="inline-flex items-center justify-center px-6 py-3 md:px-8 md:py-4 bg-[#141414] border border-[#3F3F46] text-white font-semibold rounded-lg hover:bg-[#1F1F1F] transition-colors text-base md:text-lg min-h-[44px] w-full sm:w-auto max-w-xs"
               >
-                See Full Pricing Details
+                Learn About Access
               </Link>
             </div>
           </div>

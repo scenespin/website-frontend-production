@@ -18,12 +18,12 @@ export default function Footer() {
               </span>
             </Link>
             <p className="text-sm text-gray-400 mb-2">
-              Screenplay-first, connected writing and production workflow.
+              Private demos and curated examples for a screenplay-first AI production platform.
             </p>
             <p className="text-xs text-gray-500">
               Write → Produce → Direct
               <br />
-              End-to-end from script to video production
+              Presented through investor-ready product walkthroughs
             </p>
           </div>
 
@@ -33,12 +33,7 @@ export default function Footer() {
             <ul className="space-y-2">
               <li>
                 <Link href="/features" className="text-sm text-gray-400 hover:text-white transition-colors">
-                  Features
-                </Link>
-              </li>
-              <li>
-                <Link href="/compare" className="text-sm text-gray-400 hover:text-white transition-colors">
-                  Compare
+                  Product
                 </Link>
               </li>
               <li>
@@ -47,13 +42,18 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/pricing" className="text-sm text-gray-400 hover:text-white transition-colors">
-                  Pricing
+                <Link href="/models" className="text-sm text-gray-400 hover:text-white transition-colors">
+                  Technology
                 </Link>
               </li>
               <li>
-                <Link href="/models" className="text-sm text-gray-400 hover:text-white transition-colors">
-                  Models
+                <Link href="/about" className="text-sm text-gray-400 hover:text-white transition-colors">
+                  About
+                </Link>
+              </li>
+              <li>
+                <Link href="/contact" className="text-sm text-gray-400 hover:text-white transition-colors">
+                  Contact
                 </Link>
               </li>
             </ul>
@@ -64,28 +64,28 @@ export default function Footer() {
             <h3 className="text-sm font-semibold text-white mb-4">Product</h3>
             <ul className="space-y-2">
               <li>
-                <Link href="/help/writing" className="text-sm text-gray-400 hover:text-white transition-colors">
-                  Writing
+                <Link href="/features" className="text-sm text-gray-400 hover:text-white transition-colors">
+                  Create
                 </Link>
               </li>
               <li>
-                <Link href="/help/production" className="text-sm text-gray-400 hover:text-white transition-colors">
-                  Production
+                <Link href="/features" className="text-sm text-gray-400 hover:text-white transition-colors">
+                  Produce
                 </Link>
               </li>
               <li>
-                <Link href="/help/direct" className="text-sm text-gray-400 hover:text-white transition-colors">
+                <Link href="/features" className="text-sm text-gray-400 hover:text-white transition-colors">
                   Direct
                 </Link>
               </li>
               <li>
-                <Link href="/help" className="text-sm text-gray-400 hover:text-white transition-colors">
-                  Help Center
+                <Link href="/private-access" className="text-sm text-gray-400 hover:text-white transition-colors">
+                  Private Demo Access
                 </Link>
               </li>
               <li>
-                <Link href="/help/contact" className="text-sm text-gray-400 hover:text-white transition-colors">
-                  Contact
+                <Link href="/contact" className="text-sm text-gray-400 hover:text-white transition-colors">
+                  Request Demo
                 </Link>
               </li>
             </ul>
@@ -111,8 +111,8 @@ export default function Footer() {
                 </Link>
               </li>
               <li>
-                <Link href="/provenance-ledger" className="text-sm text-gray-400 hover:text-white transition-colors">
-                  Wryda Provenance Ledger
+                <Link href="/compare" className="text-sm text-gray-400 hover:text-white transition-colors">
+                  Compare
                 </Link>
               </li>
             </ul>
@@ -126,7 +126,7 @@ export default function Footer() {
               © {currentYear} Garden State Concentrate LLC, doing business as Wryda.ai, and wryda.ai. All rights reserved.
             </p>
             <p className="text-xs text-gray-500">
-              Screenplay-first connected workflow
+              Curated examples and private demos
             </p>
           </div>
         </div>

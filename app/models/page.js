@@ -66,24 +66,24 @@ export default function ModelsPage() {
               </span>
             </Link>
             <nav className="hidden md:flex items-center gap-6">
+              <Link href="/features" className="text-sm text-gray-300 hover:text-white transition-colors">
+                Product
+              </Link>
               <Link href="/examples" className="text-sm text-gray-300 hover:text-white transition-colors">
                 Examples
               </Link>
-              <Link href="/compare" className="text-sm text-gray-300 hover:text-white transition-colors">
-                Compare
-              </Link>
               <Link href="/models" className="text-sm text-white font-medium">
-                Models
+                Technology
               </Link>
-              <Link href="/pricing" className="text-sm text-gray-300 hover:text-white transition-colors">
-                Pricing
+              <Link href="/about" className="text-sm text-gray-300 hover:text-white transition-colors">
+                About
               </Link>
-              <Link href="/sign-in" className="text-sm text-gray-300 hover:text-white transition-colors">
-                Login
+              <Link href="/contact" className="text-sm text-gray-300 hover:text-white transition-colors">
+                Contact
               </Link>
             </nav>
-            <Link href="/sign-in" className="md:hidden text-sm text-gray-300 hover:text-white transition-colors">
-              Login
+            <Link href="/contact" className="md:hidden text-sm text-gray-300 hover:text-white transition-colors">
+              Contact
             </Link>
           </div>
         </div>
@@ -92,9 +92,9 @@ export default function ModelsPage() {
       <main>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
         <div className="mb-8">
-          <h1 className="text-3xl sm:text-4xl font-bold text-white">Model Catalog</h1>
+          <h1 className="text-3xl sm:text-4xl font-bold text-white">Technology</h1>
           <p className="text-gray-400 mt-3 max-w-3xl">
-            Full transparency. The AI models that power your screenplay editor, scene builder, and video workflows—writer-directed and production-aware.
+            A look at the model and provider stack behind the writing, planning, and generation workflows used across the product.
           </p>
         </div>
 
