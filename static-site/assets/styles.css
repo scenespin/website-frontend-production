@@ -337,6 +337,15 @@ p {
   text-align: center;
 }
 
+.video-copy strong,
+.video-copy .notice {
+  display: block;
+}
+
+.video-copy .notice {
+  margin-top: 0.35rem;
+}
+
 .play-badge {
   width: 84px;
   height: 84px;
